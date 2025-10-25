@@ -1,0 +1,30 @@
+# https://github.com/dockur/windows
+# By default, a user called `Docker` is created during installation and its password is `admin`.
+# Run this with: docker-compose --file .\Docker.Windows.Container.compose.yml -p windows up --build
+# Shut down with: docker-compose --file .\Docker.Windows.Container.compose.yml -p windows down
+services:
+  windows:
+    image: dockurr/windows
+    container_name: windows
+    environment:
+      VERSION: "${Windows_Version}"
+      DISK_SIZE: "${Disk_Size}"
+      RAM_SIZE: "${Ram_Size}"
+      CPU_CORES: "${Cpu_Cores}"
+      USERNAME: "${Username}"
+      PASSWORD: "${Password}"
+      REGION: "${Region}"
+      KEYBOARD: "${Keyboard}"
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006
+      - 3389:3389/tcp
+      - 3389:3389/udp
+    volumes:
+      - ./windows:/storage
+    restart: always
+    stop_grace_period: 2m
