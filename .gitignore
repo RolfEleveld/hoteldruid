@@ -1,2 +1,8 @@
 .env
 windows
+# Hotel druid software
+hoteldruid*.zip
+# Easy PHP runtime services
+EasyPHP*.exe 
+vcredist_x64.exe
+vcredist_x86.exe

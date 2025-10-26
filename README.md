@@ -130,3 +130,9 @@ All Windows data is stored in the `./windows` directory and persists between con
 For issues specific to the Windows container engine, refer to the [dockur/windows documentation](https://github.com/dockur/windows).
 
 For HotelDroid-specific issues, please check the troubleshooting section above or contact the development team.
+
+## Hotel Droid deployment
+
+Deploy ```https://www.easyphp.org/save-easyphp-devserver-latest.php```
+- Deploy ```vcredist_x86.exe``` from ```https://www.microsoft.com/en-us/download/details.aspx?id=30679``` for the MSVCR110.dll
+Then copy the contents of the hoteldruid*.zip into ```C:\Program Files (x86)\EasyPHP-Devserver-17\data\localweb```
