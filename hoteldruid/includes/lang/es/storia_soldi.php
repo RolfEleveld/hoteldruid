@@ -25,7 +25,7 @@ case "RESTO":  					$messaggio = "RESTO"; break;
 case "pagine":  				$messaggio = "páginas"; break;
 case "Cliente":  				$messaggio = "Cliente"; break;
 case "Utente":  				$messaggio = "Usuario"; break;
-case "Si è sicuri di voler <div style=\"display: inline; color: red;\"><b>azzerare</b></div> tutte le entrate e le uscite delle prenotazioni e i soldi trasferiti in cassa del":	$messaggio = "Estas seguro de querer <div style=\"display: inline; color: red;\"><b>borrar</b></div> todos los pagos de las reservas y el dinero transferido en caja del"; break;
+case "Si è sicuri di voler <div style=\"display: inline; color: red;\"><b>azzerare</b></div> tutte le entrate e le uscite delle prenotazioni e i soldi trasferiti in cassa del":	$messaggio = "¿Está seguro de querer <div style=\"display: inline; color: red;\"><b>eliminar</b></div> todos los pagos de las reservas y el dinero transferido en caja del"; break;
 case "SI":  					$messaggio = "SI"; break;
 case "NO":  					$messaggio = "NO"; break;
 case "Azzera entrate e uscite prenotazioni":  	$messaggio = "Borra todos los pagos de las reservas"; break;

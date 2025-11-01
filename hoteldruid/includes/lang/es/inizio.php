@@ -3,7 +3,7 @@
 switch ($messaggio) {
 
 case "Menù principale dell'anno":             	$messaggio = "Menú principal del año"; break;
-case "Inserisci una nuova prenotazione":      	$messaggio = "Insertar una nueva reserva"; break;
+case "Inserisci una nuova prenotazione":      	$messaggio = "Ingresar una nueva reserva"; break;
 case "prenotazioni del mese di": 		$messaggio = "reservas del més de"; break;
 case "visualizza": 				$messaggio = "ver"; break;
 case "Gennaio":                               	$messaggio = "Enero"; break;
@@ -24,15 +24,15 @@ case "le spese e le entrate":  			$messaggio = "los gastos y las entradas"; brea
 case "i periodi e le tariffe":  		$messaggio = "los períodos y las tarifas"; break;
 case "tutti i clienti":  			$messaggio = "todos los clientes"; break;
 case "le regole di assegnazione":  		$messaggio = "las reglas de asignación"; break;
-case "Inserisci un nuovo cliente":		$messaggio = "Insertar un nuevo cliente"; break;
+case "Inserisci un nuovo cliente":		$messaggio = "Ingresar un nuevo cliente"; break;
 case "Spese ed entrate":  			$messaggio = "Gastos y entradas"; break;
 case "disponibilità dal":  			$messaggio = "disponibilidad desde"; break;
 case "al":  					$messaggio = "hasta"; break;
 case "per":  					$messaggio = "para"; break;
 case "persone":	  				$messaggio = "personas"; break;
 case "controlla":  				$messaggio = "controlar"; break;
-case "Inserisci o modifica i prezzi":  		$messaggio = "Insertar o modificar los precios"; break;
-case "Inserisci o modifica le regole di assegnazione":  $messaggio = "Insertar o modificar las reglas de asignación"; break;
+case "Inserisci o modifica i prezzi":  		$messaggio = "Ingresar o modificar los precios"; break;
+case "Inserisci o modifica le regole di assegnazione":  $messaggio = "Ingresar o modificar las reglas de asignación"; break;
 case "Configura e personalizza":	$messaggio = "Configurar y personalizar"; break;
 case "richiedi l'anno":  			$messaggio = "Ir al año"; break;
 case "vai":  					$messaggio = "ir"; break;
@@ -67,7 +67,7 @@ case " e vi erano":  				$messaggio = " y habían"; break;
 case "prenotazioni che finivano dopo il limite posto al ":	$messaggio = "reservas que acababan después del limite dado para el "; break;
 case ", queste prenotazioni non sono state importate":	$messaggio = ", estas reservas no han sido importadas"; break;
 case "Anno già creato": 			$messaggio = "Año ya creado"; break;
-case "Il formato dell'anno richiesto è sbagliato":	$messaggio = "El formato del año pedido está equivocado"; break;
+case "Il formato dell'anno richiesto è sbagliato":	$messaggio = "El formato del año pedido es incorrecto"; break;
 case "I mesi erano indicati erroneamente, sono stati inseriti i mesi da Gennaio a Dicembre":	$messaggio = "Los meses estaban indicados en modo erroneo, han sido insertados los meses desde Enero hasta Diciembre"; break;
 case "N&deg;":  				$messaggio = "N&deg;"; break;
 case "Cognome del cliente":  			$messaggio = "Apellido cliente 	"; break;

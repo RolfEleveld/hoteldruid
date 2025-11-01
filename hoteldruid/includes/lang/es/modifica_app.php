@@ -2,7 +2,7 @@
 
 switch ($messaggio) {
 
-case "contiene prenotazione future, non si può cancellare":	$messaggio = "contiene reservas futuras, no se puede borrar"; break;
+case "contiene prenotazione future, non si può cancellare":	$messaggio = "contiene reservas futuras, no se puede eliminar"; break;
 case "SI":  					$messaggio = "SI"; break;
 case "NO":  					$messaggio = "NO"; break;
 case "Torna indietro":  			$messaggio = "Volver atrás"; break;

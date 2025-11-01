@@ -4,7 +4,7 @@ switch ($messaggio) {
 
 case "Crea Database":				$messaggio = "Crear Base de Datos"; break;
 case "Inserimento dei dati permanenti":  	$messaggio = "Inserción de los datos permanentes."; break;
-case "Inserisci questi dati per poi creare il database":	$messaggio = "Insertar estos datos para crear la base de datos"; break;
+case "Inserisci questi dati per poi creare il database":	$messaggio = "Ingresar estos datos para crear la base de datos"; break;
 case "Nome del database da utilizzare":		$messaggio = "Nombre de la base de datos a utilizar"; break;
 case "Nome del computer a cui collegarsi":  	$messaggio = "Nombre del ordenador al que conectarse"; break;
 case "Numero della porta a cui collegarsi":  	$messaggio = "Número de la puerta a la que conectarse"; break;
@@ -35,7 +35,7 @@ case "Normalmete 5432 o 5433 per Postgresql o 3306 per Mysql":	$messaggio = "Nor
 case "solo per Postgresql con database non esistente":	$messaggio = "solo para Postgresql sin base de datos ya existente"; break;
 case "Prefisso nel nome delle tabelle":		$messaggio = "Prefijo en el nombre de las tablas"; break;
 case "opzionale, utile per più installazioni di HotelDruid nello stesso database":	$messaggio = "opcionál, útil para más instalaciones de HotelDruid en la misma base de datos"; break;
-case "Il prefisso del nome delle tabelle è sbagliato (accettate solo lettere minuscole, numeri e _ , primo carattere lettera)":	$messaggio = "El prefijo del nombre de las tablas está equivocado (permitidas solo letras minúsculas, numeros y _ , primer caracter letra)"; break;
+case "Il prefisso del nome delle tabelle è sbagliato (accettate solo lettere minuscole, numeri e _ , primo carattere lettera)":	$messaggio = "El prefijo del nombre de las tablas es incorrecto (permitidas solo letras minúsculas, numeros y _ , primer caracter letra)"; break;
 case "Nome delle unità da gestire":		$messaggio = "Nombre de las unidades a gestionar"; break;
 case "Euro":					$messaggio = "Euros"; break;
 case "Benvenuto a HotelDruid!":			$messaggio = "Bienvenido a HotelDruid!"; break;
@@ -48,8 +48,8 @@ case "Se questo server web è pubblico si può abilitare il login e creare nuovi
 case "pagina gestione utenti":			$messaggio = "página de gestión de usuarios"; break;
 case "Vai alla pagina":				$messaggio = "Ir a la página"; break;
 case "configura e personalizza":		$messaggio = "configurar y personalizar"; break;
-case "per cambiare il nome della valuta, abilitare la registrazione delle entrate, inserire i metodi di pagamento, ed impostare molte altre opzioni":	$messaggio = "para cambiar el nombre de la divisa, habilitar el registro de entradas, insertar los métodos de pago, y configurar muchas otras opciones"; break;
-case "Inserisci il numero di tariffe, un nome per ciascuna di esse ed i prezzi corrispondenti dalla":	$messaggio = "Insertar el número de tarifas, un nombre para cada una de ellas y los precios correspondientes desde la"; break;
+case "per cambiare il nome della valuta, abilitare la registrazione delle entrate, inserire i metodi di pagamento, ed impostare molte altre opzioni":	$messaggio = "para cambiar el nombre de la divisa, habilitar el registro de entradas, ingresar los métodos de pago, y configurar muchas otras opciones"; break;
+case "Inserisci il numero di tariffe, un nome per ciascuna di esse ed i prezzi corrispondenti dalla":	$messaggio = "Ingresar el número de tarifas, un nombre para cada una de ellas y los precios correspondientes desde la"; break;
 case "questo programma":			$messaggio = "este programa"; break;
 case "Nome delle unità singole da gestire":	$messaggio = "Nombre de las unidades individuales a gestionar"; break;
 case "Numero di unità singole da gestire":	$messaggio = "Número de las unidades individuales a gestionar"; break;

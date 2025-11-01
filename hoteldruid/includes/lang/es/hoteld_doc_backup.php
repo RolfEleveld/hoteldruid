@@ -196,7 +196,7 @@ Si [c arr_enlaces_ec(numero_cliente)=""]el enlace no funcionara[/c][c arr_enlace
 
 [url_base_paginas_web]mdl_confirma_reserva.php
 
-e insertar después:
+e ingresar después:
 
 [arr_datos_acceso_ec(numero_cliente)]Apellido: [apellido]
 Código reserva: [codigo_reserva]
