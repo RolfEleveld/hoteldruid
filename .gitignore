@@ -1,5 +1,6 @@
 .env
 windows
+logs
 # Hotel druid software
 hoteldruid*.zip
 # Easy PHP runtime services
