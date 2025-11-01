@@ -90,34 +90,35 @@ $var_pag[62] = 'crea_app';
 $var_pag[63] = 'n_app';
 $var_pag[64] = 'crea_letti';
 $var_pag[65] = 'n_letti';
-$var_pag[66] = 'idregole';
-$var_pag[67] = 'cancella';
-$var_pag[68] = 'mese_sel1';
-$var_pag[69] = 'mese_sel2';
-$var_pag[70] = 'mese_sel3';
-$var_pag[71] = 'mese_sel4';
-$var_pag[72] = 'mese_sel5';
-$var_pag[73] = 'mese_sel6';
-$var_pag[74] = 'mese_sel7';
-$var_pag[75] = 'mese_sel8';
-$var_pag[76] = 'mese_sel9';
-$var_pag[77] = 'mese_sel10';
-$var_pag[78] = 'mese_sel11';
-$var_pag[79] = 'mese_sel12';
-$var_pag[80] = 'mese_ini_ins';
-$var_pag[81] = 'mese_fine_ins';
-$var_pag[82] = 'gio_ini_ins';
-$var_pag[83] = 'gio_fine_ins';
-$var_pag[84] = 'prezzo_comm_sel';
-$var_pag[85] = 'prezzo_tasse_sel';
-$var_pag[86] = 'tariffa_per_app';
-$var_pag[87] = 'anni_sel_passa';
-$var_pag[88] = 'manda_form_beni';
-$var_pag[89] = 'elimina_bene';
-$var_pag[90] = 'idinv';
-$var_pag[91] = 'n_nome_bene';
-$var_pag[92] = 'n_codice_bene';
-$var_pag[93] = 'n_descrizione_bene';
+$var_pag[66] = 'n_letti_single';
+$var_pag[67] = 'idregole';
+$var_pag[68] = 'cancella';
+$var_pag[69] = 'mese_sel1';
+$var_pag[70] = 'mese_sel2';
+$var_pag[71] = 'mese_sel3';
+$var_pag[72] = 'mese_sel4';
+$var_pag[73] = 'mese_sel5';
+$var_pag[74] = 'mese_sel6';
+$var_pag[75] = 'mese_sel7';
+$var_pag[76] = 'mese_sel8';
+$var_pag[77] = 'mese_sel9';
+$var_pag[78] = 'mese_sel10';
+$var_pag[79] = 'mese_sel11';
+$var_pag[80] = 'mese_sel12';
+$var_pag[81] = 'mese_ini_ins';
+$var_pag[82] = 'mese_fine_ins';
+$var_pag[83] = 'gio_ini_ins';
+$var_pag[84] = 'gio_fine_ins';
+$var_pag[85] = 'prezzo_comm_sel';
+$var_pag[86] = 'prezzo_tasse_sel';
+$var_pag[87] = 'tariffa_per_app';
+$var_pag[88] = 'anni_sel_passa';
+$var_pag[89] = 'manda_form_beni';
+$var_pag[90] = 'elimina_bene';
+$var_pag[91] = 'idinv';
+$var_pag[92] = 'n_nome_bene';
+$var_pag[93] = 'n_codice_bene';
+$var_pag[94] = 'n_descrizione_bene';
 $var_pag[94] = 'n_utente_ins_bene';
 $var_pag[95] = 'aggiungi_bene';
 $var_pag[96] = 'cambia_ut_vedi';
@@ -6788,47 +6789,106 @@ $inserire = "NO";
 } # fine for $num2
 } # fine if (!empty($crea_letti))
 
-if ($crea_app != "SI") {
+// Skip confirmation screen and directly create the room
 if (!isset($inserire) or $inserire != "NO") {
-if (!empty($crea_letti)) echo $mess_letti;
-else echo mex("L'appartamento",'unit.php')." <b>$n_app</b> ".mex("verrà aggiunto",'unit.php').".<br>";
-if ($num1 == ($num_app_vett -1)) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"n_app\" value=\"".htmlspecialchars(fixstr($n_app_orig))."\">
-<input type=\"hidden\" name=\"crea_app\" value=\"SI\">
-<input type=\"hidden\" name=\"crea_letti\" value=\"".htmlspecialchars(fixstr($crea_letti))."\">
-<input type=\"hidden\" name=\"n_letti\" value=\"".htmlspecialchars(fixstr($n_letti))."\">
-<input type=\"hidden\" name=\"tipo_tabella\" value=\"appartamenti\">
-<button class=\"aroo\" type=\"submit\"><div>".mex("Continua",$pag)."</div></button>
-</div></form><br><br>";
-} # fine if ($num1 == ($num_app_vett -1))
-} # fine if (!isset($inserire) or $inserire != "NO")
-} # fine if ($crea_app != "SI")
-
-else {
-if (!isset($inserire) or $inserire != "NO") {
-if (!$crea_letti) {
-esegui_query("insert into $tableappartamenti (idappartamenti) values ('".aggslashdb($n_app)."') ");
-echo mex("L'appartamento",'unit.php')." <b>$n_app</b> ".mex("è stato aggiunto",'unit.php').".<br>";
-} # fine if (!$crea_letti)
-else {
-for ($num2 = 0 ; $num2 < $n_letti ; $num2++) {
-$n_letto = $nomi_letti[$num2];
-esegui_query("insert into $tableappartamenti (idappartamenti,maxoccupanti,letto) values ('".aggslashdb($n_letto)."','1','1') ");
-$app_vicini = "";
-if ($num2 > 1) $app_vicini .= ",".$nomi_letti[($num2 - 2)];
-if ($num2 > 0) $app_vicini .= ",".$nomi_letti[($num2 - 1)];
-if ($num2 < ($n_letti - 1)) $app_vicini .= ",".$nomi_letti[($num2 + 1)];
-if ($num2 < ($n_letti - 2)) $app_vicini .= ",".$nomi_letti[($num2 + 2)];
-$app_vicini = substr($app_vicini,1);
-if ($app_vicini) esegui_query("update $tableappartamenti set app_vicini = '".aggslashdb($app_vicini)."' where idappartamenti = '".aggslashdb($n_letto)."' ");
-echo mex("[1]L'appartamento",'unit.php')." <b>$n_letto</b> ".mex("[1]è stato aggiunto",'unit.php').".<br>";
-} # fine for $num2
-} # fine else if (!$crea_letti)
-} # fine if (!isset($inserire) or $inserire != "NO")
-} # fine else if ($crea_app != "SI")
+    
+    // Initialize variables to avoid undefined warnings
+    if (!isset($crea_letti)) $crea_letti = "";
+    if (!isset($n_letti)) $n_letti = 0;
+    if (!isset($nomi_letti)) $nomi_letti = array();
+    
+    // For single room creation (our new interface) - simplified check
+    if (isset($n_letti_single) && isset($n_app) && !empty($n_app)) {
+        // Determine bed count (default to 2 if not set)
+        $bed_count = !empty($n_letti_single) ? intval($n_letti_single) : 2;
+        
+        // Always store maxoccupanti regardless of bed count
+        esegui_query("insert into $tableappartamenti (idappartamenti,maxoccupanti) values ('".aggslashdb($n_app)."','".aggslashdb($bed_count)."') ");
+        
+        // Regenerate apartment selection file
+        $id_appartamenti = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti ");
+        $num_appartamenti = numlin_query($id_appartamenti);
+        $fileaperto = fopen(C_DATI_PATH."/selectappartamenti.php","w+");
+        flock($fileaperto,2);
+        fwrite($fileaperto,"<?php \necho '\n");
+        for ( $num = 0; $num < $num_appartamenti; $num = $num + 1) {
+            $numapp = risul_query($id_appartamenti,$num,'idappartamenti');
+            fwrite($fileaperto,"<option value=\"$numapp\">$numapp</option>\n");
+        }
+        fwrite($fileaperto,"';\n?>");
+        flock($fileaperto,3);
+        fclose($fileaperto);
+        
+        // Redirect - use header if possible, otherwise JavaScript
+        if (!headers_sent()) {
+            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
+            exit;
+        } else {
+            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
+            exit;
+        }
+    }
+    
+    // For bulk room creation (existing logic)
+    if (empty($crea_letti)) {
+        esegui_query("insert into $tableappartamenti (idappartamenti) values ('".aggslashdb($n_app)."') ");
+        // Regenerate file and redirect
+        $id_appartamenti = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti ");
+        $num_appartamenti = numlin_query($id_appartamenti);
+        $fileaperto = fopen(C_DATI_PATH."/selectappartamenti.php","w+");
+        flock($fileaperto,2);
+        fwrite($fileaperto,"<?php \necho '\n");
+        for ( $num = 0; $num < $num_appartamenti; $num = $num + 1) {
+            $numapp = risul_query($id_appartamenti,$num,'idappartamenti');
+            fwrite($fileaperto,"<option value=\"$numapp\">$numapp</option>\n");
+        }
+        fwrite($fileaperto,"';\n?>");
+        flock($fileaperto,3);
+        fclose($fileaperto);
+        if (!headers_sent()) {
+            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
+            exit;
+        } else {
+            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
+            exit;
+        }
+    } else {
+        for ($num2 = 0 ; $num2 < $n_letti ; $num2++) {
+            $n_letto = $nomi_letti[$num2];
+            esegui_query("insert into $tableappartamenti (idappartamenti,maxoccupanti,letto) values ('".aggslashdb($n_letto)."','1','1') ");
+            $app_vicini = "";
+            if ($num2 > 1) $app_vicini .= ",".$nomi_letti[($num2 - 2)];
+            if ($num2 > 0) $app_vicini .= ",".$nomi_letti[($num2 - 1)];
+            if ($num2 < ($n_letti - 1)) $app_vicini .= ",".$nomi_letti[($num2 + 1)];
+            if ($num2 < ($n_letti - 2)) $app_vicini .= ",".$nomi_letti[($num2 + 2)];
+            $app_vicini = substr($app_vicini,1);
+            if ($app_vicini) esegui_query("update $tableappartamenti set app_vicini = '".aggslashdb($app_vicini)."' where idappartamenti = '".aggslashdb($n_letto)."' ");
+        }
+        
+        // Regenerate apartment selection file for bulk creation too
+        $id_appartamenti = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti ");
+        $num_appartamenti = numlin_query($id_appartamenti);
+        $fileaperto = fopen(C_DATI_PATH."/selectappartamenti.php","w+");
+        flock($fileaperto,2);
+        fwrite($fileaperto,"<?php \necho '\n");
+        for ( $num = 0; $num < $num_appartamenti; $num = $num + 1) {
+            $numapp = risul_query($id_appartamenti,$num,'idappartamenti');
+            fwrite($fileaperto,"<option value=\"$numapp\">$numapp</option>\n");
+        }
+        fwrite($fileaperto,"';\n?>");
+        flock($fileaperto,3);
+        fclose($fileaperto);
+        
+        // Redirect back to show updated list
+        if (!headers_sent()) {
+            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
+            exit;
+        } else {
+            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
+            exit;
+        }
+    }
+}
 
 } # fine for $num1
 
@@ -7048,26 +7108,87 @@ echo "<table><tr><td style=\"height: 2px;\"></td></tr></table><div style=\"text-
 <button class=\"edit\" type=\"submit\"><div>".mex("Modifica tutti i campi della tabella",$pag)."</div></button>
 </div></form><br>";
 if (!defined('C_CREA_NUOVI_APP') or C_CREA_NUOVI_APP != "NO") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
+
+// Enhanced room creation interface
+echo "<div class=\"modern-room-creation\" style=\"background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px auto; max-width: 600px;\">
+<h3 style=\"margin-top: 0; color: #333; text-align: center;\">".mex("Gestione Camere",$pag)."</h3>
+
+<div class=\"room-creation-tabs\" style=\"display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd;\">
+<button type=\"button\" onclick=\"showTab('single')\" id=\"tab-single\" class=\"tab-button active\" style=\"flex: 1; padding: 10px; border: none; background: #007cba; color: white; cursor: pointer; border-radius: 4px 4px 0 0; margin-right: 2px;\">".mex("Camera Singola",$pag)."</button>
+<button type=\"button\" onclick=\"showTab('multiple')\" id=\"tab-multiple\" class=\"tab-button\" style=\"flex: 1; padding: 10px; border: none; background: #6c757d; color: white; cursor: pointer; border-radius: 4px 4px 0 0;\">".mex("Camere Multiple",$pag)."</button>
+</div>
+
+<div id=\"tab-single-content\" class=\"tab-content\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: flex; flex-direction: column; gap: 15px;\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"appartamenti\">
 <input type=\"hidden\" name=\"crea_app\" value=\"1\">
-".mex("Crea un nuovo appartamento",'unit.php')."
- n° <input type=\"text\" name=\"n_app\" size=\"7\" maxlength=\"45\">
-<button class=\"aroo\" type=\"submit\"><div>".mex("Aggiungi",$pag)."</div></button>
-</div></form><br>";
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
+
+<div style=\"display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap;\">
+<label style=\"font-weight: bold; color: #555;\">".mex("Numero Camera",$pag).":</label>
+<input type=\"text\" name=\"n_app\" placeholder=\"".mex("es: 101, A1, Suite",$pag)."\" size=\"8\" maxlength=\"45\" style=\"padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;\" required>
+
+<label style=\"font-weight: bold; color: #555; margin-left: 10px;\">".mex("Numero Letti",$pag).":</label>
+<select name=\"n_letti_single\" style=\"padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;\">
+<option value=\"1\">1 ".mex("letto",$pag)."</option>
+<option value=\"2\" selected>2 ".mex("letti",$pag)."</option>
+<option value=\"3\">3 ".mex("letti",$pag)."</option>
+<option value=\"4\">4 ".mex("letti",$pag)."</option>
+<option value=\"5\">5 ".mex("letti",$pag)."</option>
+<option value=\"6\">6 ".mex("letti",$pag)."</option>
+</select>
+
+<button class=\"aroo\" type=\"submit\" style=\"padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;\"><div>".mex("Aggiungi Camera",$pag)."</div></button>
+</div>
+</div></form>
+</div>
+
+<div id=\"tab-multiple-content\" class=\"tab-content\" style=\"display: none;\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: flex; flex-direction: column; gap: 15px;\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"appartamenti\">
 <input type=\"hidden\" name=\"crea_app\" value=\"1\">
 <input type=\"hidden\" name=\"crea_letti\" value=\"1\">
-".mex("Creare",$pag)." <input type=\"text\" name=\"n_letti\" size=\"2\" maxlength=\"3\" value=\"4\">
-".mex("[1]appartamenti",'unit.php')." ".mex("nel nuovo appartamento",'unit.php')."
- n° <input type=\"text\" name=\"n_app\" size=\"5\" maxlength=\"45\">
-<button class=\"aroo\" type=\"submit\"><div>".mex("Aggiungi",$pag)."</div></button>
-</div></form><br>";
+
+<div style=\"display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap;\">
+<label style=\"font-weight: bold; color: #555;\">".mex("Numero di partenza",$pag).":</label>
+<input type=\"text\" name=\"n_app\" placeholder=\"".mex("es: 101, A",$pag)."\" size=\"6\" maxlength=\"45\" style=\"padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;\" required>
+
+<label style=\"font-weight: bold; color: #555; margin-left: 10px;\">".mex("Quantità",$pag).":</label>
+<input type=\"number\" name=\"n_letti\" min=\"1\" max=\"50\" value=\"4\" size=\"3\" maxlength=\"3\" style=\"padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 80px;\">
+
+<button class=\"aroo\" type=\"submit\" style=\"padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;\"><div>".mex("Crea Camere",$pag)."</div></button>
+</div>
+
+<p style=\"font-size: 12px; color: #666; text-align: center; margin: 10px 0;\">
+".mex("Esempio: \"101\" + quantità \"5\" creerà camere 101, 102, 103, 104, 105",$pag)."
+</p>
+</div></form>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all tab contents
+    document.getElementById('tab-single-content').style.display = 'none';
+    document.getElementById('tab-multiple-content').style.display = 'none';
+    
+    // Reset all tab buttons
+    document.getElementById('tab-single').style.background = '#6c757d';
+    document.getElementById('tab-multiple').style.background = '#6c757d';
+    
+    // Show selected tab and highlight button
+    if (tabName === 'single') {
+        document.getElementById('tab-single-content').style.display = 'block';
+        document.getElementById('tab-single').style.background = '#007cba';
+    } else {
+        document.getElementById('tab-multiple-content').style.display = 'block';
+        document.getElementById('tab-multiple').style.background = '#007cba';
+    }
+}
+</script>
+</div>";
 } # fine if (!defined('C_CREA_NUOVI_APP') or C_CREA_NUOVI_APP != "NO")
 elseif (defined('C_URL_NUOVI_APP') and C_URL_NUOVI_APP) echo "<b><a href=\"".C_URL_NUOVI_APP."\" target=\"_blank\">".mex("Crea un nuovo appartamento",'unit.php')."</a></b><br><br>";
 echo "</div>";

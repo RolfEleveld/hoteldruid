@@ -313,6 +313,11 @@ $cancurlfoto = "";
 $aggurlfoto = "";
 if (!isset($form_tabella)) $form_tabella = "";
 
+// Skip confirmation screen for form table submissions
+if (!empty($form_tabella) && $modificaappartamento != "Continua") {
+    $modificaappartamento = "Continua";
+}
+
 if (!$num_app_modifica or controlla_num_pos($num_app_modifica) != "SI") $num_app_modifica = 1;
 
 $cambia_nome_app = null;
@@ -741,6 +746,17 @@ esegui_query("update $tableappartamenti set commento = '".aggslashdb($n_commento
 } # fine if ($n_commento != $comp_commento)
 if ($modificato == "SI") echo mex($fr1."L'appartamento",'unit.php')." $idappartamenti ".mex("è stato modificato",'unit.php').".<br>";
 } # fine for $num1
+
+// Redirect back to apartment table immediately after update
+if ($form_tabella) {
+    if (!headers_sent()) {
+        header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
+        exit;
+    } else {
+        echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
+        exit;
+    }
+}
 
 } # fine else if ($modificaappartamento != "Continua")
 

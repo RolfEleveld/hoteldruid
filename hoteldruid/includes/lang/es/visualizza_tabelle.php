@@ -384,6 +384,23 @@ case "clienti con solo prenotazioni cancellate negli anni passati, cancellando l
 case "":  		$messaggio = ""; break;
 case "":  		$messaggio = ""; break;
 
+// Room management translations
+case "Gestione Camere":  		$messaggio = "Gestión de Habitaciones"; break;
+case "Camera Singola":  		$messaggio = "Habitación Individual"; break;
+case "Camere Multiple":  		$messaggio = "Habitaciones Múltiples"; break;
+case "Numero Camera":  			$messaggio = "Número de Habitación"; break;
+case "Numero Letti":  			$messaggio = "Número de Camas"; break;
+case "letto":  				$messaggio = "cama"; break;
+case "letti":  				$messaggio = "camas"; break;
+case "Aggiungi Camera":  		$messaggio = "Agregar Habitación"; break;
+case "Numero di partenza":  		$messaggio = "Número de inicio"; break;
+case "Quantità":  			$messaggio = "Cantidad"; break;
+case "Crea Camere":  			$messaggio = "Crear Habitaciones"; break;
+case "es: 101, A1, Suite":  		$messaggio = "ej: 101, A1, Suite"; break;
+case "es: 101, A":  			$messaggio = "ej: 101, A"; break;
+case "Esempio: \"101\" + quantità \"5\" creerà camere 101, 102, 103, 104, 105":  $messaggio = "Ejemplo: \"101\" + cantidad \"5\" creará habitaciones 101, 102, 103, 104, 105"; break;
+case "con":  				$messaggio = "con"; break;
+
 } # fine switch ($messaggio)
 
 

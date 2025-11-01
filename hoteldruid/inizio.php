@@ -460,6 +460,49 @@ $id_sessione = $n_id_sessione;
 if ($tema[$id_utente] != "base") include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+// Load user information for dashboard display
+$nome_utente = array();
+if ($numconnessione) {
+    $utenti_query = esegui_query("select idutenti, nome_utente from $tableutenti order by idutenti");
+    $num_utenti = numlin_query($utenti_query);
+    for ($i = 0; $i < $num_utenti; $i++) {
+        $uid = risul_query($utenti_query, $i, 'idutenti');
+        $nome = risul_query($utenti_query, $i, 'nome_utente');
+        $nome_utente[$uid] = $nome;
+    }
+}
+// Fallback for when user data is not available
+if (!isset($nome_utente[$id_utente]) || empty($nome_utente[$id_utente])) {
+    $nome_utente[$id_utente] = 'Admin';
+}
+
+// Get hotel name from database or use default
+$nome_hotel = 'Villa Annunziata'; // Default fallback
+if ($numconnessione) {
+    // Try to get hotel name from personalizza table
+    $query_nome_hotel = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'nome_hotel' and idutente = '1'");
+    if (numlin_query($query_nome_hotel) > 0) {
+        $nome_dal_db = trim(risul_query($query_nome_hotel, 0, 'valpersonalizza'));
+        if (!empty($nome_dal_db) && $nome_dal_db != '#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&') {
+            $nome_hotel = $nome_dal_db;
+        }
+    }
+    // If not found, try dati_struttura field 
+    if ($nome_hotel == 'Villa Annunziata') {
+        $query_dati_struttura = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'dati_struttura' and idutente = '1'");
+        if (numlin_query($query_dati_struttura) > 0) {
+            $dati_struttura = risul_query($query_dati_struttura, 0, 'valpersonalizza');
+            // Parse structured data to extract hotel name (if format allows)
+            if (!empty($dati_struttura) && $dati_struttura != '#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&#@&') {
+                $parti_dati = explode('#@&', $dati_struttura);
+                if (count($parti_dati) > 0 && !empty(trim($parti_dati[0]))) {
+                    $nome_hotel = trim($parti_dati[0]);
+                }
+            }
+        }
+    }
+}
+
 if (!$numconnessione and (!defined('C_MOSTRA_COPYRIGHT') or C_MOSTRA_COPYRIGHT != "NO")) echo "<table style=\"background-color: #ffffff; width: 99%; height: 97%; margin-right: auto; margin-left: auto;\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"vertical-align: top;\">";
 
 echo "$form_aggiorna_sub";
@@ -476,6 +519,105 @@ if (!$hide_default_menu) {
 
 
 } # fine if (!$hide_default_menu)
+
+// Modern Hotel Management Dashboard
+echo '<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+    <div style="background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h2 style="margin: 0 0 10px 0; font-size: 28px; font-weight: 300;">'.mex("Benvenuto a", $pag).' '.$nome_hotel.'</h2>
+        <p style="margin: 0; font-size: 16px; opacity: 0.9;">'.mex("Centro di Controllo Gestione Hotel", $pag).' - '.date("d F Y").'</p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50;">
+            <h3 style="margin: 0 0 15px 0; color: #333;">🏨 '.mex("Camere", $pag).'</h3>
+            <p style="margin: 0 0 15px 0; color: #666;">'.mex("Gestione appartamenti", $pag).'</p>
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=appartamenti" 
+               style="display: inline-block; background: #4CAF50; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
+                '.mex("Gestisci Camere", $pag).'
+            </a>
+        </div>
+        
+        <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3;">
+            <h3 style="margin: 0 0 15px 0; color: #333;">📅 '.mex("Prenotazioni", $pag).'</h3>
+            <p style="margin: 0 0 15px 0; color: #666;">'.mex("Gestione reservas", $pag).'</p>
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=prenotazioni" 
+               style="display: inline-block; background: #2196F3; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
+                '.mex("Ver Prenotazioni", $pag).'
+            </a>
+        </div>
+        
+        <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #FF9800;">
+            <h3 style="margin: 0 0 15px 0; color: #333;">👥 '.mex("Clienti", $pag).'</h3>
+            <p style="margin: 0 0 15px 0; color: #666;">'.mex("Gestione ospiti", $pag).'</p>
+            <a href="clienti.php?anno='.$anno.'&id_sessione='.$id_sessione.'" 
+               style="display: inline-block; background: #FF9800; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
+                '.mex("Gestisci Clienti", $pag).'
+            </a>
+        </div>
+        
+        <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #9C27B0;">
+            <h3 style="margin: 0 0 15px 0; color: #333;">📊 '.mex("Calendario", $pag).'</h3>
+            <p style="margin: 0 0 15px 0; color: #666;">'.mex("Vista calendario", $pag).'</p>
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=mesi" 
+               style="display: inline-block; background: #9C27B0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
+                '.mex("Vedi Calendario", $pag).'
+            </a>
+        </div>
+    </div>
+    
+    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 30px;">
+        <h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">'.mex("Azioni Rapide", $pag).'</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <a href="inserimento.php?anno='.$anno.'&id_sessione='.$id_sessione.'" 
+               style="display: block; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; text-decoration: none; border-radius: 8px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">➕</div>
+                <div style="font-weight: bold;">'.mex("Nuova Prenotazione", $pag).'</div>
+            </a>
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=appartamenti" 
+               style="display: block; background: linear-gradient(135deg, #2196F3, #1976D2); color: white; padding: 20px; text-decoration: none; border-radius: 8px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">🏨</div>
+                <div style="font-weight: bold;">'.mex("Aggiungi Camera", $pag).'</div>
+            </a>
+            <a href="clienti.php?anno='.$anno.'&id_sessione='.$id_sessione.'&inserimento_nuovo_cliente=SI" 
+               style="display: block; background: linear-gradient(135deg, #FF9800, #F57C00); color: white; padding: 20px; text-decoration: none; border-radius: 8px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
+                <div style="font-weight: bold;">'.mex("Nuovo Cliente", $pag).'</div>
+            </a>
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=statistiche" 
+               style="display: block; background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; padding: 20px; text-decoration: none; border-radius: 8px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                <div style="font-weight: bold;">'.mex("Report", $pag).'</div>
+            </a>
+        </div>
+    </div>
+    
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+        <h3 style="margin: 0 0 15px 0; color: #333;">'.mex("Stato Sistema", $pag).'</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #4CAF50;">
+                <div style="font-weight: bold; color: #333; margin-bottom: 5px;">'.mex("Anno Attivo", $pag).'</div>
+                <div style="color: #666; font-size: 24px; font-weight: bold;">'.$anno.'</div>
+            </div>
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #2196F3;">
+                <div style="font-weight: bold; color: #333; margin-bottom: 5px;">'.mex("Utente", $pag).'</div>
+                <div style="color: #666;">'.$nome_utente[$id_utente].'</div>
+            </div>
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #FF9800;">
+                <div style="font-weight: bold; color: #333; margin-bottom: 5px;">'.mex("Versione", $pag).'</div>
+                <div style="color: #666;">HotelDruid 3.0.7</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media (max-width: 768px) {
+    .dashboard-container { padding: 15px !important; }
+    .stats-grid { grid-template-columns: 1fr !important; }
+    .welcome-section h2 { font-size: 22px !important; }
+    .stat-card { padding: 20px !important; }
+}
+</style>';
 
 # You are not authorized to remove the following copyright notice. Ask for permission info@digitaldruid.net
 if (!$numconnessione and (!defined('C_MOSTRA_COPYRIGHT') or C_MOSTRA_COPYRIGHT != "NO")) {

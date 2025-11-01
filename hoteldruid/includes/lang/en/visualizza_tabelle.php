@@ -380,6 +380,24 @@ case "Id":  					$messaggio = "Id"; break;
 case "chiedere":  				$messaggio = "ask"; break;
 case "Cancellare anche":  			$messaggio = "Delete also"; break;
 case "clienti con solo prenotazioni cancellate negli anni passati, cancellando le loro prenotazioni in modo permanente":	$messaggio = "clients with only deleted reservations in past years, deleting their reservations permanently"; break;
+
+// Room management translations
+case "Gestione Camere":  		$messaggio = "Room Management"; break;
+case "Camera Singola":  		$messaggio = "Single Room"; break;
+case "Camere Multiple":  		$messaggio = "Multiple Rooms"; break;
+case "Numero Camera":  			$messaggio = "Room Number"; break;
+case "Numero Letti":  			$messaggio = "Number of Beds"; break;
+case "letto":  				$messaggio = "bed"; break;
+case "letti":  				$messaggio = "beds"; break;
+case "Aggiungi Camera":  		$messaggio = "Add Room"; break;
+case "Numero di partenza":  		$messaggio = "Starting number"; break;
+case "Quantità":  			$messaggio = "Quantity"; break;
+case "Crea Camere":  			$messaggio = "Create Rooms"; break;
+case "es: 101, A1, Suite":  		$messaggio = "e.g: 101, A1, Suite"; break;
+case "es: 101, A":  			$messaggio = "e.g: 101, A"; break;
+case "Esempio: \"101\" + quantità \"5\" creerà camere 101, 102, 103, 104, 105":  $messaggio = "Example: \"101\" + quantity \"5\" will create rooms 101, 102, 103, 104, 105"; break;
+case "con":  				$messaggio = "with"; break;
+
 case "":  		$messaggio = ""; break;
 case "":  		$messaggio = ""; break;
 

@@ -416,9 +416,18 @@ elem_id.blur();
 
 function seleziona_icona_tab () {
 var form_vtab = document.getElementById('vtab');
+if (!form_vtab) {
+    return; // Element doesn't exist, exit function
+}
 var sel = form_vtab.getElementsByTagName('select');
+if (!sel || !sel[0]) {
+    return; // Select element doesn't exist, exit function
+}
 sel = sel[0].options[sel[0].selectedIndex].value;
 var el_vtab = form_vtab.getElementsByTagName('button');
+if (!el_vtab || !el_vtab[0]) {
+    return; // Button element doesn't exist, exit function
+}
 if (sel == 'prenotazioni') el_vtab[0].className = "res";
 if (sel == 'costi') el_vtab[0].className = "exin";
 if (sel == 'periodi') el_vtab[0].className = "rate";
@@ -432,10 +441,16 @@ if (sel == 'statistiche') el_vtab[0].className = "stat";
 
 
 function attiva_seleziona_icona_tab () {
-seleziona_icona_tab();
+// Check if vtab element exists before proceeding
 var form_vtab = document.getElementById('vtab');
+if (!form_vtab) {
+    return; // Element doesn't exist, exit function
+}
+seleziona_icona_tab();
 var select_vtab = form_vtab.getElementsByTagName('select');
-select_vtab[0].onchange = new Function("seleziona_icona_tab()");
+if (select_vtab && select_vtab[0]) {
+    select_vtab[0].onchange = new Function("seleziona_icona_tab()");
+}
 } // fine function attiva_seleziona_icona_tab
 
 

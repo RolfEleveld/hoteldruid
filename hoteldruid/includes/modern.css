@@ -537,6 +537,16 @@ body {
     margin: 1rem;
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    position: relative;
+    min-height: 200px; /* Ensure enough space for logo */
+}
+
+/* Logo styling to prevent truncation */
+.modern-menu-container[style*="background"] {
+    background-size: auto 60px !important; /* Limit logo height */
+    background-position: right 10px top 10px !important; /* Position with margin */
+    background-repeat: no-repeat !important;
+    padding-top: 80px; /* Add space at top for logo */
 }
 
 .modern-user-info {
@@ -547,6 +557,8 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 0.875rem;
+    position: relative;
+    z-index: 2; /* Ensure it's above logo */
 }
 
 .user-name {
@@ -571,6 +583,9 @@ body {
     padding: 2rem 1.5rem 1rem;
     text-align: center;
     background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+    margin-top: 20px; /* Add space to move menu down */
+    position: relative;
+    z-index: 2; /* Ensure it's above logo */
 }
 
 .main-menu-title {
