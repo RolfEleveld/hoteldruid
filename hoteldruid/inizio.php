@@ -52,6 +52,83 @@ $var_pag[9] = 'canc_mess_periodi';
 $n_var_pag = 10;
 
 include("./costanti.php");
+
+# Check if database connection file exists first - if not, show language selection for database setup
+if (@is_file(C_DATI_PATH."/dati_connessione.php") != true) {
+$show_bar = "NO";
+$lingua_mex = "ita"; // Default to Italian
+if (@is_dir("./includes/lang/en")) $lingua_mex = "en";
+if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+$lingua_browser = explode(",",$_SERVER['HTTP_ACCEPT_LANGUAGE']);
+foreach ($lingua_browser as $lang) {
+if ($lang == "en") break;
+if ($lang == "it") {
+$lingua_mex = "ita";
+break;
+} # fine if ($lang == "it")
+if (strlen($lang) == 2 and @is_dir("./includes/lang/$lang")) {
+$lingua_mex = $lang;
+break;
+} # fine if (strlen($lang) == 2 and @is_dir("./includes/lang/$lang"))
+} # fine foreach ($lingua_browser as $lang)
+} # fine if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE']))
+
+// Simple HTML output without includes that might trigger database connections
+echo "<!DOCTYPE html>
+<html>
+<head>
+<meta charset=\"utf-8\">
+<title>HotelDruid</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+.container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.header { text-align: center; margin-bottom: 30px; }
+.form-group { margin: 20px 0; }
+select { padding: 8px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+.sbutton { background: #007cba; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+.sbutton:hover { background: #005a8a; }
+</style>
+</head>
+<body>
+<div class=\"container\">
+<div class=\"header\">
+<h3>Benvenuto a HOTELDRUID</h3><br>
+HOTELDRUID version 3.0.7, Copyright (C) 2001-2024 Marco M. F. De Santis<br>
+HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the <a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPLv3</a> License.<br>
+This is free software, and you are welcome to redistribute it<br>
+ under certain conditions; see the AGPLv3 License for details.<br>
+</div>
+<hr>
+<form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\">
+<div class=\"form-group\">
+<label for=\"lingua\">Scegli la lingua / Choose language / Elige idioma:</label><br><br>
+<select name=\"lingua\" id=\"lingua\">";
+if ($lingua_mex == "ita") $sel = " selected";
+else $sel = "";
+echo "<option value=\"ita\"$sel>italiano</option>";
+$lang_dir = opendir("./includes/lang/");
+while ($ini_lingua = readdir($lang_dir)) {
+if ($ini_lingua != "." && $ini_lingua != "..") {
+$nome_lingua = @file("./includes/lang/$ini_lingua/l_n");
+if ($nome_lingua) {
+$nome_lingua = trim($nome_lingua[0]);
+if ($ini_lingua == $lingua_mex) $sel = " selected";
+else $sel = "";
+echo "<option value=\"$ini_lingua\"$sel>$nome_lingua</option>";
+}
+} # fine if ($file != "." && $file != "..")
+} # fine while ($file = readdir($lang_dig))
+closedir($lang_dir);
+echo "</select><br><br>
+<input class=\"sbutton\" type=\"submit\" value=\"Crea il database / Create database / Crear base de datos\">
+</div>
+</form>
+</div>
+</body>
+</html>";
+exit; // Stop execution here so we don't try to connect to database
+} # fine if (@is_file(C_DATI_PATH."/dati_connessione.php") != true)
+
 include("./includes/funzioni.php");
 
 // Configure secure session
@@ -90,6 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($nome_utente_phpr) && !empty
     }
 }
 
+# Database connection file exists, proceed with normal login logic
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
 if ($id_utente and $numconnessione and isset($logout)) {
 $tabelle_lock = array($PHPR_TAB_PRE."sessioni");
@@ -389,6 +467,10 @@ echo "$form_aggiorna_sub";
 if ($tema[$id_utente] != "base") include("./themes/".$tema[$id_utente]."/php/menu.php");
 else $hide_default_menu = 0;
 if (!$hide_default_menu) {
+    // Initialize variables for modern menu system
+    $vai_anno = isset($_GET['vai_anno']) ? $_GET['vai_anno'] : '';
+    $menu_data = array(); // Initialize menu data if needed
+    
     // Use the modern menu system
     include("./includes/modern_menu_display.php");
 
@@ -576,6 +658,57 @@ else include("./includes/foot.php");
 
 
 } # fine if ($id_utente)
+
+# If no user is logged in and no database connection file exists, show language selection for database creation
+else if (@is_file(C_DATI_PATH."/dati_connessione.php") != true) {
+$show_bar = "NO";
+include("./includes/head.php");
+if (@is_dir("./includes/lang/en")) $lingua_mex = "en";
+else $lingua_mex = "ita";
+if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+$lingua_browser = explode(",",$_SERVER['HTTP_ACCEPT_LANGUAGE']);
+foreach ($lingua_browser as $lang) {
+if ($lang == "en") break;
+if ($lang == "it") {
+$lingua_mex = "ita";
+break;
+} # fine if ($lang == "it")
+if (strlen($lang) == 2 and @is_dir("./includes/lang/$lang")) {
+$lingua_mex = $lang;
+break;
+} # fine if (strlen($lang) == 2 and @is_dir("./includes/lang/$lang"))
+} # fine foreach ($lingua_browser as $lang)
+} # fine if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE']))
+if (@is_file("./COPYING")) $file_copying = "file <a href=\"COPYING\">COPYING</a>";
+else $file_copying = "<a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPLv3</a> License";
+echo "<div style=\"text-align: center;\"><h3>".mex("Benvenuto a HOTELDRUID",$pag).".</h3><br><br>
+HOTELDRUID version ".C_PHPR_VERSIONE_TXT.", Copyright (C) 2001-2024 Marco M. F. De Santis<br>
+HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copying.<br>
+This is free software, and you are welcome to redistribute it<br>
+ under certain conditions; see the $file_copying for details.<br>
+</div><hr style=\"width: 95%\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
+<br><br>
+".mex("Scegli la lingua",$pag).": <select name=\"lingua\">";
+if ($lingua_mex == "ita") $sel = " selected";
+else $sel = "";
+echo "<option value=\"ita\"$sel>italiano</option>";
+$lang_dir = opendir("./includes/lang/");
+while ($ini_lingua = readdir($lang_dir)) {
+if ($ini_lingua != "." && $ini_lingua != "..") {
+$nome_lingua = file("./includes/lang/$ini_lingua/l_n");
+$nome_lingua = togli_acapo($nome_lingua[0]);
+if ($ini_lingua == $lingua_mex) $sel = " selected";
+else $sel = "";
+echo "<option value=\"$ini_lingua\"$sel>$nome_lingua</option>";
+} # fine if ($file != "." && $file != "..")
+} # fine while ($file = readdir($lang_dig))
+closedir($lang_dir);
+echo "</select><br>
+<input class=\"sbutton\" type=\"submit\" value=\"".mex("crea il database",$pag)."\"><br>
+</div></form>";
+include("./includes/foot.php");
+} # fine else if (@is_file(C_DATI_PATH."/dati_connessione.php") != true)
 
 
 

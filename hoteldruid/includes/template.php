@@ -5,11 +5,29 @@
  */
 
 class HotelDruidTemplate {
+    private static $instance = null;
     private $templateDir;
     private $variables = array();
     
-    public function __construct($templateDir = './includes/templates/') {
+    private function __construct($templateDir = './includes/templates/') {
         $this->templateDir = $templateDir;
+    }
+    
+    public static function getInstance($templateDir = './includes/templates/') {
+        if (self::$instance === null) {
+            self::$instance = new self($templateDir);
+        }
+        return self::$instance;
+    }
+    
+    public function __clone() {
+        // Prevent cloning of singleton
+        throw new Exception('Cannot clone singleton instance');
+    }
+    
+    public function __wakeup() {
+        // Prevent unserialization of singleton
+        throw new Exception('Cannot unserialize singleton instance');
     }
     
     public function assign($key, $value) {
@@ -40,6 +58,31 @@ class HotelDruidTemplate {
     
     public function display($template, $variables = array()) {
         echo $this->render($template, $variables);
+    }
+    
+    /**
+     * Alias for render method to maintain compatibility
+     */
+    public function renderTemplate($template, $variables = array()) {
+        return $this->render($template, $variables);
+    }
+    
+    /**
+     * Generate CSRF token input field
+     */
+    public function getCsrfTokenInput() {
+        // Check if CSRF function exists, otherwise return empty
+        if (function_exists('csrf_token_input')) {
+            return csrf_token_input();
+        }
+        // Fallback: generate basic hidden field
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token']) . '">';
     }
 }
 

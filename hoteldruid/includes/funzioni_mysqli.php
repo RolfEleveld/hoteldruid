@@ -38,8 +38,41 @@ function connetti_db ($database,$host,$port,$user,$password,$estensione) {
 
 global $link_mysqli;
 if ($estensione == "SI") dl("mysqli.so");
-$link_mysqli = mysqli_connect($host,$user,$password,$database,$port);
+
+// First try to connect without specifying a database to check if server is reachable
+$link_test = @mysqli_connect($host,$user,$password,null,$port);
+if (!$link_test) {
+    return false;
+}
+
+// Check if the specific database exists using a query instead of mysqli_select_db
+try {
+    $result = @mysqli_query($link_test, "SHOW DATABASES LIKE '$database'");
+    $db_exists = ($result && mysqli_num_rows($result) > 0);
+} catch (Exception $e) {
+    $db_exists = false;
+}
+
+if (!$db_exists) {
+    // Database doesn't exist, close test connection 
+    mysqli_close($link_test);
+    
+    // Only redirect if we're not already on database-related pages and if dati_connessione.php exists
+    // Don't redirect from inizio.php as it should handle the language selection first
+    $current_script = basename($_SERVER['SCRIPT_NAME']);
+    if (!in_array($current_script, ['creadb.php', 'inizio.php']) && @is_file(C_DATI_PATH."/dati_connessione.php")) {
+        header("Location: creadb.php?error=database_not_found");
+        exit;
+    }
+    return false;
+}
+
+// Database exists, make the actual connection
+$link_mysqli = @mysqli_connect($host,$user,$password,$database,$port);
 if ($link_mysqli) @mysqli_query($link_mysqli,"SET NAMES 'utf8mb4'");
+
+// Close the test connection
+mysqli_close($link_test);
 
 return $link_mysqli;
 

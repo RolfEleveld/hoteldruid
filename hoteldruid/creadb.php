@@ -92,6 +92,17 @@ $titolo = "HotelDruid: ".mex2("Crea Database",$pag,fixset($lingua));
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+// Check if we were redirected here due to missing database
+if (isset($_GET['error']) && $_GET['error'] == 'database_not_found') {
+    echo "<div style=\"background-color: #fffbee; border: 2px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: center;\">
+        <h3 style=\"color: #d97706; margin-top: 0;\">⚠️ ".mex2("Database non trovato",'creadb.php',$lingua)."</h3>
+        <p style=\"color: #92400e; margin-bottom: 0;\">
+            ".mex2("Il database non esiste o non è accessibile",'creadb.php',$lingua)."<br>
+            ".mex2("Utilizzare il modulo sottostante per creare un nuovo database",'creadb.php',$lingua).".
+        </p>
+    </div>";
+}
+
 
 if (defined('C_UTILIZZA_SEMPRE_DEFAULTS') and C_UTILIZZA_SEMPRE_DEFAULTS == "AUTO") $creabase = 1;
 
@@ -532,60 +543,219 @@ aggiorna_relutenti("","SI","","",$id_utente,$id_utente,"","","","","","","","par
 if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI" and defined('C_CARTELLA_CREA_MODELLI') and @is_file(C_CARTELLA_CREA_MODELLI."/index.html")) @unlink(C_CARTELLA_CREA_MODELLI."/index.html");
 
 if (!defined('C_UTILIZZA_SEMPRE_DEFAULTS') or C_UTILIZZA_SEMPRE_DEFAULTS != "AUTO") {
-# seconda form di inserimento (appartamenti).
+# seconda form di inserimento (appartamenti) - Enhanced Dynamic Interface
 echo "<br>".mex2("Inserisci ora i dati sugli appartamenti",'unit.php',$lingua)." (<b>".mex2("almeno il numero, diverso per ogni appartamento",'unit.php',$lingua)."</b>).<br>
+
+<style>
+.room-container {
+    border: 1px solid #ccc;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+.room-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+.room-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.field-group {
+    display: flex;
+    flex-direction: column;
+}
+.field-group label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 2px;
+}
+.field-group input {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+.remove-room-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.remove-room-btn:hover {
+    background: #c82333;
+}
+.add-room-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+.add-room-btn:hover {
+    background: #218838;
+}
+.submit-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+}
+.submit-btn:hover {
+    background: #0056b3;
+}
+</style>
+
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
-<input type=\"hidden\" name=\"numappartamenti\" value=\"$numappartamenti\">
+<input type=\"hidden\" name=\"numappartamenti\" id=\"numappartamenti\" value=\"$numappartamenti\">
 <input type=\"hidden\" name=\"numletti\" value=\"$numletti\">
+
+<div id=\"rooms-container\">
+</div>
+
+<div style=\"text-align: center; margin: 20px 0;\">
+    <button type=\"button\" class=\"add-room-btn\" onclick=\"addRoom()\">
+        ".mex2("Aggiungi stanza",'creadb.php',$lingua)."
+    </button>
+</div>
+
 <hr style=\"width: 95%\">";
-$zeri = (string) "0000000000000000000000000000";
-$lettere = (string) "abcdefghijklmnopqrstuvwxyz";
-$pos_lettera = 0;
-$num_dorm = $numappartamenti;
-if (!$numletti) {
-if ($numapp_default) $num_app_max = "10";
-else $num_app_max = $numappartamenti;
-} # fine if (!$numletti)
-else $num_app_max = $numappartamenti + ceil((double) $numletti / 26);
-for ( $num = 1; $num <= ($numappartamenti + $numletti) ; $num = $num + 1) {
-$numapp = "numapp" . $num;
-$piano = "piano" . $num;
-$maxoccupanti = "maxoccupanti" . $num;
-$numcasa = "numcasa" . $num;
-$priorita = "priorita" . $num;
-$app_vicini = "app_vicini" . $num;
-if ($num <= $numappartamenti) $num_default = (string) substr($zeri,0,(strlen($num_app_max) - strlen($num))).$num;
-else {
-if ($pos_lettera == 0) {
-$num_dorm++;
-$num_dorm = (string) substr($zeri,0,(strlen($num_app_max) - strlen($num_dorm))).$num_dorm;
-} # fine if ($pos_lettera == 0)
-$num_default = $num_dorm.substr($lettere,$pos_lettera,1);
-$pos_lettera++;
-if ($pos_lettera == 26) $pos_lettera = 0;
-} # fine else if ($num <= $numappartamenti)
-echo "
-$num). ";
-if ($num <= $numappartamenti) echo "".mex2("Numero (o nome) dell' appartamento",'unit.php',$lingua).": ";
-else echo "".mex2("[1]Numero (o nome) dell' appartamento",'unit.php',$lingua).": ";
-echo "<input type=\"text\" name=\"$numapp\" size=\"5\" value=\"$num_default\">
- ".mex2("Massimo numero di occupanti",$pag,$lingua).": ";
-if ($num <= $numappartamenti) echo "<input type=\"text\" name=\"$maxoccupanti\" size=\"3\"><br>";
-else echo "1<br>";
-echo "".mex2("Numero (o nome) piano",$pag,$lingua).": <input type=\"text\" name=\"$piano\" size=\"4\">
- ".mex2("Numero (o nome) casa",$pag,$lingua).": 
-<input type=\"text\" name=\"$numcasa\" size=\"4\">
- ".mex2("Priorità (più bassa è, prima viene assegnato)",'unit.php',$lingua).": 
-<input type=\"text\" name=\"$priorita\" size=\"3\">";
-#echo "<br>Appartamenti vicini (separati da virgole): 
-#<input type=\"text\" name=\"$app_vicini\">";
-echo "<hr style=\"width: 95%\"><br>";
-} # fine for $num
-echo "<div style=\"text-align: center;\">";
-#echo "<input type=\"checkbox\" name=\"assegna_vicini_nc\" value=\"SI\">
-#Assegna come vicini gli appartamenti nella stessa casa (invalida i campi dei singoli appartamenti).<br>
-#<input type=\"checkbox\" name=\"assegna_vicini_np\" value=\"SI\">Devono essere anche sullo stesso piano.<br>";
-echo "<input class=\"sbutton\" type=\"submit\" name=\"insappartamenti\" value=\"".mex2("Inserisci i dati sugli appartamenti",'unit.php',$lingua)."\">
+
+// JavaScript for dynamic room management
+$js_habitacion = mex2("Stanza",'creadb.php',$lingua);
+$js_numero_habitacion = mex2("Numero stanza",'creadb.php',$lingua);
+$js_max_ocupantes = mex2("Massimo numero di occupanti",'creadb.php',$lingua);
+$js_numero_piso = mex2("Numero piano",'creadb.php',$lingua);
+$js_numero_casa = mex2("Numero casa",'creadb.php',$lingua);
+$js_prioridad = mex2("Priorità",'creadb.php',$lingua);
+$js_remover_stanza = mex2("Rimuovi stanza",'creadb.php',$lingua);
+
+echo "<script>
+let roomCount = $numappartamenti;
+let currentRoomNumber = roomCount;
+
+function initializeRooms() {
+    const container = document.getElementById('rooms-container');
+    container.innerHTML = '';
+    
+    for (let i = 1; i <= roomCount; i++) {
+        addRoomToContainer(i);
+    }
+}
+
+function addRoom() {
+    currentRoomNumber++;
+    roomCount++;
+    document.getElementById('numappartamenti').value = roomCount;
+    addRoomToContainer(currentRoomNumber);
+}
+
+function addRoomToContainer(roomNum) {
+    const container = document.getElementById('rooms-container');
+    const roomDiv = document.createElement('div');
+    roomDiv.className = 'room-container';
+    roomDiv.id = 'room-' + roomNum;
+    
+    const numDefault = String(roomNum).padStart(2, '0');
+    
+    roomDiv.innerHTML = '<div class=\"room-header\">$js_habitacion ' + roomNum + '</div>' +
+        (roomCount > 1 ? '<button type=\"button\" class=\"remove-room-btn\" onclick=\"removeRoom(' + roomNum + ')\">$js_remover_stanza</button>' : '') +
+        '<div class=\"room-fields\">' +
+            '<div class=\"field-group\">' +
+                '<label>$js_numero_habitacion:</label>' +
+                '<input type=\"text\" name=\"numapp' + roomNum + '\" value=\"' + numDefault + '\" size=\"5\" required>' +
+            '</div>' +
+            '<div class=\"field-group\">' +
+                '<label>$js_max_ocupantes:</label>' +
+                '<input type=\"text\" name=\"maxoccupanti' + roomNum + '\" size=\"3\" placeholder=\"2\">' +
+            '</div>' +
+            '<div class=\"field-group\">' +
+                '<label>$js_numero_piso:</label>' +
+                '<input type=\"text\" name=\"piano' + roomNum + '\" size=\"4\" placeholder=\"1\">' +
+            '</div>' +
+            '<div class=\"field-group\">' +
+                '<label>$js_numero_casa:</label>' +
+                '<input type=\"text\" name=\"numcasa' + roomNum + '\" size=\"4\" placeholder=\"A\">' +
+            '</div>' +
+            '<div class=\"field-group\">' +
+                '<label>$js_prioridad:</label>' +
+                '<input type=\"text\" name=\"priorita' + roomNum + '\" size=\"3\" placeholder=\"' + roomNum + '\">' +
+            '</div>' +
+        '</div>';
+    
+    container.appendChild(roomDiv);
+}
+
+function removeRoom(roomNum) {
+    if (roomCount <= 1) {
+        alert('Debe mantener al menos una habitación');
+        return;
+    }
+    
+    const roomDiv = document.getElementById('room-' + roomNum);
+    if (roomDiv) {
+        roomDiv.remove();
+        roomCount--;
+        document.getElementById('numappartamenti').value = roomCount;
+        updateRoomNumbers();
+    }
+}
+
+function updateRoomNumbers() {
+    const containers = document.querySelectorAll('.room-container');
+    containers.forEach((container, index) => {
+        const roomNum = index + 1;
+        container.id = 'room-' + roomNum;
+        
+        // Update room header
+        const header = container.querySelector('.room-header');
+        header.textContent = '$js_habitacion ' + roomNum;
+        
+        // Update all input names and the remove button
+        const inputs = container.querySelectorAll('input[type=\"text\"]');
+        inputs.forEach(input => {
+            const baseName = input.name.replace(/\\d+$/, '');
+            input.name = baseName + roomNum;
+        });
+        
+        // Update remove button
+        const removeBtn = container.querySelector('.remove-room-btn');
+        if (removeBtn) {
+            removeBtn.setAttribute('onclick', 'removeRoom(' + roomNum + ')');
+        }
+        
+        // Update priority placeholder
+        const priorityInput = container.querySelector('input[name=\"priorita' + roomNum + '\"]');
+        if (priorityInput) {
+            priorityInput.placeholder = roomNum;
+        }
+    });
+}
+
+// Initialize rooms when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeRooms();
+});
+</script>";
+
+echo "<div style=\"text-align: center;\">
+<input class=\"submit-btn\" type=\"submit\" name=\"insappartamenti\" value=\"".mex2("Salva configurazione stanze",'creadb.php',$lingua)."\">
 </div><br></div></form>";
 } # fine if (!defined('C_UTILIZZA_SEMPRE_DEFAULTS') or C_UTILIZZA_SEMPRE_DEFAULTS != "AUTO")
 else $insappartamenti = 1;

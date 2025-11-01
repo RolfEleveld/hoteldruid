@@ -41,14 +41,14 @@ switch ($messaggio) {
 
 # Translations for rental units with MASCULINE name (or no gender) that begins with SPECIAL characters
 case "APPARTAMENTI":  					$messaggio = "[UNITS]"; break;
-case "Inserisci ora i dati sugli appartamenti":		$messaggio = "Insertar ahora los datos sobre los [units]"; break;
+case "Inserisci ora i dati sugli appartamenti":		$messaggio = "Configurar ahora los datos sobre los [units]"; break;
 case "almeno il numero, diverso per ogni appartamento":	$messaggio = "almenos el número, diferente para cada [unit]"; break;
 case "Numero (o nome) dell' appartamento":  		$messaggio = "Número (o nombre) del [unit]"; break;
 case "Priorità (più bassa è, prima viene assegnato)":	$messaggio = "Prioridad (la más baja se asigna antes)"; break;
-case "Inserisci i dati sugli appartamenti":  		$messaggio = "Insertar los datos sobre los [units]"; break;
+case "Inserisci i dati sugli appartamenti":  		$messaggio = "Configurar los datos sobre los [units]"; break;
 case "tutti gli appartamenti":  			$messaggio = "todos los [units]"; break;
 case "Non ci sono appartamenti con le caratteristiche richieste":	$messaggio = "No hay [units] con las características pedidas"; break;
-case "Non c'è nessun appartamento tra quelli richiesti che possa ospitare":	$messaggio = "No hay ningún [unit] entre los que se han pedido que pueda acoger"; break;
+case "Non c'è nessun appartamento tra quelli richiesti che possa ospitare":	$messaggio = "No hay ningún [unit] entre los que se han pedido que pueda acomodar"; break;
 case "Nel periodo selezionato non è possibile ospitare il cliente in un appartamento tra quelli richiesti":	$messaggio = "En el período seleccionado no es posible acoger al cliente en un [unit] de los que se han pedido"; break;
 case "verrà spostata dall'appartamento":  		$messaggio = "será desplazada desde el [unit]"; break;
 case "al":  						$messaggio = "al"; break;

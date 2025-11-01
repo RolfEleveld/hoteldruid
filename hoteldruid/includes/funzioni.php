@@ -1177,7 +1177,7 @@ function http_keep_alive ($car=" ") {
 
 echo $car;
 flush();
-if (function_exists('ob_flush')) ob_flush();
+if (function_exists('ob_flush') && ob_get_level() > 0) ob_flush();
 
 } # fine function http_keep_alive
 
