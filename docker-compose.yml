@@ -1,0 +1,79 @@
+services:
+  # MySQL Database Service
+  hoteldruid-db:
+    image: mysql:8.0
+    container_name: hoteldruid-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: hoteldruid_root_2024
+      MYSQL_DATABASE: hoteldruid
+      MYSQL_USER: hoteldruid_user
+      MYSQL_PASSWORD: hoteldruid_pass_2024
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - hoteldruid_db_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - hoteldruid-network
+
+  # HotelDruid Web Application Service
+  hoteldruid-web:
+    build: .
+    container_name: hoteldruid-apache
+    restart: unless-stopped
+    depends_on:
+      - hoteldruid-db
+    environment:
+      # Database connection settings
+      DB_HOST: hoteldruid-db
+      DB_PORT: 3306
+      DB_NAME: hoteldruid
+      DB_USER: hoteldruid_user
+      DB_PASSWORD: hoteldruid_pass_2024
+      # PHP settings
+      PHP_UPLOAD_MAX_FILESIZE: 50M
+      PHP_POST_MAX_SIZE: 50M
+      PHP_MAX_EXECUTION_TIME: 300
+      PHP_MEMORY_LIMIT: 256M
+    volumes:
+      - ./hoteldruid:/var/www/html
+      - hoteldruid_uploads:/var/www/html/dati
+      - ./logs/apache:/var/log/apache2
+    ports:
+      - "8080:80"
+    networks:
+      - hoteldruid-network
+
+  # phpMyAdmin for database management (optional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: hoteldruid-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - hoteldruid-db
+    environment:
+      PMA_HOST: hoteldruid-db
+      PMA_PORT: 3306
+      PMA_USER: hoteldruid_user
+      PMA_PASSWORD: hoteldruid_pass_2024
+      MYSQL_ROOT_PASSWORD: hoteldruid_root_2024
+    ports:
+      - "8081:80"
+    networks:
+      - hoteldruid-network
+
+# Named volumes for data persistence
+volumes:
+  hoteldruid_db_data:
+    driver: local
+  hoteldruid_uploads:
+    driver: local
+
+# Network for service communication
+networks:
+  hoteldruid-network:
+    driver: bridge

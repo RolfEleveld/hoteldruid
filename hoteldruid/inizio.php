@@ -20,10 +20,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##################################################################################
 
-
+// Configure secure session
+if (session_status() == PHP_SESSION_NONE) {
+    // Configure secure session settings before starting
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.gc_maxlifetime', 1800); // 30 minutes
+    session_start();
+}
 
 $pag = "inizio.php";
 $titolo = "HotelDruid";
+
+// Include security and template systems
+include_once("./includes/security.php");
+include_once("./includes/template.php");
 
 $var_pag = array();
 $var_pag[0] = 'nuovo_mess';
@@ -41,8 +54,42 @@ $n_var_pag = 10;
 include("./costanti.php");
 include("./includes/funzioni.php");
 
+// Configure secure session
+if (session_status() == PHP_SESSION_NONE) {
+    // Configure secure session settings before starting
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.gc_maxlifetime', 1800); // 30 minutes
+    session_start();
+}
+
+// Include security and template systems
+include_once("./includes/security.php");
+include_once("./includes/template.php");
+include_once("./includes/menu_generator.php");
+
 
 unset($numconnessione);
+
+// Enhanced login validation with security features
+$login_errors = array();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($nome_utente_phpr) && !empty($password_phpr)) {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    
+    $validation_result = enhanced_login_validation($nome_utente_phpr, $password_phpr, $csrf_token);
+    
+    if (!$validation_result['valid']) {
+        $login_errors = $validation_result['errors'];
+        // Clear sensitive data
+        unset($password_phpr);
+    } else {
+        $nome_utente_phpr = $validation_result['username'];
+        $password_phpr = $validation_result['password'];
+    }
+}
+
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
 if ($id_utente and $numconnessione and isset($logout)) {
 $tabelle_lock = array($PHPR_TAB_PRE."sessioni");
@@ -342,484 +389,9 @@ echo "$form_aggiorna_sub";
 if ($tema[$id_utente] != "base") include("./themes/".$tema[$id_utente]."/php/menu.php");
 else $hide_default_menu = 0;
 if (!$hide_default_menu) {
+    // Use the modern menu system
+    include("./includes/modern_menu_display.php");
 
-if (!defined('C_URL_LOGO') or C_URL_LOGO == "") echo "<div id=\"mmenu\">";
-else echo "<div style=\"background: url(".C_URL_LOGO.") no-repeat right top;\">";
-
-if ($nome_utente_login) {
-echo "<div class=\"logout\">".mex("Utente",$pag).": $nome_utente_login".".
- <a href=\"inizio.php?id_sessione=$id_sessione&amp;logout=SI\">".mex("Esci",$pag)."</a></div>";
-} # fine if ($nome_utente_login)
-
-$anno_succ = $anno + 1;
-if ($anno_corrente == $anno_succ and (!defined('C_CREA_ANNO_MANUALMENTE') or C_CREA_ANNO_MANUALMENTE != "SI") and !@is_file(C_DATI_PATH."/selectperiodi$anno_corrente.1.php")) $anno_menu = $anno_corrente;
-else $anno_menu = $anno;
-echo "<br><div style=\"text-align: center;\"><h3 id=\"h_mm\"><span>".mex("Menù principale dell'anno",$pag)." $anno_menu";
-if (isset($commento_subordinazione)) echo " ($commento_subordinazione)";
-echo "</span></h3><div id=\"mm_sub0\"></div>";
-if ($priv_ins_nuove_prenota == "s") {
-echo "<table class=\"ires\" cellspacing=0 cellpadding=0>
-<tr><td style=\"width: 10px;\"></td><td>
-<form style=\"display: inline;\" accept-charset=\"utf-8\" method=\"post\" action=\"prenota.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"ires\" type=\"submit\"><div>".mex("Inserisci una nuova prenotazione",$pag)."</div></button><br>
-</div></form></td><td style=\"width: 10px;\">
-</td></tr></table><div id=\"mm_sub1\"></div>";
-} # fine if ($priv_ins_nuove_prenota == "s")
-if ($priv_vedi_tab_mesi != "n") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"tabella.php\"><div>
-<table class=\"vmon\" cellspacing=0 cellpadding=0>
-<tr><td>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-".str_replace(" ","&nbsp;",ucfirst(mex("prenotazioni del mese di",$pag)));
-$mese_attuale = date("n",(time() + (C_DIFF_ORE * 3600)));
-for ($num1 = 1 ; $num1 <= 12 ; $num1++) {
-$mese_invia[$num1] = "\"$num1\"";
-if ($num1 == $mese_attuale) $mese_invia[$num1] .= " selected";
-$mese_invia[$num1] .= ">";
-} # fine for $num1
-echo " <select name=\"mese\">
-<option value=".$mese_invia[1].mex("Gennaio",$pag)."</option>
-<option value=".$mese_invia[2].mex("Febbraio",$pag)."</option>
-<option value=".$mese_invia[3].mex("Marzo",$pag)."</option>
-<option value=".$mese_invia[4].mex("Aprile",$pag)."</option>
-<option value=".$mese_invia[5].mex("Maggio",$pag)."</option>
-<option value=".$mese_invia[6].mex("Giugno",$pag)."</option>
-<option value=".$mese_invia[7].mex("Luglio",$pag)."</option>
-<option value=".$mese_invia[8].mex("Agosto",$pag)."</option>
-<option value=".$mese_invia[9].mex("Settembre",$pag)."</option>
-<option value=".$mese_invia[10].mex("Ottobre",$pag)."</option>
-<option value=".$mese_invia[11].mex("Novembre",$pag)."</option>
-<option value=".$mese_invia[12].mex("Dicembre",$pag)."</option>
-</select></td><td>
-<p style=\"margin: 0pt; padding: 0pt;\">
-<label><input type=\"radio\" name=\"anno_succ\" value=\"NO\" checked>$anno</label><br>
-<label><input type=\"radio\" name=\"anno_succ\" value=\"SI\">$anno_succ</label>
-</p></td><td>&nbsp;
-<button class=\"vmon\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
-</td></tr></table></div></form>";
-} # fine if ($priv_vedi_tab_mesi != "n")
-echo "<div id=\"mm_sub2\"></div>";
-
-if ($priv_vedi_beni_inv == "n" and $priv_vedi_inv_mag == "n" and $priv_vedi_inv_app == "n") $priv_vedi_tab_inventario = "n";
-else $priv_vedi_tab_inventario = "s";
-if ($priv_vedi_tab_prenotazioni != "n" or $vedi_clienti != "NO" or $priv_vedi_tab_costi != "n" or $priv_vedi_tab_periodi != "n" or $priv_vedi_tab_regole != "n" or $priv_vedi_tab_appartamenti != "n" or $priv_vedi_tab_stat != "n" or $priv_vedi_tab_doc != "n" or $priv_vedi_tab_inventario != "n") {
-echo "<form id=\"vtab\" accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<table class=\"vtab\" cellspacing=0 cellpadding=0><tr><td>
-".str_replace(" ","&nbsp;",ucfirst(mex("tabella con",$pag)))."
-<select name=\"tipo_tabella\">";
-if ($priv_vedi_tab_prenotazioni != "n") echo "<option value=\"prenotazioni\">".mex("tutte le prenotazioni",$pag)."</option>";
-if ($priv_vedi_tab_costi != "n") echo "<option value=\"costi\">".mex("le spese e le entrate",$pag)."</option>";
-if ($priv_vedi_tab_periodi != "n") echo "<option value=\"periodi\">".mex("i periodi e le tariffe",$pag)."</option>";
-if ($vedi_clienti != "NO") echo "<option value=\"clienti\">".mex("tutti i clienti",$pag)."</option>";
-if ($priv_vedi_tab_regole != "n") echo "<option value=\"regole\">".mex("le regole di assegnazione",$pag)."</option>";
-if ($priv_vedi_tab_appartamenti != "n") echo "<option value=\"appartamenti\">".mex("tutti gli appartamenti",'unit.php')."</option>";
-if ($priv_vedi_tab_inventario != "n") echo "<option value=\"inventario\">".mex("inventario e magazzini",$pag)."</option>";
-if ($priv_vedi_tab_doc != "n") echo "<option value=\"documenti\">".mex("i documenti salvati",$pag)."</option>";
-if ($priv_vedi_tab_stat != "n") echo "<option value=\"statistiche\">".mex("le statistiche",$pag)."</option>";
-echo "</select></td><td style=\"width: 4px;\"></td><td>
-<button class=\"vtab\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
-</td></tr></table></div></form><div id=\"mm_sub3\"></div>";
-} # fine if ($priv_vedi_tab_prenotazioni != "n" or...
-
-echo "<table id=\"mm_act\" cellspacing=0 cellpadding=0><tr>";
-if ($inserimento_nuovi_clienti != "NO" or ($modifica_clienti != "NO" and $vedi_clienti != "NO")) {
-echo "<td style=\"width: 13px;\"></td><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"clienti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"icli\" type=\"submit\"><div>".mex("Inserisci un nuovo cliente",$pag)."</div></button><br>
-</div></form></td><td style=\"width: 13px;\"></td>";
-} # fine if ($inserimento_nuovi_clienti != "NO" or...
-if ($priv_ins_spese == "s" or $priv_ins_entrate == "s") {
-echo "<td style=\"width: 13px;\"></td><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"inex\" type=\"submit\"><div>".mex("Spese ed entrate",$pag)."</div></button><br>
-</div></form></td><td style=\"width: 13px;\"></td>";
-} # fine if ($priv_ins_spese == "s" or $priv_ins_entrate == "s")
-if ($priv_mod_prenotazioni != "n" and $priv_mod_costi_agg == "s") {
-echo "<td style=\"width: 13px;\"></td><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"punto_vendita.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"vpos\" type=\"submit\"><div>".mex("Punto vendita",$pag)."</div></button><br>
-</div></form></td><td style=\"width: 13px;\"></td>";
-} # fine if ($priv_mod_prenotazioni != "n" and $priv_mod_costi_agg == "s")
-if ($priv_vedi_messaggi == "s") {
-$nuovo_mess = 0;
-if ($numconnessione) {
-$tablemessaggi = $PHPR_TAB_PRE."messaggi";
-$adesso = date("Y-m-d H:i:s",(time() + (C_DIFF_ORE * 3600)));
-$messaggi = esegui_query("select idmessaggi from $tablemessaggi where datavisione < '$adesso' and idutenti_visto $LIKE '%,$id_utente,%'");
-if (numlin_query($messaggi) > 0) {
-$nuovo_mess = 1;
-} # fine if 
-} # fine if ($numconnessione)
-if ($nuovo_mess) {
-$gt = "<b style=\"color: red;\">&gt;</b>";
-$lt = "<b style=\"color: red;\">&lt;</b>";
-} # fine if ($nuovo_mess)
-else {
-$gt = "";
-$lt = "";
-} # fine else if ($nuovo_mess)
-echo "<td style=\"width: 13px;\"></td><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"messaggi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-$gt<button class=\"mess\" type=\"submit\"><div>".mex("Messaggi",$pag)."</div></button>$lt<br>
-</div></form></td><td style=\"width: 13px;\"></td>";
-} # fine if ($priv_vedi_messaggi == "s")
-echo "</tr></table>";
-
-if ($priv_ins_nuove_prenota == "s" or $priv_vedi_tab_mesi != "n" or $priv_vedi_tab_prenotazioni != "n") {
-if ($numconnessione) {
-include_once("./includes/funzioni_tariffe.php");
-$tablepersonalizza = $PHPR_TAB_PRE."personalizza";
-$dati_cat_pers = dati_cat_pers($id_utente,$tablepersonalizza,$lingua_mex,'s',0);
-} # fine if ($numconnessione)
-else {
-$dati_cat_pers = array();
-$dati_cat_pers['num'] = 0;
-} # fine else if ($numconnessione)
-echo "<table class=\"rbox\" style=\"margin-left: auto; margin-right: auto;\" cellspacing=0 cellpadding=0><tr><td>
-<div id=\"mm_sub4\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"disponibilita.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\"><input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-".ucfirst(mex("disponibilità dal",$pag))." ";
-$inizio_select = "";
-$fine_select = "";
-if ($numconnessione) {
-$oggi = date("Y-m-d",(time() + (C_DIFF_ORE * 3600)));
-$date_select = esegui_query("select datainizio,datafine from $PHPR_TAB_PRE"."periodi$anno where datainizio <= '$oggi' and datafine > '$oggi' ");
-if (numlin_query($date_select) != 0) {
-$inizio_select = risul_query($date_select,0,'datainizio');
-$fine_select = risul_query($date_select,0,'datafine');
-} # fine if (numlin_query($date_select) != 0)
-} # fine if ($numconnessione)
-mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","inizioperiodo",$inizio_select,"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","fineperiodo",$fine_select,"","",$id_utente,$tema);
-if (!$dati_cat_pers['num']) echo " <span class=\"wsnw\">(".mex("per",$pag)." <input type=\"text\" name=\"numpersone\" size=\"2\" maxlength=\"2\"> ".mex("persone",$pag).")</span>";
-echo " <button class=\"chav\" type=\"submit\"><div>".ucfirst(mex("controlla",$pag))."</div></button>";
-if ($dati_cat_pers['num']) {
-echo "<div style=\"height: 2px;\"></div>(";
-for ($num1 = 0 ; $num1 < $dati_cat_pers['num'] ; $num1++) {
-echo "<span class=\"wsnw\">".$dati_cat_pers[$num1]['n_plur'].": <input type=\"text\" name=\"cat$num1"."_numpers\" size=\"2\" maxlength=\"2\"></span>";
-if ($num1 != ($dati_cat_pers['num'] - 1)) echo "; ";
-} # for $num1
-echo ")
-<input type=\"hidden\" name=\"num_cat_pers_passa\" value=\"".$dati_cat_pers['num']."\">";
-} # fine if ($dati_cat_pers['num'])
-echo "</div></form></div></td></tr></table>";
-} # fine if ($priv_ins_nuove_prenota == "s" or $priv_vedi_tab_mesi != "n" or $priv_vedi_tab_prenotazioni != "n")
-
-echo "<hr id=\"mm_sub5\" style=\"width: 95%;\">";
-
-
-if ($numconnessione and $priv_vedi_tab_prenotazioni != "n") {
-$tablepersonalizza = $PHPR_TAB_PRE."personalizza";
-$tableprenota = $PHPR_TAB_PRE."prenota".$anno;
-$tablecostiprenota = $PHPR_TAB_PRE."costiprenota".$anno;
-$tableperiodi = $PHPR_TAB_PRE."periodi".$anno;
-$tableclienti = $PHPR_TAB_PRE."clienti";
-$tableanni = $PHPR_TAB_PRE."anni";
-
-if ($id_utente == 1) {
-if (isset($canc_mess_periodi)) {
-$tabelle_lock = array($tablepersonalizza);
-$altre_tab_lock = array($tableanni,$tableperiodi);
-$tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
-} # fine if (isset($canc_mess_periodi))
-else {
-$tabelle_lock = "";
-$altre_tab_lock = array($tableanni,$tableperiodi,$tablepersonalizza);
-$tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
-} # fine else if (isset($canc_mess_periodi))
-$mesi_avviso = 4;
-$limite_avviso_date = date("Y-m-d",mktime(0,0,0,((int) date("m") + $mesi_avviso),date("d"),date("Y")));
-$limite_avviso_date = esegui_query("select * from $tableperiodi where datafine > '$limite_avviso_date' limit 1 ");
-if (!numlin_query($limite_avviso_date)) {
-$anni_succ = esegui_query("select * from $tableanni where idanni > '$anno' ");
-if (!numlin_query($anni_succ)) {
-$visto = esegui_query("select * from $tablepersonalizza where idpersonalizza = 'visto_messaggio_periodi' and idutente = '$id_utente' ");
-if (!numlin_query($visto)) {
-if (isset($canc_mess_periodi)) esegui_query("insert into $tablepersonalizza (idpersonalizza,valpersonalizza,idutente) values ('visto_messaggio_periodi','1','$id_utente')");
-else {
-echo "<b class=\"colwarn\">".mex("Avviso",$pag)."</b>: ".mex("nel database sono ancora disponibili periodi solo per meno di",$pag)." $mesi_avviso ".mex("mesi",$pag).".
-<table style=\"margin-left: auto; margin-right: auto; margin-top: 6px;\"><tr><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"canc_mess_periodi\" value=\"1\">
-<button class=\"canc\" type=\"submit\"><div>".mex("OK, ho capito",$pag)."</div></button>
-</div></form></td><td style=\"width: 10px;\"></td><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"./visualizza_tabelle.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tipo_tabella\" value=\"periodi\">
-<input type=\"hidden\" name=\"mostra_form_agg_per\" value=\"1\">
-<input type=\"hidden\" name=\"origine\" value=\"./creaprezzi.php\">
-<button class=\"amon\" type=\"submit\"><div>".mex("Aggiungi periodi","visualizza_tabelle.php")."</div></button>
-</div></form></td></tr></table>
-<div class=\"mm_sub7\"></div><hr style=\"width: 95%;\">";
-} # fine else if (isset($canc_mess_periodi))
-} # fine if (!numlin_query($visto))
-} # fine if (!numlin_query($anni_succ))
-} # fine if (!numlin_query($limite_avviso_date))
-unlock_tabelle($tabelle_lock);
-} # fine if ($id_utente == 1)
-
-$attiva_checkin = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'attiva_checkin' and idutente = '$id_utente'");
-$attiva_checkin = risul_query($attiva_checkin,0,'valpersonalizza');
-if ($attiva_checkin == "SI") {
-$tabelle_lock = "";
-$altre_tab_lock = array($tableprenota,$tableperiodi,$tablepersonalizza);
-$tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
-$stile_soldi = stile_soldi();
-if ($priv_vedi_tab_prenotazioni == "p" or $priv_vedi_tab_prenotazioni == "g") {
-$condizione_prenota_proprie = "and ( utente_inserimento = '$id_utente'";
-if ($priv_vedi_tab_prenotazioni == "g") {
-reset($utenti_gruppi);
-foreach ($utenti_gruppi as $idut_gr => $val) if ($idut_gr != $id_utente) $condizione_prenota_proprie .= " or utente_inserimento = '$idut_gr'";
-} # fine if ($priv_vedi_tab_prenotazioni == "g")
-$condizione_prenota_proprie .= " )";
-} # fine if ($priv_vedi_tab_prenotazioni == "p" or $priv_vedi_tab_prenotazioni == "g")
-else $condizione_prenota_proprie = "";
-$id_periodo_corrente = calcola_id_periodo_corrente($anno,"");
-$prenotazioni = esegui_query("select * from $tableprenota where ((iddatainizio <= '$id_periodo_corrente' and checkin is NULL) or (iddatafine < '$id_periodo_corrente' and checkout is NULL)) and idclienti != '0' $condizione_prenota_proprie order by checkin desc, iddatainizio, iddatafine");
-$num_prenotazioni = numlin_query($prenotazioni);
-$data_inizio_assoluta = esegui_query("select datainizio from $tableperiodi where idperiodi = 1");
-$data_inizio_assoluta = risul_query($data_inizio_assoluta,0,'datainizio');
-unlock_tabelle($tabelle_lock);
-
-if ($num_prenotazioni > 0) {
-if (!function_exists('dati_costi_agg_prenota')) include("./includes/funzioni_costi_agg.php");
-$colori_tab_mesi = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'colori_tab_mesi' and idutente = '$id_utente'");
-$colori_tab_mesi = explode(",",risul_query($colori_tab_mesi,0,'valpersonalizza'));
-$colore_giallo = $colori_tab_mesi[1];
-$colore_arancione = $colori_tab_mesi[2];
-$colore_rosso = $colori_tab_mesi[3];
-$fr_Appartamento = mex("Appartamento",'unit.php');
-$stile_data = stile_data();
-if (strlen($fr_Appartamento) > 4) $fr_Appartamento = substr($fr_Appartamento,0,3).".";
-if ($mobile_device) {
-$class_opt = " class=\"opt\"";
-$class_opt2 = " class=\"opt2\"";
-} # fine if ($mobile_device)
-else {
-$class_opt = "";
-$class_opt2 = "";
-} # fine else if ($mobile_device)
-echo "<div class=\"tab_cont\">
-<table class=\"t1 ckin\" style=\"background-color: $t1color; margin-left: auto; margin-right: auto;\" width=780 border=\"$t1border\" cellspacing=\"$t1cellspacing\">
-<tr><td><span class=\"wsnw\">N&deg;</span></td>
-<td><small>".str_replace(" ","&nbsp;",mex("Cognome del cliente",$pag))."</small></td>
-<td>".str_replace(" ","&nbsp;",mex("Data iniziale",$pag));
-if (!$mobile_device) echo "</td><td>";
-else echo "&nbsp;/&nbsp;<span class=\"smlscr\"> </span>";
-echo str_replace(" ","&nbsp;",mex("Data finale",$pag))."</td>
-<td$class_opt><small><small>".mex("Tariffa completa",$pag)."</small></small></td>
-<td><small><small>".str_replace(" ","&nbsp;",mex("Da pagare",$pag))."</small></small></td>
-<td><small><small>$fr_Appartamento</small></small></td>
-<td><small><small>".mex("Pers",$pag).".</small></small></td>
-<td$class_opt2><small><small>".mex("Promemoria",$pag)."</small></small></td>
-<td colspan=2><span>".mex("Registra",$pag)."</span></td></tr>";
-
-for ($num1 = 0 ; $num1 < $num_prenotazioni ; $num1++) {
-$utente_inserimento_prenota = risul_query($prenotazioni,$num1,'utente_inserimento');
-$numero = risul_query($prenotazioni,$num1,'idprenota');
-$appartamento = risul_query($prenotazioni,$num1,'idappartamenti');
-$id_clienti = risul_query($prenotazioni,$num1,'idclienti');
-$cognome = esegui_query("select cognome,utente_inserimento from $tableclienti where idclienti = $id_clienti");
-$mostra_cliente = "SI";
-if ($vedi_clienti == "NO") $mostra_cliente = "NO";
-if ($vedi_clienti == "PROPRI" or $vedi_clienti == "GRUPPI") {
-$utente_inserimento = risul_query($cognome,0,'utente_inserimento');
-if ($vedi_clienti == "PROPRI" and $utente_inserimento != $id_utente) $mostra_cliente = "NO";
-if ($vedi_clienti == "GRUPPI" and !$utenti_gruppi[$utente_inserimento]) $mostra_cliente = "NO";
-} # fine if ($vedi_clienti == "PROPRI" or...
-if ($mostra_cliente == "NO") $cognome = mex("Cliente",$pag)." $id_clienti";
-else $cognome = risul_query($cognome,0,'cognome');
-
-$id_data_inizio = risul_query($prenotazioni,$num1,'iddatainizio');
-if ($id_data_inizio == 0) {
-$data_inizio = "<".$data_inizio_assoluta;
-$data_inizio_f = "<".formatta_data($data_inizio_assoluta,$stile_data);
-} # fine if ($id_data_inizio == 0)
-else {
-$data_inizio = esegui_query("select * from $tableperiodi where idperiodi = $id_data_inizio");
-$data_inizio = risul_query($data_inizio,0,'datainizio');
-$data_inizio_f = formatta_data($data_inizio,$stile_data);
-} # fine else if ($id_data_inizio == 0)
-$id_data_fine = risul_query($prenotazioni,$num1,'iddatafine');
-$data_fine = esegui_query("select * from $tableperiodi where idperiodi = $id_data_fine");
-$data_fine = risul_query($data_fine,0,'datafine');
-$data_fine_f = formatta_data($data_fine,$stile_data);
-$mese = explode("-",$data_inizio);
-$mese = $mese[1];
-
-$num_persone = risul_query($prenotazioni,$num1,'num_persone');
-if (!$num_persone or $num_persone == 0) { $num_persone = "?"; }
-$n_letti_agg = 0;
-$dati_cap = dati_costi_agg_prenota($tablecostiprenota,$numero);
-$num_letti_agg = array('max' => 0);
-for ($numca = 0 ; $numca < $dati_cap['num'] ; $numca++) aggiorna_letti_agg_in_periodi($dati_cap,$numca,$num_letti_agg,$id_data_inizio,$id_data_fine,$dati_cap[$numca]['settimane'],$dati_cap[$numca]['moltiplica_costo'],"","");
-$n_letti_agg = $num_letti_agg['max'];
-
-$caparra = risul_query($prenotazioni,$num1,'caparra');
-if (!$caparra) $caparra = 0;
-$pagato = risul_query($prenotazioni,$num1,'pagato');
-if (!$pagato) $pagato = 0;
-$pagato_p = punti_in_num($pagato,$stile_soldi);
-$costo_tot = risul_query($prenotazioni,$num1,'tariffa_tot');
-if (!$costo_tot) $costo_tot = 0;
-$costo_tot_p = punti_in_num($costo_tot,$stile_soldi);
-$da_pagare = $costo_tot - $pagato;
-$da_pagare_p = punti_in_num($da_pagare,$stile_soldi);
-$confermato = risul_query($prenotazioni,$num1,'conferma');
-$confermato = substr((string) $confermato,0,1);
-$colore = "";
-if ($pagato < $costo_tot) {
-$colore = $colore_giallo; #giallo
-if ($pagato < $caparra) $colore = $colore_arancione; #arancione
-if ($confermato != "S") $colore = $colore_rosso; # rosso
-} # fine if ($pagato < $costo_tot)
-
-$link_modifica = "SI";
-if ($priv_mod_prenotazioni == "n") $link_modifica = "NO";
-if ($priv_mod_prenotazioni == "p" and $utente_inserimento_prenota != $id_utente) $link_modifica = "NO";
-if ($priv_mod_prenotazioni == "g" and !$utenti_gruppi[$utente_inserimento_prenota]) $link_modifica = "NO";
-if ($priv_mod_prenota_iniziate != "s" and $id_periodo_corrente >= $id_data_inizio) $link_modifica = "NO";
-if ($priv_mod_prenota_ore != "000" and controlla_num_pos($priv_mod_prenota_ore) == "SI") {
-$adesso = date("YmdHis",(time() + (C_DIFF_ORE * 3600)));
-$data_ins = risul_query($prenotazioni,$num1,'datainserimento');
-$limite = date("YmdHis",mktime((substr($data_ins,11,2) + (int) $priv_mod_prenota_ore),substr($data_ins,14,2),substr($data_ins,17,2),substr($data_ins,5,2),substr($data_ins,8,2),substr($data_ins,0,4)));
-if ($adesso > $limite) $link_modifica = "NO";
-} # fine if ($priv_mod_prenota_ore != "000" and controlla_num_pos($priv_mod_prenota_ore) == "SI")
-$checkin = risul_query($prenotazioni,$num1,'checkin');
-$checkout = risul_query($prenotazioni,$num1,'checkout');
-if ($checkout and !$checkin) {
-$stima_checkin = substr(str_replace(" ","&nbsp;",str_replace("$data_inizio_f ","",formatta_data($checkout))),0,-3);
-if (strlen($stima_checkin) < 10) $stima_checkin = "&nbsp;<small><small>($stima_checkin)</small></small>";
-else $stima_checkin = " <small><small>($stima_checkin)</small></small>";
-$checkout = "";
-} # fine if ($checkout and !$checkin)
-else $stima_checkin = "";
-$promemoria = "&nbsp;";
-$commento = risul_query($prenotazioni,$num1,'commento');
-if (strstr((string) $commento,">")) {
-$commento = explode(">",$commento);
-if (!$checkin and strcmp((string) $commento[1],"")) $promemoria = "<small><small>".$commento[1]."</small></small>";
-if ($checkin and !$checkout and strcmp((string) $commento[2],"")) $promemoria = "<small><small>".$commento[2]."</small></small>";
-} # fine if (strstr((string) $commento,">"))
-$data_inserimento = risul_query($prenotazioni,$num1,'datainserimento');
-$host_inserimento = risul_query($prenotazioni,$num1,'hostinserimento');
-
-if ($link_modifica == "SI") {
-echo "<tr><td><a href=\"modifica_prenota.php?id_prenota=$numero&amp;anno=$anno&amp;id_sessione=$id_sessione&amp;origine=inizio.php\">$numero</a></td>";
-} # fine if ($link_modifica == "SI")
-else echo "<tr><td>$numero</td>";
-echo "<td>$cognome</td>
-<td>$data_inizio_f"."$stima_checkin";
-if (!$mobile_device) echo "</td><td>";
-else echo "&nbsp;/&nbsp;<span class=\"smlscr\"> </span>";
-echo "$data_fine_f</td>
-<td$class_opt>$costo_tot_p</td>
-<td";
-if ($colore) echo " style=\"background-color: $colore; background-image: none;\"";
-echo ">$da_pagare_p</td>";
-if (strlen($appartamento) > 6) echo "<td><small>$appartamento</small></td>";
-else echo "<td>$appartamento</td>";
-echo "<td>$num_persone";
-if ($n_letti_agg != 0) { echo "+$n_letti_agg"; }
-echo "</td>
-<td$class_opt2>$promemoria</td>";
-
-if ($link_modifica == "SI" and $priv_mod_checkin == "s") {
-echo "<td valign=\"middle\"";
-if (!$colore or $priv_mod_pagato != "s") echo " colspan=2";
-echo ">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"origine\" value=\"inizio.php\">
-<input type=\"hidden\" name=\"id_prenota\" value=\"$numero\">";
-if (!$checkin) echo "<input class=\"sbutton\" type=\"submit\" name=\"ins_checkin\" value=\"".mex("Entrata",$pag)."\">";
-if ($checkin and !$checkout) echo "<input id=\"cobutton\" class=\"sbutton\" type=\"submit\" name=\"ins_checkout\" value=\"".mex("Uscita",$pag)."\">";
-echo "</div></form></td>";
-if ($colore and $priv_mod_pagato == "s") {
-echo "<td$class_opt valign=\"middle\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"origine\" value=\"inizio.php\">
-<input type=\"hidden\" name=\"modificaprenotazione\" value=\"SI\">
-<input type=\"hidden\" name=\"modo_aggiorna_pagato\" value=\"tutto\">
-<input type=\"hidden\" name=\"non_modificare_costi_agg\" value=\"SI\">
-<input type=\"hidden\" name=\"d_data_inserimento\" value=\"$data_inserimento\">
-<input type=\"hidden\" name=\"d_host_inserimento\" value=\"$host_inserimento\">
-<input type=\"hidden\" name=\"id_prenota\" value=\"$numero\">";
-if (!$checkin) echo "<input class=\"sbutton\" type=\"submit\" name=\"ins_checkin\" value=\"".mex("Entrata e pagato",$pag)."\">";
-if ($checkin and !$checkout) echo "<input id=\"copbutton\" class=\"sbutton\" type=\"submit\" name=\"ins_checkout\" value=\"".mex("Uscita e pagato",$pag)."\">";
-echo "</div></form></td>";
-} # fine if ($colore and...
-} # fine if ($link_modifica == "SI" and $priv_mod_checkin == "s")
-else {
-if (!$checkin) echo "<td colspan=2>".mex("Entrata",$pag)."</td>";
-if ($checkin and !$checkout)  echo "<td colspan=2>".mex("Uscita",$pag)."</td>";
-} # fine else if ($link_modifica == "SI" and $priv_mod_checkin == "s")
-echo "</tr>";
-
-} # fine for $num1
-echo "</table></div>
-<hr id=\"mm_sub6\" style=\"width: 95%;\">";
-} # fine if ($num_prenotazioni > 0)
-} # fine if ($attiva_checkin == "SI")
-} # fine if ($numconnessione and $priv_vedi_tab_prenotazioni != "n")
-
-
-if ($priv_mod_tariffe != "n" or $priv_ins_costi_agg != "n") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"ipri\" type=\"submit\"><div>".mex("Inserisci o modifica i prezzi",$pag)."</div></button>
-</div></form><div class=\"mm_sub7\"></div>";
-} # fine if ($priv_mod_tariffe != "n" or $priv_ins_costi_agg != "n")
-if ($priv_mod_reg1 != "n" or $priv_mod_reg2 != "n") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"irul\" type=\"submit\"><div>".mex("Inserisci o modifica le regole di assegnazione",$pag)."</div></button><br>
-</div></form><div class=\"mm_sub7\"></div>";
-} # fine if ($priv_mod_reg1 != "n" or $priv_mod_reg2 != "n")
-if ($modifica_pers != "NO" or $priv_crea_backup == "s" or $priv_crea_interconnessioni == "s" or $priv_gest_pass_cc == "s") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"personalizza.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"conf\" type=\"submit\"><div>".mex("Configura e personalizza",$pag)."</div></button><br>
-</div></form><div class=\"mm_sub7\"></div>";
-} # fine if ($modifica_pers != "NO" or $priv_crea_backup == "s" or $priv_crea_interconnessioni == "s" or $priv_gest_pass_cc == "s")
-if (isset($vai_anno) and controlla_anno($vai_anno) != "NO") echo "<a name=\"vai_anno\"></a><div class=\"infobox\" style=\"margin: 4px auto; width: 22%; min-width: 220px;\">";
-else $vai_anno = "";
-if ($anno_corrente > $anno_menu and !$vai_anno and @is_file(C_DATI_PATH."/selectperiodi$anno_corrente.1.php")) $val_anno = $anno_corrente;
-else $val_anno = $vai_anno;
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div>
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-".ucfirst(mex("richiedi l'anno",$pag))."
-<input type=\"text\" name=\"anno\" size=\"4\" maxlength=\"4\" value=\"$val_anno\">
-<button class=\"gooo\" type=\"submit\"><div>".mex("vai",$pag)."</div></button>
-</div></form>";
-if ($vai_anno) echo "<div style=\"height: 4px;\"></div><span class=\"colinfo\">".mex("Nota",$pag)."</span>: ".mex("ricordarsi di tornare al",$pag)." $anno ".mex("una volta conclusa la consultazione del",$pag)." $vai_anno.</div>";
-echo "<br></div>
-
-</div>";
 
 } # fine if (!$hide_default_menu)
 

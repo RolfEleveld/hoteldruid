@@ -1,0 +1,15 @@
+# Add logs directory to gitignore
+logs/
+*.log
+
+# Docker volumes
+hoteldruid_db_data/
+hoteldruid_uploads/
+
+# Environment files
+.env.local
+.env.production
+
+# Database dumps
+*.sql
+!mysql/init/*.sql

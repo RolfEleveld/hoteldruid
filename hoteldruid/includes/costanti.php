@@ -30,13 +30,20 @@ define('C_CREADB_NOMEDB',"hoteldruid");
 else {
 # "mysql", "postgresql" o "sqlite"
 define('C_CREADB_TIPODB',"mysql");
-define('C_CREADB_NOMEDB',"");
+// Set Docker environment default for database name
+$docker_db_name = getenv('DB_NAME');
+define('C_CREADB_NOMEDB', $docker_db_name ? $docker_db_name : "");
 } # fine else if (function_exists('class_exists') and class_exists('SQLite3'))
 define('C_CREADB_DB_ESISTENTE',"SI");
-define('C_CREADB_HOST',"localhost");
+// Detect Docker environment for database host
+$docker_db_host = getenv('DB_HOST');
+define('C_CREADB_HOST', $docker_db_host ? $docker_db_host : "localhost");
 define('C_CREADB_PORT',"3306");
-define('C_CREADB_USER',"");
-define('C_CREADB_PASS',"");
+// Set Docker environment defaults for user and password
+$docker_db_user = getenv('DB_USER');
+$docker_db_pass = getenv('DB_PASSWORD');
+define('C_CREADB_USER', $docker_db_user ? $docker_db_user : "");
+define('C_CREADB_PASS', $docker_db_pass ? $docker_db_pass : "");
 define('C_CREADB_ESTENSIONE',"NO");
 define('C_CREADB_TEMPDB',"template1");
 #$prefisso = explode("/",$PHP_SELF);

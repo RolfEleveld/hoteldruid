@@ -105,16 +105,28 @@ $permessi_scrittura_controllati = "";
 $torna_indietro = "";
 
 allunga_tempo_limite();
+
+// Set defaults for Docker environment first
+if (!isset($database_phprdb) or !$database_phprdb) $database_phprdb = getenv('DB_NAME') ?: "hoteldruid";
+if (!isset($host_phprdb) or !$host_phprdb) $host_phprdb = getenv('DB_HOST') ?: "hoteldruid-db";
+if (!isset($port_phprdb) or !$port_phprdb) $port_phprdb = getenv('DB_PORT') ?: "3306";
+if (!isset($user_phprdb) or !$user_phprdb) $user_phprdb = getenv('DB_USER') ?: "hoteldruid_user";
+if (!isset($password_phprdb) or !$password_phprdb) $password_phprdb = getenv('DB_PASSWORD') ?: "hoteldruid_pass_2024";
+if (!isset($database_esistente)) $database_esistente = "SI";
+
 if (!isset($tipo_db)) $tipo_db = "";
-if ($tipo_db == "mysql" and @function_exists('mysqli_connect')) $tipo_db = "mysqli";
+// Force MySQLi for all MySQL connections - remove deprecated mysql support
+if ($tipo_db == "mysql" or !$tipo_db) $tipo_db = "mysqli";
 $carica_estensione = "NO";
-if (($tipo_db == "postgresql" and !@function_exists('pg_connect')) or ($tipo_db == "mysql" and !@function_exists('mysql_connect'))) $carica_estensione = "SI";
+// Only check for MySQLi and PostgreSQL - mysql deprecated
+if (($tipo_db == "postgresql" and !@function_exists('pg_connect')) or ($tipo_db == "mysqli" and !@function_exists('mysqli_connect'))) $carica_estensione = "SI";
 if ($tipo_db == "sqlite") {
 if (!@class_exists('SQLite3')) $carica_estensione = "SI";
 } # fine if ($tipo_db == "sqlite")
 if (defined('C_UTILIZZA_SEMPRE_DEFAULTS') and (C_UTILIZZA_SEMPRE_DEFAULTS == "SI" or C_UTILIZZA_SEMPRE_DEFAULTS == "AUTO")) {
 $tipo_db = C_CREADB_TIPODB;
-if ($tipo_db == "mysql" and @function_exists('mysqli_connect')) $tipo_db = "mysqli";
+// Force MySQLi for all MySQL connections
+if ($tipo_db == "mysql" or !$tipo_db) $tipo_db = "mysqli";
 $database_phprdb = C_CREADB_NOMEDB;
 $database_esistente = C_CREADB_DB_ESISTENTE;
 $host_phprdb = C_CREADB_HOST;
@@ -125,6 +137,24 @@ if (C_CREADB_ESTENSIONE) $carica_estensione = C_CREADB_ESTENSIONE;
 $tempdatabase = C_CREADB_TEMPDB;
 $prefisso_tab = C_CREADB_PREFISSO_TAB;
 } # fine if (defined('C_UTILIZZA_SEMPRE_DEFAULTS') and (C_UTILIZZA_SEMPRE_DEFAULTS == "SI" or C_UTILIZZA_SEMPRE_DEFAULTS == "AUTO"))
+
+// Ensure Docker environment variables override constants if available
+if (getenv('DB_HOST') && (!isset($host_phprdb) || $host_phprdb == 'localhost')) {
+    $host_phprdb = getenv('DB_HOST');
+}
+if (getenv('DB_NAME') && (!isset($database_phprdb) || !$database_phprdb)) {
+    $database_phprdb = getenv('DB_NAME');
+}
+if (getenv('DB_USER') && (!isset($user_phprdb) || !$user_phprdb)) {
+    $user_phprdb = getenv('DB_USER');
+}
+if (getenv('DB_PASSWORD') && (!isset($password_phprdb) || !$password_phprdb)) {
+    $password_phprdb = getenv('DB_PASSWORD');
+}
+if (getenv('DB_PORT') && (!isset($port_phprdb) || !$port_phprdb)) {
+    $port_phprdb = getenv('DB_PORT');
+}
+
 if (!controlla_num_pos($numletti) == "NO") $numletti = 0;
 $numapp_default = 0;
 if ((!$numappartamenti and !$numletti) or controlla_num_pos($numappartamenti) == "NO") {
@@ -161,17 +191,7 @@ $numconnessione = pg_connect("dbname=$tempdatabase host=$host_phprdb port=$port_
 $encoding = " with encoding = 'SQL_ASCII'";
 $encoding = "";
 } # fine if ($tipo_db == "postgresql")
-if ($tipo_db == "mysql") {
-if ($carica_estensione == "SI") dl("mysql.so");
-$numconnessione = mysql_connect("$host_phprdb:$port_phprdb", "$user_phprdb", "$password_phprdb");
-@mysql_query("SET NAMES 'utf8'");
-@mysql_query("SET default_storage_engine=MYISAM");
-if ($numconnessione and $database_esistente == "SI") {
-$query_db = mysql_select_db($database_phprdb);
-if (!$query_db) $numconnessione = $query_db;
-} # fine if ($numconnessione and $database_esistente == "SI")
-$encoding = "";
-} # fine if ($tipo_db == "mysql")
+// MySQL (deprecated) section removed - use MySQLi only
 if ($tipo_db == "mysqli") {
 if ($carica_estensione == "SI") dl("mysqli.so");
 $numconnessione = mysqli_connect($host_phprdb,$user_phprdb,$password_phprdb,"",$port_phprdb);
@@ -200,7 +220,8 @@ $PHPR_LOG = "";
 include("./includes/funzioni_$tipo_db.php");
 if ($database_esistente == "NO") {
 $link_mysqli = $numconnessione;
-$query = esegui_query("create database $database_phprdb $encoding");
+// Use CREATE DATABASE IF NOT EXISTS to avoid errors if database already exists
+$query = esegui_query("create database if not exists $database_phprdb $encoding");
 if ($query) echo mex2("Database creato",$pag,$lingua)."!<br>";
 } # fine if ($database_esistente == "NO")
 else $query = "SI";
@@ -215,14 +236,7 @@ if ($tipo_db == "postgresql") {
 $numconnessione = pg_connect("dbname=$database_phprdb host=$host_phprdb port=$port_phprdb user=$user_phprdb password=$password_phprdb ");
 } # fine if ($tipo_db == "postgresql")
 if ($tipo_db == "mysql" or $tipo_db == "mysqli") {
-if ($tipo_db == "mysql") {
-$numconnessione = mysql_connect("$host_phprdb:$port_phprdb", "$user_phprdb", "$password_phprdb");
-@mysql_query("SET NAMES 'utf8'");
-@mysql_query("SET default_storage_engine=MYISAM");
-mysql_select_db($database_phprdb);
-$character_set_db = "utf8";
-$collation_db = "utf8_general_ci";
-} # fine if ($tipo_db == "mysql")
+// Use MySQLi only - mysql deprecated
 if ($tipo_db == "mysqli") {
 $numconnessione = mysqli_connect($host_phprdb,$user_phprdb,$password_phprdb,$database_phprdb,$port_phprdb);
 $link_mysqli = $numconnessione;
@@ -614,7 +628,7 @@ if ($tipo_db == "postgresql") {
 $numconnessione = pg_connect("dbname=$tempdatabase host=$host_phprdb port=$port_phprdb user=$user_phprdb password=$password_phprdb ");
 } # fine if ($tipo_db == "postgresql")
 if ($tipo_db == "mysql") {
-$numconnessione = mysql_connect("$host_phprdb:$port_phprdb", "$user_phprdb", "$password_phprdb");
+$numconnessione = mysqli_connect($host_phprdb, $user_phprdb, $password_phprdb, "", $port_phprdb);
 } # fine if ($tipo_db == "mysql")
 esegui_query("drop database $database_phprdb");
 } # fine if ($database_esistente == "NO")
@@ -895,9 +909,10 @@ echo "<h4>".mex2("Inserimento dei dati permanenti",$pag,$lingua)."</h4><br>
 if (C_CREADB_TIPODB == "postgresql") $selected = " selected";
 else $selected = "";
 echo "<option value=\"postgresql\"$selected>".mex2("Postgresql",$pag,$lingua)."</option>";
-if (C_CREADB_TIPODB == "mysql") $selected = " selected";
+// Use MySQLi instead of deprecated MySQL
+if (C_CREADB_TIPODB == "mysql" or C_CREADB_TIPODB == "mysqli" or !C_CREADB_TIPODB) $selected = " selected";
 else $selected = "";
-echo "<option value=\"mysql\"$selected>".mex2("Mysql",$pag,$lingua)."</option>";
+echo "<option value=\"mysqli\"$selected>".mex2("MySQL (MySQLi)",$pag,$lingua)."</option>";
 if (C_CREADB_TIPODB == "sqlite") $selected = " selected";
 else $selected = "";
 echo "<option value=\"sqlite\"$selected>".mex2("Sqlite",$pag,$lingua)."</option>

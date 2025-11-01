@@ -46,13 +46,14 @@ pg_exec("set datestyle to 'iso'");
 } # fine if ($PHPR_DB_TYPE == "postgresql")
 if ($PHPR_DB_TYPE == "mysql") {
 if ($PHPR_LOAD_EXT == "SI") {
-dl("mysql.so");
+dl("mysqli.so");
 $ext_mysql_caricata = "SI";
 } # fine if ($PHPR_LOAD_EXT == "SI")
-$numconnessione = mysql_connect("$PHPR_DB_HOST:$PHPR_DB_PORT", "$PHPR_DB_USER", "$PHPR_DB_PASS");
-@mysql_query("SET NAMES 'utf8'");
-@mysql_query("SET default_storage_engine=MYISAM");
-mysql_select_db($PHPR_DB_NAME);
+global $link_mysqli;
+$numconnessione = mysqli_connect($PHPR_DB_HOST, $PHPR_DB_USER, $PHPR_DB_PASS, $PHPR_DB_NAME, $PHPR_DB_PORT);
+$link_mysqli = $numconnessione;
+@mysqli_query($numconnessione, "SET NAMES 'utf8mb4'");
+@mysqli_query($numconnessione, "SET default_storage_engine=MYISAM");
 } # fine if ($PHPR_DB_TYPE == "mysql")
 if ($PHPR_DB_TYPE == "mysqli") {
 if ($PHPR_LOAD_EXT == "SI") {
@@ -244,7 +245,10 @@ fwrite($file,"</contenuto>
 
 function esegui_query2 ($query,$tipo_db,$silenzio = "") {
 if ($tipo_db == "postgresql") $risul = pg_exec($query);
-if ($tipo_db == "mysql") $risul = mysql_query($query);
+if ($tipo_db == "mysql") {
+global $link_mysqli;
+$risul = mysqli_query($link_mysqli, $query);
+}
 if ($tipo_db == "mysqli") {
 global $numconnessione;
 $risul = mysqli_query($numconnessione,$query);
@@ -264,7 +268,10 @@ return $risul;
 
 function esegui_query3 (&$query,$tipo_db,$silenzio = "") {
 if ($tipo_db == "postgresql") $risul = pg_exec($query);
-if ($tipo_db == "mysql") $risul = mysql_query($query);
+if ($tipo_db == "mysql") {
+global $link_mysqli;
+$risul = mysqli_query($link_mysqli, $query);
+}
 if ($tipo_db == "mysqli") {
 global $numconnessione;
 $risul = mysqli_query($numconnessione,$query);
@@ -284,7 +291,10 @@ return $risul;
 
 function crea_indice2 ($tabella,$colonne,$nome,$tipo_db) {
 if ($tipo_db == "postgresql") pg_exec("create index $nome on $tabella ($colonne)");
-if ($tipo_db == "mysql") mysql_query("alter table $tabella add index $nome ($colonne)");
+if ($tipo_db == "mysql") {
+global $link_mysqli;
+mysqli_query($link_mysqli, "alter table $tabella add index $nome ($colonne)");
+}
 if ($tipo_db == "mysqli") {
 global $numconnessione;
 $risul = mysqli_query($numconnessione,"alter table $tabella add index $nome ($colonne)");
@@ -865,12 +875,14 @@ pg_exec("set datestyle to 'iso'");
 } # fine if ($N_PHPR_DB_TYPE == "postgresql")
 if ($N_PHPR_DB_TYPE == "mysql") {
 if ($N_PHPR_LOAD_EXT == "SI" and $ext_mysql_caricata != "SI") {
-dl("mysql.so");
+dl("mysqli.so");
 $ext_mysql_caricata = "SI";
 } # fine if ($PHPR_LOAD_EXT == "SI" and $ext_mysql_caricata != "SI")
-$numconnessione = mysql_connect("$N_PHPR_DB_HOST:$N_PHPR_DB_PORT", "$N_PHPR_DB_USER", "$N_PHPR_DB_PASS");
-@mysql_query("SET NAMES 'utf8'");
-@mysql_query("SET default_storage_engine=MYISAM");
+global $link_mysqli;
+$numconnessione = mysqli_connect($N_PHPR_DB_HOST, $N_PHPR_DB_USER, $N_PHPR_DB_PASS, "", $N_PHPR_DB_PORT);
+$link_mysqli = $numconnessione;
+@mysqli_query($numconnessione, "SET NAMES 'utf8mb4'");
+@mysqli_query($numconnessione, "SET default_storage_engine=MYISAM");
 $encoding = "";
 } # fine if ($N_PHPR_DB_TYPE == "mysql")
 if ($N_PHPR_DB_TYPE == "mysqli") {
@@ -897,9 +909,9 @@ $numconnessione->busyTimeout(60000);
 $query = $numconnessione;
 $database_esistente = "SI";
 } # fine if ($N_PHPR_DB_TYPE == "sqlite")
-if ($database_esistente != "SI") $query = esegui_query2("create database $N_PHPR_DB_NAME $encoding",$N_PHPR_DB_TYPE);
+if ($database_esistente != "SI") $query = esegui_query2("create database if not exists $N_PHPR_DB_NAME $encoding",$N_PHPR_DB_TYPE);
 if ($N_PHPR_DB_TYPE == "postgresql") pg_close($numconnessione);
-if ($N_PHPR_DB_TYPE == "mysql") mysql_close($numconnessione);
+if ($N_PHPR_DB_TYPE == "mysql") mysqli_close($numconnessione);
 if ($N_PHPR_DB_TYPE == "mysqli") mysqli_close($numconnessione);
 if ($N_PHPR_DB_TYPE == "sqlite") $numconnessione->close();
 } # fine if ($database_esistente != "SI")
@@ -932,21 +944,25 @@ if ($N_PHPR_LOAD_EXT == "SI" and $ext_mysql_caricata != "SI") {
 dl("mysql.so");
 $ext_mysql_caricata = "SI";
 } # fine if ($N_PHPR_LOAD_EXT == "SI" and $ext_mysql_caricata != "SI")
-$numconnessione = mysql_connect ("$N_PHPR_DB_HOST:$N_PHPR_DB_PORT", "$N_PHPR_DB_USER", "$N_PHPR_DB_PASS");
-@mysql_query("SET NAMES 'utf8'");
-@mysql_query("SET default_storage_engine=MYISAM");
-$character_set_db = "utf8";
-$collation_db = "utf8_general_ci";
-$select_db = mysql_select_db($N_PHPR_DB_NAME);
+global $link_mysqli;
+$numconnessione = mysqli_connect($N_PHPR_DB_HOST, $N_PHPR_DB_USER, $N_PHPR_DB_PASS, $N_PHPR_DB_NAME, $N_PHPR_DB_PORT);
+$link_mysqli = $numconnessione;
+@mysqli_query($numconnessione, "SET NAMES 'utf8mb4'");
+@mysqli_query($numconnessione, "SET default_storage_engine=MYISAM");
+$character_set_db = "utf8mb4";
+$collation_db = "utf8mb4_general_ci";
+$select_db = mysqli_select_db($numconnessione, $N_PHPR_DB_NAME);
 if (!$select_db) $numconnessione = "";
 else {
-$character_set = mysql_query("SHOW VARIABLES LIKE 'character_set_database'");
-$collation = mysql_query("SHOW VARIABLES LIKE 'collation_database'");
-if (mysql_num_rows($character_set) == 1 and mysql_num_rows($collation) == 1) {
-$character_set_db_orig = mysql_result($character_set,0,'Value');
-$collation_db_orig = mysql_result($collation,0,'Value');
-if ($character_set_db_orig != "utf8" or $collation_db_orig != "utf8_general_ci") mysql_query("alter database $N_PHPR_DB_NAME default character set 'utf8' collate 'utf8_general_ci'");
-} # fine if (mysql_num_rows($character_set) == 1 and mysql_num_rows($collation) == 1)
+$character_set = mysqli_query($numconnessione, "SHOW VARIABLES LIKE 'character_set_database'");
+$collation = mysqli_query($numconnessione, "SHOW VARIABLES LIKE 'collation_database'");
+if (mysqli_num_rows($character_set) == 1 and mysqli_num_rows($collation) == 1) {
+$character_set_row = mysqli_fetch_assoc($character_set);
+$collation_row = mysqli_fetch_assoc($collation);
+$character_set_db_orig = $character_set_row['Value'];
+$collation_db_orig = $collation_row['Value'];
+if ($character_set_db_orig != "utf8mb4" or $collation_db_orig != "utf8mb4_general_ci") mysqli_query($numconnessione, "alter database $N_PHPR_DB_NAME default character set 'utf8mb4' collate 'utf8mb4_general_ci'");
+} # fine if (mysqli_num_rows($character_set) == 1 and mysqli_num_rows($collation) == 1)
 } # fine else if (!$select_db)
 } # fine if ($N_PHPR_DB_TYPE == "mysql")
 if ($N_PHPR_DB_TYPE == "mysqli") {
