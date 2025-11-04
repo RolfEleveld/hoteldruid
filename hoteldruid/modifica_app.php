@@ -91,6 +91,18 @@ $tablecostiprenota = $PHPR_TAB_PRE."costiprenota".$anno;
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
 if ($id_utente and $id_utente == 1) {
 
+// Guard: if this page is accessed directly without expected form or context,
+// bounce back to the appartamenti table to avoid warnings and confusion.
+if (!isset($modificaappartamento) && !isset($idappartamenti) && !isset($form_tabella)) {
+    if (!headers_sent()) {
+        header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
+        exit;
+    } else {
+        echo "<script>window.location.href='visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
+        exit;
+    }
+}
+
 
 $titolo = "HotelDruid: ".ucfirst(mex("modifica",$pag))." ".mex("Appartamenti",'unit.php');
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");

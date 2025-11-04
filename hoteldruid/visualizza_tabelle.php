@@ -6944,11 +6944,16 @@ echo "<div class=\"tab_cont\">
 <td class=\"t1top\">".str_replace("_","&nbsp;",mex("Capienza_massima",$pag))."<br>
 <small>(".str_replace(" ","&nbsp;",mex("senza letti aggiuntivi",$pag)).")</small></td>
 <td class=\"t1top\">".mex("Priorità",$pag)."</td>";
+// Show Commento header only in edit mode (non-edit has its own trailing columns)
+if (!empty($form_tabella)) {
+    echo "<td class=\"t1top\">".mex("Commento",$pag)."</td>";
+}
+// In non-edit mode, show a 'Modifica' column header for admin
 if (empty($form_tabella)) {
-if ($priv_vedi_inv_app != "n") echo "<td class=\"t1top\">".ucwords(mex("inventario",$pag))."</td>";
-echo "<td class=\"t1top\">".mex("Commento",$pag)."</td>";
-if ($id_utente == 1 and (!isset($installazione_subordinata) or $installazione_subordinata != "SI")) echo "<td class=\"t1top\">".mex("Modifica",$pag)."</td>";
-} # fine if (empty($form_tabella))
+    if ($id_utente == 1 and (!isset($installazione_subordinata) or $installazione_subordinata != "SI")) {
+        echo "<td class=\"t1top\">".mex("Modifica",$pag)."</td>";
+    }
+}
 echo "</tr>";
 
 $attiva_checkin = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'attiva_checkin' and idutente = '$id_utente'");
@@ -7023,8 +7028,8 @@ $numpiano = risul_query($appartamenti,$num1,'numpiano');
 $maxoccupanti = risul_query($appartamenti,$num1,'maxoccupanti');
 $priorita = risul_query($appartamenti,$num1,'priorita');
 $letto = risul_query($appartamenti,$num1,'letto');
-if (empty($form_tabella)) {
 $commento = risul_query($appartamenti,$num1,'commento');
+if (empty($form_tabella)) {
 if (!$numcasa) $numcasa = "&nbsp;";
 if (!$numpiano) $numpiano = "&nbsp;";
 if (!$maxoccupanti) $maxoccupanti = "&nbsp;";
@@ -7093,6 +7098,9 @@ echo "</td>
 <input type=\"hidden\" name=\"d_maxoccupanti$num1\" value=\"$maxoccupanti\">
 <input type=\"hidden\" name=\"d_priorita$num1\" value=\"$priorita\">
 </td>";
+// Inline comment editing cell in edit mode
+echo "<td><input type=\"text\" name=\"n_commento$num1\" value=\"$commento\" size=\"20\">\n".
+    "<input type=\"hidden\" name=\"d_commento$num1\" value=\"$commento\"></td>";
 } # fine else if (empty($form_tabella))
 } # fine if ($priv_vedi_tab_appartamenti != "p" or $appartamenti_consentiti[$idappartamenti] != "NO")
 } # fine for $num1
@@ -9528,9 +9536,6 @@ echo "$istogramma<br><br>";
 
 
 } # fine if ($tipo_tabella == "statistiche" and $priv_vedi_tab_stat != "n")
-
-
-
 
 
 echo "<div style=\"text-align: center;\"><br>
