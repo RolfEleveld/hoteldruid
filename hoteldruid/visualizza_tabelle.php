@@ -6956,6 +6956,11 @@ if (empty($form_tabella)) {
 }
 echo "</tr>";
 
+// Compute colspan for inline editor rows and add toggle function
+$has_mod_col = ($id_utente == 1 and (!isset($installazione_subordinata) or $installazione_subordinata != "SI"));
+$colspan_inline = 6 + (($priv_vedi_inv_app != "n") ? 1 : 0) + ($has_mod_col ? 1 : 0);
+echo "<script type=\"text/javascript\">\nfunction toggleInlineEditor(id){\n  var row = document.getElementById('inline-edit-'+id);\n  if(!row){return;}\n  if(row.style.display==='none' || row.style.display===''){row.style.display='table-row';} else {row.style.display='none';}\n}\n</script>";
+
 $attiva_checkin = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'attiva_checkin' and idutente = '$id_utente'");
 $attiva_checkin = risul_query($attiva_checkin,0,'valpersonalizza');
 $appartamenti = esegui_query("select * from $tableappartamenti order by idappartamenti");
@@ -7030,6 +7035,12 @@ $priorita = risul_query($appartamenti,$num1,'priorita');
 $letto = risul_query($appartamenti,$num1,'letto');
 $commento = risul_query($appartamenti,$num1,'commento');
 if (empty($form_tabella)) {
+// Preserve raw values for inline editor before formatting
+$numcasa_val = $numcasa;
+$numpiano_val = $numpiano;
+$maxoccupanti_val = $maxoccupanti;
+$priorita_val = $priorita;
+$commento_val = $commento;
 if (!$numcasa) $numcasa = "&nbsp;";
 if (!$numpiano) $numpiano = "&nbsp;";
 if (!$maxoccupanti) $maxoccupanti = "&nbsp;";
@@ -7058,8 +7069,59 @@ echo "<tr><td class=\"t1left\"$stile_checkin>$idappartamenti</td>
 <td>$priorita</td>";
 if ($priv_vedi_inv_app != "n") echo "<td$stile_inv>$inv</td>";
 echo "<td style=\"font-size: x-small;\">$commento</td>";
-if ($id_utente == 1 and (!isset($installazione_subordinata) or $installazione_subordinata != "SI")) echo "<td><a href=\"modifica_app.php?tipo_tabella=$tipo_tabella&amp;anno=$anno&amp;id_sessione=$id_sessione&amp;idappartamenti=".urlencode($idappartamenti)."\">".mex("modifica",$pag)."</a></td>";
+if ($id_utente == 1 and (!isset($installazione_subordinata) or $installazione_subordinata != "SI")) {
+    $edit_inline_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007cba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+    $edit_details_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7"/><path d="M21 3l-8 8"/><rect x="3" y="7" width="14" height="14" rx="2"/></svg>';
+    echo "<td>";
+    // Render icons side-by-side inside a flex row wrapper
+    echo "<div style=\"display:flex; gap:8px; align-items:center; justify-content:center; white-space:nowrap;\">";
+    // Inline edit (pencil)
+    echo "<a href=\"#\" title=\"".mex("Modifica inline",$pag)."\" onclick=\"toggleInlineEditor('".urlencode($idappartamenti)."'); return false;\" style=\"text-decoration:none; display:inline-flex; align-items:center;\">$edit_inline_icon</a>";
+    // Edit details (card UI)
+    echo "<a href=\"modifica_app.php?tipo_tabella=$tipo_tabella&amp;anno=$anno&amp;id_sessione=$id_sessione&amp;idappartamenti=".urlencode($idappartamenti)."\" title=\"".mex("Modifica dettagli",$pag)."\" style=\"text-decoration:none; display:inline-flex; align-items:center;\">$edit_details_icon</a>";
+    echo "</div>";
+    echo "</td>";
+}
 echo "</tr>";
+
+// Inline expandable editor row
+$row_id = 'inline-edit-'.urlencode($idappartamenti);
+$id_safe = htmlspecialchars($idappartamenti,ENT_COMPAT);
+$numcasa_safe = htmlspecialchars((string)$numcasa_val,ENT_COMPAT);
+$numpiano_safe = htmlspecialchars((string)$numpiano_val,ENT_COMPAT);
+$maxocc_safe = htmlspecialchars((string)$maxoccupanti_val,ENT_COMPAT);
+$priorita_safe = htmlspecialchars((string)$priorita_val,ENT_COMPAT);
+$commento_safe = htmlspecialchars((string)$commento_val,ENT_COMPAT);
+echo "<tr id=\"$row_id\" style=\"display:none; background:#f7f9fc;\"><td colspan=\"$colspan_inline\" class=\"t1left\">";
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_app.php\"><div style=\"padding:8px;\">";
+echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">";
+echo "<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">";
+echo "<input type=\"hidden\" name=\"tipo_tabella\" value=\"appartamenti\">";
+echo "<input type=\"hidden\" name=\"modificaappartamento\" value=\"SI\">";
+echo "<input type=\"hidden\" name=\"form_tabella\" value=\"SI\">";
+echo "<input type=\"hidden\" name=\"num_app_modifica\" value=\"1\">";
+echo "<input type=\"hidden\" name=\"idappartamenti0\" value=\"$id_safe\">";
+echo "<div style=\"display:flex; flex-wrap:wrap; gap:8px; align-items:center;\">";
+echo "<label>".mex("Appartamento",'unit.php').": <input type=\"text\" name=\"n_nome_app0\" value=\"$id_safe\" size=\"10\"></label>";
+echo "<label>".mex("Casa",$pag).": <input type=\"text\" name=\"n_numcasa0\" value=\"$numcasa_safe\" size=\"8\"></label>";
+echo "<label>".mex("Piano",$pag).": <input type=\"text\" name=\"n_numpiano0\" value=\"$numpiano_safe\" size=\"6\"></label>";
+if (!$letto) {
+    echo "<label>".str_replace("_","&nbsp;",mex("Capienza_massima",$pag)).": <input type=\"text\" name=\"n_maxoccupanti0\" value=\"$maxocc_safe\" size=\"4\"></label>";
+} else {
+    echo "<input type=\"hidden\" name=\"n_maxoccupanti0\" value=\"$maxocc_safe\">";
+}
+echo "<label>".mex("Priorità",$pag).": <input type=\"text\" name=\"n_priorita0\" value=\"$priorita_safe\" size=\"4\"></label>";
+echo "<label>".mex("Commento",$pag).": <input type=\"text\" name=\"n_commento0\" value=\"$commento_safe\" size=\"20\"></label>";
+// Concurrency hidden originals
+echo "<input type=\"hidden\" name=\"d_numcasa0\" value=\"$numcasa_safe\">";
+echo "<input type=\"hidden\" name=\"d_numpiano0\" value=\"$numpiano_safe\">";
+echo "<input type=\"hidden\" name=\"d_maxoccupanti0\" value=\"$maxocc_safe\">";
+echo "<input type=\"hidden\" name=\"d_priorita0\" value=\"$priorita_safe\">";
+echo "<input type=\"hidden\" name=\"d_commento0\" value=\"$commento_safe\">";
+echo "<button class=\"cont\" type=\"submit\" style=\"margin-left:8px;\"><div>".mex("Applica i cambiamenti",$pag)."</div></button>";
+echo "<button class=\"canc\" type=\"button\" onclick=\"toggleInlineEditor('".urlencode($idappartamenti)."');\" style=\"margin-left:4px;\"><div>".mex("Annulla",$pag)."</div></button>";
+echo "</div></div></form>";
+echo "</td></tr>";
 } # fine if (empty($form_tabella))
 else {
 echo "<tr>";

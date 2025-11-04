@@ -317,7 +317,7 @@ case "Numero di prenotazioni per nazionalità del cliente titolare":	$messaggio 
 case "Entrate dalle prenotazioni per nazionalità del cliente titolare":	$messaggio = "Entradas de las reservas por nacionalidad del cliente titular"; break;
 case "Prezzi con":  				$messaggio = "Precios con"; break;
 case "Prenotazioni anno corrente":  		$messaggio = "Reservas año corriente"; break;
-case "con prenotazioni inserite":  		$messaggio = "con reservas insertadas"; break;
+case "con prenotazioni inserite":  		$messaggio = "con reservas guardadas"; break;
 case "fino al":  				$messaggio = "hasta"; break;
 case "nella cassa chiamata":  			$messaggio = "en la caja llamada"; break;
 case "Totale nella cassa principale":  		$messaggio = "Total en la caja principal"; break;

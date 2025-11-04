@@ -274,7 +274,7 @@ case "<b>Attenzione</b>: se si perde questa password non sarà più possibile le
 case "nuova password":  			$messaggio = "nueva contraseña"; break;
 case "ripetere password":  			$messaggio = "repetir contraseña"; break;
 case "attiva la password":  			$messaggio = "activar la contraseña"; break;
-case "le password inserite non coincidono":  	$messaggio = "las contraseñas insertadas no coinciden"; break;
+case "le password inserite non coincidono":  	$messaggio = "las contraseñas puestos no coinciden"; break;
 case "errore nelle funzioni ssl":  		$messaggio = "error en las funciones ssl"; break;
 case "<b class=\"colred\">Attenzione</b>: tutti i dati delle carte di credito verranno cancellati":	$messaggio = "<b class=\"colred\">Atención</b>: todos los datos de las tarjetas de crédito serán borrados"; break;
 case "continua":  				$messaggio = "continuar"; break;

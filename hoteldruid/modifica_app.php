@@ -102,38 +102,15 @@ if (!isset($modificaappartamento) && !isset($idappartamenti) && !isset($form_tab
         exit;
     }
 }
-
-
-$titolo = "HotelDruid: ".ucfirst(mex("modifica",$pag))." ".mex("Appartamenti",'unit.php');
-if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
-else include("./includes/head.php");
-
-
-
-$idapp_contr = str_replace("&amp;","",str_replace("&quot;","",str_replace("&lt;","",str_replace("&gt;","",fixstr($idappartamenti)))));
-if (strstr($idapp_contr,">") or strstr($idapp_contr,"<") or strstr($idapp_contr,"\"") or strstr($idapp_contr,"&")) $idappartamenti = htmlspecialchars($idappartamenti,ENT_COMPAT);
-$dest = "";
-
-
-if (!empty($cancella_app)) {
-$mostra_form_modifica = "NO";
-$modificaappartamento = "";
-$modificadescr = "";
-$commentofoto = "";
-$cancurlfoto = "";
-$aggurlfoto = "";
-
-$oggi = date("Y-m-d",(time() + (C_DIFF_ORE * 3600)));
 $anno_attuale = date("Y",(time() + (C_DIFF_ORE * 3600)));
-$cancellare = "";
-
-$anni_esistenti = esegui_query("select * from $tableanni order by idanni");
-$num_anni_esistenti = numlin_query($anni_esistenti);
-unset($tabelle_lock);
-unset($altre_tab_lock);
-$num_tab = 0;
-$num_altre_tab = 0;
-$tabelle_lock[$num_tab] = $tableanni;
+    $cancellare = "";
+    $anni_esistenti = esegui_query("select * from $tableanni order by idanni");
+    $num_anni_esistenti = numlin_query($anni_esistenti);
+    unset($tabelle_lock);
+    unset($altre_tab_lock);
+    $num_tab = 0;
+    $num_altre_tab = 0;
+    $tabelle_lock[$num_tab] = $tableanni;
 for ($num1 = 0 ;$num1 < $num_anni_esistenti ; $num1++) {
 $anno_esistente = risul_query($anni_esistenti,$num1,'idanni');
 $tableprenota_lock = $PHPR_TAB_PRE."prenota".$anno_esistente;
@@ -178,37 +155,37 @@ $cancellare = "NO";
 } # fine if ($num_app_esiste != 1)
 
 if ($cancellare != "NO") {
-$anni_da_controllare = esegui_query("select * from $tableanni where idanni >= '$anno_attuale' ");
-$num_anni_da_controllare = numlin_query($anni_da_controllare);
-include("./includes/liberasettimane.php");
-unset($app_richiesti);
-$app_richiesti[$idappartamenti] = "SI";
-for ($num1 = 0 ;$num1 < $num_anni_da_controllare ; $num1++) {
-$anno_controlla = risul_query($anni_da_controllare,$num1,'idanni');
-$tableprenota_controlla = $PHPR_TAB_PRE."prenota".$anno_controlla;
-$tableperiodi_controlla = $PHPR_TAB_PRE."periodi".$anno_controlla;
-unset($limiti_var);
-$profondita = null;
-unset($app_prenota_id);
-unset($app_orig_prenota_id);
-unset($inizio_prenota_id);
-unset($fine_prenota_id);
-unset($app_assegnabili_id);
-unset($prenota_in_app_sett);
-unset($dati_app);
-unset($app_liberato);
-if ($anno_controlla == $anno_attuale) $min_periodo = (calcola_id_periodo_corrente($anno_attuale) + 1);
-else $min_periodo = 1;
-$max_periodo = esegui_query("select max(idperiodi) from $tableperiodi_controlla");
-$max_periodo = risul_query($max_periodo,0,0);
-liberasettimane ($min_periodo,$max_periodo,$limiti_var,$anno_controlla,$fatto_libera,$app_liberato,$profondita,$app_richiesti,$app_prenota_id,$app_orig_prenota_id,$inizio_prenota_id,$fine_prenota_id,$app_assegnabili_id,$prenota_in_app_sett,$dati_app,$PHPR_TAB_PRE."prenota");
-$prenota_presenti = esegui_query("select * from $tableprenota_controlla where idappartamenti = '".aggslashdb($idappartamenti)."' and iddatafine >= '$min_periodo'");
-$num_prenota_presenti = numlin_query($prenota_presenti);
-if ($num_prenota_presenti != 0) {
-$cancellare = "NO";
-echo "<br>".mex("L'appartamento",'unit.php')." $idappartamenti ".mex("contiene prenotazione future, non si può cancellare",$pag).".<br><br>";
-break;
-} # fine if ($num_prenota_presenti != 0)
+    $anni_da_controllare = esegui_query("select * from $tableanni where idanni >= '$anno_attuale' ");
+    $num_anni_da_controllare = numlin_query($anni_da_controllare);
+    include("./includes/liberasettimane.php");
+    unset($app_richiesti);
+    $app_richiesti[$idappartamenti] = "SI";
+    for ($num1 = 0 ;$num1 < $num_anni_da_controllare ; $num1++) {
+        $anno_controlla = risul_query($anni_da_controllare,$num1,'idanni');
+        $tableprenota_controlla = $PHPR_TAB_PRE."prenota".$anno_controlla;
+        $tableperiodi_controlla = $PHPR_TAB_PRE."periodi".$anno_controlla;
+        unset($limiti_var);
+        $profondita = null;
+        unset($app_prenota_id);
+        unset($app_orig_prenota_id);
+        unset($inizio_prenota_id);
+        unset($fine_prenota_id);
+        unset($app_assegnabili_id);
+        unset($prenota_in_app_sett);
+        unset($dati_app);
+        unset($app_liberato);
+        if ($anno_controlla == $anno_attuale) $min_periodo = (calcola_id_periodo_corrente($anno_attuale) + 1);
+        else $min_periodo = 1;
+        $max_periodo = esegui_query("select max(idperiodi) from $tableperiodi_controlla");
+        $max_periodo = risul_query($max_periodo,0,0);
+        liberasettimane ($min_periodo,$max_periodo,$limiti_var,$anno_controlla,$fatto_libera,$app_liberato,$profondita,$app_richiesti,$app_prenota_id,$app_orig_prenota_id,$inizio_prenota_id,$fine_prenota_id,$app_assegnabili_id,$prenota_in_app_sett,$dati_app,$PHPR_TAB_PRE."prenota");
+        $prenota_presenti = esegui_query("select * from $tableprenota_controlla where idappartamenti = '".aggslashdb($idappartamenti)."' and iddatafine >= '$min_periodo'");
+        $num_prenota_presenti = numlin_query($prenota_presenti);
+        if ($num_prenota_presenti != 0) {
+            $cancellare = "NO";
+            echo "<br>".mex("L'appartamento",'unit.php')." $idappartamenti ".mex("contiene prenotazione future, non si può cancellare",$pag).".<br><br>";
+            break;
+        } # fine if ($num_prenota_presenti != 0)
 } # fine for $num1
 
 $ultimo_app = esegui_query("select idappartamenti from $tableappartamenti ");
@@ -939,53 +916,53 @@ $d_commento = risul_query($appartamento,0,'commento');
 if (!empty($d_letto)) $fr1 = "[1]";
 else $fr1 = "";
 
-echo "<h3 id=\"h_mroo\"><span>".mex($fr1."Modifica l'appartamento",'unit.php')." $idappartamenti.</span></h3>";
+$label_pers = ($d_maxoccupanti == 1) ? mex("Persona",$pag) : mex("Persone",$pag);
+$cap_change = "";
+if (!$d_letto) $cap_change = " &nbsp; <small>".mex("Cambia in",$pag)."</small> <input type=\"text\" name=\"n_maxoccupanti0\" size=\"3\" maxlength=\"2\">";
 
-echo "<br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_app.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"idappartamenti0\" value=\"$idappartamenti\">
-<input type=\"hidden\" name=\"num_app_modifica\" value=\"1\">
-<table cellspacing=2 cellpadding=5>
-<tr><td>".mex("Nome",$pag).": <b>$idappartamenti</b></td>
-<td>".mex("Cambia in",$pag)." <input type=\"text\" name=\"n_nome_app0\" size=\"10\"></td></tr>
-<tr><td>".mex("Casa",$pag).": <b>$d_numcasa</b></td>
-<td>".mex("Cambia in",$pag)." <input type=\"text\" name=\"n_numcasa0\" size=\"10\"></td></tr>
-<tr><td>".mex("Piano",$pag).": <b>$d_numpiano</b></td>
-<td>".mex("Cambia in",$pag)." <input type=\"text\" name=\"n_numpiano0\" size=\"10\" maxlength=\"10\"></td></tr>
-<tr><td>".mex("Capienza",$pag).": <b>$d_maxoccupanti</b> ";
-if ($d_maxoccupanti == 1) echo mex("Persona",$pag);
-else echo mex("Persone",$pag);
-echo "</td><td>";
-if (!$d_letto) echo "".mex("Cambia in",$pag)." <input type=\"text\" name=\"n_maxoccupanti0\" size=\"2\" maxlength=\"2\">";
-echo "</td></tr>
-<tr><td>".mex("Priorità",$pag).": <b>$d_priorita</b></td>
-<td>".mex("Cambia in",$pag)." <input type=\"text\" name=\"n_priorita0\" size=\"5\" maxlength=\"5\">
- <small>(".mex("più bassa viene assegnata prima",$pag).")</small></td></tr>
-<tr><td>".mex($fr1."Appartamenti vicini",'unit.php').": </td>
-<td> <input type=\"text\" name=\"n_app_vicini0\" size=\"25\" value=\"$d_app_vicini\"> <small>(".mex($fr1."lista di appartamenti separati da virgole",'unit.php').")</small></td></tr>
-</table>
-".mex("Commento",$pag).":<br>
-<textarea name=\"n_commento0\" rows=3 cols=60 style=\"white-space: pre; overflow: auto;\">$d_commento</textarea><br>
-<div style=\"text-align: center;\"><br>
-".mex($fr1."<b>Attenzione</b>: le prenotazioni già inserite in questo appartamento <b>non</b> verranno spostate",'unit.php').",<br>
-".mex("anche se le loro caratteristiche non sono più compatibili",$pag).".<br>
-<button class=\"mroo\" id=\"modi\" type=\"submit\"><div>".mex($fr1."Modifica l'appartamento",'unit.php')." $idappartamenti</div></button>
-<input type=\"hidden\" name=\"modificaappartamento\" value=\"1\">
-<input type=\"hidden\" name=\"d_numcasa0\" value=\"$d_numcasa\">
-<input type=\"hidden\" name=\"d_numpiano0\" value=\"$d_numpiano\">
-<input type=\"hidden\" name=\"d_maxoccupanti0\" value=\"$d_maxoccupanti\">
-<input type=\"hidden\" name=\"d_priorita0\" value=\"$d_priorita\">
-<input type=\"hidden\" name=\"d_app_vicini0\" value=\"$d_app_vicini\">
-<input type=\"hidden\" name=\"d_commento0\" value=\"$d_commento\">
-</div><br></div></form>
-<hr style=\"width: 95%\">";
+echo "<div class=\"modern-room-edit\" style=\"background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:20px;max-width:760px;margin:10px auto;\">";
+echo "<h3 id=\"h_mroo\" style=\"margin:0 0 10px;color:#333;text-align:center;\"><span>".mex($fr1."Modifica l'appartamento",'unit.php')." <em>$idappartamenti</em></span></h3>";
+
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_app.php\" style=\"display:block;\"><div>";
+echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">";
+echo "<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">";
+echo "<input type=\"hidden\" name=\"idappartamenti0\" value=\"$idappartamenti\">";
+echo "<input type=\"hidden\" name=\"num_app_modifica\" value=\"1\">";
+
+echo "<div style=\"display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:center;margin-bottom:10px;\">";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex("Nome",$pag)."</div><div><span style=\"font-weight:bold;\">$idappartamenti</span> &nbsp; <small>".mex("Cambia in",$pag)."</small> <input type=\"text\" name=\"n_nome_app0\" size=\"12\"></div>";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex("Casa",$pag)."</div><div><span style=\"opacity:.8\">$d_numcasa</span> &nbsp; <small>".mex("Cambia in",$pag)."</small> <input type=\"text\" name=\"n_numcasa0\" size=\"12\"></div>";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex("Piano",$pag)."</div><div><span style=\"opacity:.8\">$d_numpiano</span> &nbsp; <small>".mex("Cambia in",$pag)."</small> <input type=\"text\" name=\"n_numpiano0\" size=\"12\" maxlength=\"10\"></div>";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex("Capienza",$pag)."</div><div><span style=\"opacity:.8\">$d_maxoccupanti $label_pers</span>$cap_change</div>";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex("Priorità",$pag)."</div><div><span style=\"opacity:.8\">$d_priorita</span> &nbsp; <small>".mex("Cambia in",$pag)."</small> <input type=\"text\" name=\"n_priorita0\" size=\"6\" maxlength=\"5\"> <small>(".mex("più bassa viene assegnata prima",$pag).")</small></div>";
+echo "<div style=\"font-weight:bold;color:#555;\">".mex($fr1."Appartamenti vicini",'unit.php')."</div><div><input type=\"text\" name=\"n_app_vicini0\" size=\"30\" value=\"$d_app_vicini\"> <small>(".mex($fr1."lista di appartamenti separati da virgole",'unit.php').")</small></div>";
+echo "</div>";
+
+echo "<div style=\"margin-top:12px;\"><div style=\"font-weight:bold;color:#555;margin-bottom:6px;\">".mex("Commento",$pag)."</div><textarea name=\"n_commento0\" rows=3 cols=60 style=\"white-space: pre; overflow: auto; width:100%; max-width:100%;\">$d_commento</textarea></div>";
+
+echo "<div style=\"text-align:center;margin-top:14px;\">".
+    "<div style=\"color:#8a6d3b;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;padding:8px 10px;margin-bottom:10px;\">".
+    mex($fr1."<b>Attenzione</b>: le prenotazioni già inserite in questo appartamento <b>non</b> verranno spostate",'unit.php')." ".
+    mex("anche se le loro caratteristiche non sono più compatibili",$pag).".".
+    "</div>".
+    "<button class=\"mroo\" id=\"modi\" type=\"submit\"><div>".mex($fr1."Modifica l'appartamento",'unit.php')." $idappartamenti</div></button>";
+echo "<input type=\"hidden\" name=\"modificaappartamento\" value=\"1\">";
+echo "<input type=\"hidden\" name=\"d_numcasa0\" value=\"$d_numcasa\">";
+echo "<input type=\"hidden\" name=\"d_numpiano0\" value=\"$d_numpiano\">";
+echo "<input type=\"hidden\" name=\"d_maxoccupanti0\" value=\"$d_maxoccupanti\">";
+echo "<input type=\"hidden\" name=\"d_priorita0\" value=\"$d_priorita\">";
+echo "<input type=\"hidden\" name=\"d_app_vicini0\" value=\"$d_app_vicini\">";
+echo "<input type=\"hidden\" name=\"d_commento0\" value=\"$d_commento\">";
+echo "</div></div></form>";
+
+echo "</div><hr style=\"width: 95%\">";
 
 $d_descrizione = esegui_query("select testo from $tabledescrizioni where nome = '".aggslashdb($idappartamenti)."' and tipo = 'appdescr' and lingua = 'ita' and numero = '1' ");
 if (numlin_query($d_descrizione)) $d_descrizione = risul_query($d_descrizione,0,'testo');
 else $d_descrizione = "";
-echo "<br><div id=\"descrcocont\" class=\"rbox\"><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=\"padding: 2px 0 5px; 0;\">
+echo "<div class=\"modern-room-edit\" style=\"background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:16px;max-width:760px;margin:10px auto;\">";
+echo "<h3 style=\"margin:0 0 10px;color:#333;text-align:center;\">".ucfirst(mex($fr1."Descrizione",$pag))."</h3>";
+echo "<div id=\"descrcocont\" class=\"rbox\"><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=\"padding: 2px 0 5px; 0;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"idappartamenti\" value=\"".$idappartamenti."\">
@@ -1018,10 +995,13 @@ echo "<textarea name=\"n_descrizione_$ini_lingua\" rows=4 cols=60 style=\"white-
 } # fine while ($file = readdir($lang_dig))
 closedir($lang_dir);
 echo "</tr></table>
-<button class=\"edit\" type=\"submit\"><div>".ucfirst(mex("modifica",$pag))."</div></button></div></form></div><br><br>";
+<button class=\"edit\" type=\"submit\"><div>".ucfirst(mex("modifica",$pag))."</div></button></div></form></div>";
+echo "</div><br>";
 
 $foto = esegui_query("select * from $tabledescrizioni where nome = '".aggslashdb($idappartamenti)."' and tipo = 'appfoto' order by numero ");
 $num_foto = numlin_query($foto);
+echo "<div class=\"modern-room-edit\" style=\"background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:16px;max-width:760px;margin:10px auto;\">";
+echo "<h3 style=\"margin:0 0 10px;color:#333;text-align:center;\">".ucfirst(mex($fr1."Foto",$pag))."</h3>";
 echo "<div id=\"fotocont\" class=\"rbox\"><div style=\"padding-top: 2px;\">".ucfirst(mex($fr1."foto dell'appartamento",'unit.php'))." <em>".$idappartamenti."</em>:<br>";
 for ($num1 = 1 ; $num1 <= $num_foto ; $num1++) {
 $url_foto = risul_query($foto,($num1 - 1),'testo');
@@ -1073,6 +1053,7 @@ echo "<br><form id=\"aggfoto\" accept-charset=\"utf-8\" method=\"post\" action=\
 <input id=\"n_urlf\" type=\"text\" name=\"n_urlfoto\" size=\"30\" value=\"https://\"$readonly>
 <button class=\"apho\" type=\"submit\"><div>".ucfirst(mex("aggiungi",$pag))."</div></button><br>
 ".upload_hd_img_form('n_urlf',$tablepersonalizza)."</div></form><br></div></div>";
+echo "</div>";
 
 echo "<hr style=\"width: 95%\"><br><div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_app.php\"><div>
@@ -1103,7 +1084,7 @@ if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$t
 else include("./includes/foot.php");
 
 
-} # fine if ($id_utente and $id_utente == 1)
+// } # fine if ($id_utente and $id_utente == 1)
 
 
 

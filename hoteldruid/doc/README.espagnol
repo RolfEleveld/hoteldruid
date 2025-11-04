@@ -324,7 +324,7 @@ podiendo así por ejemplo encerrar el formulario de
 disponibilidad en una tabla o dentro de la estructura de una 
 página de su sitio. Creando otra vez el archivo se pueden 
 modificar todas las opciones y las frases del formulario 
-insertadas en precedencia.
+guardados en precedencia.
 Las páginas para el sitio web pueden ser visualizadas en 
 modalidad frame añadiendo ?framed=1 a sus URLs, de esta menera 
 se mostrará una versión simplificada de la página, 

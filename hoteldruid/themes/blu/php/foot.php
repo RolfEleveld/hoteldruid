@@ -21,9 +21,10 @@
 ##################################################################################
 
 
-if ($pag != "visualizza_contratto.php" or $show_bar != "NO") {
-if ($show_bar == "NO") echo "</td></tr></table>";
-else echo "
+// Guard $show_bar usage to avoid undefined variable notices
+if ($pag != "visualizza_contratto.php" || !isset($show_bar) || $show_bar != "NO") {
+	if (isset($show_bar) && $show_bar == "NO") echo "</td></tr></table>";
+	else echo "
 </div>
 
 <script type=\"text/javascript\">
