@@ -100,6 +100,11 @@ $titolo = "HotelDruid: ".mex("Costi Gestione",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+// Include template system if available
+if (file_exists("./includes/template.php")) {
+    include_once("./includes/template.php");
+}
+
 
 
 $Euro = nome_valuta();
@@ -303,18 +308,44 @@ $data_txt .= "<option value=\"$num1\"$sel>$num1</option>";
 } # fine for $num1
 $data_txt .= "</select>.</td></tr>";
 
-if ($priv_ins_entrate == "s") {
-echo "<h3 id=\"h_iinc\"><span>".mex("Inserisci le entrate in cassa per l'anno",$pag)." $anno.</span></h3>
+// CSS Styles for panel layout (matching clienti.php)
+echo "<style>
+.rpanels{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.rpanels .rbox{box-sizing:border-box;max-width:500px}
+.rpanels .rbox .wsnw{display:block;margin:8px 0;width:100%;box-sizing:border-box}
+</style>";
+
+// Use template system if available, otherwise fallback to inline rendering
+if (class_exists('HotelDruidTemplate')) {
+    // Get template instance
+    $template = HotelDruidTemplate::getInstance();
+    
+    // Render panels using template system
+    echo "<div class=\"rpanels\">";
+    
+    if ($priv_ins_entrate == "s") {
+        $template->display('costi/panel_entrate', get_defined_vars());
+    }
+    
+    if ($priv_ins_spese == "s") {
+        $template->display('costi/panel_spese', get_defined_vars());
+    }
+    
+    echo "</div>";
+} else {
+    // Fallback: inline rendering
+    if ($priv_ins_entrate == "s") {
+        echo "<h3 id=\"h_iinc\"><span>".mex("Inserisci le entrate in cassa per l'anno",$pag)." $anno.</span></h3>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\"><br>
 <table style=\"margin-left: auto; margin-right: auto;\" cellspacing=2 cellpadding=5>
 <tr><td>";
-if ($num_casse_attive == 1) echo $hidden_cassa;
-else echo "".mex("Cassa",$pag).":&nbsp;<select name=\"id_cassa\">
+        if ($num_casse_attive == 1) echo $hidden_cassa;
+        else echo "".mex("Cassa",$pag).":&nbsp;<select name=\"id_cassa\">
 $opt_casse</select></td></tr>
 <tr><td>";
-echo "".mex("Natura entrata",$pag).":&nbsp;
+        echo "".mex("Natura entrata",$pag).":&nbsp;
 <input type=\"text\" name=\"nome_costo\" size=\"30\" value=\"\">
 </td></tr>
 <tr><td>
@@ -323,35 +354,35 @@ echo "".mex("Natura entrata",$pag).":&nbsp;
 </td></tr>
 $metodo_pagamento_txt
 $data_txt";
-if ($priv_persona_ins_costi == "c") {
-echo "<tr><td>".mex("Persona che inserisce",$pag).":&nbsp;
+        if ($priv_persona_ins_costi == "c") {
+            echo "<tr><td>".mex("Persona che inserisce",$pag).":&nbsp;
 <input type=\"text\" name=\"persona_costo\" size=\"20\" value=\"\">&nbsp;(".mex("opzionale",$pag).").
 </td></tr>";
-} # fine if ($priv_persona_ins_costi == "c")
-if ($priv_entrate_da_prenota == "c") {
-echo "<tr><td><label><input type=\"checkbox\" name=\"entrata_da_prenota\" value=\"SI\" checked>
+        }
+        if ($priv_entrate_da_prenota == "c") {
+            echo "<tr><td><label><input type=\"checkbox\" name=\"entrata_da_prenota\" value=\"SI\" checked>
 ".mex("Sottrai l'importo dal totale delle prenotazioni",$pag).".
 </label></td></tr>";
-} # fine if ($priv_entrate_da_prenota == "c")
-echo "</table><div style=\"text-align: center;\">
+        }
+        echo "</table><div style=\"text-align: center;\">
 <button class=\"iinc\" type=\"submit\" name=\"inserisci_entrata\" value=\"1\"><div>".mex("Inserisci l' entrata",$pag)."</div></button><br>
 </div></div></form>
 <table><tr><td style=\"height: 8px;\"></td></tr></table><hr style=\"width: 95%\">";
-} # fine if ($priv_ins_entrate == "s")
+    }
 
-if ($priv_ins_spese == "s") {
-echo "
+    if ($priv_ins_spese == "s") {
+        echo "
 <h3 id=\"h_iexp\"><span>".mex("Inserisci i costi di gestione per l'anno",$pag)." $anno.</span></h3>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\"><br>
 <table style=\"margin-left: auto; margin-right: auto;\" cellspacing=2 cellpadding=5>
 <tr><td>";
-if ($num_casse_attive == 1) echo $hidden_cassa;
-else echo "".mex("Cassa",$pag).":&nbsp;<select name=\"id_cassa\">
+        if ($num_casse_attive == 1) echo $hidden_cassa;
+        else echo "".mex("Cassa",$pag).":&nbsp;<select name=\"id_cassa\">
 $opt_casse</select></td></tr>
 <tr><td>";
-echo "".mex("Natura spesa",$pag).":&nbsp;
+        echo "".mex("Natura spesa",$pag).":&nbsp;
 <input type=\"text\" name=\"nome_costo\" size=\"30\" value=\"\">
 </td></tr>
 <tr><td>
@@ -360,16 +391,17 @@ echo "".mex("Natura spesa",$pag).":&nbsp;
 </td></tr>
 $metodo_pagamento_txt
 $data_txt";
-if ($priv_persona_ins_costi == "c") {
-echo "<tr><td>".mex("Persona che inserisce",$pag).":&nbsp;
+        if ($priv_persona_ins_costi == "c") {
+            echo "<tr><td>".mex("Persona che inserisce",$pag).":&nbsp;
 <input type=\"text\" name=\"persona_costo\" size=\"20\" value=\"\">&nbsp;(".mex("opzionale",$pag).").
 </td></tr>";
-} # fine if ($priv_persona_ins_costi == "c")
-echo "</table><div style=\"text-align: center;\">
+        }
+        echo "</table><div style=\"text-align: center;\">
 <button class=\"iexp\" type=\"submit\" name=\"inserisci_spesa\" value=\"1\"><div>".mex("Inserisci la spesa",$pag)."</div></button><br>
 </div></div></form>
 <table><tr><td style=\"height: 8px;\"></td></tr></table><hr style=\"width: 95%\">";
-} # fine if ($priv_ins_spese == "s")
+    }
+}
 
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
