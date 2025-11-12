@@ -367,10 +367,199 @@ $utenti_gruppi = null;
 } # fine else if ($id_utente != 1)
 if ($anno_utente_attivato == "SI" and ($priv_mod_tariffe == "s" or $priv_ins_costi_agg != "n")) {
 
+// Early processing for price insertions to allow immediate redirect
+if ((isset($inserisci_settimanalmente) or isset($inserisci) or isset($modifica)) and $priv_mod_tariffe != "n" and !empty($origine) and controlla_pag_origine($origine) == "SI") {
+    $tabelle_lock = array($tablenometariffe,$tableperiodi,$tablepersonalizza);
+    $tabelle_lock = lock_tabelle($tabelle_lock);
+    $dati_tariffe = dati_tariffe($tablenometariffe);
+    
+    if (isset($inserisci_settimanalmente)) {
+        // Process weekly price insertion
+        $num_tariffa = htmlspecialchars(substr($tipotariffa,7));
+        if (substr($tipotariffa,0,7) == "tariffa" and controlla_num_pos($num_tariffa) == "SI") {
+            if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num_tariffa])) {
+                // Perform all the weekly price insertion logic here
+                
+                $inizioperiodo = aggslashdb($inizioperiodosett1);
+                $fineperiodo = aggslashdb($fineperiodosett1);
+                $idinizioperiodo = esegui_query("select idperiodi from $tableperiodi where datainizio = '$inizioperiodo' ");
+                if (numlin_query($idinizioperiodo) == 0) $idinizioperiodo = 10000;
+                else $idinizioperiodo = risul_query($idinizioperiodo,0,'idperiodi');
+                $idfineperiodo = esegui_query("select idperiodi from $tableperiodi where datafine = '$fineperiodo' ");
+                if (numlin_query($idfineperiodo) == 0) $idfineperiodo = -1;
+                else $idfineperiodo = risul_query($idfineperiodo,0,'idperiodi');
+                
+                if ($idfineperiodo >= $idinizioperiodo) {
+                    // Calculate daily prices from weekly prices if needed
+                    if ($tipo_prezzo == "sett") {
+                        if (!strcmp((string) $prezzosett,"")) $prezzosett = 0;
+                        $prezzosett = formatta_soldi($prezzosett);
+                        $prezzosett_int = floor($prezzosett);
+                        $resto_int = $prezzosett - (double) $prezzosett_int;
+                        $prezzo_gio = floor($prezzosett_int / 7);
+                        for ($num1 = 1 ; $num1 <= 7 ; $num1++) ${"prezzoperiodo".$num1} = $prezzo_gio;
+                        $resto = $prezzosett_int - ($prezzo_gio * 7);
+                        if ($resto >= 1) { $prezzoperiodo1++; $resto--; }
+                        for ($num1 = 7 ; $num1 > (7 - $resto) ; $num1--) ${"prezzoperiodo".$num1}++;
+                        $prezzoperiodo1 += $resto_int;
+                        if (!strcmp((string) $prezzosettp,"")) $prezzosettp = 0;
+                        $prezzosettp = formatta_soldi($prezzosettp);
+                        $prezzosettp_int = floor($prezzosettp);
+                        $restop_int = $prezzosettp - (double) $prezzosettp_int;
+                        $prezzop_gio = floor($prezzosettp_int / 7);
+                        for ($num1 = 1 ; $num1 <= 7 ; $num1++) ${"prezzoperiodo".$num1."p"} = $prezzop_gio;
+                        $restop = $prezzosettp_int - ($prezzop_gio * 7);
+                        if ($restop >= 1) { $prezzoperiodo1p++; $restop--; }
+                        for ($num1 = 7 ; $num1 > (7 - $restop) ; $num1--) ${"prezzoperiodo".$num1."p"}++;
+                        $prezzoperiodo1p += $restop_int;
+                    }
+                    
+                    // Validate prices
+                    $soldi_ok = true;
+                    for ($num1 = 1 ; $num1 <= 7 ; $num1++) {
+                        ${"prezzoperiodo".$num1} = formatta_soldi(${"prezzoperiodo".$num1});
+                        if (controlla_soldi(${"prezzoperiodo".$num1}) == "NO") $soldi_ok = false;
+                        ${"prezzoperiodo".$num1."p"} = formatta_soldi(${"prezzoperiodo".$num1."p"});
+                        if (controlla_soldi(${"prezzoperiodo".$num1."p"}) == "NO") $soldi_ok = false;
+                    }
+                    
+                    if ($soldi_ok) {
+                        // Insert prices into database
+                        $agg_vett_tar_esp = array();
+                        for ($num1 = $idinizioperiodo ; $num1 < $idfineperiodo ; $num1++) {
+                            $day_num = (($num1 - $idinizioperiodo) % 7) + 1;
+                            if (${"prezzoperiodo".$day_num}) esegui_query("update $tableperiodi set $tipotariffa = '".${"prezzoperiodo".$day_num}."' where idperiodi = '$num1' ");
+                            if (${"prezzoperiodo".$day_num."p"}) esegui_query("update $tableperiodi set $tipotariffa"."p = '".${"prezzoperiodo".$day_num."p"}."' where idperiodi = '$num1' ");
+                            aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,$num1,${"prezzoperiodo".$day_num},${"prezzoperiodo".$day_num."p"},$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+                        }
+                        
+                        // Save last selections
+                        $checked_sett = ($tipo_prezzo == "sett") ? "checked=\"checked\"" : "";
+                        $checked_gio = ($tipo_prezzo != "sett") ? "checked=\"checked\"" : "";
+                        $ultime_sel_ins_prezzi_s = aggslashdb("$anno,$inizioperiodosett1,$fineperiodosett1,$checked_sett,$checked_gio");
+                        esegui_query("delete from $tablepersonalizza where idpersonalizza = 'ultime_sel_ins_prezzi_s' and idutente = '$id_utente' ");
+                        esegui_query("insert into $tablepersonalizza (idpersonalizza,idutente,valpersonalizza) values ('ultime_sel_ins_prezzi_s','$id_utente','$ultime_sel_ins_prezzi_s') ");
+                        
+                        // Update tariff options
+                        $opztariffa = esegui_query("select * from $tableperiodi where $tipotariffa"."p is not NULL and $tipotariffa"."p != '' and $tipotariffa"."p != '0' ");
+                        $opztariffa = numlin_query($opztariffa) ? "p" : "s";
+                        esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where idntariffe = '4' ");
+                        aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+                    }
+                }
+            }
+        }
+    }
+    else if (isset($inserisci) or isset($modifica)) {
+        // Process regular price insertion
+        $inserire = "SI";
+        $rigatariffe = esegui_query("select * from $tablenometariffe where idntariffe = '1' ");
+        $numero_tariffe = risul_query($rigatariffe,0,'nomecostoagg');
+        
+        if (!isset($tipotariffa) or substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) != "SI") $tipotariffa = "tariffa1";
+        $num_tariffa = substr($tipotariffa,7);
+        if ($attiva_tariffe_consentite != "n" and !isset($tariffe_consentite_vett[$num_tariffa])) $inserire = "NO";
+        if ($num_tariffa > $numero_tariffe) $inserire = "NO";
+        if ($numcaselle < 1 or $numcaselle > $numcaselle_max) $numcaselle = 8;
+        
+        $ultime_sel_ins_prezzi = "$numcaselle,$anno";
+        for ($numperiodo = 1 ; $numperiodo <= $numcaselle ; $numperiodo++) {
+            $prezzoperiodo = "prezzoperiodo$numperiodo";
+            $prezzoperiodop = "prezzoperiodo$numperiodo"."p";
+            $ultime_sel_ins_prezzi .= ",".fixset(${"inizioperiodo".$numperiodo}).",".fixset(${"fineperiodo".$numperiodo});
+            
+            if (strcmp(fixstr($$prezzoperiodo),"") or strcmp(fixstr($$prezzoperiodop),"")) {
+                $$prezzoperiodo = formatta_soldi($$prezzoperiodo);
+                $$prezzoperiodop = formatta_soldi($$prezzoperiodop);
+                $inizioperiodo = aggslashdb(${"inizioperiodo".$numperiodo});
+                $fineperiodo = aggslashdb(${"fineperiodo".$numperiodo});
+                
+                $idinizioperiodo = esegui_query("select idperiodi from $tableperiodi where datainizio = '$inizioperiodo' ");
+                if (numlin_query($idinizioperiodo) != 0) $idinizioperiodo = risul_query($idinizioperiodo,0,'idperiodi');
+                else $idinizioperiodo = 9999999;
+                
+                $idfineperiodo = esegui_query("select idperiodi from $tableperiodi where datafine = '$fineperiodo' ");
+                if (numlin_query($idfineperiodo) != 0) $idfineperiodo = risul_query($idfineperiodo,0,'idperiodi');
+                else $idfineperiodo = -9999999;
+                
+                $IDinizioperiodo[$numperiodo] = $idinizioperiodo;
+                $IDfineperiodo[$numperiodo] = $idfineperiodo;
+                
+                if ($idfineperiodo < $idinizioperiodo) $inserire = "NO";
+                else {
+                    for ($id_temp = $idinizioperiodo ; $id_temp <= $idfineperiodo ; $id_temp++) {
+                        if (isset($inserirepp[$id_temp])) $inserire = "NO";
+                        else {
+                            $inserirepp[$id_temp] = 1;
+                            if (isset($inserisci)) {
+                                $vecchioprezzoperiodo = esegui_query("select $tipotariffa from $tableperiodi where idperiodi = '$id_temp' and ($tipotariffa is not NULL or $tipotariffa"."p is not NULL)");
+                                if (numlin_query($vecchioprezzoperiodo) > 0) $inserire = "NO";
+                            }
+                        }
+                    }
+                    if ((strcmp((string) $$prezzoperiodo,"") and controlla_soldi($$prezzoperiodo) == "NO") or 
+                        (strcmp((string) $$prezzoperiodop,"") and controlla_soldi($$prezzoperiodop) == "NO")) {
+                        $inserire = "NO";
+                    }
+                }
+            }
+        }
+        
+        if ($inserire == "SI") {
+            esegui_query("delete from $tablepersonalizza where idpersonalizza = 'ultime_sel_ins_prezzi' and idutente = '$id_utente' ");
+            esegui_query("insert into $tablepersonalizza (idpersonalizza,idutente,valpersonalizza) values ('ultime_sel_ins_prezzi','$id_utente','".aggslashdb($ultime_sel_ins_prezzi)."') ");
+            
+            $agg_vett_tar_esp = array();
+            unset($num_agg_tar_esp);
+            for ($numperiodo = 1; $numperiodo <= $numcaselle; $numperiodo++) {
+                $prezzoperiodo = ${"prezzoperiodo".$numperiodo};
+                $prezzoperiodop = ${"prezzoperiodo".$numperiodo."p"};
+                
+                if (strcmp((string) $prezzoperiodo,"") or strcmp((string) $prezzoperiodop,"")) {
+                    $idinizioperiodo = $IDinizioperiodo[$numperiodo];
+                    $idfineperiodo = $IDfineperiodo[$numperiodo];
+                    
+                    for ( ; $idfineperiodo >= $idinizioperiodo ; $idinizioperiodo++) {
+                        $ins_periodo = 1;
+                        if ($dati_tariffe[$tipotariffa]['imp_prezzi_int']) {
+                            if ($dati_tariffe[$tipotariffa]['importa_prezzi'][0]) $ins_periodo = 0;
+                            for ($num1 = 1 ; $num1 < $dati_tariffe[$tipotariffa]['num_per_importa'] ; $num1++) {
+                                if ($dati_tariffe[$tipotariffa]['periodo_importa_f'][$num1] >= $idinizioperiodo and 
+                                    $dati_tariffe[$tipotariffa]['periodo_importa_i'][$num1] <= $idinizioperiodo) {
+                                    $ins_periodo = 0;
+                                    break;
+                                }
+                            }
+                        }
+                        if ($ins_periodo) {
+                            if (strcmp((string) $prezzoperiodo,"")) esegui_query("update $tableperiodi set $tipotariffa = '$prezzoperiodo' where idperiodi = '$idinizioperiodo' ");
+                            else esegui_query("update $tableperiodi set $tipotariffa = NULL where idperiodi = '$idinizioperiodo' ");
+                            if (strcmp((string) $prezzoperiodop,"")) esegui_query("update $tableperiodi set $tipotariffa"."p = '$prezzoperiodop' where idperiodi = '$idinizioperiodo' ");
+                            else esegui_query("update $tableperiodi set $tipotariffa"."p = NULL where idperiodi = '$idinizioperiodo' ");
+                            aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,$idinizioperiodo,$prezzoperiodo,$prezzoperiodop,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+                        }
+                    }
+                }
+            }
+            
+            $opztariffa = esegui_query("select * from $tableperiodi where $tipotariffa"."p is not NULL and $tipotariffa"."p != '' and $tipotariffa"."p != '0' ");
+            $opztariffa = numlin_query($opztariffa) ? "p" : "s";
+            esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where idntariffe = '4' ");
+            aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+        }
+    }
+    
+    unlock_tabelle($tabelle_lock);
+    header("Location: creaprezzi.php?anno=$anno&id_sessione=$id_sessione&tariffa_selected=".substr($tipotariffa,7));
+    exit;
+}
 
 $titolo = "HotelDruid: ".mex("Crea Prezzi",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
+
+// Include template system
+require_once("./includes/template.php");
 
 
 
@@ -3258,14 +3447,18 @@ if (numlin_query($opztariffa)) $opztariffa = "p";
 else $opztariffa = "s";
 esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where idntariffe = '4' ");
 aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+// Immediate redirect after successful price insertion
+unlock_tabelle($tabelle_lock);
+if (controlla_pag_origine($origine) == "SI") {
+    header("Location: creaprezzi.php?anno=$anno&id_sessione=$id_sessione&tariffa_selected=$num_tariffa");
+    exit;
+}
+// Fallback: show message if redirect fails
 $inizioperiodosett1_f = formatta_data($inizioperiodosett1,$stile_data);
 $fineperiodosett1_f = formatta_data($fineperiodosett1,$stile_data);
 echo mex("I prezzi per le settimane dal",$pag)." <b>$inizioperiodosett1_f</b> ".mex("al",$pag)." <b>$fineperiodosett1_f</b> ".mex("della <b>tariffa",$pag)."$num_tariffa</b> ".mex("sono stati inseriti",$pag).".";
 if ($per_imp) echo " <small>(".mex("i prezzi di alcuni periodi <em>non sono stati inseriti</em> perchè importati da altre tariffe",$pag).")</small>";
 echo "<br>";
-} # fine if ($inserire_prezzi != "NO")
-unlock_tabelle($tabelle_lock);
-
 echo "
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -3273,21 +3466,27 @@ echo "
 <input type=\"hidden\" name=\"tariffa_selected\" value=\"$num_tariffa\">
 <button class=\"cont\" type=\"submit\"><div>OK</div></button><br>
 </div></form>";
+} # fine if ($inserire_prezzi != "NO")
+else {
+unlock_tabelle($tabelle_lock);
+}
 } # fine if (isset($inserisci_settimanalmente) and $priv_mod_tariffe != "n")
 
 
 
-if (isset($cambia_nome_tariffa) and strcmp((string) $nometariffa,"") and $priv_mod_tariffe != "n") {
+if (isset($cambia_nome_tariffa) and $priv_mod_tariffe != "n") {
 $nascondi_form_iniziale = 1;
 $mostra_ok = 1;
-$inserire = "SI";
 $tabelle_lock = array($tablenometariffe);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 $rigatariffe = esegui_query("select * from $tablenometariffe where idntariffe = '1' ");
 $numero_tariffe = risul_query($rigatariffe,0,'nomecostoagg');
-if (substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) != "SI") $tipotariffa = "tariffa1";
-$num_tariffa = substr($tipotariffa,7);
+$num_tariffa = intval($cambia_nome_tariffa);
+$nometariffa = fixset(${"nometariffa_".$num_tariffa});
+if ($num_tariffa > 0 and $num_tariffa <= $numero_tariffe and strcmp((string) $nometariffa,"")) {
+$tipotariffa = "tariffa".$num_tariffa;
 if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num_tariffa])) {
+$inserire = "SI";
 $tipotariffa_vedi = mex("tariffa",$pag).$num_tariffa;
 if (@get_magic_quotes_gpc()) $nometariffa = stripslashes($nometariffa);
 $nometariffa = htmlspecialchars(fixstr($nometariffa),ENT_COMPAT);
@@ -3306,8 +3505,9 @@ esegui_query("update $tablenometariffe set $tipotariffa = '".aggslashdb($nometar
 echo mex("Il soprannome della",$pag)." $tipotariffa_vedi ".mex("è stato cambiato",$pag).".<br>";
 } # fine if ($inserire == "SI")
 } # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num_tariffa]))
+} # fine if ($num_tariffa > 0 and $num_tariffa <= $numero_tariffe and strcmp((string) $nometariffa,""))
 unlock_tabelle($tabelle_lock);
-} # fine if (isset($cambia_nome_tariffa) and strcmp((string) $nometariffa,"") and $priv_mod_tariffe != "n")
+} # fine if (isset($cambia_nome_tariffa) and $priv_mod_tariffe != "n")
 
 
 
@@ -3430,6 +3630,12 @@ if (numlin_query($opztariffa)) $opztariffa = "p";
 else $opztariffa = "s";
 esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where idntariffe = '4' ");
 aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
+// Immediate redirect after successful price insertion
+if (controlla_pag_origine($origine) == "SI") {
+    unlock_tabelle($tabelle_lock);
+    header("Location: creaprezzi.php?anno=$anno&id_sessione=$id_sessione&tariffa_selected=$num_tariffa");
+    exit;
+}
 } # fine if ($inserire == "SI")
 else {
 echo mex("Nessun dato è stato inserito",$pag).".<br>";
@@ -3456,42 +3662,61 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
 if (!isset($nascondi_form_iniziale)) {
 
 
-echo "<h4 id=\"h_ipri\"><span>".mex("Inserisci i prezzi per l'anno",$pag)." $anno</span></h4>
-<br><hr style=\"width: 95%\">";
+echo "<h4 id=\"h_ipri\"><span>".mex("Inserisci i prezzi per l'anno",$pag)." $anno</span></h4>";
 
 $dati_tariffe = dati_tariffe($tablenometariffe,"",$tablepersonalizza,$tableregole);
-if ($id_utente == 1) {
-echo "<div style=\"height: 6px;\"></div><div style=\"float: left;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"./personalizza.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"aggiorna_qualcosa\" value=\"SI\">
-<input type=\"hidden\" name=\"origine\" value=\"./creaprezzi.php\">
-<input type=\"hidden\" name=\"cambianumerotariffe\" value=\"1\">
-".mex("Cambia il numero delle tariffe","personalizza.php")." ".mex("per l'anno","personalizza.php")." $anno
- ".mex("a","personalizza.php")." <input type=\"text\" name=\"nuovo_numero_tariffe\" size=\"5\" value=\"".$dati_tariffe['num']."\">
-<button class=\"ipri\" type=\"submit\"><div>".mex("Cambia","personalizza.php")."</div></button>
-</div></form></div><div style=\"float: left; width: 50px;\">&nbsp;</div><div style=\"float: left;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"./personalizza.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"aggiorna_qualcosa\" value=\"SI\">
-<input type=\"hidden\" name=\"cambia_ord_tariffe\" value=\"SI\">
-<input type=\"hidden\" name=\"origine\" value=\"./creaprezzi.php\">
-<button class=\"xpri\" type=\"submit\"><div>".ucfirst(mex("cambia l'ordine delle tariffe","personalizza.php"))."</div></button>
-</div></form></div><div style=\"float: left; width: 50px;\">&nbsp;</div><div style=\"float: left;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"./visualizza_tabelle.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tipo_tabella\" value=\"periodi\">
-<input type=\"hidden\" name=\"mostra_form_agg_per\" value=\"1\">
-<input type=\"hidden\" name=\"origine\" value=\"./creaprezzi.php\">
-<button class=\"amon\" type=\"submit\"><div>".mex("Aggiungi periodi","visualizza_tabelle.php")."</div></button>
-</div></form></div>
-<div style=\"clear: both; height: 6px;\"></div>
-<hr style=\"width: 95%\">";
-} # fine if ($id_utente == 1)
 
+// Add CSS for panels
+echo "<style>
+.rpanels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.rbox {
+    flex: 1 1 420px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid;
+    overflow: hidden;
+}
+
+.rheader {
+    padding: 15px 20px;
+    color: white;
+    font-weight: 600;
+}
+
+.rheader h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.rcontent {
+    padding: 20px;
+}
+
+.rcontent table {
+    width: 100%;
+}
+
+.rcontent input[type=\"text\"],
+.rcontent select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.rcontent button {
+    margin-top: 4px;
+}
+</style>";
+
+// Build tariff selection lists
 if ($priv_mod_tariffe != "n") {
 $num_opt_tariffe = 0;
 $lista_opt_tariffe = "";
@@ -3507,7 +3732,6 @@ $num_opt_tariffe++;
 $nometariffa_vedi = mex("tariffa",$pag).$num1;
 if ($dati_tariffe[$tariffa]['nome'] != "") {
 $nometariffa_vedi .= " (".$dati_tariffe[$tariffa]['nome'];
-#if ($dati_tariffe[$tariffa]['moltiplica'] == "p") $nometariffa_vedi .= ", ".mex("per persona",$pag);
 $nometariffa_vedi .= ")";
 } # fine if ($dati_tariffe[$tariffa]['nome'] != "")
 elseif ($dati_tariffe[$tariffa]['moltiplica'] == "p") $nometariffa_vedi .= " (".mex("per persona",$pag).")";
@@ -3520,32 +3744,10 @@ if (!isset($dati_tariffe[$tariffa]['esporta_prezzi'])) $lista_opt_tariffe_no_esp
 } # fine for $num1
 if ($lista_opt_tariffe) {
 
-echo "<table><tr><td style=\"height: 5px;\"></td></tr></table>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"cambia_nome_tariffa\" value=\"1\">
-<script type=\"text/javascript\">
-<!--
-function aggiorna_nome_tariffa () {
-var sel_tar = document.getElementById('tariffa_cambia_nome');
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].innerHTML;
-tariffa = tariffa.substr(sel_tar.options[num_sel].value.length - 5 + ".strlen(mex("tariffa",$pag)).");
-tariffa = tariffa.substr(0,(tariffa.length - 1));
-var brks = tariffa.indexOf(') (');
-if (brks > 0) tariffa = tariffa.substr(0,brks);
-if (!num_sel) tariffa = '';
-document.getElementById('nometariffa').value = tariffa;
-} // fine function aggiorna_nome_tariffa
--->
-</script>
-".mex("Nome della",$pag)." <select name=\"tipotariffa\" id=\"tariffa_cambia_nome\" onchange=\"aggiorna_nome_tariffa()\">
-<option value=\"\">----</option>
-$lista_opt_tariffe</select>: <input type=\"text\" id=\"nometariffa\" name=\"nometariffa\" size=\"30\">
-<button class=\"edit\" type=\"submit\"><div>".mex("Cambia",$pag)."</div></button>
-</div></form><table><tr><td style=\"height: 5px;\"></td></tr></table>
-<hr style=\"width: 95%\">";
+// Render Tariff Names Panel
+echo "<div class=\"rpanels\">";
+$template = HotelDruidTemplate::getInstance();
+$template->display('creaprezzi/panel_tariff_names', get_defined_vars());
 
 
 # Questa è la form con da-a (inserzione per giorni)
@@ -3558,141 +3760,23 @@ if (numlin_query($ultime_sel_ins_p) == 1) {
 $ultime_sel_ins_prezzi = explode(",",(string) risul_query($ultime_sel_ins_p,0,'valpersonalizza'));
 $numcaselle = $ultime_sel_ins_prezzi[0];
 } # fine if (numlin_query($ultime_sel_ins_p) == 1)
-else $numcaselle = 8;
+else $numcaselle = 1; // Changed from 8 to 1 - start with single entry
 } # fine if (!$numcaselle)
 else {
 if ($elimina_casella) $numcaselle--;
 if ($aggiungi_casella) $numcaselle++;
 } # fine else if (!$numcaselle)
-if ($numcaselle < 1 or $numcaselle > $numcaselle_max) $numcaselle = 8;
-
-echo "<div style=\"text-align: center;\">
-<h5>".mex("Inserzione per $parola_settimane",$pag)."</h5><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"numcaselle\" id=\"numcaselle\" value=\"$numcaselle\">";
-
-echo "<div>".mex("Prezzi della",$pag)." 
-<select name=\"tipotariffa\">
-$lista_opt_tariffe_cambia
-</select><br>
-<table class=\"linhbox\" id=\"tab_prezzi\" style=\"margin-left: auto; margin-right: auto;\"><tr style=\"line-height: 1; vertical-align: bottom;\"><td></td>
-<td style=\"width: 10px; font-size: smaller;\">".mex("prezzo per $parola_settimana",$pag)."</td><td></td>
-<td style=\"width: 10px; font-size: smaller;\">".mex("prezzo per persona per $parola_settimana",$pag)."</td></tr>";
+if ($numcaselle < 1 or $numcaselle > $numcaselle_max) $numcaselle = 1; // Changed from 8 to 1
 
 $arrotond_predef = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'arrotond_predef' and idutente = '$id_utente'");
 $arrotond_predef = risul_query($arrotond_predef,0,'valpersonalizza');
 
-$date_selected = "";
-$p_pers = mex("p",$pag);
-for ($numperiodo = 1 ; $numperiodo <= $numcaselle ; $numperiodo = $numperiodo + 1) {
-$inizioperiodo = "inizioperiodo".$numperiodo;
-$fineperiodo = "fineperiodo".$numperiodo;
-$prezzoperiodo = "prezzoperiodo".$numperiodo;
-echo "<tr><td>$numperiodo. ".mex("Dal",$pag)." ";
-if (isset($ultime_sel_ins_prezzi[1]) and $ultime_sel_ins_prezzi[1] == $anno) $date_selected = $ultime_sel_ins_prezzi[($numperiodo * 2)];
-else $date_selected = fixset($$inizioperiodo);
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php",$inizioperiodo,$date_selected,"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
-if (isset($ultime_sel_ins_prezzi[1]) and $ultime_sel_ins_prezzi[1] == $anno) $date_selected = $ultime_sel_ins_prezzi[(($numperiodo * 2) + 1)];
-else $date_selected = fixset($$fineperiodo);
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php",$fineperiodo,$date_selected,"","",$id_utente,$tema);
-echo " : </td><td><input type=\"text\" name=\"$prezzoperiodo\" value=\"".htmlspecialchars(fixstr($$prezzoperiodo))."\" size=\"12\"></td>
-<td> + </td><td style=\"white-space: nowrap;\"><input type=\"text\" name=\"$prezzoperiodo"."p\" value=\"".htmlspecialchars(fixstr(${$prezzoperiodo."p"}))."\" size=\"10\">*$p_pers </td><td>$Euro</td>
-<td id=\"minus$numperiodo\">";
-if ($numperiodo == $numcaselle and $numcaselle > 1) echo "<input class=\"sbutton\" type=\"submit\" name=\"elimina_casella\" onclick=\"return elim_lin_tar();\" value=\"-\">";
-echo "</td><td id=\"plus$numperiodo\">";
-if ($numperiodo == $numcaselle and $numcaselle < $numcaselle_max) echo "<input class=\"sbutton\" type=\"submit\" name=\"aggiungi_casella\" onclick=\"return agg_lin_tar();\" value=\"+\">";
-echo "</td></tr>";
-} # fine for $numperiodo
-
-echo "</table></div><table><tr><td style=\"height: 2px;\"></td></tr></table>
-<script type=\"text/javascript\">
-<!--
-var numcaselle = $numcaselle;
-function agg_lin_tar () {
-if (numcaselle < $numcaselle_max) {
-var tab_prezzi = document.getElementById('tab_prezzi');
-var minus_prec = document.getElementById('minus'+numcaselle);
-var plus_prec = document.getElementById('plus'+numcaselle);
-numcaselle++;
-var nlinea = tab_prezzi.insertRow(-1);
-var cella = nlinea.insertCell(0);
-cell_html = numcaselle+'. ".mex("Dal",$pag)." ';
-var inizioperiodo = 'inizioperiodo'+numcaselle;
-";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","inizioperiodo","","","",$id_utente,$tema,"","","cell_html");
-echo "
-cell_html += ' ".mex("al",$pag)." ';
-var fineperiodo = 'fineperiodo'+numcaselle;
-";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","fineperiodo","","","",$id_utente,$tema,"","","cell_html");
-echo "
-cell_html += ' : ';
-cella.innerHTML = cell_html;
-cella = nlinea.insertCell(1);
-cella.innerHTML = '<input type=\"text\" name=\"prezzoperiodo'+numcaselle+'\" value=\"\" size=\"12\">';
-cella = nlinea.insertCell(2);
-cella.innerHTML = ' + ';
-cella = nlinea.insertCell(3);
-cella.style.whiteSpace = 'nowrap';
-cella.innerHTML = '<input type=\"text\" name=\"prezzoperiodo'+numcaselle+'p\" value=\"\" size=\"10\">*$p_pers ';
-cella = nlinea.insertCell(4);
-cella.innerHTML = '$Euro';
-cella = nlinea.insertCell(5);
-cella.id = 'minus'+numcaselle;
-cella.innerHTML = minus_prec.innerHTML;
-minus_prec.innerHTML = '';
-cella = nlinea.insertCell(6);
-cella.id = 'plus'+numcaselle;
-cella.innerHTML = plus_prec.innerHTML;
-plus_prec.innerHTML = '';
-document.getElementById('numcaselle').value = numcaselle;
-}
-return false;
-} // fine function agg_lin_tar
-function elim_lin_tar () {
-if (numcaselle > 1) {
-var tab_prezzi = document.getElementById('tab_prezzi');
-var minus_prec = document.getElementById('minus'+numcaselle);
-var plus_prec = document.getElementById('plus'+numcaselle);
-numcaselle--;
-var cella = document.getElementById('minus'+numcaselle);
-cella.innerHTML = minus_prec.innerHTML;
-cella = document.getElementById('plus'+numcaselle);
-cella.innerHTML = plus_prec.innerHTML;
-tab_prezzi.deleteRow(-1);
-document.getElementById('numcaselle').value = numcaselle;
-}
-return false;
-} // fine function elim_lin_tar
--->
-</script>
-<input type=\"hidden\" name=\"modifica\" value=\"1\">
-<button class=\"ipri\" type=\"submit\"><div>".mex("inserisci o modifica i prezzi",$pag)."</div></button>
-</div></form><br>
-<hr style=\"width: 95%\">";
-/*
-echo "</div><table><tr><td style=\"height: 2px;\"></td></tr></table>
-<input class=\"sbutton\" type=\"submit\" name=\"inserisci\" value=\"".mex("inserisci i nuovi prezzi",$pag)."\">
-<input class=\"sbutton\" type=\"submit\" name=\"modifica\" value=\"".mex("modifica i prezzi già inseriti",$pag)."\">
-</div></form><br>
-<hr style=\"width: 95%\">";
-*/
+// Render Price Entry Panel with template
+$template->display('creaprezzi/panel_price_entry', get_defined_vars());
 
 
 if ($tipo_periodi == "g") {
-echo "<h5>".mex("Inserzione per settimane",$pag)."</h5><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">";
-
-echo mex("Prezzi della",$pag)." 
-<select name=\"tipotariffa\">";
-echo str_replace("tariffa".fixset($tariffa_selected)."\">","tariffa".fixset($tariffa_selected)."\" selected>",$lista_opt_tariffe_cambia);
-echo "</select><br><br> ";
-
+// Prepare data for weekly entry panel
 $giorno_vedi_ini_sett = esegui_query("select valpersonalizza_num from $tablepersonalizza where idpersonalizza = 'giorno_vedi_ini_sett$anno' and idutente = '$id_utente'");
 if (numlin_query($giorno_vedi_ini_sett) == 1) $giorno_vedi_ini_sett = risul_query($giorno_vedi_ini_sett,0,'valpersonalizza_num');
 else $giorno_vedi_ini_sett = 0;
@@ -3705,24 +3789,12 @@ if (substr($file_date[$num1],0,7) == "<option") {
 $mese_data = substr($file_date[$num1],21,2);
 $giorno_data = substr($file_date[$num1],24,2);
 $anno_data = substr($file_date[$num1],16,4);
-#if ($mese_data == "Jan") $mese_data = 1;
-#if ($mese_data == "Feb") $mese_data = 2;
-#if ($mese_data == "Mar") $mese_data = 3;
-#if ($mese_data == "Apr") $mese_data = 4;
-#if ($mese_data == "May") $mese_data = 5;
-#if ($mese_data == "Jun") $mese_data = 6;
-#if ($mese_data == "Jul") $mese_data = 7;
-#if ($mese_data == "Aug") $mese_data = 8;
-#if ($mese_data == "Sep") $mese_data = 9;
-#if ($mese_data == "Oct") $mese_data = 10;
-#if ($mese_data == "Nov") $mese_data = 11;
-#if ($mese_data == "Dec") $mese_data = 12;
 if (date("w", mktime(0,0,0,$mese_data,$giorno_data,$anno_data)) == $giorno_vedi_ini_sett) {
 $file_date[$num1]= str_replace("\\","",$file_date[$num1]);
 $option_domeniche .= $file_date[$num1];
-} # fine if (date("w", mktime(0,0,0,$mese_data,$giorno_data,$anno_data)) == 0)
-} # fine if (substr($file_date[$num1],0,7) == "<option")
-} # fine for $num1
+}
+}
+}
 
 $ultime_sel_ins_prezzi_s = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'ultime_sel_ins_prezzi_s' and idutente = '$id_utente'");
 if (numlin_query($ultime_sel_ins_prezzi_s) == 1) $ultime_sel_ins_prezzi_s = explode(",",risul_query($ultime_sel_ins_prezzi_s,0,'valpersonalizza'));
@@ -3732,63 +3804,20 @@ $option_domeniche1 = str_replace("\"".$ultime_sel_ins_prezzi_s[1]."\">","\"".$ul
 $option_domeniche2 = str_replace("\"".$ultime_sel_ins_prezzi_s[2]."\">","\"".$ultime_sel_ins_prezzi_s[2]."\" selected>",$option_domeniche);
 $checked_sett = $ultime_sel_ins_prezzi_s[3];
 $checked_gio = $ultime_sel_ins_prezzi_s[4];
-} # fine if ($ultime_sel_ins_prezzi_s[0] == $anno)
-else {
+} else {
 $option_domeniche1 = $option_domeniche;
 $option_domeniche2 = $option_domeniche;
 $checked_sett = "checked=\"checked\"";
 $checked_gio = "";
-} # fine else if ($ultime_sel_ins_prezzi_s[0] == $anno)
-echo mex("Settimane dal",$pag)."
- <select name=\"inizioperiodosett1\" id=\"id_sdm149\" onChange=\"update_selected_dates('149')\">$option_domeniche1</select>
-".mex("al",$pag)." <select name=\"fineperiodosett1\" id=\"id_sdm150\" onChange=\"update_selected_dates('150')\">$option_domeniche2</select><br><br>
-<label><input name=\"tipo_prezzo\" value=\"sett\" id=\"tipo_prezzo_sett\" $checked_sett type=\"radio\">
-".mex("Prezzo dell'intera settimana",$pag).":</label> 
-<input type=\"text\" name=\"prezzosett\" size=\"12\" onfocus=\"document.getElementById('tipo_prezzo_sett').checked='1'\"> +
- <input type=\"text\" name=\"prezzosettp\" size=\"10\" onfocus=\"document.getElementById('tipo_prezzo_sett').checked='1'\">*p $Euro<br>
-<br><div class=\"linhbox\">
-<label><input name=\"tipo_prezzo\" value=\"gio\" id=\"tipo_prezzo_gio\" $checked_gio type=\"radio\">
-".mex("Prezzi dei giorni",$pag).":</label> ";
-for ($num1 = 1 ; $num1 <= 7 ; $num1++) {
-if ($giorno_vedi_ini_sett == 0) echo mex("Dom/Lun",$pag);
-if ($giorno_vedi_ini_sett == 1) echo mex("Lun/Mar",$pag);
-if ($giorno_vedi_ini_sett == 2) echo mex("Mar/Mer",$pag);
-if ($giorno_vedi_ini_sett == 3) echo mex("Mer/Gio",$pag);
-if ($giorno_vedi_ini_sett == 4) echo mex("Gio/Ven",$pag);
-if ($giorno_vedi_ini_sett == 5) echo mex("Ven/Sab",$pag);
-if ($giorno_vedi_ini_sett == 6) echo mex("Sab/Dom",$pag);
-echo ": <input type=\"text\" name=\"prezzoperiodo$num1\" size=\"10\" onfocus=\"document.getElementById('tipo_prezzo_gio').checked='1'\"> +
- <input type=\"text\" name=\"prezzoperiodo$num1"."p\" size=\"8\" onfocus=\"document.getElementById('tipo_prezzo_gio').checked='1'\">*p $Euro;";
-if ($num1 == 1 or $num1 == 3 or $num1 == 5) echo "<br>";
-else echo " ";
-$giorno_vedi_ini_sett++;
-if ($giorno_vedi_ini_sett == 7) $giorno_vedi_ini_sett = 0;
-} # fine for $num1
+}
 
-echo "</div><table><tr><td style=\"height: 2px;\"></td></tr></table>
-<input type=\"hidden\" name=\"inserisci_settimanalmente\" value=\"1\">
-<button class=\"ipri\" type=\"submit\"><div>".mex("inserisci o modifica i prezzi",$pag)."</div></button>
-</div></form><br>
-<hr style=\"width: 95%\">";
+// Render Weekly Entry Panel with template
+$template->display('creaprezzi/panel_weekly_entry', get_defined_vars());
 } # fine if ($tipo_periodi == "g")
 
 
-echo "</div><a name=\"imp_pre\"></a>
-<div style=\"height: 8px;\"></div>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<script type=\"text/javascript\">
-<!--
-function att_dis_arrotond () {
-var select = document.getElementById('tip_per');
-var arrotond = document.getElementById('imp_arr');
-if (select.selectedIndex == 0) arrotond.disabled = false;
-else arrotond.disabled = true;
-}
--->
-</script>
-<table cellspacing=\"0\" cellpadding=\"0\"><tr><td colspan=\"2\">";
+// Stage 4: Import Tariffs Panel
+echo "<a name=\"imp_pre\"></a>";
 $tipo_importa_orig = fixset($tipo_importa);
 $tipo_importa = "";
 $tariffa_a = "";
@@ -3801,6 +3830,8 @@ $parte_prezzo = "f";
 $periodi_importa = "t";
 $iniper_imp = "";
 $fineper_imp = "";
+$tar_imp_mod = "";
+$ord_imp_mod = 0;
 if (!empty($tar_importa_canc)) {
 $tar_imp_mod = "tariffa$tar_importa_canc";
 $tariffa_trovata = 0;
@@ -3820,17 +3851,13 @@ $iniper_imp = esegui_query("select datainizio from $tableperiodi where idperiodi
 $iniper_imp = risul_query($iniper_imp,0,'datainizio');
 $fineper_imp = esegui_query("select datafine from $tableperiodi where idperiodi = '".aggslashdb($dati_tariffe[$tar_imp_mod]['periodo_importa_f'][$num1])."' ");
 $fineper_imp = risul_query($fineper_imp,0,'datafine');
-} # fine if ($dati_tariffe[$tar_imp_mod]['periodo_importa_i'][$num1])
+}
 if ($per_importa_canc == "-") $per_importa_canc = "";
-echo "<input type=\"hidden\" name=\"tar_importa_mod\" value=\"1\">
-<input type=\"hidden\" name=\"tar_importa_canc\" value=\"$tar_importa_canc\">
-<input type=\"hidden\" name=\"per_importa_canc\" value=\"$per_importa_canc\">";
 break;
-} # fine if ($per_importa_canc == fixset($dati_tariffe[$tar_imp_mod]['periodo_importa_i'][$num1])."-".fixset($dati_tariffe[$tar_imp_mod]['periodo_importa_f'][$num1]))
-} # fine for $num1
+}
+}
 if (!$tariffa_trovata) $tar_imp_mod = "";
-} # fine if (!empty($tar_importa_canc))
-else $tar_imp_mod = "";
+}
 
 if (!$tar_imp_mod) {
 $transaz_esist_it = esegui_query("select * from $tabletransazioni where idsessione = '$id_sessione' and tipo_transazione = 'cp_it' ");
@@ -3848,177 +3875,16 @@ $periodi_importa = risul_query($transaz_esist_it,0,'dati_transazione8');
 $iniper_imp = risul_query($transaz_esist_it,0,'dati_transazione9');
 $fineper_imp = risul_query($transaz_esist_it,0,'dati_transazione10');
 $importa_fisso = risul_query($transaz_esist_it,0,'dati_transazione11');
-} # fine if (numlin_query($transaz_esist_it))
+}
 if ($tipo_importa_orig) $tipo_importa = $tipo_importa_orig;
-} # fine if (!$tar_imp_mod)
-else {
+} else {
 $tariffa_a = $tar_imp_mod;
 $tariffa_da = "tariffa".$dati_tariffe[$tar_imp_mod]['importa_prezzi'][$ord_imp_mod];
-} # fine else if (!$tar_imp_mod)
-
-if ($tar_imp_mod) echo mex("Importa sempre",$pag);
-else {
-echo "<script type=\"text/javascript\">
-<!--
-function agg_select_tar_a () {
-var select = document.getElementById('s_tim_t');
-var sel_tar_a = document.getElementById('s_tar_a');
-var sel_val = sel_tar_a.options[sel_tar_a.selectedIndex].value;
-if (select.selectedIndex == 0) sel_tar_a.innerHTML = '".str_replace("'","\\'",$lista_opt_tariffe)."';
-else sel_tar_a.innerHTML = '".str_replace("'","\\'",$lista_opt_tariffe_no_esporta)."';
-selizona_opt_con_val('s_tar_a',sel_val);
 }
--->
-</script>
-<select id=\"s_tim_t\" name=\"tipo_importa\" onchange=\"agg_select_tar_a()\">";
-if ($tipo_importa == "sempre") { $sel_ora = ""; $sel_sempre = " selected"; }
-else { $sel_ora = " selected"; $sel_sempre = ""; }
-echo "<option value=\"ora\"$sel_ora>".mex("Importa ora",$pag)."</option>
-<option value=\"sempre\"$sel_sempre>".mex("Importa sempre",$pag)."</option>
-</select>";
-} # fine else if ($tar_imp_mod)
-echo " ".mex("i prezzi della",$pag)." ";
-$select_nomi_tariffe = "";
-echo "<select id=\"s_tar_a\" name=\"tariffa_a\">";
-if ($tariffa_a) echo str_replace("$tariffa_a\">","$tariffa_a\" selected>",$lista_opt_tariffe_no_esporta);
-else echo $lista_opt_tariffe;
-echo "</select> ".mex("dalla",$pag)." <select name=\"tariffa_da\">";
-if ($tariffa_da) echo str_replace("$tariffa_da\">","$tariffa_da\" selected>",$lista_opt_tariffe_cambia_tutti);
-else echo $lista_opt_tariffe_cambia_tutti;
-$sel_g = "";
-$sel_s = "";
-if ($tipo_fisso == "g") $sel_g = " selected";
-if ($tipo_fisso == "s") $sel_s = " selected";
-echo "</select> ".mex("aggiungendo",$pag)." <span style=\"white-space: nowrap;\">
-<input type=\"text\" name=\"importa_fisso\" size=\"3\" value=\"$importa_fisso\"><select name=\"tipo_fisso\" id=\"tip_per\" onchange=\"att_dis_arrotond()\"> 
-<option value=\"euro_g\"$sel_g>$Euro ".mex("$parola_alla $parola_settimana",$pag)."</option>";
-if ($tipo_periodi == "g") echo "<option value=\"euro_s\"$sel_s>$Euro ".mex("alla settimana",$pag)."</option>";
-$sel_f = "";
-$sel_fn = "";
-$sel_p = "";
-$sel_pn = "";
-$sel_2 = "";
-$sel_fp = "";
-$sel_fpf = "";
-$sel_pf = "";
-if ($parte_prezzo == "f") $sel_f = " selected";
-if ($parte_prezzo == "fn") $sel_fn = " selected";
-if ($parte_prezzo == "p") $sel_p = " selected";
-if ($parte_prezzo == "pn") $sel_pn = " selected";
-if ($parte_prezzo == "2") $sel_2 = " selected";
-if ($parte_prezzo == "fp") $sel_fp = " selected";
-if ($parte_prezzo == "fpf") $sel_fpf = " selected";
-if ($parte_prezzo == "pf") $sel_pf = " selected";
-echo "</select></span> +
- <span style=\"white-space: nowrap;\"><input type=\"text\" name=\"importa_percent\" size=\"3\" value=\"$importa_percent\">%
- (".mex("arrotondato a",$pag)."
- <input type=\"text\" name=\"importa_arrotond\" id=\"imp_arr\" value=\"$importa_arrotond\" size=\"4\">)</span>
- <select name=\"parte_prezzo\">
-<option value=\"f\"$sel_f>".mex("al prezzo fisso",$pag)."</option>
-<option value=\"fn\"$sel_fn>".mex("al prezzo fisso",$pag).", ".mex("per persona nullo",$pag)."</option>
-<option value=\"p\"$sel_p>".mex("al prezzo per persona",$pag)."</option>
-<option value=\"pn\"$sel_pn>".mex("al prezzo per persona",$pag).", ".mex("fisso nullo",$pag)."</option>
-<option value=\"2\"$sel_2>".mex("ad entrambi i prezzi",$pag)."</option>
-<option value=\"fp\"$sel_fp>".mex("al prezzo fisso",$pag)." ".mex("da per persona",$pag)."</option>
-<option value=\"fpf\"$sel_fpf>".mex("al prezzo fisso",$pag)." ".mex("da per persona",$pag)." ".mex("più fisso",$pag)."</option>
-<option value=\"pf\"$sel_pf>".mex("al prezzo per persona",$pag)." ".mex("dal fisso",$pag)."</option>
-</select>
-<input type=\"hidden\" name=\"importa_tariffa\" value=\"1\"></td><td>
-&nbsp;<button class=\"xpri\" type=\"submit\"><div>";
-if ($tar_imp_mod) echo mex("modifica",$pag);
-else echo mex("importa",$pag);
-if ($periodi_importa == "t") { $ckd_t = " checked"; $ckd_s = ""; }
-if ($periodi_importa == "s") { $ckd_t = ""; $ckd_s = " checked"; }
-echo "</div></button>&nbsp;&nbsp;</td></tr>
-<tr><td style=\"width: 24px;\"></td><td><label><input type=\"radio\" name=\"periodi_importa\" value=\"t\"$ckd_t> ".mex("in tutti i periodi in modo predefinito",$pag)."</label></td></tr>
-<tr><td></td><td style=\"padding-top: 2px;\"><span onclick=\"document.getElementById('perimp_s').checked='1'\">
-<label><input type=\"radio\" id=\"perimp_s\" name=\"periodi_importa\" value=\"s\"$ckd_s> ".mex("dal",$pag)." </label>";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","iniper_imp",$iniper_imp,"","",$id_utente,$tema);
-echo "<label for=\"perimp_s\"> ".mex("al",$pag)." </label>";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","fineper_imp",$fineper_imp,"","",$id_utente,$tema);
-echo "</span></td></tr></table>
-</div></form><table><tr><td style=\"height: 6px;\"></td></tr></table>";
 
-function rowbgcolor () {
-global $rowbgcolor,$t2row1color,$t2row2color;
-if ($rowbgcolor == $t2row2color) $rowbgcolor = $t2row1color;
-else $rowbgcolor = $t2row2color;
-return $rowbgcolor;
-} # fine function rowbgcolor
-for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
-$tariffa = "tariffa".$num1;
-if ($dati_tariffe[$tariffa]['imp_prezzi_int']) {
-$vett_ord = array();
-$vett_ord[0] = 0;
-if ($dati_tariffe[$tariffa]['num_per_importa'] > 1) {
-$periodi_ord = array();
-for ($num2 = 1 ; $num2 < $dati_tariffe[$tariffa]['num_per_importa'] ; $num2++) $periodi_ord[$dati_tariffe[$tariffa]['periodo_importa_i'][$num2]] = $num2;
-ksort($periodi_ord);
-reset($periodi_ord);
-$num_ord = 1;
-foreach ($periodi_ord as $per => $num2) {
-$vett_ord[$num_ord] = $num2;
-$num_ord++;
-} # fine foreach ($periodi_ord as $per => $num2)
-} # fine if ($dati_tariffe[$tariffa]['num_per_importa'] > 1)
-for ($num_ord = 0 ; $num_ord < $dati_tariffe[$tariffa]['num_per_importa'] ; $num_ord++) {
-$num2 = $vett_ord[$num_ord];
-if ($dati_tariffe[$tariffa]['importa_prezzi'][$num2]) {
-echo "<table cellspacing=0 cellpadding=0 style=\"background-color: ";
-if ($tar_imp_mod == $tariffa and $num2 == $ord_imp_mod) echo $t1dates;
-else echo rowbgcolor();
-echo ";\"><tr>";
-if ($num2 > 0 and $dati_tariffe[$tariffa]['importa_prezzi'][0]) echo "<td style=\"width: 12px;\"></td>";
-echo "<td><form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php#imp_pre\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tar_importa_canc\" value=\"$num1\">";
-if (isset($dati_tariffe[$tariffa]['periodo_importa_i'][$num2])) {
-echo "<input type=\"hidden\" name=\"per_importa_canc\" value=\"".$dati_tariffe[$tariffa]['periodo_importa_i'][$num2]."-".$dati_tariffe[$tariffa]['periodo_importa_f'][$num2]."\">";
-$ini_imp = esegui_query("select * from $tableperiodi where idperiodi = '".$dati_tariffe[$tariffa]['periodo_importa_i'][$num2]."' ");
-$ini_imp = formatta_data(risul_query($ini_imp,0,'datainizio'),$stile_data);
-$fine_imp = esegui_query("select * from $tableperiodi where idperiodi = '".$dati_tariffe[$tariffa]['periodo_importa_f'][$num2]."' ");
-$fine_imp = formatta_data(risul_query($fine_imp,0,'datafine'),$stile_data);
-echo " ".ucfirst(mex("dal",$pag))." $ini_imp ".mex("al",$pag)." $fine_imp ".mex("importa",$pag);
-} # fine if (isset($dati_tariffe[$tariffa]['periodo_importa_i'][$num2]))
-else {
-if ($dati_tariffe[$tariffa]['num_per_importa'] < 2) echo mex("Importa sempre",$pag);
-else echo mex("In modo predefinito importa",$pag);
-} # fine else if (isset($dati_tariffe[$tariffa]['periodo_importa_i'][$num2]))
-echo " ".mex("i prezzi della",$pag)." <b>".mex("tariffa",$pag)."$num1";
-if ($dati_tariffe[$tariffa]['nome']) echo " (".$dati_tariffe[$tariffa]['nome'].")";
-echo "</b> ".mex("dalla",$pag)." <em>".mex("tariffa",$pag).$dati_tariffe[$tariffa]['importa_prezzi'][$num2];
-if (!empty($dati_tariffe['tariffa'.$dati_tariffe[$tariffa]['importa_prezzi'][$num2]]['nome'])) echo " (".$dati_tariffe['tariffa'.$dati_tariffe[$tariffa]['importa_prezzi'][$num2]]['nome'].")";
-echo "</em>";
-if ($dati_tariffe[$tariffa]['val_importa'][$num2] or $dati_tariffe[$tariffa]['perc_importa'][$num2]) {
-echo " ".mex("aggiungendo",$pag)." ";
-if ($dati_tariffe[$tariffa]['val_importa'][$num2]) {
-echo $dati_tariffe[$tariffa]['val_importa'][$num2]." $Euro ";
-if ($dati_tariffe[$tariffa]['tipo_importa'][$num2] == "g") echo mex("$parola_alla $parola_settimana",$pag);
-if ($dati_tariffe[$tariffa]['tipo_importa'][$num2] == "s") echo mex("alla settimana",$pag);
-if ($dati_tariffe[$tariffa]['perc_importa'][$num2]) echo " + ";
-} # fine if ($dati_tariffe[$tariffa]['val_importa'][$num2])
-if ($dati_tariffe[$tariffa]['perc_importa'][$num2]) echo $dati_tariffe[$tariffa]['perc_importa'][$num2]."% (".mex("arrotondato a",$pag)." ".$dati_tariffe[$tariffa]['arrotond_importa'][$num2]." $Euro)";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "f") echo " ".mex("al prezzo fisso",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "fn") echo " ".mex("al prezzo fisso",$pag).", ".mex("per persona nullo",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "p") echo " ".mex("al prezzo per persona",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "pn") echo " ".mex("al prezzo per persona",$pag).", ".mex("fisso nullo",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "2") echo " ".mex("ad entrambi i prezzi",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "fp") echo " ".mex("al prezzo fisso",$pag)." ".mex("da per persona",$pag).", ".mex("per persona nullo",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "fpf") echo " ".mex("al prezzo fisso",$pag)." ".mex("da per persona",$pag).", ".mex("più fisso",$pag).", ".mex("per persona nullo",$pag)."";
-if ($dati_tariffe[$tariffa]['parte_prezzo'][$num2] == "pf") echo " ".mex("al prezzo per persona",$pag)." ".mex("dal fisso",$pag).", ".mex("fisso nullo",$pag)."";
-} # fine if ($dati_tariffe[$tariffa]['val_importa'][$num2] or $dati_tariffe[$tariffa]['perc_importa'][$num2])
-echo " <button class=\"edtm\" type=\"submit\" name=\"mod_importa\" value=\"1\"><div>".mex("modifica",$pag)."</div></button>
- <button class=\"cncm\" type=\"submit\"><div>".mex("cancella",$pag)."</div></button>
-&nbsp;</div></form></td></tr></table>";
-} # fine if ($dati_tariffe[$tariffa]['importa_prezzi'][$num2])
-} # fine for $num_ord
-} # fine if ($dati_tariffe[$tariffa]['imp_prezzi_int'])
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
-} # fine for $num1
+HotelDruidTemplate::getInstance()->display('creaprezzi/panel_import_tariffs', get_defined_vars());
 
-echo "<hr style=\"width: 95%\">";
+echo "</div>"; // Close rpanels div
 
 } # fine if ($lista_opt_tariffe)
 } # fine if ($priv_mod_tariffe != "n")

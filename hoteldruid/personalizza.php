@@ -531,6 +531,69 @@ $priv_crea_pagineweb = "n";
 } # fine if (@is_file(C_DATI_PATH."/dati_subordinazione.php"))
 else unset($installazione_subordinata);
 
+// Handle immediate redirects for tariff changes before any output
+if (!empty($aggiorna_qualcosa) && !empty($origine) && $id_utente == 1) {
+    if (!empty($cambianumerotariffe)) {
+        $numerotariffe = esegui_query("select nomecostoagg from $tablenometariffe where idntariffe = 1");
+        $numerotariffe = risul_query($numerotariffe,0,'nomecostoagg');
+        $aggiorna = "";
+        if ($numerotariffe == $nuovo_numero_tariffe) $aggiorna = "NO";
+        if (defined("C_MASSIMO_NUM_TARIFFE") and C_MASSIMO_NUM_TARIFFE != 0 and $nuovo_numero_tariffe > C_MASSIMO_NUM_TARIFFE) $aggiorna_numero_tariffe = 0;
+        else $aggiorna_numero_tariffe = 1;
+        if (controlla_num_pos($nuovo_numero_tariffe) == "NO" or $nuovo_numero_tariffe == 0 or !$aggiorna_numero_tariffe) {
+            $aggiorna = "NO";
+        }
+        if ($aggiorna != "NO") {
+            $file_interconnessioni = C_DATI_PATH."/dati_interconnessioni.php";
+            if (@is_file($file_interconnessioni)) {
+                $linee_file_ic = implode("",file($file_interconnessioni));
+                for ($num1 = ($nuovo_numero_tariffe + 1) ; $num1 <= $numerotariffe ; $num1++) {
+                    if (str_replace("\"tariffa$num1\"","",$linee_file_ic) != $linee_file_ic) {
+                        $aggiorna = "NO";
+                        break;
+                    }
+                }
+            }
+        }
+        if ($aggiorna != "NO") {
+            $riga_ntariffe = esegui_query("select * from $tablenometariffe where idntariffe = 1");
+            $num_colonne = numcampi_query($riga_ntariffe);
+            $max_num_nome_tariffa = 1;
+            for ($num1 = 0 ; $num1 < $num_colonne ; $num1++) {
+                $nome_colonna = nomecampo_query($riga_ntariffe,$num1);
+                if (substr($nome_colonna,0,7) == "tariffa") {
+                    $num_nome_tariffa = str_replace ("tariffa","",$nome_colonna);
+                    if ($num_nome_tariffa > $max_num_nome_tariffa) $max_num_nome_tariffa = $num_nome_tariffa;
+                }
+            }
+            for ($num1 = ($max_num_nome_tariffa + 1) ; $num1 <= $nuovo_numero_tariffe ; $num1++) {
+                $nome_nuova_tariffa = "tariffa" . $num1;
+                $risul = @esegui_query("alter table $tablenometariffe add column $nome_nuova_tariffa text","silenzio");
+                @esegui_query("alter table $tableperiodi add column $nome_nuova_tariffa float8","silenzio");
+                @esegui_query("alter table $tableperiodi add column $nome_nuova_tariffa"."p float8","silenzio");
+            }
+            if ($nuovo_numero_tariffe > $max_num_nome_tariffa and !$risul) $nuovo_numero_tariffe = $max_num_nome_tariffa;
+            if ($numerotariffe > $nuovo_numero_tariffe) {
+                for ($num1 = ($nuovo_numero_tariffe + 1) ; $num1 <= $numerotariffe ; $num1++) {
+                    $nome_vecchia_tariffa = "tariffa" . $num1;
+                    esegui_query("delete from $tableregole where tariffa_per_app = '$nome_vecchia_tariffa'");
+                    esegui_query("delete from $tableregole where tariffa_per_utente = '$nome_vecchia_tariffa'");
+                    esegui_query("delete from $tableregole where tariffa_per_persone = '$nome_vecchia_tariffa'");
+                    esegui_query("delete from $tableregole where tariffa_chiusa = '$nome_vecchia_tariffa'");
+                    esegui_query("delete from $tabledescrizioni where nome = '$nome_vecchia_tariffa' and (tipo = 'tardescr' or tipo = 'tarfoto' or tipo = 'tarcommfoto') ");
+                    esegui_query("update $tableperiodi set $nome_vecchia_tariffa = NULL");
+                    esegui_query("update $tableperiodi set $nome_vecchia_tariffa"."p = NULL");
+                    esegui_query("update $tablenometariffe set $nome_vecchia_tariffa = NULL");
+                }
+            }
+            esegui_query("update $tablenometariffe set nomecostoagg = '$nuovo_numero_tariffe' where idntariffe = 1");
+            // Redirect immediately without showing page
+            $origine_redirect = controlla_pag_origine($origine);
+            header("Location: $origine_redirect?anno=$anno&id_sessione=$id_sessione");
+            exit;
+        }
+    }
+}
 
 $titolo = "HotelDruid: ".mex("Personalizza",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
@@ -629,6 +692,7 @@ esegui_query("update $tablenometariffe set $nome_vecchia_tariffa = NULL");
 } # fine if ($numerotariffe > $nuovo_numero_tariffe)
 esegui_query("update $tablenometariffe set nomecostoagg = '$nuovo_numero_tariffe' where idntariffe = 1");
 echo mex("Il numero delle tariffe è stato cambiato",$pag).".<br>";
+// Note: redirect happens earlier before head.php is included
 } # fine if ($aggiorna != "NO")
 } # fine if (!empty($cambianumerotariffe))
 
@@ -909,6 +973,7 @@ esegui_query("update $tablenometariffe set tariffa".($max_tar + 1)." = NULL");
 } # fine for $num1
 unlock_tabelle($tabelle_lock);
 echo ucfirst(mex("l'ordine delle tariffe è stato cambiato",$pag)).".<br><br>";
+// Note: For reorder, we show interactive UI so redirect handled by OK button
 
 function aggiorna_var_modello () {
 global $max_tar,$lista_tar,$crea_modello;
