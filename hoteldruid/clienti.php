@@ -159,6 +159,8 @@ $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB
 include("./includes/funzioni.php");
 include(C_DATI_PATH."/lingua.php");
 include("./includes/funzioni_clienti.php");
+# Include template system for UI/logic separation
+if (file_exists("./includes/template.php")) include("./includes/template.php");
 $tablemessaggi = $PHPR_TAB_PRE."messaggi";
 $tablerelutenti = $PHPR_TAB_PRE."relutenti";
 $tablenazioni = $PHPR_TAB_PRE."nazioni";
@@ -2797,8 +2799,8 @@ echo "<hr style=\"width: 95%\">";
 echo "<style>
 .rpanels{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
 .rpanels .rbox{box-sizing:border-box;max-width:500px}
-/* Each row becomes a flex line */
-.rpanels .rbox span.wsnw, .rpanels .rbox span.smlscrfnt{display:flex;align-items:center;gap:12px;margin:8px 0}
+/* Each row becomes a flex line - force to new line */
+.rpanels .rbox span.wsnw, .rpanels .rbox span.smlscrfnt{display:flex;align-items:center;gap:12px;margin:8px 0;width:100%;box-sizing:border-box}
 /* Label 1/3, Control 2/3 */
 .rpanels .rbox .lbl{flex:0 0 33%;max-width:33%}
 .rpanels .rbox .ctl{flex:1 1 67%;display:flex;gap:8px;align-items:center;min-width:0}
@@ -2829,23 +2831,108 @@ else {
 $cognome_mostra = $cognome;
 $nome_mostra = $nome;
 } # fine else if (!empty($datiprenota))
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
-echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Dati personali",$pag)."</div>";
-echo "<span class=\"wsnw\">".mex("Cognome",$pag).": ";
-if ($id_utente == 1 and $id_utente_ins != 1) {
-$tableprivilegi = $PHPR_TAB_PRE."privilegi";
-$privilegi_globali_utente = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_ins' and anno = '1'");
-$prefisso_clienti = risul_query($privilegi_globali_utente,0,'prefisso_clienti');
-$attiva_prefisso_clienti = substr($prefisso_clienti,0,1);
-if ($attiva_prefisso_clienti != "n") {
-$prefisso_clienti = explode(",",$prefisso_clienti);
-$prefisso_clienti = $prefisso_clienti[1];
-} # fine if ($prefisso_clienti != "n")
-} # fine if ($id_utente == 1 and $id_utente_ins != 1)
-if ($attiva_prefisso_clienti == "p") echo $prefisso_clienti;
-echo "<input type=\"text\" id=\"cognome\" name=\"cognome\" value=\"$cognome_mostra\">";
-if ($attiva_prefisso_clienti == "s") echo $prefisso_clienti;
-echo "</span><span class=\"wsnw\">".mex("nome",$pag).": <input type=\"text\" name=\"nome\" value=\"$nome_mostra\"></span>
+# Use template system for panel rendering if available
+if (class_exists('HotelDruidTemplate')) {
+    $template = HotelDruidTemplate::getInstance();
+    
+    # Prepare data for Dati Personali panel
+    if ($id_utente == 1 and $id_utente_ins != 1) {
+        $tableprivilegi = $PHPR_TAB_PRE."privilegi";
+        $privilegi_globali_utente = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_ins' and anno = '1'");
+        $prefisso_clienti = risul_query($privilegi_globali_utente,0,'prefisso_clienti');
+        $attiva_prefisso_clienti = substr($prefisso_clienti,0,1);
+        if ($attiva_prefisso_clienti != "n") {
+            $prefisso_clienti = explode(",",$prefisso_clienti);
+            $prefisso_clienti = $prefisso_clienti[1];
+        }
+    }
+    
+    # Build language options
+    if (fix_set($lingua_cli) == "ita") $sel = " selected";
+    else $sel = "";
+    $opt_lingue = "<option value=\"ita\"$sel>Italiano</option>";
+    $lang_dir = opendir("./includes/lang/");
+    include(C_DATI_PATH."/lingua.php");
+    while ($ini_lingua = readdir($lang_dir)) {
+        if ($ini_lingua != "." && $ini_lingua != "..") {
+            if (@is_file("./includes/lang/$ini_lingua/l_n")) {
+                $nome_lingua = file("./includes/lang/$ini_lingua/l_n");
+                $nome_lingua = togli_acapo($nome_lingua[0]);
+                if ($lingua_cli == $ini_lingua) $sel = " selected";
+                else $sel = "";
+                if ($ini_lingua == $lingua[$id_utente]) $opt_lingue = "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>".$opt_lingue;
+                else $opt_lingue .= "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>";
+            }
+        }
+    }
+    closedir($lang_dir);
+    $opt_lingue = "<option value=\"\">------</option>".$opt_lingue;
+    
+    # Build birth date selectors
+    $giornonascita = fixset($giornonascita);
+    if (!$giornonascita) $sel = " selected";
+    else $sel = "";
+    $sel_gnascita = "<select name=\"giornonascita\"><option value=\"\"$sel>--</option>";
+    for ($num = 1; $num <= 31; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        if ($giornonascita == $num) $sel = " selected";
+        else $sel = "";
+        $sel_gnascita .= "<option value=\"$num\"$sel>$num</option>";
+    }
+    $sel_gnascita .= "</select>";
+    
+    $mesenascita = fixset($mesenascita);
+    if (!$mesenascita) $sel = " selected";
+    else $sel = "";
+    $sel_mnascita = "<select name=\"mesenascita\"><option value=\"\"$sel>--</option>";
+    for ($num = 1; $num <= 12; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        if ($mesenascita == $num) $sel = " selected";
+        else $sel = "";
+        $sel_mnascita .= "<option value=\"$num\"$sel>$num</option>";
+    }
+    $sel_mnascita .= "</select>";
+    
+    # Build document expiry date selectors
+    $sel_gscaddoc = "<select name=\"giornoscaddoc\"><option value=\"\" selected>--</option>";
+    for ($num = 1; $num <= 31; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        $sel_gscaddoc .= "<option value=\"$num\">$num</option>";
+    }
+    $sel_gscaddoc .= "</select>";
+    
+    $sel_mscaddoc = "<select name=\"mesescaddoc\"><option value=\"\" selected>--</option>";
+    for ($num = 1; $num <= 12; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        $sel_mscaddoc .= "<option value=\"$num\">$num</option>";
+    }
+    $sel_mscaddoc .= "</select>";
+    
+    # Render panels using templates
+    $template->display('clienti/panel_dati_personali', get_defined_vars());
+    $template->display('clienti/panel_residenza', get_defined_vars());
+    $template->display('clienti/panel_documento', get_defined_vars());
+    $template->display('clienti/panel_contatti', get_defined_vars());
+    $template->display('clienti/panel_dati_fiscali', get_defined_vars());
+} else {
+    # Fallback to original inline rendering if template system not available
+    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Dati personali",$pag)."</div>";
+    echo "<span class=\"wsnw\">".mex("Cognome",$pag).": ";
+    if ($id_utente == 1 and $id_utente_ins != 1) {
+        $tableprivilegi = $PHPR_TAB_PRE."privilegi";
+        $privilegi_globali_utente = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_ins' and anno = '1'");
+        $prefisso_clienti = risul_query($privilegi_globali_utente,0,'prefisso_clienti');
+        $attiva_prefisso_clienti = substr($prefisso_clienti,0,1);
+        if ($attiva_prefisso_clienti != "n") {
+            $prefisso_clienti = explode(",",$prefisso_clienti);
+            $prefisso_clienti = $prefisso_clienti[1];
+        }
+    }
+    if ($attiva_prefisso_clienti == "p") echo $prefisso_clienti;
+    echo "<input type=\"text\" id=\"cognome\" name=\"cognome\" value=\"$cognome_mostra\">";
+    if ($attiva_prefisso_clienti == "s") echo $prefisso_clienti;
+    echo "</span><span class=\"wsnw\">".mex("nome",$pag).": <input type=\"text\" name=\"nome\" value=\"$nome_mostra\"></span>
  <span class=\"wsnw\">".mex("soprannome",$pag).": <input type=\"text\" name=\"soprannome\" value=\"$soprannome\"></span>
 <span class=\"wsnw\">".mex("sesso",$pag).": <select name=\"sesso\">
 <option value=\"\" selected>-</option>
@@ -2854,92 +2941,91 @@ echo "</span><span class=\"wsnw\">".mex("nome",$pag).": <input type=\"text\" nam
 </select></span>
  <span class=\"wsnw\">".mex("cittadinanza",$pag).": ".mostra_lista_relutenti("nazionalita",$nazionalita,$id_utente,"nome_nazione","idnazioni","idnazione",$tablenazioni,$tablerelutenti)."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('nazionalita','nazione','')\" value=\"#\"></span>
  <span class=\"wsnw\">".mex("lingua",$pag).": <select name=\"lingua_cli\">";
-if (fix_set($lingua_cli) == "ita") $sel = " selected";
-else $sel = "";
-$opt_lingue = "<option value=\"ita\"$sel>Italiano</option>";
-$lang_dir = opendir("./includes/lang/");
-include(C_DATI_PATH."/lingua.php");
-while ($ini_lingua = readdir($lang_dir)) {
-if ($ini_lingua != "." && $ini_lingua != "..") {
-if (@is_file("./includes/lang/$ini_lingua/l_n")) {
-$nome_lingua = file("./includes/lang/$ini_lingua/l_n");
-$nome_lingua = togli_acapo($nome_lingua[0]);
-if ($lingua_cli == $ini_lingua) $sel = " selected";
-else $sel = "";
-if ($ini_lingua == $lingua[$id_utente]) $opt_lingue = "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>".$opt_lingue;
-else $opt_lingue .= "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>";
-} # fine if (@is_file("./includes/lang/$ini_lingua/l_n"))
-} # fine if ($file != "." && $file != "..")
-} # fine while ($file = readdir($lang_dig))
-closedir($lang_dir);
-$opt_lingue = "<option value=\"\">------</option>".$opt_lingue;
-echo "$opt_lingue</select></span>";
-if (!empty($datiprenota)) {
-echo ".&nbsp;&nbsp; <span class=\"wsnw\"><label><input name=\"cliente_ospite\" value=\"SI\" type=\"checkbox\" checked>
+    if (fix_set($lingua_cli) == "ita") $sel = " selected";
+    else $sel = "";
+    $opt_lingue = "<option value=\"ita\"$sel>Italiano</option>";
+    $lang_dir = opendir("./includes/lang/");
+    include(C_DATI_PATH."/lingua.php");
+    while ($ini_lingua = readdir($lang_dir)) {
+        if ($ini_lingua != "." && $ini_lingua != "..") {
+            if (@is_file("./includes/lang/$ini_lingua/l_n")) {
+                $nome_lingua = file("./includes/lang/$ini_lingua/l_n");
+                $nome_lingua = togli_acapo($nome_lingua[0]);
+                if ($lingua_cli == $ini_lingua) $sel = " selected";
+                else $sel = "";
+                if ($ini_lingua == $lingua[$id_utente]) $opt_lingue = "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>".$opt_lingue;
+                else $opt_lingue .= "<option value=\"$ini_lingua\"$sel>".ucfirst($nome_lingua)."</option>";
+            }
+        }
+    }
+    closedir($lang_dir);
+    $opt_lingue = "<option value=\"\">------</option>".$opt_lingue;
+    echo "$opt_lingue</select></span>";
+    if (!empty($datiprenota)) {
+        echo ".&nbsp;&nbsp; <span class=\"wsnw\"><label><input name=\"cliente_ospite\" value=\"SI\" type=\"checkbox\" checked>
 ".mex("Ospite della prenotazione",$pag)."</label>";
-if ($num_tipologie > 1 or $num_app_richiesti1 > 1) {
-$selected = " selected";
-echo " <select name=\"prenota_cli_osp\"$selected>";
-for ($n_t = 1 ; $n_t <= $num_tipologie ; $n_t++) {
-for ($num1 = 1 ; $num1 <= ${"num_app_richiesti".$n_t} ; $num1++) {
-echo "<option value=\"p$num1"."_$n_t\">$num1";
-if ($num_tipologie > 1) echo " ".mex("tipologia",$pag)." $n_t";
-echo "</option>";
-$selected = "";
-} # fine for $num1
-} # fine for $n_t
-echo "</select>";
-} # fine if ($num_tipologie > 1 or $num_app_richiesti1 > 1)
-else echo "<input type=\"hidden\" name=\"prenota_cli_osp\" value=\"p1_1\">";
-echo "</span>";
-} # fine if (!empty($datiprenota))
-
-mostra_funzjs_dati_rel("","",$id_sessione,$anno);
-echo "<hr style=\"width: 95%\">
+        if ($num_tipologie > 1 or $num_app_richiesti1 > 1) {
+            $selected = " selected";
+            echo " <select name=\"prenota_cli_osp\"$selected>";
+            for ($n_t = 1 ; $n_t <= $num_tipologie ; $n_t++) {
+                for ($num1 = 1 ; $num1 <= ${"num_app_richiesti".$n_t} ; $num1++) {
+                    echo "<option value=\"p$num1"."_$n_t\">$num1";
+                    if ($num_tipologie > 1) echo " ".mex("tipologia",$pag)." $n_t";
+                    echo "</option>";
+                    $selected = "";
+                }
+            }
+            echo "</select>";
+        } else echo "<input type=\"hidden\" name=\"prenota_cli_osp\" value=\"p1_1\">";
+        echo "</span>";
+    }
+    
+    mostra_funzjs_dati_rel("","",$id_sessione,$anno);
+    echo "<hr style=\"width: 95%\">
 ".mex("Data di nascita",$pag)." <span class=\"wsnw\">";
-$giornonascita = fixset($giornonascita);
-if (!$giornonascita) $sel = " selected";
-else $sel = "";
-$sel_gnascita = "<select name=\"giornonascita\">
+    $giornonascita = fixset($giornonascita);
+    if (!$giornonascita) $sel = " selected";
+    else $sel = "";
+    $sel_gnascita = "<select name=\"giornonascita\">
 <option value=\"\"$sel>--</option>";
-for ( $num = 1; $num <= 31; $num = $num + 1) {
-if (strlen($num) == 1) $num = "0".$num;
-if ($giornonascita == $num) $sel = " selected";
-else $sel = "";
-$sel_gnascita .= "<option value=\"$num\"$sel>$num</option>";
-} # fine for $num
-$sel_gnascita .= "</select>";
-$mesenascita = fixset($mesenascita);
-if (!$mesenascita) $sel = " selected";
-else $sel = "";
-$sel_mnascita = "<select name=\"mesenascita\">
+    for ( $num = 1; $num <= 31; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        if ($giornonascita == $num) $sel = " selected";
+        else $sel = "";
+        $sel_gnascita .= "<option value=\"$num\"$sel>$num</option>";
+    }
+    $sel_gnascita .= "</select>";
+    $mesenascita = fixset($mesenascita);
+    if (!$mesenascita) $sel = " selected";
+    else $sel = "";
+    $sel_mnascita = "<select name=\"mesenascita\">
 <option value=\"\"$sel>--</option>";
-for ( $num = 1; $num <= 12; $num = $num + 1) {
-if (strlen($num) == 1) $num = "0".$num;
-if ($mesenascita == $num) $sel = " selected";
-else $sel = "";
-$sel_mnascita .= "<option value=\"$num\"$sel>$num</option>";
-} # fine for $num
-$sel_mnascita .= "</select>";
-if ($stile_data == "usa") echo "$sel_mnascita/$sel_gnascita";
-else echo "$sel_gnascita/$sel_mnascita";
-echo "/<input type=\"text\" name=\"annonascita\" size=\"5\" maxlength=\"4\" value=\"$annonascita\"></span> (".mex("anno con 4 cifre",$pag)."),
+    for ( $num = 1; $num <= 12; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        if ($mesenascita == $num) $sel = " selected";
+        else $sel = "";
+        $sel_mnascita .= "<option value=\"$num\"$sel>$num</option>";
+    }
+    $sel_mnascita .= "</select>";
+    if ($stile_data == "usa") echo "$sel_mnascita/$sel_gnascita";
+    else echo "$sel_gnascita/$sel_mnascita";
+    echo "/<input type=\"text\" name=\"annonascita\" size=\"5\" maxlength=\"4\" value=\"$annonascita\"></span> (".mex("anno con 4 cifre",$pag)."),
 <span class=\"wsnw smlscrfnt\">".mex("nazione di nascita",$pag).": ".mostra_lista_relutenti("nazionenascita",$nazionenascita,$id_utente,"nome_nazione","idnazioni","idnazione",$tablenazioni,$tablerelutenti,"","","","regione","regionenascita")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('nazionenascita','nazionalita','')\" value=\"#\"></span>
 <span class=\"wsnw smlscrfnt\">".mex("reg./prov. di nascita",$pag).": ".mostra_lista_relutenti("regionenascita",$regionenascita,$id_utente,"nome_regione","idregioni","idregione",$tableregioni,$tablerelutenti,"","","","citta","cittanascita","nazione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('regionenascita','regione','')\" value=\"#\"></span>
 <span class=\"wsnw smlscrfnt\">".mex("città di nascita",$pag).": ".mostra_lista_relutenti("cittanascita",$cittanascita,$id_utente,"nome_citta","idcitta","idcitta",$tablecitta,$tablerelutenti,"","","","","","regione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('cittanascita','citta','')\" value=\"#\"></span>";
-echo "</div>";
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
-echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Residenza",$pag)."</div>";
-echo "<hr style=\"width: 95%\">
+    echo "</div>";
+    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Residenza",$pag)."</div>";
+    echo "<hr style=\"width: 95%\">
 ".mex("Residenza",$pag).": <span class=\"wsnw\"><select name=\"via\">
 <option value=\"".mex("Via",$pag)."\">".mex("Via",$pag)."</option>
 <option value=\"".mex("Piazza",$pag)."\">".mex("Piazza",$pag)."</option>
 <option value=\"".mex("Viale",$pag)."\">".mex("Viale",$pag)."</option>
 <option value=\"".mex("Piazzale",$pag)."\">".mex("Piazzale",$pag)."</option>
 <option value=\"".mex("Vicolo",$pag)."\">".mex("Vicolo",$pag)."</option>";
-if ($via) $sel = " selected";
-else $sel = "";
-echo "<option value=\"\"$sel>-----</option>
+    if ($via) $sel = " selected";
+    else $sel = "";
+    echo "<option value=\"\"$sel>-----</option>
 </select>
 <input type=\"text\" name=\"nomevia\" value=\"$via\"></span>
 <span class=\"wsnw\">Nº: <input type=\"text\" name=\"numcivico\" size=\"4\" value=\"$numcivico\"></span>
@@ -2947,58 +3033,59 @@ echo "<option value=\"\"$sel>-----</option>
 <span class=\"wsnw\">".mex("nazione",$pag).": ".mostra_lista_relutenti("nazione",$nazione,$id_utente,"nome_nazione","idnazioni","idnazione",$tablenazioni,$tablerelutenti,"","","","regione","regione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('nazione','nazionalita','')\" value=\"#\"></span>
 <span class=\"wsnw\">".mex("reg./prov.",$pag).": ".mostra_lista_relutenti("regione",$regione,$id_utente,"nome_regione","idregioni","idregione",$tableregioni,$tablerelutenti,"","","","citta","citta","nazione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('regione','regionenascita','')\" value=\"#\"></span>
 <span class=\"wsnw\">".mex("città",$pag).": ".mostra_lista_relutenti("citta",$citta,$id_utente,"nome_citta","idcitta","idcitta",$tablecitta,$tablerelutenti,"","","","","","regione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('citta','cittanascita','')\" value=\"#\"></span>";
-echo "</div>";
-echo "</div>";
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
-echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Documento",$pag)."</div>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("Documento",$pag).": ".mostra_lista_relutenti("tipodoc",$tipodoc,$id_utente,"nome_documentoid","iddocumentiid","iddocumentoid",$tabledocumentiid,$tablerelutenti,"","","SI")." <input type=\"text\" name=\"documento\" value=\"$documento\"></span>";
-echo "<span class=\"wsnw\">".mex("scadenza",$pag).": ";
-$sel_gscaddoc = "<select name=\"giornoscaddoc\">
+    echo "</div>";
+    echo "</div>";
+    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Documento",$pag)."</div>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Documento",$pag).": ".mostra_lista_relutenti("tipodoc",$tipodoc,$id_utente,"nome_documentoid","iddocumentiid","iddocumentoid",$tabledocumentiid,$tablerelutenti,"","","SI")." <input type=\"text\" name=\"documento\" value=\"$documento\"></span>";
+    echo "<span class=\"wsnw\">".mex("scadenza",$pag).": ";
+    $sel_gscaddoc = "<select name=\"giornoscaddoc\">
 <option value=\"\" selected>--</option>";
-for ( $num = 1; $num <= 31; $num = $num + 1) {
-if (strlen($num) == 1) $num = "0".$num;
-$sel_gscaddoc .= "<option value=\"$num\">$num</option>";
-} # fine for $num
-$sel_gscaddoc .= "</select>";
-$sel_mscaddoc = "<select name=\"mesescaddoc\">
+    for ( $num = 1; $num <= 31; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        $sel_gscaddoc .= "<option value=\"$num\">$num</option>";
+    }
+    $sel_gscaddoc .= "</select>";
+    $sel_mscaddoc = "<select name=\"mesescaddoc\">
 <option value=\"\" selected>--</option>";
-for ( $num = 1; $num <= 12; $num = $num + 1) {
-if (strlen($num) == 1) $num = "0".$num;
-$sel_mscaddoc .= "<option value=\"$num\">$num</option>";
-} # fine for $num
-$sel_mscaddoc .= "</select>";
-if ($stile_data == "usa") echo "$sel_mscaddoc/$sel_gscaddoc";
-else echo "$sel_gscaddoc/$sel_mscaddoc";
-echo "/<select name=\"annoscaddoc\">";
-$anno_corr = date("Y",(time() + (C_DIFF_ORE * 3600)));
-for ($num1 = 0; $num1 < 12; $num1++) {
-$num = $anno_corr - 12 + $num1;
-echo "<option value=\"$num\">$num</option>";
-} # fine for $num1
-echo "<option value=\"\" selected>--</option>";
-for ($num1 = 0; $num1 < 16; $num1++) {
-$num = $anno_corr + $num1;
-echo "<option value=\"$num\">$num</option>";
-} # fine for $num1
-echo "</select></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("nazione di rilascio",$pag).": ".mostra_lista_relutenti("nazionedoc",$nazionedoc,$id_utente,"nome_nazione","idnazioni","idnazione",$tablenazioni,$tablerelutenti,"","","","regione","regionedoc")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('nazionedoc','nazionalita','')\" value=\"#\"></span>";
-echo "<span class=\"wsnw\">".mex("reg./prov.",$pag).": ".mostra_lista_relutenti("regionedoc",$regionedoc,$id_utente,"nome_regione","idregioni","idregione",$tableregioni,$tablerelutenti,"","","","citta","cittadoc","nazione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('regionedoc','regione','')\" value=\"#\"></span>";
-echo "<span class=\"wsnw\">".mex("città",$pag).": ".mostra_lista_relutenti("cittadoc",$cittadoc,$id_utente,"nome_citta","idcitta","idcitta",$tablecitta,$tablerelutenti,"","","","","","regione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('cittadoc','citta','')\" value=\"#\"></span>";
-echo "</div>";
-echo "</div>";
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
-echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Contatti",$pag)."</div>"; 
-echo "<span class=\"wsnw smlscrfnt\">".mex("Numero di telefono",$pag).": <input type=\"text\" name=\"telefono\" value=\"$telefono\"></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("Secondo telefono",$pag).": <input type=\"text\" name=\"telefono2\" value=\"$telefono2\"></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("Terzo telefono",$pag).": <input type=\"text\" name=\"telefono3\" value=\"$telefono3\"></span>";
-echo "<input type=\"hidden\" name=\"fax\" value=\"$fax\">";
-echo "<span class=\"wsnw smlscrfnt\">".mex("E-mail",$pag).": <input type=\"text\" name=\"email\" size=\"30\" value=\"$email\"></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("Seconda e-mail",$pag).": <input type=\"text\" name=\"email2\" size=\"30\" value=\"$email2\"></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("E-mail certificata (PEC) o codice destinatario",$pag).": <input type=\"text\" name=\"email_cert\" size=\"30\" value=\"$email_cert\"></span>";
-echo "</div><div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
-echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Dati fiscali",$pag)."</div>"; 
-echo "<span class=\"wsnw smlscrfnt\">".mex("Codice fiscale",$pag).": <input type=\"text\" name=\"cod_fiscale\" value=\"$cod_fiscale\"></span>";
-echo "<span class=\"wsnw smlscrfnt\">".mex("Partita iva",$pag).": <input type=\"text\" name=\"partita_iva\" value=\"$partita_iva\"></span></div>";
+    for ( $num = 1; $num <= 12; $num = $num + 1) {
+        if (strlen($num) == 1) $num = "0".$num;
+        $sel_mscaddoc .= "<option value=\"$num\">$num</option>";
+    }
+    $sel_mscaddoc .= "</select>";
+    if ($stile_data == "usa") echo "$sel_mscaddoc/$sel_gscaddoc";
+    else echo "$sel_gscaddoc/$sel_mscaddoc";
+    echo "/<select name=\"annoscaddoc\">";
+    $anno_corr = date("Y",(time() + (C_DIFF_ORE * 3600)));
+    for ($num1 = 0; $num1 < 12; $num1++) {
+        $num = $anno_corr - 12 + $num1;
+        echo "<option value=\"$num\">$num</option>";
+    }
+    echo "<option value=\"\" selected>--</option>";
+    for ($num1 = 0; $num1 < 16; $num1++) {
+        $num = $anno_corr + $num1;
+        echo "<option value=\"$num\">$num</option>";
+    }
+    echo "</select></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("nazione di rilascio",$pag).": ".mostra_lista_relutenti("nazionedoc",$nazionedoc,$id_utente,"nome_nazione","idnazioni","idnazione",$tablenazioni,$tablerelutenti,"","","","regione","regionedoc")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('nazionedoc','nazionalita','')\" value=\"#\"></span>";
+    echo "<span class=\"wsnw\">".mex("reg./prov.",$pag).": ".mostra_lista_relutenti("regionedoc",$regionedoc,$id_utente,"nome_regione","idregioni","idregione",$tableregioni,$tablerelutenti,"","","","citta","cittadoc","nazione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('regionedoc','regione','')\" value=\"#\"></span>";
+    echo "<span class=\"wsnw\">".mex("città",$pag).": ".mostra_lista_relutenti("cittadoc",$cittadoc,$id_utente,"nome_citta","idcitta","idcitta",$tablecitta,$tablerelutenti,"","","","","","regione")."<input type=\"button\" class=\"cpbutton\" onclick=\"cp_val('cittadoc','citta','')\" value=\"#\"></span>";
+    echo "</div>";
+    echo "</div>";
+    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Contatti",$pag)."</div>"; 
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Numero di telefono",$pag).": <input type=\"text\" name=\"telefono\" value=\"$telefono\"></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Secondo telefono",$pag).": <input type=\"text\" name=\"telefono2\" value=\"$telefono2\"></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Terzo telefono",$pag).": <input type=\"text\" name=\"telefono3\" value=\"$telefono3\"></span>";
+    echo "<input type=\"hidden\" name=\"fax\" value=\"$fax\">";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("E-mail",$pag).": <input type=\"text\" name=\"email\" size=\"30\" value=\"$email\"></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Seconda e-mail",$pag).": <input type=\"text\" name=\"email2\" size=\"30\" value=\"$email2\"></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("E-mail certificata (PEC) o codice destinatario",$pag).": <input type=\"text\" name=\"email_cert\" size=\"30\" value=\"$email_cert\"></span>";
+    echo "</div><div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Dati fiscali",$pag)."</div>"; 
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Codice fiscale",$pag).": <input type=\"text\" name=\"cod_fiscale\" value=\"$cod_fiscale\"></span>";
+    echo "<span class=\"wsnw smlscrfnt\">".mex("Partita iva",$pag).": <input type=\"text\" name=\"partita_iva\" value=\"$partita_iva\"></span></div>";
+}
 // Enhance rows: split first ':' into label/control spans for 1/3-2/3 layout
 echo <<<'JS'
 <script>

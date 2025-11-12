@@ -3,7 +3,7 @@
 switch ($messaggio) {
 case "Dati personali":                       $messaggio = "Datos personales"; break;
 case "Contatti":                             $messaggio = "Contactos"; break;
-case "Dati fiscali":                         $messaggio = "Datos fiscales"; break;
+case "Dati fiscali":                         $messaggio = "Datos de Facturación"; break;
 
 case "Clienti":  				$messaggio = "Clientes"; break;
 case "Le date sono sbagliate":  		$messaggio = "Las fechas son incorrectas"; break;
@@ -93,7 +93,7 @@ case "Il costo aggiuntivo":  			$messaggio = "El coste añadido"; break;
 case "è incompatibile con la tariffa selezionata":	$messaggio = "es incompatible con la tarifa seleccionada"; break;
 case "non può essere applicato":  		$messaggio = "no puede ser aplicado"; break;
 case "regione":  				$messaggio = "región"; break;
-case "Documento":  				$messaggio = "Documento"; break;
+case "Documento":  				$messaggio = "Documento de Identidad"; break;
 case "scadenza":  				$messaggio = "expiración"; break;
 case "Torna all'inserimento clienti":  		$messaggio = "Volver a la inserción de los clientes"; break;
 case "Annulla":  				$messaggio = "Cancelar"; break;
@@ -114,14 +114,14 @@ case "Residenza":  				$messaggio = "Residencia"; break;
 case "reg./prov.":  				$messaggio = "región"; break;
 case "nazione":  				$messaggio = "nación"; break;
 case "rilasciato da":  				$messaggio = "emitido por"; break;
-case "nazione di rilascio":  			$messaggio = "nación emisora"; break;
+case "nazione di rilascio":  			$messaggio = "País de Emisión"; break;
 case "parentela":  				$messaggio = "parentesco"; break;
-case "Codice fiscale":  			$messaggio = "N. Identificación Fiscal"; break;
-case "con i costi aggiuntivi selezionati":  	$messaggio = "con los costes añadidos seleccionados"; break;
+case "Codice fiscale":  			$messaggio = "NIF/CIF"; break;
+case "con i costi aggiuntivi selezcionados":  	$messaggio = "con los costes añadidos seleccionados"; break;
 case "I beni richiesti dal costo":  		$messaggio = "Los bienes necesarios para el coste"; break;
 case "non sono disponibili nell'inventario":  	$messaggio = "no están disponibles en el inventario"; break;
 case "Si deve inserire il numero delle persone per questa tariffa":	$messaggio = "Debe poner el número de personas para esta tarifa"; break;
-case "Partita iva":  				$messaggio = "Cert. Identificación Fiscal"; break;
+case "Partita iva":  				$messaggio = "Número de IVA"; break;
 case "lo sconto è sbagliato":  			$messaggio = "el descuento es incorrecto"; break;
 case "la caparra è sbagliata":  		$messaggio = "la fianza es incorrecta"; break;
 case "soprannome":  				$messaggio = "apodo"; break;
