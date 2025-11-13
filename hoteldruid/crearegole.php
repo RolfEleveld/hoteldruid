@@ -72,6 +72,29 @@ include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
 include("./includes/funzioni.php");
+
+// Initialize message arrays for success, error, and warning messages
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
+
+// Panel-specific message arrays
+$rule1_success_messages = array();
+$rule1_error_messages = array();
+$rule1_warning_messages = array();
+
+$rule2_success_messages = array();
+$rule2_error_messages = array();
+$rule2_warning_messages = array();
+
+$rule3_success_messages = array();
+$rule3_error_messages = array();
+$rule3_warning_messages = array();
+
+$rule4_success_messages = array();
+$rule4_error_messages = array();
+$rule4_warning_messages = array();
+
 $tableregole = $PHPR_TAB_PRE."regole".$anno;
 $tableperiodi = $PHPR_TAB_PRE."periodi".$anno;
 $tablenometariffe = $PHPR_TAB_PRE."ntariffe".$anno;
@@ -259,6 +282,10 @@ $titolo = "HotelDruid: ".mex("Crea Regole",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+// Include template system
+require_once("./includes/template.php");
+
+// Messages are now displayed at the top of each panel instead of globally
 
 $stile_data = stile_data();
 
@@ -289,9 +316,10 @@ $tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
 
 
 if (!empty($regola_1) and ($priv_mod_reg1 == "s" or $priv_mod_reg1 == "a")) {
+$active_panel = 'rule1';
 $regola_1_tar = "";
 if (empty($inizioperiodo) or empty($fineperiodo) or empty($appartamento)) {
-echo mex("Non sono stati inseriti tutti i dati necessari",$pag)."!<br>";
+$error_messages[] = mex("Non sono stati inseriti tutti i dati necessari",$pag)."!";
 } # fine if (empty($inizioperiodo) or empty($fineperiodo) or empty($appartamento))
 else {
 $idinizioperiodo = esegui_query("select idperiodi from $tableperiodi where datainizio = '".aggslashdb($inizioperiodo)."' ");
@@ -301,14 +329,14 @@ $idfineperiodo = esegui_query("select idperiodi from $tableperiodi where datafin
 if (numlin_query($idfineperiodo) == 0) $idfineperiodo = -1;
 else $idfineperiodo = risul_query($idfineperiodo,0,'idperiodi');
 if ($idfineperiodo < $idinizioperiodo) {
-echo mex("Le date sono sbagliate",$pag).".<br>";
+$error_messages[] = mex("Le date sono sbagliate",$pag)."";
 } # fine if ($idfineperiodo < $idinizioperiodo)
 else {
-if ($motivazione == " ") echo mex("Motivazione non valida",$pag).".<br>";
+if ($motivazione == " ") $error_messages[] = mex("Motivazione non valida",$pag)."";
 else {
 $appartamento = htmlspecialchars($appartamento,ENT_COMPAT);
 $app_esistente = esegui_query("select idappartamenti from $tableappartamenti where idappartamenti = '".aggslashdb($appartamento)."' ");
-if (!numlin_query($app_esistente) or $appartamenti_consentiti[$appartamento] != "SI") echo mex("Non sono stati inseriti tutti i dati necessari",$pag).".<br>";
+if (!numlin_query($app_esistente) or $appartamenti_consentiti[$appartamento] != "SI") $error_messages[] = mex("Non sono stati inseriti tutti i dati necessari",$pag).".";  
 else {
 if (!empty($mod_idregola1) and controlla_num_pos($mod_idregola1) == "SI") {
 $reg_esist = esegui_query("select * from $tableregole where idregole = '$mod_idregola1' ");
@@ -325,46 +353,21 @@ $vecchia_regola = esegui_query("select * from $tableregole where app_agenzia = '
 $num_vecchia_regola = numlin_query($vecchia_regola);
 if ($attiva_regole1_consentite != "n") $cancella_vecchie_regole = "";
 if ($num_vecchia_regola != 0 and empty($cancella_vecchie_regole)) {
-echo mex("Esiste già una regola di questo tipo nell'appartamento e nel periodo selezionato",'unit.php')." (".formatta_data($inizioperiodo,$stile_data)." ".mex("al",$pag)." ".formatta_data($fineperiodo,$stile_data).").<br><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div class=\"linhbox\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"regola_1\" value=\"1\">
-<input type=\"hidden\" name=\"mod_idregola1\" value=\"$mod_idregola1\">
-<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars(fixstr($origine))."\">
-<input type=\"hidden\" name=\"cancella_vecchie_regole\" value=\"1\">
-<input type=\"hidden\" name=\"chiudi_app\" value=\"".htmlspecialchars(fixstr($chiudi_app))."\">
-<input type=\"hidden\" name=\"appartamento\" value=\"$appartamento\">
-<input type=\"hidden\" name=\"inizioperiodo\" value=\"".htmlspecialchars($inizioperiodo)."\">
-<input type=\"hidden\" name=\"fineperiodo\" value=\"".htmlspecialchars($fineperiodo)."\">
-<input type=\"hidden\" name=\"motivazione\" value=\"".htmlspecialchars(fixstr($motivazione))."\">
-<em>".mex("Regole esistenti",$pag)."</em>:<br>";
-for ($num1 = 0 ; $num1 < $num_vecchia_regola ; $num1++) {
-$idregola_v = risul_query($vecchia_regola,$num1,'idregole');
-$iddatainizio_v = risul_query($vecchia_regola,$num1,'iddatainizio');
-$iddatafine_v = risul_query($vecchia_regola,$num1,'iddatafine');
-$motivazione_v = (string) risul_query($vecchia_regola,$num1,'motivazione');
-$motivazione2_v = (string) risul_query($vecchia_regola,$num1,'motivazione2');
-$datainizio_v = esegui_query("select datainizio from $tableperiodi where idperiodi = '$iddatainizio_v' ");
-$datainizio_v = formatta_data(risul_query($datainizio_v,0,'datainizio'),$stile_data);
-$datafine_v = esegui_query("select datafine from $tableperiodi where idperiodi = '$iddatafine_v' ");
-$datafine_v = formatta_data(risul_query($datafine_v,0,'datafine'),$stile_data);
-echo ($num1 + 1)."- ";
-if ($motivazione2_v == "x") echo mex("Chiudi",$pag);
-else echo mex("Chiedi prima di assegnare",$pag);
-echo " ".mex("l'appartamento",'unit.php')." $appartamento ".mex("nel periodo dal",$pag)." $datainizio_v ".mex("al",$pag)." $datafine_v";
-if (strcmp(trim($motivazione_v),"")) echo " (<em>$motivazione_v</em>)";
-if ($attiva_regole1_consentite == "n") {
-echo ".<select name=\"creg$idregola_v\">";
-if ($iddatainizio_v < $idinizioperiodo or $iddatafine_v > $idfineperiodo) echo "<option value=\"\" selected>".mex("Ridimensiona",$pag)."</option>";
-echo "<option value=\"1\">".mex("Cancella",$pag)."</option></select><input type=\"hidden\" name=\"nome_creg_passa$num1\" value=\"$idregola_v\">";
-} # fine if ($attiva_regole1_consentite == "n")
-echo "<br>";
-} # fine for $num1
-if ($attiva_regole1_consentite == "n") echo "<button class=\"cont\" type=\"submit\"><div>".mex("Cancella o ridimensiona queste regole",$pag)."</div></button>";
-echo "<input type=\"hidden\" name=\"num_creg_passa\" value=\"$num_vecchia_regola\">
-<br><br><br></div></form>";
+// Store confirmation data to display later in panel
+$show_rule1_confirmation = true;
+$rule1_confirmation_data = array(
+'vecchia_regola' => $vecchia_regola,
+'num_vecchia_regola' => $num_vecchia_regola,
+'appartamento' => $appartamento,
+'inizioperiodo' => $inizioperiodo,
+'fineperiodo' => $fineperiodo,
+'motivazione' => $motivazione,
+'mod_idregola1' => $mod_idregola1,
+'chiudi_app' => $chiudi_app,
+'idinizioperiodo' => $idinizioperiodo,
+'idfineperiodo' => $idfineperiodo
+);
+$warning_messages[] = mex("Esiste già una regola di questo tipo nell'appartamento e nel periodo selezionato",'unit.php')." (".formatta_data($inizioperiodo,$stile_data)." ".mex("al",$pag)." ".formatta_data($fineperiodo,$stile_data).")";
 } # fine if ($num_vecchia_regola != 0 and empty($cancella_vecchie_regole))
 else {
 $idregole = esegui_query("select max(idregole) from $tableregole");
@@ -446,14 +449,14 @@ liberasettimane($idinizioperiodo_vett,$idfineperiodo_vett,$limiti_var,$anno,$fat
 if ($fatto_libera != "SI") $risul_agg = 0;
 else $risul_agg = aggiorna_tableprenota($app_prenota_id,$app_orig_prenota_id,$tableprenota);
 if ($risul_agg) {
-echo mex("Il periodo chiuso è stato liberato dalle prenotazioni",$pag).".<br>";
+$success_messages[] = mex("Il periodo chiuso è stato liberato dalle prenotazioni",$pag)."";
 } # fine if ($risul_agg)
-else echo mex("<span class=\"colred\">Non è stato possibile</span> liberare dalle prenotazioni il periodo chiuso",$pag).".<br>";
+else $error_messages[] = mex("Non è stato possibile liberare dalle prenotazioni il periodo chiuso",$pag)."";
 $aggiorna_ic_disp = 1;
 } # fine if ($chiudi_app)
 unlock_tabelle($tabelle_lock);
 #unset($tabelle_lock);
-echo mex("La regola è stata inserita",$pag).".";
+$success_messages[] = mex("La regola è stata inserita",$pag)."";
 $tabelle_lock = array($tableversioni,$tabletransazioni);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 $ultimo_accesso = date("Y-m-d H:i:s",(time() + (C_DIFF_ORE * 3600)));
@@ -477,8 +480,9 @@ unlock_tabelle($tabelle_lock);
 
 
 if (!empty($regola_1_tar) and ($priv_mod_reg1 == "s" or $priv_mod_reg1 == "t")) {
+$active_panel = 'rule1';
 if (empty($inizioperiodo) or empty($fineperiodo) or empty($tipotariffa) or substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) == "NO" or ($attiva_tariffe_consentite != "n" and !isset($tariffe_consentite_vett[substr($tipotariffa,7)]))) {
-echo mex("Non sono stati inseriti tutti i dati necessari",$pag)."!<br>";
+$error_messages[] = mex("Non sono stati inseriti tutti i dati necessari",$pag)."!";
 } # fine if (empty($inizioperiodo) or empty($fineperiodo) or empty($tipotariffa) or...
 else {
 $idinizioperiodo = esegui_query("select idperiodi from $tableperiodi where datainizio = '".aggslashdb($inizioperiodo)."' ");
@@ -488,10 +492,10 @@ $idfineperiodo = esegui_query("select idperiodi from $tableperiodi where datafin
 if (numlin_query($idfineperiodo) == 0) $idfineperiodo = -1;
 else $idfineperiodo = risul_query($idfineperiodo,0,'idperiodi');
 if ($idfineperiodo < $idinizioperiodo) {
-echo mex("Le date sono sbagliate",$pag).".<br>";
+$error_messages[] = mex("Le date sono sbagliate",$pag)."";
 } # fine if ($idfineperiodo < $idinizioperiodo)
 else {
-if ($motivazione == " ") echo mex("Motivazione non valida",$pag).".<br>";
+if ($motivazione == " ") $error_messages[] = mex("Motivazione non valida",$pag)."";
 else {
 if (!empty($mod_idregola1) and controlla_num_pos($mod_idregola1) == "SI") {
 $reg_esist = esegui_query("select * from $tableregole where idregole = '$mod_idregola1' ");
@@ -507,40 +511,22 @@ else $cond_reg_mod = "";
 $vecchia_regola = esegui_query("select * from $tableregole where tariffa_chiusa = '$tipotariffa' and iddatainizio <= '$idfineperiodo' and iddatafine >= '$idinizioperiodo'$cond_reg_mod order by iddatainizio ");
 $num_vecchia_regola = numlin_query($vecchia_regola);
 if ($num_vecchia_regola != 0 and empty($cancella_vecchie_regole)) {
+// Store confirmation data to display later in panel
+$show_rule1b_confirmation = true;
 $tariffa_vedi = mex("tariffa","prenota.php").substr($tipotariffa,7);
-echo mex("Esiste già una regola di questo tipo nel periodo selezionato",$pag)." (".formatta_data($inizioperiodo,$stile_data)." ".mex("al",$pag)." ".formatta_data($fineperiodo,$stile_data).").<br><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div class=\"linhbox\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"regola_1_tar\" value=\"1\">
-<input type=\"hidden\" name=\"mod_idregola1\" value=\"$mod_idregola1\">
-<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars(fixstr($origine))."\">
-<input type=\"hidden\" name=\"cancella_vecchie_regole\" value=\"1\">
-<input type=\"hidden\" name=\"tipotariffa\" value=\"$tipotariffa\">
-<input type=\"hidden\" name=\"inizioperiodo\" value=\"".htmlspecialchars($inizioperiodo)."\">
-<input type=\"hidden\" name=\"fineperiodo\" value=\"".htmlspecialchars($fineperiodo)."\">
-<input type=\"hidden\" name=\"motivazione\" value=\"".htmlspecialchars(fixstr($motivazione))."\">
-<em>".mex("Regole esistenti",$pag)."</em>:<br>";
-for ($num1 = 0 ; $num1 < $num_vecchia_regola ; $num1++) {
-$idregola_v = risul_query($vecchia_regola,$num1,'idregole');
-$iddatainizio_v = risul_query($vecchia_regola,$num1,'iddatainizio');
-$iddatafine_v = risul_query($vecchia_regola,$num1,'iddatafine');
-$motivazione_v = risul_query($vecchia_regola,$num1,'motivazione');
-$datainizio_v = esegui_query("select datainizio from $tableperiodi where idperiodi = '$iddatainizio_v' ");
-$datainizio_v = formatta_data(risul_query($datainizio_v,0,'datainizio'),$stile_data);
-$datafine_v = esegui_query("select datafine from $tableperiodi where idperiodi = '$iddatafine_v' ");
-$datafine_v = formatta_data(risul_query($datafine_v,0,'datafine'),$stile_data);
-echo ($num1 + 1)."- ".mex("Chiudi",$pag)." $tariffa_vedi ".mex("nel periodo dal",$pag)." $datainizio_v ".mex("al",$pag)." $datafine_v";
-if (strcmp(trim($motivazione_v),"")) echo " (<em>$motivazione_v</em>)";
-echo ".<select name=\"creg$idregola_v\">";
-if ($iddatainizio_v < $idinizioperiodo or $iddatafine_v > $idfineperiodo) echo "<option value=\"\" selected>".mex("Ridimensiona",$pag)."</option>";
-echo "<option value=\"1\">".mex("Cancella",$pag)."</option>
-</select><input type=\"hidden\" name=\"nome_creg_passa$num1\" value=\"$idregola_v\"><br>";
-} # fine for $num1
-echo "<button class=\"cont\" type=\"submit\"><div>".mex("Cancella o ridimensiona queste regole",$pag)."</div></button>
-<input type=\"hidden\" name=\"num_creg_passa\" value=\"$num_vecchia_regola\">
-<br><br><br></div></form>";
+$rule1b_confirmation_data = array(
+'vecchia_regola' => $vecchia_regola,
+'num_vecchia_regola' => $num_vecchia_regola,
+'tipotariffa' => $tipotariffa,
+'tariffa_vedi' => $tariffa_vedi,
+'inizioperiodo' => $inizioperiodo,
+'fineperiodo' => $fineperiodo,
+'motivazione' => $motivazione,
+'mod_idregola1' => $mod_idregola1,
+'idinizioperiodo' => $idinizioperiodo,
+'idfineperiodo' => $idfineperiodo
+);
+$warning_messages[] = mex("Esiste già una regola di questo tipo nel periodo selezionato",$pag)." (".formatta_data($inizioperiodo,$stile_data)." ".mex("al",$pag)." ".formatta_data($fineperiodo,$stile_data).")";
 } # fine if ($num_vecchia_regola != 0 and empty($cancella_vecchie_regole))
 else {
 $idregole = esegui_query("select max(idregole) from $tableregole");
@@ -572,7 +558,7 @@ esegui_query("insert into $tableregole (idregole,tariffa_chiusa,iddatainizio,idd
 if (@get_magic_quotes_gpc()) $motivazione = stripslashes($motivazione);
 $motivazione = htmlspecialchars($motivazione,ENT_COMPAT);
 if ($motivazione) esegui_query("update $tableregole set motivazione = '".aggslashdb($motivazione)."' where idregole = '$idregole' ");
-echo mex("La regola è stata inserita",$pag).".";
+$success_messages[] = mex("La regola è stata inserita",$pag)."";
 $aggiorna_ic_tar = 1;
 unlock_tabelle($tabelle_lock);
 $tabelle_lock = array($tableversioni,$tabletransazioni);
@@ -597,6 +583,7 @@ unlock_tabelle($tabelle_lock);
 
 
 if (!empty($canc_regola_1) and $priv_mod_reg1 == "s" and $tutti_app_consentiti and $attiva_regole1_consentite == "n") {
+$active_panel = 'rule1';
 $tutte_tar_consentite = 1;
 if ($attiva_tariffe_consentite != "n") {
 $rigatariffe = esegui_query("select * from $tablenometariffe where idntariffe = 1 ");
@@ -611,28 +598,25 @@ break;
 if ($tutte_tar_consentite) {
 if (!empty($gia_stato)) {
 esegui_query("delete from $tableregole where (app_agenzia != '' and app_agenzia is not NULL) or (tariffa_chiusa != '' and tariffa_chiusa is not NULL) ");
-echo mex("Le regole sono state cancellate",$pag);
+$success_messages[] = mex("Le regole sono state cancellate",$pag)."";
 $aggiorna_ic_disp = 1;
 $aggiorna_ic_tar = 1;
 } # fine if (!empty($gia_stato))
 else {
-echo mex("Sei sicuro di voler cancellare tutte le regole del tipo 1",$pag)."?
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"canc_regola_1\" value=\"1\">
-<button class=\"crul\" type=\"submit\" name=\"gia_stato\" value=\"1\"><div>  ".mex("SI",$pag)."  </div></button></div></form><br>";
+// Store delete confirmation to display later in panel
+$show_delete_rule1_confirmation = true;
+$warning_messages[] = mex("Sei sicuro di voler cancellare tutte le regole del tipo 1",$pag)."?";
 } # fine else if (!empty($gia_stato))
 } # fine if ($tutte_tar_consentite)
 } # fine if (!empty($canc_regola_1) and $priv_mod_reg1 == "s" and $tutti_app_consentiti and $attiva_regole1_consentite == "n")
 
 
 if ((!empty($regola_2) or !empty($regola_2b)) and $priv_mod_reg2 == "s") {
+$active_panel = 'rule2';
 $inserire = "";
 if (substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) == "NO" or ($attiva_tariffe_consentite != "n" and !isset($tariffe_consentite_vett[substr($tipotariffa,7)]))) {
 $inserire = "NO";
-echo "<br><span class=\"colwarn\">".mex("Si deve scegliere la tariffa",$pag)."</span>.<br><br>";
+$error_messages[] = mex("Si deve scegliere la tariffa",$pag)."";
 $num_regole_esistente = 0;
 } # fine if (substr($tipotariffa,0,7) != "tariffa" or...
 else {
@@ -641,14 +625,14 @@ $num_regole_esistente = numlin_query($regola_esistente);
 /*
 if ($num_regole_esistente != 0) {
 $inserire = "NO";
-echo mex("La tariffa scelta ha già degli appartamenti associati, cancella la regola prima di inserirne una nuova",'unit.php').".<br>";
+$error_messages[] = mex("La tariffa scelta ha già degli appartamenti associati, cancella la regola prima di inserirne una nuova",'unit.php')."";
 } # fine if ($num_regole_esistente != 0)
 */
 } # fine else if (substr($tipotariffa,0,7) != "tariffa" or...
 $num_app_reali = 0;
 if (empty($lista_app)) {
 $inserire = "NO";
-echo "<br><span class=\"colwarn\">".mex("Si deve inserire almeno un appartamento da associare",'unit.php')."</span>.<br><br>";
+$error_messages[] = mex("Si deve inserire almeno un appartamento da associare",'unit.php')."";
 } # fine if (empty($lista_app))
 else {
 if ($num_regole_esistente) {
@@ -669,7 +653,7 @@ $app_trovato = array();
 for ($num1 = 0 ; $num1 < $num_app ; $num1 = $num1 + 1) {
 if (!isset($app_esistente[$vett_app[$num1]]) or $app_esistente[$vett_app[$num1]] != "SI") {
 $inserire = "NO";
-echo "<br>".mex("L'appartamento",'unit.php')." <b class=\"colwarn\">".htmlspecialchars($vett_app[$num1])."</b>".mex(" non esiste",$pag).".<br><br>";
+$error_messages[] = mex("L'appartamento",'unit.php')." ".htmlspecialchars($vett_app[$num1])." ".mex(" non esiste",$pag)."";
 } # fine if (!isset($app_esistente[$vett_app[$num1]]) or $app_esistente[$appartamento] != "SI")
 else {
 if (!empty($app_trovato[$vett_app[$num1]])) $lista_app = substr(str_replace(",".$vett_app[$num1].",",",",",$lista_app,"),1,-1).",".$vett_app[$num1];
@@ -697,12 +681,12 @@ if (substr($num_da_assegnare,0,1) == "v") $num_da_assegnare = substr($num_da_ass
 } # fine elseif ($num_regole_esistente)
 if ($num_da_assegnare and $num_da_assegnare > $num_app_reali and $inserire != "NO") {
 $inserire = "NO";
-echo "<br><span class=\"colwarn\">".mex("Numero di appartamenti",'unit.php')."</span> ".mex("da assegnare troppo alto, supera quello presente nella lista",$pag).".<br><br>";
+$error_messages[] = mex("Numero di appartamenti",'unit.php')." ".mex("da assegnare troppo alto, supera quello presente nella lista",$pag)."";
 } # fine if ($num_da_assegnare and $num_da_assegnare > $num_app_reali and...
 if (!empty($regola_2b)) {
 if (!$num_giorni or controlla_num_pos($num_giorni) == "NO") {
 $inserire = "NO";
-echo "<br><span class=\"colwarn\">".mex("Si deve inserire il numero di giorni",$pag)."</span>.<br><br>";
+$error_messages[] = mex("Si deve inserire il numero di giorni",$pag)."";
 } # fine if (!$num_giorni or controlla_num_pos($num_giorni) == "NO")
 if ($ini_fine != "ini" and $ini_fine != "fine") $inserire = "NO";
 if ($ini_fine == "ini") {
@@ -737,9 +721,9 @@ $app_mancanti_da_ecc = "";
 for ($num1 = 0 ; $num1 < $num_app ; $num1 = $num1 + 1) {
 if (str_replace(",".$vett_app[$num1].",","",",$lista_app_ecc,") == ",$lista_app_ecc,") $app_mancanti_da_ecc .= ", ".$vett_app[$num1];
 } # fine for $num1
-if ($app_mancanti_da_ecc) echo "<br><b class=\"colwarn\">".mex("Attenzione",$pag)."</b>: ".mex("ci sono appartamenti",'unit.php')." (<b>".substr($app_mancanti_da_ecc,2)."</b>) ".mex("della regola 2 mancanti nella eccezione alla regola",$pag).".<br>";
+if ($app_mancanti_da_ecc) $warning_messages[] = mex("Attenzione",$pag).": ".mex("ci sono appartamenti",'unit.php')." (".substr($app_mancanti_da_ecc,2).") ".mex("della regola 2 mancanti nella eccezione alla regola",$pag)."";
 } # fine if ($lista_app_norm and $lista_app_ecc)
-echo "<br>".mex("La regola di assegnazione",$pag)." 2 ".mex("è stata modificata",$pag).".<br><br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 2 ".mex("è stata modificata",$pag)."";
 } # fine if ($num_regole_esistente != 0)
 else {
 $idregole = esegui_query("select max(idregole) from $tableregole");
@@ -750,7 +734,7 @@ else {
 esegui_query("insert into $tableregole (idregole,tariffa_per_app,motivazione) values ('$idregole','".aggslashdb($tipotariffa)."','$lista_app')");
 if ($num_apti > 1) esegui_query("update $tableregole set motivazione3 = '$v_apti$num_apti' where tariffa_per_app = '".aggslashdb($tipotariffa)."'");
 } # fine else if (!empty($regola_2b))
-echo "<br>".mex("La regola di assegnazione",$pag)." 2 ".mex("è stata inserita",$pag).".<br><br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 2 ".mex("è stata inserita",$pag)."";
 } # fine else if ($num_regole_esistente != 0)
 $aggiorna_ic_disp = 1;
 } # fine if ($inserire != "NO")
@@ -758,10 +742,11 @@ $aggiorna_ic_disp = 1;
 
 
 if ((!empty($regola_3) or !empty($regola_3m)) and $priv_mod_reg2 == "s") {
+$active_panel = 'rule3';
 $inserire = "";
 if (substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) == "NO" or ($attiva_tariffe_consentite != "n" and !isset($tariffe_consentite_vett[substr($tipotariffa,7)]))) {
 $inserire = "NO";
-echo mex("Si deve scegliere la tariffa",$pag).".<br>";
+$error_messages[] = mex("Si deve scegliere la tariffa",$pag)."";
 } # fine if (substr($tipotariffa,0,7) != "tariffa" or...
 else {
 $regola_esistente = esegui_query("select * from $tableregole where tariffa_per_persone = '".aggslashdb($tipotariffa)."'");
@@ -769,12 +754,12 @@ $num_regole_esistente = numlin_query($regola_esistente);
 /*
 if ($num_regole_esistente != 0) {
 $inserire = "NO";
-echo mex("La tariffa scelta ha già un numero di persone associato, cancella la regola prima di inserirne una nuova",$pag).".<br>";
+$error_messages[] = mex("La tariffa scelta ha già un numero di persone associato, cancella la regola prima di inserirne una nuova",$pag)."";
 } # fine if ($num_regole_esistente != 0)
 */
 if (controlla_num_pos($num_persone) != "SI" or (!$num_persone and !$num_regole_esistente)) {
 $inserire = "NO";
-echo mex("Si deve inserire il numero di persone da associare",$pag).".<br>";
+$error_messages[] = mex("Si deve inserire il numero di persone da associare",$pag)."";
 } # fine if (controlla_num_pos($num_persone) != "SI" or...
 } # fine else if (substr($tipotariffa,0,7) != "tariffa" or...
 if ((!isset($inserire) or $inserire != "NO") and $num_regole_esistente) {
@@ -788,7 +773,7 @@ $pers_def = $num_persone;
 } # fine else if (!empty($regola_3m))
 if ($pers_def and $pers_min > $pers_def) {
 $inserire = "NO";
-echo mex("Il numero di persone minimo",$pag)." ($pers_min) ".mex("è maggiore del numero di persone predefinito",$pag)." ($pers_def).<br>";
+$error_messages[] = mex("Il numero di persone minimo",$pag)." ($pers_min) ".mex("è maggiore del numero di persone predefinito",$pag)." ($pers_def)";
 } # fine if ($pers_def and $pers_min > $pers_def)
 } # fine if ((!isset($inserire) or $inserire != "NO") and $num_regole_esistente)
 if ($inserire != "NO") {
@@ -808,7 +793,7 @@ $app_compatibile = 0;
 for ($num1 = 0 ; $num1 < $num_app2 ; $num1++) {
 if (empty($app_trovato[$vett_app2[$num1]])) {
 $app_trovato[$vett_app2[$num1]] = 1;
-$app = esegui_query("select * from $tableappartamenti where idappartamenti = '".aggslashdb($vett_app2[$num1])."' ");
+$app = esegui_query("select maxoccupanti from $tableappartamenti where idappartamenti = '".aggslashdb($vett_app2[$num1])."' ");
 if (numlin_query($app)) {
 $pers_max = risul_query($app,0,'maxoccupanti');
 if ($pers_max < $num_persone) $app_piccoli .= ", ".$vett_app2[$num1];
@@ -825,11 +810,11 @@ if ($num_regole_esistente != 0) {
 if (!$num_persone) {
 if (!$pers_def and !$pers_min) esegui_query("delete from $tableregole where tariffa_per_persone = '".aggslashdb($tipotariffa)."'");
 else esegui_query("update $tableregole set $campo = NULL where tariffa_per_persone = '".aggslashdb($tipotariffa)."'");
-echo "<br>".mex("La regola di assegnazione",$pag)." 3 ".mex("è stata cancellata",$pag).".<br><br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 3 ".mex("è stata cancellata",$pag)."";
 } # fine if (!$num_persone)
 else {
 esegui_query("update $tableregole set $campo = '".aggslashdb($num_persone)."' where tariffa_per_persone = '".aggslashdb($tipotariffa)."'");
-echo "<br>".mex("La regola di assegnazione",$pag)." 3 ".mex("è stata modificata",$pag).".<br><br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 3 ".mex("è stata modificata",$pag)."";
 } # fine else if (!$num_persone)
 } # fine if ($num_regole_esistente != 0)
 else {
@@ -837,7 +822,7 @@ $idregole = esegui_query("select max(idregole) from $tableregole");
 $idregole = risul_query($idregole,0,0);
 $idregole = $idregole + 1;
 esegui_query("insert into $tableregole (idregole,tariffa_per_persone,$campo) values ('$idregole','".aggslashdb($tipotariffa)."', '".aggslashdb($num_persone)."')");
-echo "<br>".mex("La regola di assegnazione",$pag)." 3 ".mex("è stata inserita",$pag).".<br><br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 3 ".mex("è stata inserita",$pag)."";
 } # fine else if ($num_regole_esistente != 0)
 $aggiorna_ic_tar = 1;
 } # fine if ($inserire != "NO")
@@ -845,10 +830,11 @@ $aggiorna_ic_tar = 1;
 
 
 if (!empty($regola_4) and $id_utente == 1) {
+$active_panel = 'rule4';
 $inserire = "";
 if (substr($tipotariffa,0,7) != "tariffa" or controlla_num_pos(substr($tipotariffa,7)) == "NO") {
 $inserire = "NO";
-echo mex("Si deve scegliere la tariffa",$pag).".<br>";
+$error_messages[] = mex("Si deve scegliere la tariffa",$pag)."";
 } # fine if (substr($tipotariffa,0,7) != "tariffa" or...
 else {
 $regola_esistente = esegui_query("select * from $tableregole where tariffa_per_utente = '".aggslashdb($tipotariffa)."'");
@@ -856,57 +842,59 @@ $num_regole_esistente = numlin_query($regola_esistente);
 /*
 if ($num_regole_esistente != 0) {
 $inserire = "NO";
-echo mex("La tariffa scelta ha già un utente associato, cancella la regola prima di inserirne una nuova",$pag).".<br>";
+$error_messages[] = mex("La tariffa scelta ha già un utente associato, cancella la regola prima di inserirne una nuova",$pag)."";
 } # fine if ($num_regole_esistente != 0)
 */
 } # fine else if (substr($tipotariffa,0,7) != "tariffa" or...
 if (!$id_utente_inserimento) {
 $inserire = "NO";
-echo mex("Si deve inserire l'utente da associare",$pag).".<br>";
+$error_messages[] = mex("Si deve inserire l'utente da associare",$pag)."";
 } # fine if (!$id_utente_inserimento)
 else {
 $id_utente_inserimento = aggslashdb($id_utente_inserimento);
 $utente_tariffa = esegui_query("select nome_utente from $tableutenti where idutenti = '$id_utente_inserimento'");
 if (numlin_query($utente_tariffa) != 1) {
 $inserire = "NO";
-echo mex("L'utente ",$pag).$id_utente_inserimento.mex(" non esiste",$pag).".<br>";
+$error_messages[] = mex("L'utente ",$pag).$id_utente_inserimento.mex(" non esiste",$pag)."";
 } # fine if ($numlin_query($utente_tariffa) != 1)
 } # fine else if (!$id_utente_inserimento)
 if ($inserire != "NO") {
 if ($num_regole_esistente != 0) {
 esegui_query("update $tableregole set iddatainizio = '$id_utente_inserimento' where tariffa_per_utente = '".aggslashdb($tipotariffa)."'");
-echo mex("La regola di assegnazione",$pag)." 4 ".mex("è stata modificata",$pag).".<br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 4 ".mex("è stata modificata",$pag)."";
 } # fine if ($num_regole_esistente != 0)
 else {
 $idregole = esegui_query("select max(idregole) from $tableregole");
 $idregole = risul_query($idregole,0,0);
 $idregole = $idregole + 1;
 esegui_query("insert into $tableregole (idregole,tariffa_per_utente,iddatainizio) values ('$idregole','".aggslashdb($tipotariffa)."', '$id_utente_inserimento')");
-echo mex("La regola di assegnazione",$pag)." 4 ".mex("è stata inserita",$pag).".<br>";
+$success_messages[] = mex("La regola di assegnazione",$pag)." 4 ".mex("è stata inserita",$pag)."";
 } # fine else if ($num_regole_esistente != 0)
 } # fine if ($inserire != "NO")
 } # fine if (!empty($regola_4) and $id_utente == 1)
 
 
 if ($tabelle_lock) unlock_tabelle($tabelle_lock);
-if (!empty($origine)) $azione = controlla_pag_origine($origine);
-else $azione = "crearegole.php";
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$azione\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>";
 
-if ($aggiorna_ic_disp or $aggiorna_ic_tar) {
-$lock = 1;
-$aggiorna_disp = $aggiorna_ic_disp;
-$aggiorna_tar = $aggiorna_ic_tar;
-if (@function_exists('pcntl_fork')) include("./includes/interconnect/aggiorna_ic_fork.php");
-else include("./includes/interconnect/aggiorna_ic.php");
-} # fine if ($aggiorna_ic_disp or $aggiorna_ic_tar)
+// Check if we need to show confirmations
+$show_confirmations = (!empty($show_rule1_confirmation) || !empty($show_rule1b_confirmation) || !empty($show_delete_rule1_confirmation));
+
+// Run interconnect updates if needed
+if (!$show_confirmations && ($aggiorna_ic_disp or $aggiorna_ic_tar)) {
+    $lock = 1;
+    $aggiorna_disp = $aggiorna_ic_disp;
+    $aggiorna_tar = $aggiorna_ic_tar;
+    if (@function_exists('pcntl_fork')) include("./includes/interconnect/aggiorna_ic_fork.php");
+    else include("./includes/interconnect/aggiorna_ic.php");
+}
+
+// After processing, always show the main form (not intermediate "go back" page)
+$show_main_form = true;
 
 } # fine if (!empty($inserisci))
 
-else {
+// Show the main form (whether after processing or initial load)
+if (empty($inserisci) or !empty($show_main_form)) {
 
 
 
@@ -996,55 +984,8 @@ unset($motivazione2);
 } # fine else if (numlin_query($transaz_esist_1a))
 } # fine if (!$tipo_mod_reg1)
 
-if (($priv_mod_reg1 == "s" or $priv_mod_reg1 == "a") and $tipo_mod_reg1 != "t") {
-echo "<div style=\"text-align: center;\">".mex("Regola di assegnazione",$pag)." <b>1</b> (".mex("chiusure",$pag).").</div><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">";
-if ($tipo_mod_reg1) echo "<input type=\"hidden\" name=\"mod_idregola1\" value=\"$mod_idregola1\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-if (isset($motivazione2) and $motivazione2 != "x") { $sel_x = ""; $sel = " selected"; }
-else { $sel_x = " selected"; $sel = ""; }
-echo "<select name=\"chiudi_app\">
-<option value=\"1\"$sel_x>".mex("Chiudi",$pag)."</option>";
-if ($attiva_regole1_consentite == "n") echo "<option value=\"\"$sel>".mex("Chiedi prima di assegnare",$pag)."</option>";
-echo "</select> ".mex("l'appartamento",'unit.php')." <select name=\"appartamento\">";
-if (!isset($app_agenzia) or !strcmp((string) $app_agenzia,"")) $sel = " selected";
-else $sel = "";
-echo "<option value=\"\"$sel>--</option>";
-if ($tutti_app_consentiti and !$tipo_mod_reg1) include(C_DATI_PATH."/selectappartamenti.php");
-else {
-for ($num1 = 0 ; $num1 < $num_appartamenti ; $num1++) {
-$idapp = risul_query($appartamenti,$num1,'idappartamenti');
-if (isset($app_agenzia) and $idapp == $app_agenzia) $sel = " selected";
-else $sel = "";
-if ($tutti_app_consentiti or $appartamenti_consentiti[$idapp] == "SI") echo "<option value=\"$idapp\"$sel>$idapp</option>";
-} # fine for $num1
-} # fine else if ($tutti_app_consentiti and !$tipo_mod_reg1)
-echo "</select> ".mex("nel periodo dal",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","inizioperiodo",$inizio_select,"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","fineperiodo",$fine_select,"","",$id_utente,$tema);
-echo "<br>".mex("motivazione",$pag).":
- <input type=\"text\" name=\"motivazione\" value=\"$motivazione\" size=\"30\" maxlength=\"30\">
- (".mex("opzionale",$pag).")<br><div style=\"text-align: center;\">
-<button class=\"rlpe\" type=\"submit\" name=\"regola_1\" value=\"1\"><div>";
-if ($tipo_mod_reg1) echo mex("Modifica la regola",$pag);
-else echo mex("Inserisci la regola",$pag);
-echo " 1</div></button></div></div></form>";
-} # fine if (($priv_mod_reg1 == "s" or $priv_mod_reg1 == "a") and $tipo_mod_reg1 != "t")
-if ($priv_mod_reg1 == "s" and !$tipo_mod_reg1) echo "<hr style=\"width: 50%; margin-left: 2.5%;\">";
-
-if (($priv_mod_reg1 == "s" or $priv_mod_reg1 == "t") and $tipo_mod_reg1 != "a") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div class=\"linhbox\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"regola_1_tar\" value=\"1\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-if ($tipo_mod_reg1) echo "<input type=\"hidden\" name=\"mod_idregola1\" value=\"$mod_idregola1\">";
-else {
+// Load and restore transaction data for tariff closures before template display
+if (($priv_mod_reg1 == "s" or $priv_mod_reg1 == "t") and $tipo_mod_reg1 != "a" and !$tipo_mod_reg1) {
 if (numlin_query($transaz_esist_1t)) {
 $inizio_select = risul_query($transaz_esist_1t,0,'dati_transazione1');
 $fine_select = risul_query($transaz_esist_1t,0,'dati_transazione2');
@@ -1057,393 +998,89 @@ $fine_select = $fine_select_orig;
 $motivazione = $motivazione_orig;
 } # fine else if (numlin_query($transaz_esist_1a))
 } # fine else if (!$tipo_mod_reg1)
-echo mex("Chiudi",$pag)." <select name=\"tipotariffa\" id=\"t1\">";
-if (empty($tariffa_chiusa)) $sel = " selected";
-else $sel = "";
-echo "<option value=\"\"$sel>----</option>";
+
+// Initialize $tutte_tar_consentite before template (needed for delete button visibility)
 $tutte_tar_consentite = 1;
 for ($numtariffa = 1 ; $numtariffa <= $numero_tariffe ; $numtariffa = $numtariffa + 1) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa])) {
-$tariffa = "tariffa".$numtariffa;
-$tariffa_vedi = mex("tariffa","prenota.php").$numtariffa;
-$nometariffa = risul_query($rigatariffe,0,$tariffa);
-if ($nometariffa != "") $nometariffa_vedi = " ($nometariffa)";
-else $nometariffa_vedi = "";
-if (isset($tariffa_chiusa) and $tariffa == $tariffa_chiusa) $sel = " selected";
-else $sel = "";
-echo "<option value=\"$tariffa\"$sel>$tariffa_vedi$nometariffa_vedi</option>";
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa]))
-else $tutte_tar_consentite = 0;
-} # fine for $numtariffa
-echo "</select> ".mex("nel periodo dal",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","inizioperiodo",$inizio_select,"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.$id_utente.php","fineperiodo",$fine_select,"","",$id_utente,$tema);
-echo "<br>".mex("motivazione",$pag).":
- <input type=\"text\" name=\"motivazione\" value=\"$motivazione\" size=\"30\" maxlength=\"30\">
- (".mex("opzionale",$pag).")
- <button class=\"rlpe\" type=\"submit\"><div>";
-if ($tipo_mod_reg1) echo mex("Modifica la regola",$pag);
-else echo mex("Inserisci la regola",$pag);
-echo " 1 ".mex("per le tariffe",$pag)."</div></button>
-</div></form>";
-} # fine if (($priv_mod_reg1 == "s" or $priv_mod_reg1 == "t") and $tipo_mod_reg1 != "a")
+if (!($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa]))) $tutte_tar_consentite = 0;
+}
 
-if (!empty($tutti_app_consentiti) and $attiva_regole1_consentite == "n" and !empty($tutte_tar_consentite) and $priv_mod_reg1 == "s" and !$mostra_solo_regola) {
-echo "<hr style=\"width: 50%; margin-left: 2.5%;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<button class=\"crul\" type=\"submit\" name=\"canc_regola_1\" value=\"1\"><div>".mex("Cancella tutte le regole di questo tipo",$pag)."</div></button>
-</div></form>";
-} # fine if (!empty($tutti_app_consentiti) and $attiva_regole1_consentite == "n" and...
-
-echo "<hr style=\"width: 95%\">";
+// Display Rule 1 Panel: Closures (Apartments and Tariffs)
+HotelDruidTemplate::getInstance()->display('crearegole/panel_rule1', get_defined_vars());
 } # fine if ((!$mostra_solo_regola or $mostra_solo_regola == 1) and $priv_mod_reg1 != "n")
 
 
 if ((!$mostra_solo_regola or $mostra_solo_regola == 2) and $priv_mod_reg2 == "s") {
-echo "<a name=\"regola2\"></a>
-<script type=\"text/javascript\">
-<!--
-var nreg = '';
-function nasc_app (nreg) {
-var tab_app = document.getElementById('tab_app'+nreg);
-tab_app.style.visibility = 'hidden';
-tab_app.innerHTML = '';
-} // fine function nasc_app
+echo "<a name=\"regola2\"></a>";
 
-function aggiorna_vic_reg2 () {
-var sel_t2na = document.getElementById(\"t2na\");
-var num_sel = sel_t2na.selectedIndex;
-var num_app = sel_t2na.options[num_sel].value;
-var txt_vic = document.getElementById(\"vcn_r2\");
-if (num_app > 1) txt_vic.style.display = 'inline';
-else txt_vic.style.display = 'none';
+// Prepare data for Rule 2 Panel: Apartment Types Assignment
+$lista_maxocc = "";
+$lista_maxocc_arr = array();
+for ($num1 = 0 ; $num1 < $num_appartamenti ; $num1++) {
+$app = risul_query($appartamenti,$num1,'idappartamenti');
+if ($appartamenti_consentiti[$app] == "SI") {
+$maxocc = @risul_query($appartamenti,$num1,'maxoccupanti');
+if ($maxocc !== false && $maxocc !== null) {
+if (!isset($lista_maxocc_arr[$maxocc])) {
+$lista_maxocc_arr[$maxocc] = 1;
+if ($lista_maxocc) $lista_maxocc .= ",";
+$lista_maxocc .= $maxocc;
+}
+}
+}
 }
 
-function aggiorna_val_reg2 () {
-var sel_tar = document.getElementById(\"t2\");
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].value;
-var txt_box = document.getElementById(\"v2\");
-var sel_t2na = document.getElementById(\"t2na\");
-var num_opt = sel_t2na.options.length;
-if (tariffa == '') {
-txt_box.disabled = true;
-sel_t2na.selectedIndex = 0;
-}
-else txt_box.disabled = false;
-txt_box.value = \"\";
-";
 $regole2 = esegui_query("select * from $tableregole where tariffa_per_app != ''");
 $num_regole2 = numlin_query($regole2);
+$lista_tar_reg2 = "";
+$lista_tar_reg2n = "";
+$lista_tar_reg2v = "";
+$lista_tar_reg2b = "";
+$lista_tar_reg2b_gg = "";
+$lista_tar_reg2b_if = "";
 for ($num1 = 0 ; $num1 < $num_regole2 ; $num1++) {
 $tariffa = risul_query($regole2,$num1,'tariffa_per_app');
 if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[substr($tariffa,7)])) {
 $lista_app = risul_query($regole2,$num1,'motivazione');
+if ($lista_app) $lista_tar_reg2 .= "if (tariffa == \"$tariffa\") ind_val = \"$lista_app\";
+";
 $num_apti = (string) risul_query($regole2,$num1,'motivazione3');
-$v_apti = "true";
-if (substr($num_apti,0,1) == "v") $num_apti = substr($num_apti,1);
-elseif ($num_apti) $v_apti = "false";
-if (!$num_apti) $num_apti = 1;
-echo "if (tariffa == \"$tariffa\") {
-txt_box.value = \"$lista_app\";
-var n_a = '$num_apti';
-document.getElementById(\"v2na\").checked = $v_apti;
-}
-for (n1 = 0 ; n1 < num_opt ; n1++) {
-if (sel_t2na.options[n1].value == n_a) sel_t2na.selectedIndex = n1;
-}
+if ($num_apti) {
+if (substr($num_apti,0,1) == "v") {
+$num_apti = substr($num_apti,1);
+$lista_tar_reg2v .= "if (tariffa == \"$tariffa\") apti_var_v.checked = true;
 ";
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[substr($tariffa,7)]))
-} # fine for $num1
-echo "
-aggiorna_vic_reg2();
-nasc_app ('')
-} // fine function aggiorna_val_reg2
-
-function aggiorna_val_reg2b () {
-var sel_tar = document.getElementById(\"t2b\");
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].value;
-var txt_box = document.getElementById(\"v2b\");
-if (tariffa == '') txt_box.disabled = true;
-else txt_box.disabled = false;
-txt_box.value = \"\";
-";
-$regole2 = esegui_query("select * from $tableregole where tariffa_per_app != ''");
-$num_regole2 = numlin_query($regole2);
-for ($num1 = 0 ; $num1 < $num_regole2 ; $num1++) {
-$tariffa = risul_query($regole2,$num1,'tariffa_per_app');
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[substr($tariffa,7)])) {
-$num_giorni_ini = risul_query($regole2,$num1,'iddatainizio');
-$num_giorni_fine = risul_query($regole2,$num1,'iddatafine');
-if ($num_giorni_ini) {
-$num_giorni = $num_giorni_ini;
-$selind = 0;
-} # fine if ($num_giorni_ini)
-else {
-$num_giorni = $num_giorni_fine;
-$selind = 1;
-} # fine else if ($num_giorni_ini)
-if (!$num_giorni) $num_giorni = 0;
-$lista_app = risul_query($regole2,$num1,'motivazione2');
-echo "if (tariffa == \"$tariffa\") {
-txt_box.value = '$lista_app';
-document.getElementById(\"ng2b\").value = '$num_giorni';
-document.getElementById(\"if2b\").selectedIndex = $selind;
 }
+$lista_tar_reg2n .= "if (tariffa == \"$tariffa\") apti_var.value = \"$num_apti\";
 ";
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[substr($tariffa,7)]))
-} # fine for $num1
-echo "
-nasc_app ('b')
-} // fine function aggiorna_val_reg2b
-
-function agg_da_txt_a_tab (bold,nreg) {
-var app_check = '';
-var testo = document.getElementById(\"v2\"+nreg).value;
-var app_testo = testo.split(',');
-var num_app_testo = app_testo.length;
-var id_app_sel = new Array();
-for (n1 = 0 ; n1 < num_app_testo ; n1++) id_app_sel[app_testo[n1]] = 's';
-for (n1 = 0 ; n1 < num_appart ; n1++) {
-app_check = document.getElementById('app'+nreg+n1);
-if (id_app_sel[appart[n1]] == 's') {
-app_check.checked = true;
-if (bold == 'SI') document.getElementById('tda'+n1).style.fontWeight = 'bold';
 }
-else app_check.checked = false;
+$lista_app_b = risul_query($regole2,$num1,'motivazione2');
+if ($lista_app_b) $lista_tar_reg2b .= "if (tariffa == \"$tariffa\") ind_val = \"$lista_app_b\";
+";
+$num_giorni_b_i = risul_query($regole2,$num1,'iddatainizio');
+$num_giorni_b_f = risul_query($regole2,$num1,'iddatafine');
+if ($num_giorni_b_i) {
+$lista_tar_reg2b_gg .= "if (tariffa == \"$tariffa\") giorni_var.value = \"$num_giorni_b_i\";
+";
+$lista_tar_reg2b_if .= "if (tariffa == \"$tariffa\") ini_fine_i.checked = true;
+";
 }
-} // fine function agg_da_txt_a_tab
-
-function agg_da_tab_a_txt (nreg) {
-var app_check = '';
-var testo = '';
-for (n1 = 0 ; n1 < num_appart ; n1++) {
-app_check = document.getElementById('app'+nreg+n1);
-if (app_check.checked == true) testo += ','+appart[n1];
-}
-var txt_box = document.getElementById(\"v2\"+nreg);
-txt_box.value = testo.substring(1);
-document.getElementById(\"maxocc\"+nreg).selectedIndex = 0;
-} // fine function agg_da_tab_a_txt
-
-function sel_app_maxocc (nreg) {
-var sel_maxocc = document.getElementById(\"maxocc\"+nreg);
-var maxocc_val = sel_maxocc.options[sel_maxocc.selectedIndex].value;
-if (maxocc_val) {
-var txt_box = document.getElementById(\"v2\"+nreg);
-txt_box.value = lapp_maxocc[maxocc_val];
-agg_da_txt_a_tab('',nreg);
-} // fine if (maxocc_val)
-} // fine function sel_app_maxocc
-
-function mos_app (nreg) {
-var tab_app = document.getElementById('tab_app'+nreg);
-if (tab_app.style.visibility == 'visible') {
-tab_app.style.visibility = 'hidden';
-tab_app.innerHTML = '';
-}
-else {
-var txt_box = document.getElementById(\"v2\"+nreg);
-if (txt_box.disabled == false) {
-var iLeft = 0;
-var elemento = document.getElementById('v2'+nreg);
-while(elemento.tagName != 'BODY') {
-iLeft += elemento.offsetLeft;
-elemento = elemento.offsetParent;
-}
-tab_app.style.visibility = 'visible';
-tab_app.innerHTML = '<table border=1 cellspacing=0 cellpadding=2 style=\"margin-left: '+(iLeft - 10)+'px; background-color: $t1color; text-align: center;\">\
+if ($num_giorni_b_f) {
+$lista_tar_reg2b_gg .= "if (tariffa == \"$tariffa\") giorni_var.value = \"$num_giorni_b_f\";
 ";
-$appartamenti = esegui_query("select * from $tableappartamenti order by idappartamenti");
-$num_appartamenti = numlin_query($appartamenti);
-$num_col = 4;
-$n_col = 1;
-$array_app = "";
-$lista_maxocc = array();
-for ($num1 = 0 ; $num1 < $num_appartamenti ; $num1++) {
-$idapp = risul_query($appartamenti,$num1,'idappartamenti');
-if ($appartamenti_consentiti[$idapp] == "SI") {
-$lung = strlen($idapp);
-if ($lung > 6) $num_col = 3;
-if ($lung > 14) {
-$num_col = 2;
-break;
-} # fine if ($lung > 14)
-} # fine if ($appartamenti_consentiti[$idapp] == "SI")
-} # fine for $num1
-$num_app_consentiti = 0;
-for ($num1 = 0 ; $num1 < $num_appartamenti ; $num1++) {
-$idapp = risul_query($appartamenti,$num1,'idappartamenti');
-if ($appartamenti_consentiti[$idapp] == "SI") {
-$maxocc = risul_query($appartamenti,$num1,'maxoccupanti');
-if ($maxocc) {
-if (!isset($lista_maxocc[$maxocc])) $lista_maxocc[$maxocc] = "";
-$lista_maxocc[$maxocc] .= $idapp.",";
-} # fine if ($maxocc)
-$array_app .= "\"$idapp\",";
-if ($n_col == 1) echo "<tr>";
-echo "<td id=\"tda$num_app_consentiti\"><label><input type=\"checkbox\" id=\"app'+nreg+'$num_app_consentiti\" onclick=\"agg_da_tab_a_txt(\\''+nreg+'\\')\">$idapp<\/label><\/td>";
-if ($n_col == $num_col) {
-echo "<\/tr>";
-$n_col = 1;
-} # fine if ($n_col == $num_col)
-else $n_col++;
-echo "\
+$lista_tar_reg2b_if .= "if (tariffa == \"$tariffa\") ini_fine_f.checked = true;
 ";
-$num_app_consentiti++;
-} # fine if ($appartamenti_consentiti[$idapp] == "SI")
-} # fine for $num1
-if ($n_col != 1) {
-for ($num1 = $n_col ; $num1 <= $num_col ; $num1++) echo "<td>&nbsp;<\/td>";
-echo "<\/tr>";
-} # fine if ($n_col != 1)
-$array_app = substr($array_app,0,-1);
-$array_maxocc = "";
-if (@is_array($lista_maxocc)) {
-echo "<tr><td colspan=\"$num_col\">\
-<small>".mex("Seleziona tutti gli appartamenti<br> da ",'unit.php')."\
-<select id=\"maxocc'+nreg+'\" onchange=\"sel_app_maxocc(\\''+nreg+'\\')\">\
-<option value=\"\" selected>-<\/option>\
-";
-ksort($lista_maxocc);
-reset($lista_maxocc);
-$ultime_persone_casa = "";
-foreach ($lista_maxocc as $key => $val) {
-$persone_casa = $key;
-if ($persone_casa != $ultime_persone_casa) {
-$array_maxocc .= "lapp_maxocc[$persone_casa] = \"".substr($val,0,-1)."\";
-";
-$ultime_persone_casa = $persone_casa;
-echo "<option value=\"$persone_casa\">$persone_casa<\/option>\
-";
-} # fine if ($persone_casa != $ultimepersone_casa)
-} # fine foreach ($lista_maxocc as $key => $val)
-
-echo "<\/select>\
-".mex(" persone",'unit.php')."<\/small>\
-<\/td><\/tr>";
-} # fine if (@is_array($lista_maxocc))
-echo "<\/table><br>'
-agg_da_txt_a_tab('SI',nreg);
 }
 }
-} // fine function mos_app
+}
 
-var appart = new Array($array_app);
-var num_appart = $num_app_consentiti;
-var lapp_maxocc = new Array();
-$array_maxocc
--->
-</script>
-
-<div id=\"hreg2\" style=\"text-align: center;\">".mex("Regola di assegnazione",$pag)." <b>2</b> (".mex("tipologie di appartamenti",'unit.php').").</div><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"regola_2\" value=\"SI\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-echo "".mex("Quando si sceglie la tariffa",$pag)."
-<select name=\"tipotariffa\" id=\"t2\" onchange=\"aggiorna_val_reg2()\">
-<option value=\"\" selected>----</option>";
-for ($numtariffa = 1 ; $numtariffa <= $numero_tariffe ; $numtariffa = $numtariffa + 1) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa])) {
-$tariffa = "tariffa".$numtariffa;
-$tariffa_vedi = mex("tariffa","prenota.php").$numtariffa;
-$nometariffa = risul_query($rigatariffe,0,$tariffa);
-if ($nometariffa != "") $nometariffa_vedi = " ($nometariffa)";
-else $nometariffa_vedi = "";
-echo "
-<option value=\"$tariffa\">$tariffa_vedi$nometariffa_vedi</option>";
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa]))
-} # fine for $numtariffa
-echo "</select>
- ".mex("assegna automaticamente",$pag)." <select name=\"num_apti\" id=\"t2na\" onchange=\"aggiorna_vic_reg2()\">";
-for ($num1 = 1 ; $num1 <= $num_app_consentiti ; $num1++) {
-if ($num1 == 1) echo "<option value=\"1\" selected>".mex("un appartamento",'unit.php')."</option>";
-else echo "<option value=\"$num1\">$num1 ".mex("appartamenti",'unit.php')."</option>";
-} # fine for $num1
-echo "</select><span id=\"vcn_r2\"> (<label><input type=\"checkbox\" name=\"v_apti\" id=\"v2na\" value=\"v\" checked>".mex("vicini",'unit.php')."</label>)</span> ".mex("tra",$pag)."
- <input type=\"text\" id=\"v2\" name=\"lista_app\" size=\"15\" onclick=\"nasc_app('')\"><input class=\"dbutton\" id=\"mapp\" onclick=\"mos_app('')\" value=\"..\" type=\"button\">
- (".mex("lista di appartamenti separati da virgole",'unit.php').")
- ".mex("se non si inserisce nessun altro metodo di assegnazione",$pag).".<br>";
-echo "<script type=\"text/javascript\">
-<!--
-var txt_box = document.getElementById(\"v2\");
-txt_box.disabled = true;
-document.write('<div id=\"tab_app\" style=\"visibility: hidden;\"><\/div>');
-document.getElementById(\"vcn_r2\").style.display = 'none';
--->
-</script>
-<div style=\"text-align: center;\">
-<button class=\"irul\" type=\"submit\"><div>".mex("Inserisci o modifica la regola",$pag)." 2</div></button>
-</div></div></form>";
-
-if (!empty($tipotariffa_regola2) and preg_replace("/tariffa[0-9]+/","",$tipotariffa_regola2) == "") {
-echo "<script type=\"text/javascript\">
-<!--
-var sel_tr2 = document.getElementById(\"t2\");
-sel_tr2.value = '$tipotariffa_regola2';
-aggiorna_val_reg2();
-mos_app('');
--->
-</script>
-";
-} # fine if (!empty($tipotariffa_regola2) and preg_replace("/tariffa[0-9]+/","",$tipotariffa_regola2) == "")
-
-echo "<br><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div class=\"linhbox\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-<input type=\"hidden\" name=\"regola_2b\" value=\"SI\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-echo "".mex("Eccezioni alla regola",$pag)." 2:<br>
-".mex("Quando si sceglie la tariffa",$pag)."
-<select name=\"tipotariffa\" id=\"t2b\" onchange=\"aggiorna_val_reg2b()\">
-<option value=\"\" selected>----</option>
-";
-for ($numtariffa = 1 ; $numtariffa <= $numero_tariffe ; $numtariffa++) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa])) {
-$tariffa = "tariffa".$numtariffa;
-$tariffa_vedi = mex("tariffa","prenota.php").$numtariffa;
-$nometariffa = risul_query($rigatariffe,0,$tariffa);
-if ($nometariffa != "") $nometariffa_vedi = " ($nometariffa)";
-else $nometariffa_vedi = "";
-echo "
-<option value=\"$tariffa\">$tariffa_vedi$nometariffa_vedi</option>";
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa]))
-} # fine for $numtariffa
-echo "</select>
- ".mex("e mancano meno di",$pag)."
- <input type=\"text\" id=\"ng2b\" name=\"num_giorni\" size=\"2\" value=\"0\">
- ".mex("giorni",$pag)."
- <select id=\"if2b\" name=\"ini_fine\">
-<option value=\"ini\">".mex("dall'inizio",$pag)."</option>
-<option value=\"fine\">".mex("dalla fine",$pag)."</option>
-</select> ".mex("della prenotazione quando essa viene inserita, allora",$pag)."
- ".mex("assegna automaticamente gli appartamenti",'unit.php')."
- <input type=\"text\" id=\"v2b\" name=\"lista_app\" size=\"15\" onclick=\"nasc_app('b')\"><input class=\"dbutton\" id=\"mappb\" onclick=\"mos_app('b')\" value=\"..\" type=\"button\">
- (".mex("se c'è almeno un appartamento della regola originale compatibile con il numero di persone",'unit.php')."). ";
-echo "<button class=\"rlpe\" type=\"submit\"><div>".mex("Inserisci o modifica questa eccezione alla regola",$pag)." 2</div></button>
-<script type=\"text/javascript\">
-<!--
-var txt_box = document.getElementById(\"v2b\");
-txt_box.disabled = true;
-document.write('<div id=\"tab_appb\" style=\"visibility: hidden;\"><\/div>');
--->
-</script>
-</div></form>
-<hr style=\"width: 95%\">";
+// Display Rule 2 Panel: Apartment Types Assignment
+HotelDruidTemplate::getInstance()->display('crearegole/panel_rule2', get_defined_vars());
 } # fine if ((!$mostra_solo_regola or $mostra_solo_regola == 2) and $priv_mod_reg2 == "s")
 
 
 if ((!$mostra_solo_regola or $mostra_solo_regola == 3) and $priv_mod_reg2 == "s") {
+// Prepare data for Rule 3 Panel: Number of Persons Auto-Assignment
 $lista_tariffe3 = "";
 for ($numtariffa = 1 ; $numtariffa <= $numero_tariffe ; $numtariffa = $numtariffa + 1) {
 if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$numtariffa])) {
@@ -1470,141 +1107,28 @@ if ($minpers) $lista_tar_reg3min .= "if (tariffa == \"$tariffa\") txt_box.value 
 ";
 } # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[substr($tariffa,7)]))
 } # fine for $num1
-echo "
-<script type=\"text/javascript\">
-<!--
-function aggiorna_val_reg3 () {
-var sel_tar = document.getElementById(\"t3\");
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].value;
-var txt_box = document.getElementById(\"v3\");
-if (tariffa == '') txt_box.disabled = true;
-else txt_box.disabled = false;
-txt_box.value = \"\";
-$lista_tar_reg3
-}
-function aggiorna_val_reg3m () {
-var sel_tar = document.getElementById(\"t3m\");
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].value;
-var txt_box = document.getElementById(\"v3m\");
-if (tariffa == '') txt_box.disabled = true;
-else txt_box.disabled = false;
-txt_box.value = \"\";
-$lista_tar_reg3min
-}
--->
-</script>
 
-<div style=\"text-align: center;\" id=\"hreg3\">".mex("Regola di assegnazione",$pag)." <b>3</b> (".mex("numero di persone",$pag).").</div><br>";
-if (empty($tipotariffa_regola3) or empty($nor3)) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-echo mex("Quando si sceglie la tariffa",$pag)."
-<select name=\"tipotariffa\" id=\"t3\" onchange=\"aggiorna_val_reg3()\">
-<option value=\"\" selected>----</option>
-$lista_tariffe3
-</select>
- ".mex("assegna automaticamente come numero di persone",$pag)."
- <input type=\"text\" id=\"v3\" name=\"num_persone\" size=\"5\">
- ".mex("se non si inserisce nessun altro numero",$pag).".";
-echo "<script type=\"text/javascript\">
-<!--
-var txt_box = document.getElementById(\"v3\");
-txt_box.disabled = true;
--->
-</script>
-<button class=\"irul\" type=\"submit\" name=\"regola_3\" value=\"1\"><div>".mex("Inserisci o modifica la regola",$pag)." 3</div></button>
-</div></form>
-<div style=\"height: 18px;\"></div>";
-} # fine if (empty($tipotariffa_regola3) or empty($nor3))
-if (empty($tipotariffa_regola3) or empty($nor3m)) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">";
-if ($origine) echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">";
-echo mex("Quando si sceglie la tariffa",$pag)."
-<select name=\"tipotariffa\" id=\"t3m\" onchange=\"aggiorna_val_reg3m()\">
-<option value=\"\" selected>----</option>
-$lista_tariffe3
-</select>
- ".mex("non permettere l'inserimento di prenotazioni con meno di",$pag)."
- <input type=\"text\" id=\"v3m\" name=\"num_persone\" size=\"5\">
- ".mex("persone",$pag).".";
-echo "<script type=\"text/javascript\">
-<!--
-var txt_box = document.getElementById(\"v3m\");
-txt_box.disabled = true;
--->
-</script>
-<button class=\"irul\" type=\"submit\" name=\"regola_3m\" value=\"1\"><div>".mex("Inserisci o modifica la regola",$pag)." 3</div></button>
-</div></form>
-<div style=\"height: 6px;\"></div>";
-} # fine if (empty($tipotariffa_regola3) or empty($nor3m))
-echo "<hr style=\"width: 95%\">";
-
-if (!empty($tipotariffa_regola3) and preg_replace("/tariffa[0-9]+/","",$tipotariffa_regola3) == "") {
-echo "<script type=\"text/javascript\">
-<!--
-";
-if (empty($nor3)) {
-echo "var sel_tr3 = document.getElementById(\"t3\");
-sel_tr3.value = '$tipotariffa_regola3';
-aggiorna_val_reg3();
-";
-} # fine if (empty($nor3))
-if (empty($nor3m)) {
-echo "var sel_tr3m = document.getElementById(\"t3m\");
-sel_tr3m.value = '$tipotariffa_regola3';
-aggiorna_val_reg3m();
-";
-} # fine if (empty($nor3m))
-echo "-->
-</script>
-";
-} # fine if (!empty($tipotariffa_regola3) and...
+// Display Rule 3 Panel: Number of Persons Auto-Assignment
+HotelDruidTemplate::getInstance()->display('crearegole/panel_rule3', get_defined_vars());
 } # fine if ((!$mostra_solo_regola or $mostra_solo_regola == 3) and $priv_mod_reg2 == "s")
 
 
 if ((!$mostra_solo_regola or $mostra_solo_regola == 4) and $id_utente == 1) {
-echo "<script type=\"text/javascript\">
-<!--
-function aggiorna_val_reg4 () {
-var sel_tar = document.getElementById(\"t4\");
-var num_sel = sel_tar.selectedIndex;
-var tariffa = sel_tar.options[num_sel].value;
-var sel_ute = document.getElementById(\"v4\");
-if (tariffa == '') sel_ute.disabled = true;
-else sel_ute.disabled = false;
-sel_ute.selectedIndex = 0;
-var ind_val = '';
-";
+// Prepare data for Rule 4 Panel: User Insertion Assignment
 $regole4 = esegui_query("select * from $tableregole where tariffa_per_utente != ''");
 $num_regole4 = numlin_query($regole4);
+$lista_tar_reg4 = "";
 for ($num1 = 0 ; $num1 < $num_regole4 ; $num1++) {
 $tariffa = risul_query($regole4,$num1,'tariffa_per_utente');
 $utente_t = risul_query($regole4,$num1,'iddatainizio');
-echo "if (tariffa == \"$tariffa\") ind_val = \"$utente_t\";
+$lista_tar_reg4 .= "if (tariffa == \"$tariffa\") ind_val = \"$utente_t\";
 ";
 } # fine for $num1
-echo "var num_opt = sel_ute.options.length;
-for (n1 = 0 ; n1 < num_opt ; n1++) {
-if (sel_ute.options[n1].value == ind_val) sel_ute.selectedIndex = n1;
-}
-}
--->
-</script>
-
-";
 
 $tutti_utenti = esegui_query("select * from $tableutenti order by idutenti");
 $num_tutti_utenti = numlin_query($tutti_utenti);
-if ($num_tutti_utenti > 1) {
 $option_select_utenti = "";
+$nome_utente1 = "";
 for ($num1 = 0 ; $num1 < $num_tutti_utenti ; $num1++) {
 $idutenti = risul_query($tutti_utenti,$num1,'idutenti');
 if ($idutenti != 1) {
@@ -1613,60 +1137,15 @@ $option_select_utenti .= "<option value=\"$idutenti\">$nome_utente_option</optio
 } # fine if ($idutenti != $id_utente_inserimento)
 else $nome_utente1 = risul_query($tutti_utenti,$num1,'nome_utente');
 } # fine for $num1
-echo "<div style=\"text-align: center;\">".mex("Regola di assegnazione",$pag)." <b>4</b> (".mex("utente inserimento",$pag).").</div><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"crearegole.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"inserisci\" value=\"SI\">
-".mex("Quando l'utente amministratore",$pag)." ($nome_utente1) ".mex("sceglie la tariffa",$pag)."
-<select name=\"tipotariffa\" id=\"t4\" onchange=\"aggiorna_val_reg4()\">
-<option value=\"\" selected>----</option>";
-for ($numtariffa = 1 ; $numtariffa <= $numero_tariffe ; $numtariffa = $numtariffa + 1) {
-$tariffa = "tariffa".$numtariffa;
-$tariffa_vedi = mex("tariffa","prenota.php").$numtariffa;
-$nometariffa = risul_query($rigatariffe,0,$tariffa);
-if ($nometariffa != "") $nometariffa_vedi = " ($nometariffa)";
-else $nometariffa_vedi = "";
-echo "
-<option value=\"$tariffa\">$tariffa_vedi$nometariffa_vedi</option>";
-} # fine for $numtariffa
-echo "</select>
- ".mex("fai risultare come se l'utente",$pag)."
- <select id=\"v4\" name=\"id_utente_inserimento\">
-<option value=\"\" selected>----</option>
-$option_select_utenti
-</select>
- ".mex("avesse inserito la prenotazione e l'eventuale cliente",$pag).".<br>";
-echo "<script type=\"text/javascript\">
-<!--
-var sel_box = document.getElementById(\"v4\");
-sel_box.disabled = true;
--->
-</script>
-<div style=\"text-align: center;\">
-<button class=\"irul\" type=\"submit\" name=\"regola_4\" value=\"1\"><div>".mex("Inserisci o modifica la regola",$pag)." 4</div></button>
-</div></div></form><hr style=\"width: 95%\">";
-} # fine if ($num_tutti_utenti > 1)
+
+// Display Rule 4 Panel: User Insertion Assignment
+HotelDruidTemplate::getInstance()->display('crearegole/panel_rule4', get_defined_vars());
 } # fine if ((!$mostra_solo_regola or $mostra_solo_regola == 4) and $id_utente == 1)
 
 
 if (!$mostra_solo_regola and $priv_ins_costi_agg != "n") {
-echo "<table><tr><td style=\"height: 6px;\"></td></tr></table>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"ins_rapido_costo\" value=\"SI\">
-<input type=\"hidden\" name=\"origine\" value=\"crearegole.php\">
-".mex("Inserimento rapido di un nuovo costo aggiuntivo per",'creaprezzi.php')."
- <select name=\"tipocostoagg\">
-<option value=\"perm_min\">".mex("permanenza minima",'creaprezzi.php')."</option>
-<option value=\"num_bamb\">".mex("numero di neonati",'creaprezzi.php')."</option>
-<option value=\"letto_agg\">".mex("letto aggiuntivo",'creaprezzi.php')."</option>
-<option value=\"off_spec\">".mex("offerta speciale",'creaprezzi.php')."</option>
-</select>
-<button class=\"aexc\" type=\"submit\"><div>".mex("inserisci",'creaprezzi.php')."</div></button>.
-<table><tr><td style=\"height: 6px;\"></td></tr></table>
-</div></form><hr style=\"width: 95%\">";
+// Display Quick Insert Additional Cost Panel
+HotelDruidTemplate::getInstance()->display('crearegole/panel_quick_cost', get_defined_vars());
 } # fine if (!$mostra_solo_regola and $priv_ins_costi_agg != "n")
 
 

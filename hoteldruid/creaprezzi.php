@@ -221,6 +221,12 @@ include("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_tariffe.php");
 include("./includes/funzioni_costi_agg.php");
+
+// Initialize message arrays for success, error, and warning messages
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
+
 $tableappartamenti = $PHPR_TAB_PRE."appartamenti";
 $tablebeniinventario = $PHPR_TAB_PRE."beniinventario";
 $tablemagazzini = $PHPR_TAB_PRE."magazzini";
@@ -1309,16 +1315,16 @@ $valore_p_ca = "";
 if ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg" or $tipocostoagg == "off_spec") {
 if (isset($inseriscicosti)) {
 $tipo_percentuale = "tariffa";
-if ($tipo_val_rapido == "t") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido == "t") {
 $valore_p_ca = $valore_p_ca_t;
 $arrotonda_ca = $arrotonda_ca_t;
 } # fine if ($tipo_val_rapido == "t")
-if ($tipo_val_rapido == "p") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido == "p") {
 $valore_p_ca = $valore_p_ca_p;
 $arrotonda_ca = $arrotonda_ca_p;
 $tipo_percentuale = "tariffapers";
 } # fine if ($tipo_val_rapido == "p")
-if ($tipo_val_rapido == "pt") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido == "pt") {
 $valore_p_ca = $valore_p_ca_pt;
 $arrotonda_ca = $arrotonda_ca_pt;
 $tipo_percentuale = "totale";
@@ -1328,7 +1334,7 @@ $valore_f_ca = formatta_soldi(fixset($valore_f_ca));
 $valore_p_ca = formatta_soldi(fixset($valore_p_ca));
 $arrotonda_ca = formatta_soldi(fixset($arrotonda_ca));
 $tasseperc_ca = formatta_soldi(fixset($tasseperc_ca));
-if ($tipo_val_rapido != "f") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido != "f") {
 $valore_f_ca = 0;
 if (!strcmp((string) $valore_p_ca,"")) $val_err = 1;
 if (controlla_soldi($valore_p_ca) == "NO" or !strcmp((string) $arrotonda_ca,"") or controlla_soldi($arrotonda_ca,"SI") == "NO") $val_err = 1;
@@ -1337,10 +1343,10 @@ if ($valore_p_ca > 100 and $tipocostoagg == "num_bamb") $val_err = 1;
 } # fine if ($tipo_val_rapido != "f")
 if ($valore_f_ca < 0) $val_err = 1;
 if (strcmp((string) $valore_f_ca,"") and controlla_soldi($valore_f_ca) == "NO") $val_err = 1;
-if ($tipo_val_rapido != "f" and $tipo_val_rapido != "t" and $tipo_val_rapido != "p" and $tipo_val_rapido != "pt") $val_err = 1;
-if ($tipocostoagg == "off_spec" and $tipo_val_rapido == "p") $val_err = 1;
-if (($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg") and $tipo_val_rapido == "pt") $val_err = 1;
-if (($tipo_val_rapido == "t" and !$arrotonda_ca_t) or ($tipo_val_rapido == "p" and !$arrotonda_ca_p) or ($tipo_val_rapido == "pt" and !$arrotonda_ca_pt)) $val_err = 1;
+if (!isset($tipo_val_rapido) or ($tipo_val_rapido != "f" and $tipo_val_rapido != "t" and $tipo_val_rapido != "p" and $tipo_val_rapido != "pt")) $val_err = 1;
+if (isset($tipocostoagg) and $tipocostoagg == "off_spec" and isset($tipo_val_rapido) and $tipo_val_rapido == "p") $val_err = 1;
+if (isset($tipocostoagg) and ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg") and isset($tipo_val_rapido) and $tipo_val_rapido == "pt") $val_err = 1;
+if (isset($tipo_val_rapido) and (($tipo_val_rapido == "t" and !$arrotonda_ca_t) or ($tipo_val_rapido == "p" and !$arrotonda_ca_p) or ($tipo_val_rapido == "pt" and !$arrotonda_ca_pt))) $val_err = 1;
 } # fine if (isset($inseriscicosti))
 } # fine if ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg" or...
 if ((fix_set($tasseperc_ca) and controlla_soldi($tasseperc_ca) == "NO") or $tasseperc_ca > 100 or $tasseperc_ca < 0) $tas_err = 1;
@@ -1377,10 +1383,47 @@ $nom_err = 1;
 $nomecostoagg = $nomecostoagg_contr;
 } # fine if (numlin_query($esiste_costo))
 } # fine if (!empty($nomecostoagg))
-if ($tar_err or $vmm_err or $nom_err or $tas_err or $lim_err or $moltmax_err or $val_err or $agm_err or $adg_err or $apc_err or $per_err) unset($inseriscicosti);
+if ($tar_err or $vmm_err or $nom_err or $tas_err or $lim_err or $moltmax_err or $val_err or $agm_err or $adg_err or $apc_err or $per_err) {
+    // Convert error flags to messages
+    if ($nom_err) $error_messages[] = mex("Il nome del costo aggiuntivo non è valido o esiste già",$pag);
+    if ($val_err) $error_messages[] = mex("Il valore del costo aggiuntivo non è valido",$pag);
+    if ($tas_err) $error_messages[] = mex("Il valore delle tasse non è valido",$pag);
+    if ($lim_err) $error_messages[] = mex("Il limite non è valido",$pag);
+    if ($moltmax_err) $error_messages[] = mex("Il numero massimo non è valido",$pag);
+    if ($tar_err) $error_messages[] = mex("Si deve scegliere almeno una tariffa",$pag);
+    if ($vmm_err) $error_messages[] = mex("Il numero minimo di giorni non è valido",$pag);
+    if ($per_err) $error_messages[] = mex("Si devono selezionare i periodi",$pag);
+    if ($agm_err) $error_messages[] = mex("Il valore per i giorni minimi non è valido",$pag);
+    if ($adg_err) $error_messages[] = mex("Il valore per il giorno iniziale non è valido",$pag);
+    if ($apc_err) $error_messages[] = mex("Il valore per le prenotazioni contemporanee non è valido",$pag);
+    unset($inseriscicosti);
+}
 
 
-if (!isset($inseriscicosti)) {
+if (!isset($inseriscicosti) and isset($ins_rapido_costo) and ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg" or $tipocostoagg == "off_spec")) {
+    $nascondi_form_iniziale = 1;
+    
+    // Initialize variables with default values for first display
+    if (!isset($nomecostoagg)) $nomecostoagg = "";
+    if (!isset($valore_f_ca)) $valore_f_ca = "";
+    if (!isset($valore_p_ca_t)) $valore_p_ca_t = "";
+    if (!isset($valore_p_ca_p)) $valore_p_ca_p = "";
+    if (!isset($arrotonda_ca_t)) $arrotonda_ca_t = "";
+    if (!isset($arrotonda_ca_p)) $arrotonda_ca_p = "";
+    if (!isset($tasse_percent_ca)) $tasse_percent_ca = "";
+    if (!isset($limite_ca)) $limite_ca = "n";
+    if (!isset($numlimite_ca)) $numlimite_ca = "";
+    if (!isset($moltmax)) $moltmax = "1";
+    
+    // Include template system if not already included
+    if (!class_exists('HotelDruidTemplate')) {
+        require_once("./includes/template.php");
+    }
+    // Display the quick baby cost panel
+    HotelDruidTemplate::getInstance()->display('creaprezzi/panel_quick_baby_cost', get_defined_vars());
+} # fine if (!isset($inseriscicosti) and isset($ins_rapido_costo))
+
+if (!isset($inseriscicosti) and empty($ins_rapido_costo)) {
 $nascondi_form_iniziale = 1;
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -1746,7 +1789,7 @@ $agg_modelli = "s";
 if ($tipocostoagg == "num_bamb") {
 #if ($valore_f_ca) $valore_f_ca = (-1 * $valore_f_ca);
 #if ($valore_p_ca) $valore_p_ca = (-1 * $valore_p_ca);
-if ($tipo_val_rapido == "f") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido == "f") {
 $tipo_ca = "s";
 $numsett_ca = "t";
 $associasett = "n";
@@ -1766,7 +1809,7 @@ $mantenere_moltiplica = "s";
 $agg_utenti = "s";
 } # fine if ($tipocostoagg == "num_bamb")
 if ($tipocostoagg == "letto_agg") {
-if ($tipo_val_rapido == "f") {
+if (isset($tipo_val_rapido) and $tipo_val_rapido == "f") {
 $tipo_ca = "s";
 $numsett_ca = "t";
 $associasett = "n";
@@ -3242,7 +3285,17 @@ $idntariffe++;
 esegui_query("update $tablenometariffe set numlimite_ca = '$idntariffe' where idntariffe = '1'");
 if (!empty($origine)) $action = controlla_pag_origine($origine);
 else $action = $pag;
-echo "</div></form>
+
+// Check if this was a quick insert for baby/letto_agg/off_spec costs
+if (isset($ins_rapido_costo) and ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg" or $tipocostoagg == "off_spec")) {
+    // Close the form that was opened earlier
+    echo "</div></form>";
+    
+    // Don't show the "Modify cost" button - we'll redisplay the panel with success message instead
+    // The success message and panel redisplay are handled after the agg_modelli section
+} else {
+    // Original behavior for non-quick-insert costs: show "Modify cost" button
+    echo "</div></form>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_costi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -3251,6 +3304,7 @@ echo "</div></form>
 ".mex("Il costo aggiuntivo",$pag)." \"".stripslashes($nomecostoagg)."\" ".mex("è stato inserito",$pag).".
  <button class=\"exco\" type=\"submit\"><div>".mex("Modifica il costo",$pag)."</div></button>
 </div></form><br>";
+}
 if ($agg_modelli == "s") {
 unlock_tabelle($tabelle_lock);
 function aggiorna_var_modello () {
@@ -3273,11 +3327,40 @@ break;
 } # fine function aggiorna_var_modello
 include('./includes/templates/aggiorna_modelli.php');
 } # fine if ($agg_modelli == "s")
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
+
+// Check if this was a quick insert for baby/letto_agg/off_spec costs
+if (isset($ins_rapido_costo) and ($tipocostoagg == "num_bamb" or $tipocostoagg == "letto_agg" or $tipocostoagg == "off_spec")) {
+    // Add success message
+    $success_messages[] = mex("Il costo aggiuntivo",$pag)." <b>".htmlspecialchars(stripslashes($nomecostoagg))."</b> ".mex("è stato inserito",$pag).".";
+    
+    // Set flag for panel message display
+    $active_panel = 'quick_baby_cost';
+    
+    // Clear form fields for next insertion
+    $nomecostoagg = "";
+    $valore_f_ca = "";
+    $valore_p_ca_t = "";
+    $valore_p_ca_p = "";
+    $arrotonda_ca_t = "";
+    $arrotonda_ca_p = "";
+    $tasse_percent_ca = "";
+    $limite_ca = "n";
+    $numlimite_ca = "";
+    $moltmax = "1";
+    
+    // Display the panel again with success message
+    if (!class_exists('HotelDruidTemplate')) {
+        require_once("./includes/template.php");
+    }
+    HotelDruidTemplate::getInstance()->display('creaprezzi/panel_quick_baby_cost', get_defined_vars());
+} else {
+    // Original behavior: show OK button
+    echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button><br>
 </div></form>";
+}
 } # fine if ($passo == 12)
 
 } # fine if ($errore != "SI")
