@@ -315,6 +315,11 @@ case "Importa i prezzi":  			$messaggio = "Import Prices"; break;
 case "Importa ora":  				$messaggio = "Import now"; break;
 case "Importa sempre":  			$messaggio = "Always import"; break;
 case "Importazioni configurate":  		$messaggio = "Configured imports"; break;
+case "Gestione Finanziaria":  		$messaggio = "Financial Management"; break;
+case "":  		$messaggio = ""; break;
+case "":  		$messaggio = ""; break;
+
+} # fine switch ($messaggio)
 case "cancella":  				$messaggio = "delete"; break;
 case "L'importatazione dei prezzi è stata cancellata":	$messaggio = "The prices import has been deleted"; break;
 case "al prezzo fisso":  			$messaggio = "to fixed price"; break;
@@ -348,7 +353,8 @@ case "fisso nullo":  				$messaggio = "fixed zero"; break;
 case "da per persona":  			$messaggio = "from per person"; break;
 case "più fisso":  				$messaggio = "from fixed"; break;
 case "dal fisso":  				$messaggio = "plus fixed"; break;
-case "":  		$messaggio = ""; break;
+case "Importazioni configurate":  		$messaggio = "Configured imports"; break;
+case "Gestione Finanziaria":  		$messaggio = "Financial Management"; break;
 case "":  		$messaggio = ""; break;
 
 } # fine switch ($messaggio)

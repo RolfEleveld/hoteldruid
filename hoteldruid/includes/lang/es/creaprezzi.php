@@ -352,8 +352,8 @@ case "per persona nullo":  			$messaggio = "por persona nulo"; break;
 case "fisso nullo":  				$messaggio = "fijo nulo"; break;
 case "da per persona":  			$messaggio = "desde por persona"; break;
 case "più fisso":  				$messaggio = "más fijo"; break;
-case "dal fisso":  				$messaggio = "desde el fijo"; break;
-case "":  		$messaggio = ""; break;
+case "dal fisso":  				$messaggio = "más fijo"; break;
+case "Gestione Finanziaria":  		$messaggio = "Gestión Financiera"; break;
 case "":  		$messaggio = ""; break;
 
 } # fine switch ($messaggio)

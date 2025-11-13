@@ -3889,437 +3889,241 @@ echo "</div>"; // Close rpanels div
 } # fine if ($lista_opt_tariffe)
 } # fine if ($priv_mod_tariffe != "n")
 
+// Stage 5: Extra Costs Panel
 if ($priv_ins_costi_agg != "n") {
-
-# form per i costi aggiuntivi e per la caparra.
-if (defined("C_MASSIMO_NUM_COSTI_AGG") and C_MASSIMO_NUM_COSTI_AGG != 0) {
-$num_costi_agg_esistenti = esegui_query("select idntariffe from $tablenometariffe where idntariffe > 10");
-$num_costi_agg_esistenti = numlin_query($num_costi_agg_esistenti);
-if ($num_costi_agg_esistenti >= C_MASSIMO_NUM_COSTI_AGG) $num_costi_max = 1;
-} # fine if (defined("C_MASSIMO_NUM_COSTI_AGG") and C_MASSIMO_NUM_COSTI_AGG != 0)
-if (!isset($num_costi_max)) {
-
-echo "<a name=\"ins_costi_agg\"></a>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"passo\" value=\"1\">
-<input type=\"hidden\" name=\"avanti\" value=\"SI\">
-<h5>".mex("Costi aggiuntivi",$pag)."</h5><br><br>
-<div class=\"linhbox\">
-".mex("Nome del nuovo costo aggiuntivo",$pag).":
-<input type=\"text\" name=\"nomecostoagg\" size=\"24\" value=\"".fixset($nomecostoagg)."\">.<br>
-".mex("Categoria",$pag).": <input type=\"text\" name=\"categoria_ca\" value=\"".htmlspecialchars(fixstr($categoria_ca))."\" size=\"18\"> (".mex("opzionale",$pag).").<br>
-".mex("Tipo di costo aggiuntivo",$pag).":
-<select name=\"tipo_ca\">";
-if (isset($tipo_ca) and $tipo_ca == "u") $selected = " selected";
-else $selected = "";
-echo "<option value=\"u\"$selected>".mex("unico",$pag)."</option>";
-if (isset($tipo_ca) and $tipo_ca == "s") $selected = " selected";
-else $selected = "";
-echo "<option value=\"s\"$selected>".mex("$parola_settimanale",$pag)."</option>
-</select>.
-</div><br><div style=\"text-align: center;\">
-<input type=\"hidden\" name=\"inseriscicosti\" value=\"1\">
-<button class=\"aexc\" type=\"submit\"><div>".mex("Procedi nell'inserimento del nuovo costo aggiuntivo",$pag)."</div></button>
-</div></div></form><br>
-<hr style=\"width: 95%\">";
-
-$dati_ca = dati_costi_agg_ntariffe($tablenometariffe,"NO");
-$opt_costi_agg = "";
-for ($numca = 0 ; $numca < $dati_ca['num'] ; $numca++) {
-if ($attiva_costi_agg_consentiti == "n" or (isset($costi_agg_consentiti_vett[$dati_ca[$numca]['id']]) and $costi_agg_consentiti_vett[$dati_ca[$numca]['id']] == "SI")) {
-$opt_costi_agg .= "<option value=\"".$dati_ca[$numca]['id']."\">".$dati_ca[$numca]['nome']."</option>";
-} # fine if ($attiva_costi_agg_consentiti == "n" or...
-} # fine for $numca
-if ($opt_costi_agg) {
-echo "<table><tr><td style=\"height: 6px;\"></td></tr></table>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"importa_costo\" value=\"1\">
-".mex("Inserisci un nuovo costo aggiuntivo chiamato",$pag)."
- <input type=\"text\" name=\"nomecostoagg\" size=\"20\">
- ".mex("importando le caratteristiche da",$pag)."
- <select name=\"costo_importa\">
-$opt_costi_agg
-</select>
-<button class=\"xexc\" type=\"submit\"><div>".mex("importa",$pag)."</div></button>.
-<table><tr><td style=\"height: 6px;\"></td></tr></table>
-</div></form><hr style=\"width: 95%\">";
-} # fine if ($opt_costi_agg)
-
-echo "<table id=\"ins_rap_c\"><tr><td style=\"height: 6px;\"></td></tr></table>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"ins_rapido_costo\" value=\"1\">
-".mex("Inserimento rapido di un nuovo costo aggiuntivo per",$pag)."
- <select name=\"tipocostoagg\">
-<option value=\"perm_min\">".mex("permanenza minima",$pag)."</option>
-<option value=\"num_bamb\">".mex("numero di neonati",$pag)."</option>
-<option value=\"letto_agg\">".mex("letto aggiuntivo",$pag)."</option>
-<option value=\"off_spec\">".mex("offerta speciale",$pag)."</option>
-</select>
-<button class=\"aexc\" type=\"submit\"><div>".mex("inserisci",$pag)."</div></button>.
-<table><tr><td style=\"height: 6px;\"></td></tr></table>
-</div></form><hr style=\"width: 95%\">";
-
-} # fine if (!isset($num_costi_max))
+    echo "<a name=\"ins_costi_agg\"></a>";
+    
+    // Check if maximum costs reached
+    if (defined("C_MASSIMO_NUM_COSTI_AGG") and C_MASSIMO_NUM_COSTI_AGG != 0) {
+        $num_costi_agg_esistenti = esegui_query("select idntariffe from $tablenometariffe where idntariffe > 10");
+        $num_costi_agg_esistenti = numlin_query($num_costi_agg_esistenti);
+        if ($num_costi_agg_esistenti >= C_MASSIMO_NUM_COSTI_AGG) $num_costi_max = 1;
+    }
+    
+    // Prepare data for extra costs options
+    $dati_ca = dati_costi_agg_ntariffe($tablenometariffe,"NO");
+    $opt_costi_agg = "";
+    for ($numca = 0 ; $numca < $dati_ca['num'] ; $numca++) {
+        if ($attiva_costi_agg_consentiti == "n" or (isset($costi_agg_consentiti_vett[$dati_ca[$numca]['id']]) and $costi_agg_consentiti_vett[$dati_ca[$numca]['id']] == "SI")) {
+            $opt_costi_agg .= "<option value=\"".$dati_ca[$numca]['id']."\">".$dati_ca[$numca]['nome']."</option>";
+        }
+    }
+    
+    HotelDruidTemplate::getInstance()->display('creaprezzi/panel_extra_costs', get_defined_vars());
 } # fine if ($priv_ins_costi_agg != "n")
 
 
 if ($priv_mod_tariffe != "n" and $lista_opt_tariffe) {
-$arrotond_cap = ($arrotond_predef * 10);
-$capa_esist = array();
-$funz_esist = array();
-$funz_sel_cap = "";
-for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
-if (!empty($dati_tariffe["tariffa$num1"]['caparra_percent'])) {
-if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "val") {
-$funz_sel_corr = "document.getElementById('tipo_cap_val').checked = '1';
+    // Prepare data for Finances Panel (Deposits & Commissions)
+    
+    // Deposits (Caparra)
+    $arrotond_cap = ($arrotond_predef * 10);
+    $capa_esist = array();
+    $funz_esist = array();
+    $funz_sel_cap = "";
+    
+    for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
+        if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
+            if (!empty($dati_tariffe["tariffa$num1"]['caparra_percent'])) {
+                if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "val") {
+                    $funz_sel_corr = "document.getElementById('tipo_cap_val').checked = '1';
 document.getElementById('cap_val').value = '".$dati_tariffe["tariffa$num1"]['caparra_percent']."';";
-} # fine if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "val")
-else {
-if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "gio") {
-$funz_sel_corr = "document.getElementById('tipo_cap_gio').checked = '1';
+                }
+                else {
+                    if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "gio") {
+                        $funz_sel_corr = "document.getElementById('tipo_cap_gio').checked = '1';
 document.getElementById('cap_gio').value = '".$dati_tariffe["tariffa$num1"]['caparra_percent']."';";
-} # fine if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "gio")
-else {
-$funz_sel_corr = "document.getElementById('tipo_cap_perc').checked = '1';
+                    }
+                    else {
+                        $funz_sel_corr = "document.getElementById('tipo_cap_perc').checked = '1';
 document.getElementById('cap_perc').value = '".$dati_tariffe["tariffa$num1"]['caparra_percent']."';
 document.getElementById('cap_arr').value = '".$dati_tariffe["tariffa$num1"]['caparra_arrotond']."';";
-} # fine else if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "gio")
-} # fine else if ($dati_tariffe["tariffa$num1"]['caparra_arrotond'] == "val")
-$funz_sel_cap .= "if (opt_corr == 'tariffa$num1') {
+                    }
+                }
+                $funz_sel_cap .= "if (opt_corr == 'tariffa$num1') {
 $funz_sel_corr
 }
 ";
-$dati_cap = $dati_tariffe["tariffa$num1"]['caparra_percent']."-".$dati_tariffe["tariffa$num1"]['caparra_arrotond'];
-if (!isset($capa_esist[$dati_cap])) {
-$capa_esist[$dati_cap] = 0;
-$funz_esist[$dati_cap] = $funz_sel_corr;
-} # fine if (!isset($capa_esist[$dati_cap]))
-$capa_esist[$dati_cap]++;
-} # fine if (!empty($dati_tariffe["tariffa$num1"]['caparra_percent']))
-else {
-$funz_sel_cap .= "if (opt_corr == 'tariffa$num1') {
+                $dati_cap = $dati_tariffe["tariffa$num1"]['caparra_percent']."-".$dati_tariffe["tariffa$num1"]['caparra_arrotond'];
+                if (!isset($capa_esist[$dati_cap])) {
+                    $capa_esist[$dati_cap] = 0;
+                    $funz_esist[$dati_cap] = $funz_sel_corr;
+                }
+                $capa_esist[$dati_cap]++;
+            }
+            else {
+                $funz_sel_cap .= "if (opt_corr == 'tariffa$num1') {
 document.getElementById('tipo_cap_perc').checked = '1';
 document.getElementById('cap_perc').value = '';
 }
 ";
-} # fine else if (!empty($dati_tariffe["tariffa$num1"]['caparra_percent']))
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
-} # fine for $num1
-$lista_capa_esist = "";
-foreach ($capa_esist as $cap => $num) {
-if ($num > 1) {
-$cap_vett = explode("-",$cap);
-$txt_cap = "".mex("tariffe con",$pag)." ".formatta_soldi($cap_vett[0]);
-if ($cap_vett[1] == "val") $txt_cap .= " $Euro";
-else {
-if ($cap_vett[1] == "gio") {
-if ($cap_vett[0] == 1) $txt_cap .= " ".mex("$parola_settimana",$pag);
-else $txt_cap .= " ".mex("$parola_settimane",$pag);
-} # fine if ($cap_vett[1] == "gio")
-else $txt_cap .= "% ".mex("a",$pag)." ".formatta_soldi($cap_vett[1]);
-} # fine else if ($cap_vett[1] == "val")
-if ($num < $num_opt_tariffe) {
-$lista_capa_esist .= "<option value=\"t-$cap\">$txt_cap</option>";
-$funz_sel_cap .= "if (opt_corr == 't-$cap') {
+            }
+        }
+    }
+    
+    $lista_capa_esist = "";
+    foreach ($capa_esist as $cap => $num) {
+        if ($num > 1) {
+            $cap_vett = explode("-",$cap);
+            $txt_cap = "".mex("tariffe con",$pag)." ".formatta_soldi($cap_vett[0]);
+            if ($cap_vett[1] == "val") $txt_cap .= " $Euro";
+            else {
+                if ($cap_vett[1] == "gio") {
+                    if ($cap_vett[0] == 1) $txt_cap .= " ".mex("$parola_settimana",$pag);
+                    else $txt_cap .= " ".mex("$parola_settimane",$pag);
+                }
+                else $txt_cap .= "% ".mex("a",$pag)." ".formatta_soldi($cap_vett[1]);
+            }
+            if ($num < $num_opt_tariffe) {
+                $lista_capa_esist .= "<option value=\"t-$cap\">$txt_cap</option>";
+                $funz_sel_cap .= "if (opt_corr == 't-$cap') {
 ".$funz_esist[$cap]."
 }
 ";
-} # fine if ($num < $num_opt_tariffe)
-else {
-$funz_sel_cap .= "if (opt_corr == 'tutte') {
+            }
+            else {
+                $funz_sel_cap .= "if (opt_corr == 'tutte') {
 ".$funz_esist[$cap]."
 }
 ";
-} # fine else if ($num < $num_opt_tariffe)
-} # fine if ($num > 1)
-} # fine foreach ($comm_esist as $com => $num)
-
-echo "<a name=\"mod_cap\"></a>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<h5>".mex("Caparra",$pag)."</h5><br>
-<table cellspacing=\"0\"><tr><td>"
-.mex("La caparra normale per",$pag)."
- <select id=\"ttcap\" name=\"tipotariffa\" onchange=\"agg_sel_cap();\">";
-if ($num_opt_tariffe > 1) echo "<option value=\"tutte\" selected>".mex("tutte le tariffe",$pag)."</option>";
-echo "$lista_capa_esist
-$lista_opt_tariffe
-</select> ".mex("è",$pag).":</td><td onclick=\"document.getElementById('tipo_cap_perc').checked='1'\">
-<label><input type=\"radio\" id=\"tipo_cap_perc\" name=\"tipo_caparra\" value=\"perc\" checked>
- ".mex("il",$pag)." </label><input type=\"text\" id=\"cap_perc\" name=\"caparra_percent\" size=\"2\" maxlength=\"3\"><label for=\"tipo_cap_perc\">%
- ".mex("della tariffa arrotondato a",$pag)."
- </label><input type=\"text\" id=\"cap_arr\" name=\"caparra_arrotond\" value=\"$arrotond_cap\" size=\"5\"><label for=\"tipo_cap_perc\">
- $Euro.</label></td></tr>
-<tr><td></td><td onclick=\"document.getElementById('tipo_cap_val').checked='1'\">
-<input type=\"radio\" id=\"tipo_cap_val\" name=\"tipo_caparra\" value=\"val\">
-<input type=\"text\" id=\"cap_val\" name=\"caparra_val\" size=\"5\"><label for=\"tipo_cap_val\"> $Euro.</label></td></tr>
-<tr><td></td><td onclick=\"document.getElementById('tipo_cap_gio').checked='1'\">
-<label><input type=\"radio\" id=\"tipo_cap_gio\" name=\"tipo_caparra\" value=\"gio\">
-".mex("il prezzo della tariffa per $parola_le prim$lettera_e",$pag)." </label><select id=\"cap_gio\" name=\"caparra_gio\">";
-for ($num1 = 1 ; $num1 <= 10 ; $num1++) echo "<option value=\"$num1\">$num1</option>";
-echo "</select><label for=\"tipo_cap_gio\"> ".mex("$parola_settimane",$pag).".</label></td></tr>
-</table>
-<table><tr><td style=\"height: 2px;\"></td></tr></table><div style=\"text-align: center;\">
-<input type=\"hidden\" name=\"modificacaparra\" value=\"1\">
-<button class=\"taxs\" type=\"submit\"><div>".mex("Inserisci o modifica la caparra",$pag)."</div></button>
-</div></div></form><br>
-<script type=\"text/javascript\">
-<!--
-function agg_sel_cap () {
-opt_corr = document.getElementById('ttcap');
-opt_corr = opt_corr.options[opt_corr.selectedIndex].value;
-$funz_sel_cap
-}
-agg_sel_cap();
--->
-</script>
-<hr style=\"width: 95%\">";
-} # fine if ($priv_mod_tariffe != "n" and $lista_opt_tariffe)
-
-
-if ($priv_mod_tariffe != "n" and $lista_opt_tariffe) {
-$arrotond_com = ($arrotond_predef * 1);
-$comm_esist = array();
-$funz_esist = array();
-$funz_sel_com = "";
-for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
-if (!empty($dati_tariffe["tariffa$num1"]['commissioni_base']['def'])) {
-if ($dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def'] == "val") {
-$funz_sel_corr = "document.getElementById('tipo_com_val').checked = '1';
+            }
+        }
+    }
+    
+    // Commissions
+    $arrotond_com = ($arrotond_predef * 1);
+    $comm_esist = array();
+    $funz_esist = array();
+    $funz_sel_com = "";
+    
+    for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
+        if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
+            if (!empty($dati_tariffe["tariffa$num1"]['commissioni_base']['def'])) {
+                if ($dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def'] == "val") {
+                    $funz_sel_corr = "document.getElementById('tipo_com_val').checked = '1';
 document.getElementById('com_val').value = '".$dati_tariffe["tariffa$num1"]['commissioni_percent']['def']."';";
-} # fine if ($dati_tariffe["tariffa$num1"]['commissioni_arrotond'] == "val")
-else {
-$funz_sel_corr = "document.getElementById('tipo_com_perc').checked = '1';
+                }
+                else {
+                    $funz_sel_corr = "document.getElementById('tipo_com_perc').checked = '1';
 document.getElementById('com_perc').value = '".$dati_tariffe["tariffa$num1"]['commissioni_percent']['def']."';
 document.getElementById('com_arr').value = '".$dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def']."';
 ";
-if ($dati_tariffe["tariffa$num1"]['commissioni_base']['def'] == "c") $funz_sel_corr .= "document.getElementById('com_base').value = 'tsc';";
-else {
-if ($dati_tariffe["tariffa$num1"]['commissioni_base']['def'] == "s") $funz_sel_corr .= "document.getElementById('com_base').value = 'ts';";
-else $funz_sel_corr .= "document.getElementById('com_base').value = 't';";
-} # fine else if ($dati_tariffe["tariffa$num1"]['commissioni_base']['def'] == "c")
-} # fine else if ($dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def'] == "val")
-$funz_sel_com .= "if (opt_corr == 'tariffa$num1') {
+                    if ($dati_tariffe["tariffa$num1"]['commissioni_base']['def'] == "c") $funz_sel_corr .= "document.getElementById('com_base').value = 'tsc';";
+                    else {
+                        if ($dati_tariffe["tariffa$num1"]['commissioni_base']['def'] == "s") $funz_sel_corr .= "document.getElementById('com_base').value = 'ts';";
+                        else $funz_sel_corr .= "document.getElementById('com_base').value = 't';";
+                    }
+                }
+                $funz_sel_com .= "if (opt_corr == 'tariffa$num1') {
 $funz_sel_corr
 }
 ";
-$dati_com = $dati_tariffe["tariffa$num1"]['commissioni_base']['def']."-".$dati_tariffe["tariffa$num1"]['commissioni_percent']['def']."-".$dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def'];
-if (!isset($comm_esist[$dati_com])) {
-$comm_esist[$dati_com] = 0;
-$funz_esist[$dati_com] = $funz_sel_corr;
-} # fine if (!isset($comm_esist[$dati_com]))
-$comm_esist[$dati_com]++;
-} # fine if (!empty($dati_tariffe[$tariffa]['commissioni_base']['def']))
-else {
-$funz_sel_com .= "if (opt_corr == 'tariffa$num1') {
+                $dati_com = $dati_tariffe["tariffa$num1"]['commissioni_base']['def']."-".$dati_tariffe["tariffa$num1"]['commissioni_percent']['def']."-".$dati_tariffe["tariffa$num1"]['commissioni_arrotond']['def'];
+                if (!isset($comm_esist[$dati_com])) {
+                    $comm_esist[$dati_com] = 0;
+                    $funz_esist[$dati_com] = $funz_sel_corr;
+                }
+                $comm_esist[$dati_com]++;
+            }
+            else {
+                $funz_sel_com .= "if (opt_corr == 'tariffa$num1') {
 document.getElementById('tipo_com_perc').checked = '1';
 document.getElementById('com_perc').value = '';
 }
 ";
-} # fine else if (!empty($dati_tariffe[$tariffa]['commissioni_base']['def']))
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
-} # fine for $num1
-$lista_com_esist = "";
-foreach ($comm_esist as $com => $num) {
-if ($num > 1) {
-$txt_com = "".mex("tutte le tariffe",$pag)." ";
-$com_vett = explode("-",$com);
-$txt_com = "".mex("tariffe con",$pag)." ".formatta_soldi($com_vett[1]);
-if ($com_vett[2] == "val") $txt_com .= " $Euro";
-else {
-$txt_com .= "% ";
-if ($com_vett[0] == "c") $txt_com .= mex("di t.+s.+c.a.",$pag)." ";
-else {
-if ($com_vett[0] == "s") $txt_com .= mex("di t.+s.",$pag)." ";
-else $txt_com .= mex("della tar.",$pag)." ";
-} # fine if ($com_vett[0] == "c")
-$txt_com .= mex("a",$pag)." ".formatta_soldi($com_vett[2]);
-} # fine else if ($com_vett[1] == "val")
-if ($num < $num_opt_tariffe) {
-$lista_com_esist .= "<option value=\"t-$com\">$txt_com</option>";
-$funz_sel_com .= "if (opt_corr == 't-$com') {
+            }
+        }
+    }
+    
+    $lista_com_esist = "";
+    foreach ($comm_esist as $com => $num) {
+        if ($num > 1) {
+            $txt_com = "".mex("tutte le tariffe",$pag)." ";
+            $com_vett = explode("-",$com);
+            $txt_com = "".mex("tariffe con",$pag)." ".formatta_soldi($com_vett[1]);
+            if ($com_vett[2] == "val") $txt_com .= " $Euro";
+            else {
+                $txt_com .= "% ";
+                if ($com_vett[0] == "c") $txt_com .= mex("di t.+s.+c.a.",$pag)." ";
+                else {
+                    if ($com_vett[0] == "s") $txt_com .= mex("di t.+s.",$pag)." ";
+                    else $txt_com .= mex("della tar.",$pag)." ";
+                }
+                $txt_com .= mex("a",$pag)." ".formatta_soldi($com_vett[2]);
+            }
+            if ($num < $num_opt_tariffe) {
+                $lista_com_esist .= "<option value=\"t-$com\">$txt_com</option>";
+                $funz_sel_com .= "if (opt_corr == 't-$com') {
 ".$funz_esist[$com]."
 }
 ";
-} # fine if ($num < $num_opt_tariffe)
-else {
-$funz_sel_com .= "if (opt_corr == 'tutte') {
+            }
+            else {
+                $funz_sel_com .= "if (opt_corr == 'tutte') {
 ".$funz_esist[$com]."
 }
 ";
-} # fine else if ($num < $num_opt_tariffe)
-} # fine if ($num > 1)
-} # fine foreach ($comm_esist as $com => $num)
-
-echo "<a name=\"mod_com\"></a>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"modificacommissioni\" value=\"1\">
-<h5>".mex("Commissioni",$pag)."</h5><br>
-<table cellspacing=\"0\"><tr><td>"
-.mex("Le commissioni normali su",$pag)."
- <select id=\"ttcom\" name=\"tipotariffa\" onchange=\"agg_sel_com();\">";
-if ($num_opt_tariffe > 1) echo "<option value=\"tutte\">".mex("tutte le tariffe",$pag)."</option>";
-echo "$lista_com_esist
-$lista_opt_tariffe
-</select> ".mex("sono",$pag).":</td><td onclick=\"document.getElementById('tipo_com_perc').checked='1'\">
-<label><input type=\"radio\" id=\"tipo_com_perc\" name=\"tipo_commissioni\" value=\"perc\" checked>
- ".mex("il",$pag)." </label><input type=\"text\" id=\"com_perc\" name=\"commissioni_percent\" size=\"2\" maxlength=\"3\"><label for=\"tipo_com_perc\">%
- ".mex("della",$pag)." </label><select id=\"com_base\" name=\"commissioni_base\">
-<option value=\"t\">".mex("tariffa",$pag)."</option>
-<option value=\"ts\">".mex("tariffa + sconto",$pag)."</option>
-<option value=\"tsc\">".mex("tariffa + sconto + costi agg.",$pag)."</option>
-</select><label for=\"tipo_com_perc\"> ".mex("arrotondato a",$pag)."
-</label><input type=\"text\" id=\"com_arr\" name=\"commissioni_arrotond\" value=\"$arrotond_com\" size=\"5\"><label for=\"tipo_com_perc\"> $Euro.</label>
-</td></tr><tr><td></td><td onclick=\"document.getElementById('tipo_com_val').checked='1'\">
-<input type=\"radio\" id=\"tipo_com_val\" name=\"tipo_commissioni\" value=\"val\">
-<input type=\"text\" id=\"com_val\" name=\"commissioni_val\" size=\"5\"><label for=\"tipo_com_val\"> $Euro ".mex("$parola_alla $parola_settimana",$pag).".
-</label></td></tr></table>
-<table><tr><td style=\"height: 2px;\"></td></tr></table><div style=\"text-align: center;\">
-<button class=\"taxs\" type=\"submit\"><div>".mex("Inserisci o modifica le commissioni normali",$pag)."</div></button>
-</div></div></form><br><br>
-<script type=\"text/javascript\">
-<!--
-function agg_sel_com () {
-opt_corr = document.getElementById('ttcom');
-opt_corr = opt_corr.options[opt_corr.selectedIndex].value;
-$funz_sel_com
+            }
+        }
+    }
+    
+    HotelDruidTemplate::getInstance()->display('creaprezzi/panel_finances', get_defined_vars());
 }
-agg_sel_com();
--->
-</script>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"modificacommper\" value=\"1\">
-<table cellspacing=\"0\"><tr><td>"
-.mex("Sulla",$pag)."
- <select name=\"tipotariffa\">
-$lista_opt_tariffe
-</select> ".mex("dal",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.1.php","comm_dal",fixset($comm_dal),"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
-mostra_menu_date(C_DATI_PATH."/selectperiodi$anno.1.php","comm_al",fixset($comm_al),"","",$id_utente,$tema);
-echo ":</td><td onclick=\"document.getElementById('tipo_com_percp').checked='1'\"><label>
-<input type=\"radio\" id=\"tipo_com_percp\" name=\"tipo_commissioni\" value=\"perc\" checked>
- ".mex("il",$pag)." </label><input type=\"text\" name=\"commissioni_percent\" size=\"2\" maxlength=\"3\"><label for=\"tipo_com_percp\">%
- ".mex("della",$pag)." </label><select name=\"commissioni_base\">
-<option value=\"t\">".mex("tariffa",$pag)."</option>
-<option value=\"ts\">".mex("tariffa + sconto",$pag)."</option>
-<option value=\"tsc\">".mex("tariffa + sconto + costi agg.",$pag)."</option>
-</select><label for=\"tipo_com_percp\"> ".mex("arrotondato a",$pag)."
-</label><input type=\"text\" name=\"commissioni_arrotond\" value=\"$arrotond_com\" size=\"5\"><label for=\"tipo_com_percp\"> $Euro.
-</label></td></tr><tr><td></td><td onclick=\"document.getElementById('tipo_com_valp').checked='1'\">
-<input type=\"radio\" id=\"tipo_com_valp\" name=\"tipo_commissioni\" value=\"val\">
-<input type=\"text\" name=\"commissioni_val\" size=\"5\"><label for=\"tipo_com_valp\"> $Euro ".mex("$parola_alla $parola_settimana",$pag).".
-</label></td></tr></table>
-<table><tr><td style=\"height: 2px;\"></td></tr></table><div style=\"text-align: center;\">
-<button class=\"txpr\" type=\"submit\"><div>".mex("Inserisci o modifica le commissioni in questo periodo",$pag)."</div></button>
-</div></div></form><br>
-<hr style=\"width: 95%\">";
-} # fine if ($priv_mod_tariffe != "n" and $lista_opt_tariffe)
+# fine if ($priv_mod_tariffe != "n" and $lista_opt_tariffe)
 
 
 if ($priv_mod_tariffe != "n" and $lista_opt_tariffe) {
-$tasse_esist = array();
-$funz_esist = array();
-$funz_sel_tas = "";
-for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
-if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
-if (!empty($dati_tariffe["tariffa$num1"]['tasse_percent'])) {
-$funz_sel_corr = "document.getElementById('tas_perc').value = '".$dati_tariffe["tariffa$num1"]['tasse_percent']."';";
-$funz_sel_tas .= "if (opt_corr == 'tariffa$num1') {
+    // Prepare data for Taxes Panel
+    
+    $tasse_esist = array();
+    $funz_esist = array();
+    $funz_sel_tas = "";
+    
+    for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
+        if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1])) {
+            if (!empty($dati_tariffe["tariffa$num1"]['tasse_percent'])) {
+                $funz_sel_corr = "document.getElementById('tas_perc').value = '".$dati_tariffe["tariffa$num1"]['tasse_percent']."';";
+                $funz_sel_tas .= "if (opt_corr == 'tariffa$num1') {
 $funz_sel_corr
 }
 ";
-if (!isset($tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']])) {
-$tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']] = 0;
-$funz_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']] = $funz_sel_corr;
-} # fine if (!isset($tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']]))
-$tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']]++;
-} # fine if (!empty($dati_tariffe["tariffa$num1"]['tasse_percent']))
-else {
-$funz_sel_tas .= "if (opt_corr == 'tariffa$num1') {
+                if (!isset($tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']])) {
+                    $tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']] = 0;
+                    $funz_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']] = $funz_sel_corr;
+                }
+                $tasse_esist[$dati_tariffe["tariffa$num1"]['tasse_percent']]++;
+            }
+            else {
+                $funz_sel_tas .= "if (opt_corr == 'tariffa$num1') {
 document.getElementById('tas_perc').value = '';
 }
 ";
-} # fine else if (!empty($dati_tariffe["tariffa$num1"]['tasse_percent']))
-} # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
-} # fine for $num1
-$lista_tasse_esist = "";
-foreach ($tasse_esist as $tassa => $num) {
-if ($num > 1) {
-if ($num < $num_opt_tariffe) {
-$lista_tasse_esist .= "<option value=\"t-$tassa\">".mex("tariffe con",$pag)." ".formatta_soldi($tassa)."%</option>";
-$funz_sel_tas .= "if (opt_corr == 't-$tassa') {
+            }
+        }
+    }
+    
+    $lista_tasse_esist = "";
+    foreach ($tasse_esist as $tassa => $num) {
+        if ($num > 1) {
+            if ($num < $num_opt_tariffe) {
+                $lista_tasse_esist .= "<option value=\"t-$tassa\">".mex("tariffe con",$pag)." ".formatta_soldi($tassa)."%</option>";
+                $funz_sel_tas .= "if (opt_corr == 't-$tassa') {
 ".$funz_esist[$tassa]."
 }
 ";
-} # fine if ($num < $num_opt_tariffe)
-else {
-$funz_sel_tas .= "if (opt_corr == 'tutte') {
+            }
+            else {
+                $funz_sel_tas .= "if (opt_corr == 'tutte') {
 ".$funz_esist[$tassa]."
 }
 ";
-} # fine else if ($num < $num_opt_tariffe)
-} # fine if ($num > 1)
-} # fine foreach ($tasse_esist as $tassa => $num)
-
-echo "<a name=\"mod_tas\"></a>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"modificatasse\" value=\"1\">
-<h5>".mex("Tasse",$pag)."</h5><br>
-".mex("Tasse applicate su",$pag)."
- <select id=\"tttas\" name=\"tipotariffa\" onchange=\"agg_sel_tas();\">";
-if ($num_opt_tariffe > 1) echo "<option value=\"tutte\">".mex("tutte le tariffe",$pag)."</option>";
-echo "$lista_tasse_esist
-$lista_opt_tariffe
-</select>:
- <input type=\"text\" id=\"tas_perc\" name=\"tasse_percent\" size=\"3\" maxlength=\"6\">%
- <button class=\"taxs\" type=\"submit\"><div>".mex("Inserisci o modifica le tasse",$pag)."</div></button>
-</div></form>
-<small>(".mex("tutti i prezzi delle tariffe si intendono con tasse già incluse",$pag).")</small><br><br>
-<script type=\"text/javascript\">
-<!--
-function agg_sel_tas () {
-opt_corr = document.getElementById('tttas');
-opt_corr = opt_corr.options[opt_corr.selectedIndex].value;
-$funz_sel_tas
+            }
+        }
+    }
+    
+    HotelDruidTemplate::getInstance()->display('creaprezzi/panel_taxes', get_defined_vars());
 }
-agg_sel_tas();
--->
-</script>";
-
-if ($modifica_pers != "NO") {
-if ($id_utente == 1) $id_utente_mod = "tutti";
-else $id_utente_mod = $id_utente;
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"./personalizza.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"id_utente_mod\" value=\"$id_utente_mod\">
-<input type=\"hidden\" name=\"aggiorna_qualcosa\" value=\"SI\">
-<input type=\"hidden\" name=\"origine\" value=\"./creaprezzi.php\">
-<input type=\"hidden\" name=\"cambiaarrtasse\" value=\"SI\">";
-echo ucfirst(mex("valore a cui arrotondare le percentuali delle tasse e delle valute","personalizza.php")).":
- <input type=\"text\" name=\"nuovo_arrotond_tasse\" size=\"4\" value=\"".$dati_tariffe['tasse_arrotond']."\">
-<button class=\"edit\" type=\"submit\"><div>".mex("Cambia","personalizza.php")."</div></button>
-</div></form><br>";
-} # fine if ($modifica_pers != "NO")
-
-echo "<hr style=\"width: 95%\">";
-} # fine if ($priv_mod_tariffe != "n" and $lista_opt_tariffe)
+# fine if ($priv_mod_tariffe != "n" and $lista_opt_tariffe)
 
 
 if ($priv_vedi_tab_periodi != "n") {
