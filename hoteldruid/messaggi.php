@@ -160,6 +160,11 @@ $titolo = "HotelDruid: ".mex("Messaggi",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+include("./includes/panel_feedback.php");
+$active_panel = '';
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
 
 $Euro = nome_valuta();
 $stile_soldi = stile_soldi();
@@ -198,7 +203,6 @@ if (!preg_match("/-[0-9]{2}-[0-9]{2}/",$data_visione)) $errore = "SI";
 if ($anno_visione != $anno_corrente and $anno_visione != ($anno_corrente + 1)) $errore = "SI";
 if (!$testo) $errore = "SI";
 if ($errore != "SI") {
-$mostra_form_iniziale = "NO";
 $max_mess = esegui_query("select max(idmessaggi) from $tablemessaggi");
 if (numlin_query($max_mess) != 0) $max_mess = (risul_query($max_mess,0,0) + 1);
 else $max_mess = 1;
@@ -211,7 +215,8 @@ $testo = substr(htmlspecialchars($testo,ENT_SUBSTITUTE),0,65530);
 $testo = aggslashdb($testo);
 $datainserimento = date("Y-m-d H:i:s",(time() + (C_DIFF_ORE * 3600)));
 esegui_query("insert into $tablemessaggi (idmessaggi,tipo_messaggio,idutenti,idutenti_visto,datavisione,mittente,testo,datainserimento) values ('$max_mess','mess','$lista_utenti','$lista_utenti','$datavisione','$id_utente','$testo','$datainserimento')");
-echo mex("Messaggio inviato",$pag).".<br>";
+$active_panel = 'messages';
+$success_messages[] = mex("Messaggio inviato",$pag);
 } # fine if ($errore != "SI")
 unlock_tabelle($tabelle_lock);
 } # fine if (!empty($spedisci_messaggio))
@@ -247,7 +252,6 @@ $altre_tab_lock = array($tableutenti,$tableprivilegi);
 $tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
 $messaggio = esegui_query("select idutenti,tipo_messaggio,dati_messaggio1,mittente from $tablemessaggi where idmessaggi = '".aggslashdb($idmessaggi)."'");
 if (numlin_query($messaggio) == 1) {
-$mostra_form_iniziale = "NO";
 $tipo_messaggio = risul_query($messaggio,0,'tipo_messaggio');
 $dati_messaggio1 = risul_query($messaggio,0,'dati_messaggio1');
 $mittente = risul_query($messaggio,0,'mittente');
@@ -268,8 +272,8 @@ if (!isset($continua) or $continua != "NO") {
 $idutenti = risul_query($messaggio,0,'idutenti');
 esegui_query("update $tablemessaggi set idutenti = '".str_replace(",$id_utente,",",",$idutenti)."' where idmessaggi = '$idmessaggi'");
 cancella_messaggi_vecchi($tableprivilegi,$tablemessaggi);
-echo mex("Messaggio eliminato",$pag).".<br>";
-$mostra_form_iniziale = "SI";
+$active_panel = 'messages';
+$success_messages[] = mex("Messaggio eliminato",$pag);
 } # fine if (!isset($continua) or $continua != "NO")
 } # fine if (numlin_query($messaggio) == 1)
 unlock_tabelle($tabelle_lock);
@@ -277,7 +281,6 @@ unlock_tabelle($tabelle_lock);
 
 if (isset($elimina_tutti_mess) and $elimina_tutti_mess == "SI") {
 if ($prima_dopo != "prima") $prima_dopo = "dopo";
-$mostra_form_iniziale = "NO";
 if (!isset($continua) or $continua != "SI") {
 if (!preg_match("/-[0-9]{2}-[0-9]{2}/",$data_arrivo)) $data_arrivo = "";
 if ($anno_arrivo != $anno_corrente and $anno_arrivo != ($anno_corrente - 1)) $anno_arrivo = "";
@@ -326,7 +329,8 @@ esegui_query("update $tablemessaggi set idutenti = '".str_replace(",$id_utente,"
 } # fine for $num1
 cancella_messaggi_vecchi($tableprivilegi,$tablemessaggi);
 unlock_tabelle($tabelle_lock);
-echo mex("Messaggi eliminati",$pag).".<br>";
+$active_panel = 'messages';
+$success_messages[] = mex("Messaggi eliminati",$pag);
 } # fine else if (!isset($continua) or $continua != "SI")
 } # fine if (isset($elimina_tutti_mess) and $elimina_tutti_mess == "SI")
 
@@ -602,21 +606,31 @@ $max_mess++;
 $data_modifica = date("Y-m-d H:i:s",(time() + (C_DIFF_ORE * 3600)));
 if (numlin_query($messaggi_visti)) esegui_query("update $tablecache set testo = '$max_inbox_id', data_modifica = '$data_modifica' where numero = '$id_utente' and tipo = 'messv_em' ");
 else esegui_query("insert into $tablecache (numero,tipo,testo,data_modifica,datainserimento) values ('$id_utente','messv_em','$max_inbox_id','$data_modifica','$data_modifica') ");
-if ($mess_nuovi) echo mex("Nuovi messaggi",$pag).": $mess_nuovi. ".mex("Scaricati",$pag).": $mess_scaricati.<br>";
-else echo mex("Nessun nuovo messaggio",$pag).".<br>";
+if ($mess_nuovi) {
+$active_panel = 'messages';
+$success_messages[] = mex("Nuovi messaggi",$pag).": $mess_nuovi. ".mex("Scaricati",$pag).": $mess_scaricati";
+}
+else {
+$active_panel = 'messages';
+$success_messages[] = mex("Nessun nuovo messaggio",$pag);
+}
 } # fine if ($mess)
-else echo mex("Nessun nuovo messaggio",$pag).".<br>";
+else {
+$active_panel = 'messages';
+$success_messages[] = mex("Nessun nuovo messaggio",$pag);
+}
 imap_close($email_conn);
 } # fine if ($email_conn)
 
 else {
-echo mex("Connessione al server",$pag)." ".$server[0]." ".mex("non riuscita!",$pag)." ".mex("Controllare i dati immessi in",$pag)." \"";
-if ($modifica_pers != "NO") echo "<a href=\"./personalizza.php?anno=$anno&id_sessione=$id_sessione#tab_mess\">".mex("configura e personalizza",$pag)."\"</a>.<br>";
-else echo "".mex("configura e personalizza\"",$pag).".<br>";
+$active_panel = 'messages';
+$err_msg = mex("Connessione al server",$pag)." ".$server[0]." ".mex("non riuscita!",$pag)." ".mex("Controllare i dati immessi in",$pag)." \"";
+if ($modifica_pers != "NO") $err_msg .= "<a href=\"./personalizza.php?anno=$anno&id_sessione=$id_sessione#tab_mess\">".mex("configura e personalizza",$pag)."\"</a>.";
+else $err_msg .= "".mex("configura e personalizza\"",$pag)."";
 if (stristr($server[0],"gmail.com")) {
-#echo "<br>".mex("Per gli account su gmail potrebbe essere necessario abilitare l'opzione",$pag)." \"<a rel=\"noopener noreferrer\" target=\"_blank\" href=\"https://myaccount.google.com/lesssecureapps\">Less secure app access: ON</a>\" ".mex("e/o per una volta usare prima la funzione",$pag)." \"<a rel=\"noopener noreferrer\" target=\"_blank\" href=\"https://accounts.google.com/DisplayUnlockCaptcha\">Unlock Captcha</a>\".<br><br>";
-echo "<br>".mex("Per gli account su gmail potrebbe essere necessario abilitare l'opzione",$pag)." \"<a rel=\"noopener noreferrer\" target=\"_blank\" href=\"https://myaccount.google.com/apppasswords\">App Password</a>\".<br><br>";
+$err_msg .= "<br><br>".mex("Per gli account su gmail potrebbe essere necessario abilitare l'opzione",$pag)." \"<a rel=\"noopener noreferrer\" target=\"_blank\" href=\"https://myaccount.google.com/apppasswords\">App Password</a>\"";
 } # fine if (stristr($server[0],"gmail.com"))
+$error_messages[] = $err_msg;
 } # fine else if ($email_conn)
 } # fine if (numlin_query($server_email_tab_messaggi))
 unlock_tabelle($tabelle_lock);
@@ -672,22 +686,22 @@ unlock_tabelle($tabelle_lock);
 
 
 
-if ($mostra_form_iniziale == "NO") {
-echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form>";
-} # fine if ($mostra_form_iniziale == "NO")
-
-
 } # fine if (!empty($cambia_qualcosa))
 
 
 
 
-
-if ($mostra_form_iniziale != "NO") {
+// Start Messages Panel
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Messaggi",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'messages') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
 
 if (function_exists('imap_open')) {
 $server_email_tab_messaggi = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'server_email_tab_messaggi' and idutente = '$id_utente' ");
@@ -703,8 +717,6 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=
 } # fine if (numlin_query($server_email_tab_messaggi))
 } # fine if (function_exists('imap_open'))
 
-
-echo "<h3 id=\"h_mess\"><span>".mex("Messaggi",$pag)."</span></h3><br><br>";
 
 $tutti_utenti = esegui_query("select * from $tableutenti order by idutenti");
 $num_tutti_utenti = numlin_query($tutti_utenti);
@@ -1292,15 +1304,14 @@ echo "</select> ".mex("il",$pag)."
 </div></form>";
 } # fine if ($priv_ins_messaggi == "s")
 
+echo "</div></div>"; // Close rcontent and rbox (Messages Panel)
+
 echo "<br><hr style=\"width: 95%\"><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"./inizio.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"bkmm\" type=\"submit\"><div>".mex("Torna al menù principale",$pag)."</div></button>
 </div></form><table><tr><td style=\"height: 20px;\"></td></tr></table>";
-
-
-} # fine if ($mostra_form_iniziale != "NO")
 
 
 
