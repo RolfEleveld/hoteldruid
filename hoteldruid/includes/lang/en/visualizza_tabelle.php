@@ -113,6 +113,7 @@ case "Sei sicuro di voler <b>cancellare</b> la regola di assegnazione 3 per la":
 case "Sei sicuro di voler <b>cancellare</b> la regola di assegnazione 4 per la":	$messaggio = "Are you sure you want to <b>delete</b> the assignment rule 4 for"; break;
 case "La regola di assegnazione è stata cancellata":	$messaggio = "The assignment rule has been deleted"; break;
 case "La regola di assegnazione è già stata cancellata":	$messaggio = "The assignment rule has already been deleted"; break;
+case "Regole di assegnazione":	$messaggio = "Assignment rules"; break;
 case "Tabella con le regole di assegnazione":	$messaggio = "Table with the assignment rules"; break;
 case "del":	 				$messaggio = "of"; break;
 case "Motivazione":  				$messaggio = "Motivation"; break;

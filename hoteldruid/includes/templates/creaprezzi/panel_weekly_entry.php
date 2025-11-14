@@ -39,6 +39,15 @@ for ($num1 = 1 ; $num1 <= 7 ; $num1++) {
         <h5><?php echo mex("Inserzione per settimane",$pag); ?></h5>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_weekly_entry') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
+        
         <form accept-charset="utf-8" method="post" action="creaprezzi.php">
             <div>
                 <input type="hidden" name="anno" value="<?php echo $anno; ?>">

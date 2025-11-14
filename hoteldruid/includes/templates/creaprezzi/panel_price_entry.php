@@ -71,6 +71,15 @@ for ($numperiodo = 1 ; $numperiodo <= $numcaselle ; $numperiodo++) {
         <h5><?php echo mex("Inserzione per $parola_settimane",$pag); ?></h5>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_price_entry') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
+        
         <form accept-charset="utf-8" method="post" action="<?php echo $pag; ?>">
             <div>
                 <input type="hidden" name="anno" value="<?php echo $anno; ?>">

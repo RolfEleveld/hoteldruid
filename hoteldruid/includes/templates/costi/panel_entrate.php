@@ -7,6 +7,16 @@ if (!defined('C_DATI_PATH')) die();
     <div style="background: linear-gradient(135deg, #3F51B5 0%, #5C6BC0 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;">
         <?php echo mex("Inserisci le entrate in cassa per l'anno",$pag)." ".$anno; ?>.
     </div>
+    
+    <?php
+    // Display feedback messages if this panel is active
+    if (isset($active_panel) && $active_panel === 'panel_entrate') {
+        if (class_exists('HotelDruidTemplate')) {
+            HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+        }
+    }
+    ?>
+    
     <form accept-charset="utf-8" method="post" action="costi.php">
         <div>
             <input type="hidden" name="anno" value="<?php echo $anno; ?>">
@@ -25,12 +35,12 @@ if (!defined('C_DATI_PATH')) die();
             
             <span class="wsnw">
                 <?php echo mex("Natura entrata",$pag); ?>: 
-                <input type="text" name="nome_costo" size="30" value="">
+                <input type="text" name="nome_costo" size="30" value="<?php echo isset($nome_costo) ? htmlspecialchars(stripslashes($nome_costo)) : ''; ?>">
             </span>
             
             <span class="wsnw">
                 <?php echo mex("Importo",$pag); ?>: 
-                <input type="text" name="val_costo" size="10" value=""> <?php echo $valute_txt; ?>.
+                <input type="text" name="val_costo" size="10" value="<?php echo isset($val_costo) ? htmlspecialchars($val_costo) : ''; ?>"> <?php echo $valute_txt; ?>.
             </span>
             
             <?php if (!empty($metodo_pagamento_txt)) { ?>

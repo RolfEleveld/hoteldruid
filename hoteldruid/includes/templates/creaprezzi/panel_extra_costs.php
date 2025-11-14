@@ -10,6 +10,15 @@
         <h5><?php echo mex("Costi aggiuntivi",$pag); ?></h5>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_new_cost') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
+        
         <?php if (!isset($num_costi_max)) { ?>
             <!-- New Extra Cost Form -->
             <form accept-charset="utf-8" method="post" action="creaprezzi.php">

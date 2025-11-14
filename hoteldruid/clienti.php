@@ -279,6 +279,16 @@ $titolo = "HotelDruid: ".mex("Clienti",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+// Include panel feedback system
+if (file_exists("./includes/panel_feedback.php")) {
+    include_once("./includes/panel_feedback.php");
+}
+
+// Initialize panel feedback message arrays
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
+$active_panel = '';
 
 if ($id_utente != 1 or fixset($id_utente_ins) == "" or controlla_num_pos($id_utente_ins) == "NO") $id_utente_ins = $id_utente;
 
@@ -2685,23 +2695,25 @@ $campi_pers_vett['val'][$num1] = ${"campo_pers".$num1};
 
 $idclienti = inserisci_dati_cliente($cognome_agg,$nome,$soprannome,$titolo_cli,$sesso,$mesenascita,$giornonascita,$annonascita,$nazionenascita,$cittanascita,$regionenascita,$documento,$tipodoc,$mesescaddoc,$giornoscaddoc,$annoscaddoc,$cittadoc,$regionedoc,$nazionedoc,$nazionalita,$lingua_cli,$nazione,$citta,$regione,$via,$nomevia,$numcivico,$cap,$telefono,$telefono2,$telefono3,$fax,$email,$email2,$email_cert,$cod_fiscale,$partita_iva,$max_num_ordine,$id_utente_ins,$attiva_prefisso_clienti,$prefisso_clienti,$idclienti,"NO",$campi_pers_vett);
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_cliente.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
-<input type=\"hidden\" name=\"origine\" value=\"inizio.php\">";
-if (isset($cliente_modificato) and $cliente_modificato == "SI") echo mex("I dati del cliente",$pag)." $cognome ".mex("sono stati modificati",$pag).". ";
-else echo mex("I dati del cliente",$pag)." $cognome ".mex("sono stati inseriti",$pag).". ";
-echo "<button class=\"mcli\" type=\"submit\"><div>".mex("Modifica i dati del cliente",$pag)." $idclienti</div></button>
-</div></form>";
+// Add success message to panel feedback
+if (isset($cliente_modificato) and $cliente_modificato == "SI") {
+    $success_messages[] = mex("I dati del cliente",$pag)." <b>$cognome</b> ".mex("sono stati modificati",$pag).".";
+} else {
+    $success_messages[] = mex("I dati del cliente",$pag)." <b>$cognome</b> ".mex("sono stati inseriti",$pag).".";
+}
+$active_panel = 'panel_client_form';
+
+// Clear form fields for next insertion
+$cognome = "";
+$nome = "";
+$soprannome = "";
+$sesso = "";
+$cliente_modificato = "";
+
+// Redisplay the client form panel with success message
+$mostra_form_dati_cliente = "";
 } # fine if ($inserire != "NO")
 else echo mex("Non si è trovato nessun cliente chiamato",$pag)." $cognome.<br>";
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_origine($origine)."\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Torna all'inserimento clienti",$pag)."</div></button>
-</div></form>";
 
 unlock_tabelle($tabelle_lock);
 

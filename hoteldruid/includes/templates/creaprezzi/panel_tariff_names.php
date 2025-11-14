@@ -12,21 +12,29 @@ for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
         $current_name = $dati_tariffe[$tariffa]['nome'];
         $tariff_label = mex("tariffa",$pag).$num1;
         
+        // Check if this field should be cleared (after successful update)
+        $field_value = isset(${"nometariffa_".$num1}) ? ${"nometariffa_".$num1} : $current_name;
+        
         $tariff_rows .= "
         <tr>
             <td class=\"label-col\">$tariff_label:</td>
             <td class=\"input-col\">
-                <input type=\"text\" 
-                       name=\"nometariffa_$num1\" 
-                       id=\"nometariffa_$num1\" 
-                       value=\"".htmlspecialchars($current_name)."\" 
-                       size=\"30\"
-                       class=\"tariff-name-input\">
+                <form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\" style=\"margin: 0;\">
+                    <input type=\"hidden\" name=\"anno\" value=\"$anno\">
+                    <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
+                    <input type=\"hidden\" name=\"origine\" value=\"$pag\">
+                    <input type=\"text\" 
+                           name=\"nometariffa_$num1\" 
+                           id=\"nometariffa_$num1\" 
+                           value=\"".htmlspecialchars($field_value)."\" 
+                           size=\"30\"
+                           class=\"tariff-name-input\">
             </td>
             <td class=\"action-col\">
-                <button class=\"edit\" type=\"submit\" name=\"cambia_nome_tariffa\" value=\"$num1\">
-                    <div>".mex("Cambia",$pag)."</div>
-                </button>
+                    <button class=\"edit\" type=\"submit\" name=\"cambia_nome_tariffa\" value=\"$num1\">
+                        <div>".mex("Cambia",$pag)."</div>
+                    </button>
+                </form>
             </td>
         </tr>";
     }
@@ -38,6 +46,15 @@ for ($num1 = 1 ; $num1 <= $dati_tariffe['num'] ; $num1++) {
         <h5><?php echo mex("Nomi delle tariffe",$pag); ?></h5>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_tariff_names') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
+        
         <table class="tariff-names-table">
             <thead>
                 <tr>

@@ -112,7 +112,8 @@ case "Sei sicuro di voler <b>cancellare</b> la regola di assegnazione 2 per la":
 case "Sei sicuro di voler <b>cancellare</b> la regola di assegnazione 3 per la":	$messaggio = "¿Está seguro de querer <b>eliminar</b> la regla de asignación 3 para la"; break;
 case "Sei sicuro di voler <b>cancellare</b> la regola di assegnazione 4 per la":	$messaggio = "¿Está seguro de querer <b>eliminar</b> la regla de asignación 4 para la"; break;
 case "La regola di assegnazione è stata cancellata":	$messaggio = "La regla de asignación ha sido borrada"; break;
-case "La regola di assegnazione è già stata cancellata":	$messaggio = "La regla de asignación había sido ya borrada"; break;
+case "La regola di assegnazione è già stata cancellata":	$messaggio = "La regla de asignación ya ha sido cancelada"; break;
+case "Regole di assegnazione":	$messaggio = "Reglas de asignación"; break;
 case "Tabella con le regole di assegnazione":	$messaggio = "Tabla con las reglas de asignación"; break;
 case "del":					$messaggio = "del"; break;
 case "Motivazione":  				$messaggio = "Motivación"; break;

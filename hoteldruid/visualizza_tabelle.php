@@ -241,6 +241,8 @@ $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB
 include("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_testo.php");
+include("./includes/panel_feedback.php");
+$active_panel = '';
 $tipo_tabella = fixstr($tipo_tabella);
 if ($tipo_tabella == "appartamenti" or $tipo_tabella == "periodi") $base_js = 1;
 $tablenometariffe = $PHPR_TAB_PRE."ntariffe".$anno;
@@ -1697,6 +1699,20 @@ if ($senza_colori) {
 #$colore_sfondo = "";
 $class = "t1wc";
 } # fine if ($senza_colori)
+
+if ($num_tab == 1) {
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Prenotazioni",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_prenotazioni') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+}
+
 echo "<div class=\"tab_cont\">
 <table class=\"$class\" id=\"tpren$num_tab\" style=\"width: 3px; margin-left: auto; margin-right: auto;\" border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
 <tr><td";
@@ -2608,6 +2624,8 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
 </div></form></div>";
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
 
+echo "</div></div>"; // Close rcontent and rbox
+
 } # fine if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO")
 
 } # fine if ($tipo_tabella == "prenotazioni" and $priv_vedi_tab_prenotazioni != "n")
@@ -2932,6 +2950,17 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine for $num_contratto
 
 
+echo "<div class=\"rbox\" style=\"border-left-color: #2ecc71;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);\">
+<h5>".mex("Costi",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_costi') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
 foreach ($casse_mostra as $id_cassa => $nome_cassa) {
 if ($id_cassa == 1) $cond_cassa = " and (nome_cassa = '' or nome_cassa is NULL) ";
 else $cond_cassa = " and nome_cassa = '".aggslashdb($nome_cassa)."' ";
@@ -2941,11 +2970,15 @@ $entrate_valuta_TOT = array();
 $spese_valuta_TOT = array();
 
 
-echo "<a name=\"entr_cassa$id_cassa\"></a><br>
-<h3 id=\"h_inc\"><span>".mex("Tutte le entrate del",$pag)." $anno ";
+echo "<a name=\"entr_cassa$id_cassa\"></a>
+<div class=\"rbox\" style=\"border-left-color: #27ae60; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 8px 15px;\">
+<h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Tutte le entrate del",$pag)." $anno ";
 if ($id_cassa == 1) echo mex("nella cassa principale",$pag);
 else echo mex("nella cassa chiamata",$pag)." <em>$nome_cassa</em>";
-echo ".</span></h3>";
+echo "</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
 
 $costi = esegui_query("select * from $tablecosti where tipo_costo = 'e' $cond_cassa$condizione_costi_propri order by idcosti");
 $num_costi = numlin_query($costi);
@@ -3156,14 +3189,19 @@ if ($priv_ins_entrate == "s") echo "<td>&nbsp;</td>";
 echo "</tr>";
 } # fine if ($mostra_tot_tab)
 echo "</table><div style=\"text-align: center;\">* ".mex("entrata presa dalle prenotazioni",$pag)."$stringa_pagine
-<br>";
+<br>
 
+</div></div>"; // Close entrate subsection
 
-echo "<a name=\"usci_cassa$id_cassa\"></a><br>
-<h3 id=\"h_exp\"><span>".mex("Tutte le spese del",$pag)." $anno ";
+echo "<a name=\"usci_cassa$id_cassa\"></a>
+<div class=\"rbox\" style=\"border-left-color: #c0392b; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #c0392b 0%, #a93226 100%); padding: 8px 15px;\">
+<h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Tutte le spese del",$pag)." $anno ";
 if ($id_cassa == 1) echo mex("nella cassa principale",$pag);
 else echo mex("nella cassa chiamata",$pag)." <em>$nome_cassa</em>";
-echo ".</span></h3>";
+echo "</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
 
 $costi = esegui_query("select * from $tablecosti where tipo_costo = 's' $cond_cassa$condizione_costi_propri order by idcosti");
 $num_costi = numlin_query($costi);
@@ -3425,6 +3463,8 @@ echo ")</div></form>";
 } # fine if ($altre_valute_TOT)
 echo "</div></div><br>";
 
+echo "</div></div>"; // Close spese subsection
+
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\"><div  class=\"txtcenter\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -3479,6 +3519,8 @@ echo "<td><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"resp\" type=\"submit\"><div>".mex("Storia entrate-uscite prenotazioni",$pag)."</div></button>
 </div></form></div></td></tr></table>";
+
+echo "</div></div>"; // Close rcontent and rbox
 
 } # fine if (!isset($mostra_tab_costi) or $mostra_tab_costi != "NO")
 
@@ -4919,6 +4961,17 @@ else $n_per_passa = (risul_query($periodi,0,'idperiodi') - 1);
 $num_periodi = numlin_query($periodi);
 $n_per_passa += $num_periodi;
 
+echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
+<h5>".mex("Periodi",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_periodi') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
 echo "<h3 id=\"h_rat\"><span>".mex("Tabella con periodi e relative tariffe del",$pag)." $anno.</span></h3>";
 if ($form_tabella) {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
@@ -5583,6 +5636,8 @@ echo "<br><br><div style=\"text-align: center;\">
 </div></form></div><br>";
 } # fine if ($priv_mod_tariffe != "n" or $priv_ins_costi_agg != "n")
 
+echo "</div></div>"; // Close rcontent and rbox
+
 } # fine if (!isset($mostra_pag_principale) or $mostra_pag_principale != "NO")
 } # fine else if ($cancella_anno and $id_utente == 1)
 } # fine else if ($aggiungi and $id_utente == 1)
@@ -5955,6 +6010,17 @@ unlock_tabelle($tabelle_lock);
 
 if ($mostra_tab_clienti) {
 
+echo "<div class=\"rbox\" style=\"border-left-color: #e74c3c;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);\">
+<h5>".mex("Clienti",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_clienti') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
 if (@get_magic_quotes_gpc()) $cognome_cerca = stripslashes($cognome_cerca);
 $cognome_cerca = htmlspecialchars(fixstr($cognome_cerca),ENT_COMPAT);
 if ($cognome_cerca) {
@@ -6273,6 +6339,8 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
 } # fine if ($lista_clienti_contr) 
 
+echo "</div></div>"; // Close rcontent and rbox
+
 } # fine if ($mostra_tab_clienti)
 
 } # fine if ($tipo_tabella == "clienti" and $vedi_clienti != "NO")
@@ -6393,8 +6461,24 @@ else include("./includes/interconnect/aggiorna_ic.php");
 else {
 
 
-echo "<h3 id=\"h_rul\"><span id=\"hreg1\">".mex("Tabella con le regole di assegnazione",$pag)." 1 (".mex("chiusure",'crearegole.php').") ".mex("del",$pag)." $anno.</span></h3>
-<br><div class=\"tab_cont\">
+echo "<div class=\"rbox\" style=\"border-left-color: #f39c12;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);\">
+<h5>".mex("Regole",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_regole') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
+echo "<div class=\"rbox\" style=\"border-left-color: #e67e22; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); padding: 8px 15px;\">
+<h6 id=\"hreg1\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 1 - ".mex("chiusure",'crearegole.php')."</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
+
+echo "<div class=\"tab_cont\">
 <table class=\"t1 t1color\" style=\"margin-left: auto; margin-right: auto;\" width=3 border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
 <tr><td><small>".mex("Appartamento",'unit.php')." / ".ucfirst(mex("tariffa",$pag))."</small></td>
 <td class=\"t1top\">".str_replace("_","&nbsp;",mex("Inizio_$parola_settimana",$pag))."</td>
@@ -6503,9 +6587,15 @@ echo "</tr>";
 } # fine for $num1
 echo "</table></div>";
 
+echo "</div></div>"; // Close Regole 1 panel
 
-echo "<br><br><h3 id=\"h_rul\"><span id=\"hreg2\">".mex("Tabella con le regole di assegnazione",$pag)." 2 (".mex("tipologie di appartamenti",'unit.php').") ".mex("del",$pag)." $anno.</span></h3>
-<br><div class=\"tab_cont\">
+echo "<div class=\"rbox\" style=\"border-left-color: #d68910; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #d68910 0%, #b8790a 100%); padding: 8px 15px;\">
+<h6 id=\"hreg2\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 2 - ".mex("tipologie di appartamenti",'unit.php')."</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
+
+echo "<div class=\"tab_cont\">
 <table class=\"t1 t1color\" style=\"margin-left: auto; margin-right: auto;\" width=3 border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
 <tr><td>".mex("Tariffa",$pag)."</td>
 <td class=\"t1top\">".mex("Appartamenti",'unit.php')."</td>";
@@ -6598,9 +6688,15 @@ foreach ($html_tab as $val) echo $val;
 } # fine if ($html_tab)*/
 echo "</table></div>";
 
+echo "</div></div>"; // Close Regole 2 panel
 
-echo "<br><br><h3 id=\"h_rul\"><span id=\"hreg3\">".mex("Tabella con le regole di assegnazione",$pag)." 3 (".mex("numero di persone",'crearegole.php').") ".mex("del",$pag)." $anno.</span></h3>
-<br><div class=\"tab_cont\">
+echo "<div class=\"rbox\" style=\"border-left-color: #ca6f1e; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #ca6f1e 0%, #a04000 100%); padding: 8px 15px;\">
+<h6 id=\"hreg3\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 3 - ".mex("numero di persone",'crearegole.php')."</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
+
+echo "<div class=\"tab_cont\">
 <table class=\"t1 t1color\" style=\"margin-left: auto; margin-right: auto;\" width=3 border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
 <tr><td>".mex("Tariffa",$pag)."</td>
 <td class=\"t1top\"><small>".str_replace("_","&nbsp;",mex("Numero_predefinito di persone",$pag))."</small></td>
@@ -6649,11 +6745,17 @@ foreach ($html_tab as $val) echo $val;
 } # fine if ($html_tab)
 echo "</table></div>";
 
+echo "</div></div>"; // Close Regole 3 panel
 
 if ($id_utente == 1) {
 
-echo "<br><br><h3 id=\"h_rul\"><span>".mex("Tabella con le regole di assegnazione",$pag)." 4 (".mex("utente inserimento",'crearegole.php').") ".mex("del",$pag)." $anno.</span></h3>
-<br><div class=\"tab_cont\">
+echo "<div class=\"rbox\" style=\"border-left-color: #af601a; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #af601a 0%, #873e03 100%); padding: 8px 15px;\">
+<h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 4 - ".mex("utente inserimento",'crearegole.php')."</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">";
+
+echo "<div class=\"tab_cont\">
 <table class=\"t1 t1color\" style=\"margin-left: auto; margin-right: auto;\" width=3 border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
 <tr><td>".mex("Tariffa",$pag)."</td>
 <td class=\"t1top\">".mex("Utente",$pag)."</td>";
@@ -6694,6 +6796,8 @@ foreach ($html_tab as $val) echo $val;
 } # fine if ($html_tab)
 echo "</table></div>";
 
+echo "</div></div>"; // Close Regole 4 panel
+
 } # fine if ($id_utente == 1)
 
 
@@ -6705,6 +6809,8 @@ echo "<br><div style=\"text-align: center;\">
 <button class=\"irul\" type=\"submit\"><div>".mex("Inserisci nuove regole",$pag)."</div></button>
 </div></form></div>";
 } # fine if ($installazione_subordinata != "SI" and ($priv_mod_reg1 != "n" or $priv_mod_reg2 == "s"))
+
+echo "</div></div>"; // Close rcontent and rbox
 
 } # fine else if (!empty($idregole) and empty($torna_alla_tab) and...
 } # fine if ($tipo_tabella == "regole" and $priv_vedi_tab_regole != "n")
@@ -6922,6 +7028,17 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle
 else {
 
 
+
+echo "<div class=\"rbox\" style=\"border-left-color: #1abc9c;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);\">
+<h5>".mex("Appartamenti",'unit.php')."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_appartamenti') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
 
 echo "<h3 id=\"h_room\"><span>".mex("Tabella con tutti gli appartamenti",'unit.php').".</span></h3><br>";
 
@@ -7412,6 +7529,8 @@ else echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"visualizz
 </div></form><br>";
 } # fine if (empty($form_tabella) and $num_appartamenti > 2)
 
+echo "</div></div>"; // Close rcontent and rbox
+
 } # fine else if ($crea_app)
 } # fine if ($tipo_tabella == "appartamenti" and $priv_vedi_tab_appartamenti != "n")
 
@@ -7673,6 +7792,17 @@ unlock_tabelle($tabelle_lock);
 
 if (!isset($mostra_form_inventario) or $mostra_form_inventario != "NO") {
 
+
+echo "<div class=\"rbox\" style=\"border-left-color: #95a5a6;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);\">
+<h5>".mex("Inventario",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_inventario') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
 
 $tutti_utenti = esegui_query("select * from $tableutenti order by idutenti");
 $num_tutti_utenti = numlin_query($tutti_utenti);
@@ -7983,6 +8113,8 @@ echo "$opt_app_a</select>
 } # fine if ($opt_app and $priv_ins_beni_in_app != "n" and $priv_vedi_beni_inv != "n" and...
 
 
+echo "</div></div>"; // Close rcontent and rbox
+
 } # fine if (!isset($mostra_form_inventario) or $mostra_form_inventario != "NO")
 
 } # fine if ($tipo_tabella == "inventario" and ($priv_vedi_beni_inv != "n" or $priv_vedi_inv_mag != "n" or $priv_vedi_inv_app))
@@ -8190,7 +8322,16 @@ else unlink("$dir_salva/$file_tmp");
 
 if (!isset($mostra_tab_doc_salvati) or $mostra_tab_doc_salvati != "NO") {
 
-echo "<h3 id=\"h_doc\"><span>".ucfirst(mex("documenti salvati",$pag)).".</span></h3>";
+echo "<div class=\"rbox\" style=\"border-left-color: #8B4513;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);\">
+<h5>".mex("Documenti",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_documenti') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
 
 $num_vedi_in_tab = esegui_query("select valpersonalizza_num from $tablepersonalizza where idpersonalizza = 'num_righe_tab_doc_salvati' and idutente = '$id_utente'");
 $num_vedi_in_tab = risul_query($num_vedi_in_tab,0,'valpersonalizza_num');
@@ -8489,6 +8630,8 @@ $stringa_pagine";
 } # fine if ($dir_salva and...
 
 } # fine for $num_c
+
+echo "</div></div>"; // Close rcontent and rbox
 
 } # fine if (!isset($mostra_tab_doc_salvati) or $mostra_tab_doc_salvati != "NO")
 
@@ -9104,7 +9247,17 @@ genera_statistiche($$entrate_ins_mese,$$num_prenota_ins_mese,$$entrate_prog_ins_
 } # fine for $num1
 
 
-echo "<h3 id=\"h_stat\"><span>".mex("Statistiche",$pag).".</span></h3>";
+echo "<div class=\"rbox\" style=\"border-left-color: #003366;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #003366 0%, #0066cc 100%);\">
+<h5>".mex("Statistiche",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'panel_statistiche') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
 if (!empty($gio_ini_ins) or !empty($gio_fine_ins)) {
 echo "<h5>(".mex("con prenotazioni inserite",$pag)."";
 if (!empty($gio_ini_ins)) echo " ".mex("dal",$pag)." $gio_ini_ins ".$nome_mese[$mese_ini_ins].".";
@@ -9596,6 +9749,7 @@ echo "$istogramma<br><br>";
 
 } # fine if (@is_array($x))
 
+echo "</div></div>"; // Close rcontent and rbox
 
 } # fine if ($tipo_tabella == "statistiche" and $priv_vedi_tab_stat != "n")
 

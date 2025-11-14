@@ -105,7 +105,16 @@ if (file_exists("./includes/template.php")) {
     include_once("./includes/template.php");
 }
 
+// Include panel feedback system
+if (file_exists("./includes/panel_feedback.php")) {
+    include_once("./includes/panel_feedback.php");
+}
 
+// Initialize panel feedback message arrays
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
+$active_panel = '';
 
 $Euro = nome_valuta();
 $altre_valute = altre_valute();
@@ -131,21 +140,39 @@ if (@get_magic_quotes_gpc()) $persona_costo = stripslashes($persona_costo);
 $persona_costo = htmlspecialchars(fixstr($persona_costo),ENT_COMPAT);
 $persona_costo = aggslashdb($persona_costo);
 if (!$nome_costo) {
-if (!empty($inserisci_entrata)) echo mex("Si deve inserire un nome per l' entrata",$pag).".<br>";
-if (!empty($inserisci_spesa)) echo mex("Si deve inserire un nome per la spesa",$pag).".<br>";
+if (!empty($inserisci_entrata)) {
+    $error_messages[] = mex("Si deve inserire un nome per l' entrata",$pag).".";
+    $active_panel = 'panel_entrate';
+}
+if (!empty($inserisci_spesa)) {
+    $error_messages[] = mex("Si deve inserire un nome per la spesa",$pag).".";
+    $active_panel = 'panel_spese';
+}
 $inserire = "NO";
 } # fine if (!$nome_costo)
 
 if (empty($val_costo)) {
-if (!empty($inserisci_entrata)) echo mex("Si deve inserire il valore dell' entrata",$pag).".<br>";
-if (!empty($inserisci_spesa)) echo mex("Si deve inserire il valore della spesa",$pag).".<br>";
+if (!empty($inserisci_entrata)) {
+    $error_messages[] = mex("Si deve inserire il valore dell' entrata",$pag).".";
+    $active_panel = 'panel_entrate';
+}
+if (!empty($inserisci_spesa)) {
+    $error_messages[] = mex("Si deve inserire il valore della spesa",$pag).".";
+    $active_panel = 'panel_spese';
+}
 $inserire = "NO";
 } # fine if (empty($val_costo))
 else {
 $val_costo = formatta_soldi($val_costo);
 if (controlla_soldi($val_costo) == "NO") {
-if ($inserisci_entrata) echo mex("Il valore dell' entrata è sbagliato",$pag).".<br>";
-if ($inserisci_spesa) echo mex("Il valore della spesa è sbagliato",$pag).".<br>";
+if ($inserisci_entrata) {
+    $error_messages[] = mex("Il valore dell' entrata è sbagliato",$pag).".";
+    $active_panel = 'panel_entrate';
+}
+if ($inserisci_spesa) {
+    $error_messages[] = mex("Il valore della spesa è sbagliato",$pag).".";
+    $active_panel = 'panel_spese';
+}
 $inserire = "NO";
 } # fine if (controlla_soldi($val_costo) == "NO")
 } # fine else if (empty($val_costo))
@@ -215,21 +242,40 @@ $tipo_costo = "e";
 if ($inserisci_spesa) $tipo_costo = "s";
 esegui_query("insert into $tablecosti (idcosti,nome_costo,val_costo,tipo_costo,nome_cassa,persona_costo,provenienza_costo,metodo_pagamento,data_transazione,datainserimento,hostinserimento,utente_inserimento) values ('$idcosti','$nome_costo','$val_costo','$tipo_costo','".aggslashdb($nome_cassa)."','$persona_costo','$provenienza_costo','$metodo_pagamento','$datatransazione','$datainserimento','$HOSTNAME','$id_utente') ");
 if ($valuta) esegui_query("update $tablecosti set valuta = '".aggslashdb($valuta)."', costo_valuta = '".aggslashdb($costo_valuta)."' where idcosti = '$idcosti' ");
-if (!empty($id_pagamento)) esegui_query("update $tablecosti set id_pagamento = '".aggslashdb(htmlspecialchars($id_pagamento),ENT_COMPAT)."' where idcosti = '$idcosti' ");
-if (!empty($inserisci_entrata)) echo mex("L'entrata è stata inserita",$pag);
-if (!empty($inserisci_spesa)) echo mex("La spesa è stata inserita",$pag);
-echo " (".punti_in_num($val_costo,$stile_soldi)." $Euro";
-if ($valuta) echo " = ".punti_in_num($costo_valuta,$stile_soldi)." ".$altre_valute[$n_valuta]['nome'];
-echo ").<br>";
+if (!empty($id_pagamento)) esegui_query("update $tablecosti set id_pagamento = '".aggslashdb(htmlspecialchars($id_pagamento))."' where idcosti = '$idcosti' ");
+
+// Add success messages
+$message_text = " (".punti_in_num($val_costo,$stile_soldi)." $Euro";
+if ($valuta) $message_text .= " = ".punti_in_num($costo_valuta,$stile_soldi)." ".$altre_valute[$n_valuta]['nome'];
+$message_text .= ").";
+
+if (!empty($inserisci_entrata)) {
+    $success_messages[] = mex("L'entrata è stata inserita",$pag).$message_text;
+    $active_panel = 'panel_entrate';
+}
+if (!empty($inserisci_spesa)) {
+    $success_messages[] = mex("La spesa è stata inserita",$pag).$message_text;
+    $active_panel = 'panel_spese';
+}
+
+// Clear form values for next entry
+$nome_costo = '';
+$val_costo = '';
+$valuta = '';
+$metodo_pagamento = '';
+$persona_costo = '';
+$id_pagamento = '';
+$giorno_pagamento = '';
+$mese_pagamento = '';
+$anno_pagamento = '';
+unset($entrata_da_prenota);
+
 } # fine if ($inserire != "NO")
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button>
-</div></form>";
-
 unlock_tabelle($tabelle_lock);
+
+// Redisplay form with inline messages
+$mostra_form_inserimento = "";
 } # fine if (!empty($inserisci_entrata) or !empty($inserisci_spesa))
 
 

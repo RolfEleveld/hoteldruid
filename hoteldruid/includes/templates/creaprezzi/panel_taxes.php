@@ -115,6 +115,14 @@
         <?php echo mex("Tasse",$pag); ?>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_taxes') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
         
         <a name="mod_tas"></a>
         <form accept-charset="utf-8" method="post" action="creaprezzi.php">

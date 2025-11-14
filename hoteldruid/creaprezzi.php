@@ -221,11 +221,13 @@ include("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_tariffe.php");
 include("./includes/funzioni_costi_agg.php");
+include("./includes/panel_feedback.php");
 
 // Initialize message arrays for success, error, and warning messages
 $success_messages = array();
 $error_messages = array();
 $warning_messages = array();
+$active_panel = '';
 
 $tableappartamenti = $PHPR_TAB_PRE."appartamenti";
 $tablebeniinventario = $PHPR_TAB_PRE."beniinventario";
@@ -845,8 +847,8 @@ if ($dati_tariffe[$tar_imp_canc]['importa_prezzi'][0]) $ripristina_importa_defau
 if ($val_impor) esegui_query("update $tablenometariffe set tariffa$tar_importa_canc = '".aggslashdb($val_impor)."' where idntariffe = '6' ");
 else esegui_query("update $tablenometariffe set tariffa$tar_importa_canc = NULL where idntariffe = '6' ");
 } # fine else if (empty($dati_tariffe[$tar_imp_canc]['importa_prezzi'][1]))
-echo mex("L'importatazione dei prezzi è stata cancellata",$pag).".<br>";
-$mostra_ok = 1;
+$success_messages[] = mex("L'importatazione dei prezzi è stata cancellata",$pag).".";
+$active_panel = 'panel_import_tariffs';
 $ancora = "imp_pre";
 
 # Se si cancella un periodo importato e c'è una importazione predefinita in tutti i periodi allora devo aggiornare il periodo cancellato
@@ -893,8 +895,10 @@ $errore = controlla_imp_tar2($tariffa_a,$tariffa_da,$tipo_importa,$num_tariffa_a
 if ($errore != "SI") {
 $aggiorna_tariffe_interconn = "SI";
 aggiorna_imp_tar($tariffa_a,$tariffa_da,$tipo_importa,$tipo_fisso,$importa_fisso,$importa_percent,$importa_arrotond,$parte_prezzo,$periodi_importa,$idiniper_imp,$idfineper_imp,$dati_tariffe,$tableperiodi,$tablenometariffe);
-if ($importa_tariffa != "canc") echo mex("I prezzi della tariffa selezionata sono stati importati",$pag).".<br>";
-$mostra_ok = 1;
+if ($importa_tariffa != "canc") {
+    $success_messages[] = mex("I prezzi della tariffa selezionata sono stati importati",$pag).".";
+    $active_panel = 'panel_import_tariffs';
+}
 $ancora = "imp_pre";
 unlock_tabelle($tabelle_lock);
 $tabelle_lock = array($tableversioni,$tabletransazioni);
@@ -921,7 +925,6 @@ else unlock_tabelle($tabelle_lock);
 
 
 if (isset($importa_costo) and $priv_ins_costi_agg != "n") {
-$nascondi_form_iniziale = 1;
 if (@get_magic_quotes_gpc()) {
 $nomecostoagg = stripslashes($nomecostoagg);
 $costo_importa = stripslashes($costo_importa);
@@ -931,7 +934,8 @@ $nomecostoagg = str_replace("#?&","",$nomecostoagg);
 $nomecostoagg = str_replace("#@&","",$nomecostoagg);
 $nomecostoagg = par_taglia($nomecostoagg,0,40);
 if (!$nomecostoagg) {
-echo mex("Si deve inserire il nome del costo aggiuntivo",$pag).".<br>";
+$error_messages[] = mex("Si deve inserire il nome del costo aggiuntivo",$pag).".";
+$active_panel = 'panel_extra_costs';
 $errore = "SI";
 } # fine if (!$nomecostoagg)
 $tabelle_lock = array($tablenometariffe,$tableprivilegi);
@@ -943,7 +947,8 @@ if ($errore != "SI") {
 $tipo_ca = substr(risul_query($dati_costo_importa,0,'tipo_ca'),0,1);
 $esiste_costo = esegui_query("select idntariffe from $tablenometariffe where nomecostoagg = '".aggslashdb($nomecostoagg)."' and tipo_ca $LIKE '".$tipo_ca."_'");
 if (numlin_query($esiste_costo) > 0) {
-echo mex("Costo aggiuntivo già esistente",$pag).".<br>";
+$error_messages[] = mex("Costo aggiuntivo già esistente",$pag).".";
+$active_panel = 'panel_extra_costs';
 $errore = "SI";
 } # fine if (numlin_query($esiste_costo) > 0)
 } # fine if ($errore != "SI")
@@ -1113,9 +1118,13 @@ esegui_query("update $tablenometariffe set tariffa$num1 = '".aggslashdb($caparra
 } # fine if (substr($tipotariffa,0,2) != "t-" or...
 } # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
 } # fine for $num1
-echo mex("La caparra è stata modificata",$pag).".<br>";
+$success_messages[] = mex("La caparra è stata modificata",$pag).".";
+$active_panel = 'panel_finances';
 } # fine if ($inserire != "NO")
-else echo "<span class=\"colred\">".mex("La caparra è errata",$pag)."</span>.<br>";
+else {
+$error_messages[] = mex("La caparra è errata",$pag).".";
+$active_panel = 'panel_finances';
+}
 } # fine if (isset($modificacaparra))
 
 if (isset($modificacommissioni) or isset($modificacommper)) {
@@ -1127,7 +1136,8 @@ $commissioni_arrotond = formatta_soldi($commissioni_arrotond);
 if ((double) $commissioni_arrotond == 0) $commissioni_arrotond = 1;
 if (controlla_soldi($commissioni_arrotond) == "NO") $commissioni_arrotond = 1;
 if (controlla_num_pos($commissioni_percent) != "SI" or $commissioni_percent > 100) {
-echo mex("Si deve inserire la percentuale",$pag).".<br>";
+$error_messages[] = mex("Si deve inserire la percentuale",$pag).".";
+$active_panel = 'panel_finances';
 $inserire = "NO";
 } # fine if (controlla_num_pos($commissioni_percent) != "SI")
 if ($commissioni_base == "ts") $comm_base = "s";
@@ -1196,16 +1206,21 @@ else esegui_query("update $tableregole set iddatainizio = '$iddini', iddatafine 
 } # fine for $num1
 esegui_query("insert into $tableregole (idregole,tariffa_commissioni,iddatainizio,iddatafine,motivazione,motivazione2) values ($idregole,'$num_tariffa','$iddataini','$iddatafine','$comm_base".aggslashdb($commissioni_percent)."','".aggslashdb($commissioni_arrotond)."') ");
 } # fine if (isset($modificacommper))
-echo mex("Le commissioni sono state modificate",$pag).".<br>";
+$success_messages[] = mex("Le commissioni sono state modificate",$pag).".";
+$active_panel = 'panel_finances';
 } # fine if ($inserire != "NO")
-else echo mex("Le commissioni sono errate",$pag).".<br>";
+else {
+$error_messages[] = mex("Le commissioni sono errate",$pag).".";
+$active_panel = 'panel_finances';
+}
 } # fine if (isset($modificacommissioni) or isset($modificacommper))
 
 if (isset($modificatasse)) {
 $anchor = "#mod_tas";
 $tasse_percent = formatta_soldi($tasse_percent);
 if (controlla_soldi($tasse_percent,"SI") != "SI" or $tasse_percent > 100) {
-echo mex("Si deve inserire la percentuale",$pag).".<br>";
+$error_messages[] = mex("Si deve inserire la percentuale",$pag).".";
+$active_panel = 'panel_taxes';
 $inserire = "NO";
 } # fine if (controlla_soldi($tasse_percent,"SI") != "SI" or $tasse_percent > 100)
 if ($inserire != "NO") {
@@ -1224,9 +1239,13 @@ esegui_query("update $tablenometariffe set tariffa$num1 = '".aggslashdb($tasse_p
 } # fine if (substr($tipotariffa,0,2) != "t-" or...
 } # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num1]))
 } # fine for $num1
-echo mex("Le tasse sono state modificate",$pag).".<br>";
+$success_messages[] = mex("Le tasse sono state modificate",$pag).".";
+$active_panel = 'panel_taxes';
 } # fine if ($inserire != "NO")
-else echo mex("Le tasse sono errate",$pag).".<br>";
+else {
+$error_messages[] = mex("Le tasse sono errate",$pag).".";
+$active_panel = 'panel_taxes';
+}
 } # fine if (isset($modificatasse))
 
 unlock_tabelle($tabelle_lock);
@@ -3294,16 +3313,17 @@ if (isset($ins_rapido_costo) and ($tipocostoagg == "num_bamb" or $tipocostoagg =
     // Don't show the "Modify cost" button - we'll redisplay the panel with success message instead
     // The success message and panel redisplay are handled after the agg_modelli section
 } else {
-    // Original behavior for non-quick-insert costs: show "Modify cost" button
-    echo "</div></form>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_costi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"idntariffe\" value=\"".($idntariffe - 1)."\">
-<input type=\"hidden\" name=\"origine\" value=\"$pag#ins_costi_agg\">
-".mex("Il costo aggiuntivo",$pag)." \"".stripslashes($nomecostoagg)."\" ".mex("è stato inserito",$pag).".
- <button class=\"exco\" type=\"submit\"><div>".mex("Modifica il costo",$pag)."</div></button>
-</div></form><br>";
+    // Close form for non-quick-insert costs
+    echo "</div></form>";
+    
+    // Add success message for regular cost insertion
+    $success_messages[] = mex("Il costo aggiuntivo",$pag)." <b>".htmlspecialchars(stripslashes($nomecostoagg))."</b> ".mex("è stato inserito",$pag).".";
+    $active_panel = 'panel_new_cost';
+    
+    // Clear form fields for next insertion
+    $nomecostoagg = "";
+    $tipocostoagg = "";
+    $categoria_ca = "";
 }
 if ($agg_modelli == "s") {
 unlock_tabelle($tabelle_lock);
@@ -3354,12 +3374,21 @@ if (isset($ins_rapido_costo) and ($tipocostoagg == "num_bamb" or $tipocostoagg =
     }
     HotelDruidTemplate::getInstance()->display('creaprezzi/panel_quick_baby_cost', get_defined_vars());
 } else {
-    // Original behavior: show OK button
-    echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
+    // For regular (non-quick) cost insertions, check if we need to redisplay panel
+    if (isset($active_panel) && $active_panel === 'panel_new_cost') {
+        // Redisplay new cost panel with success message
+        if (!class_exists('HotelDruidTemplate')) {
+            require_once("./includes/template.php");
+        }
+        HotelDruidTemplate::getInstance()->display('creaprezzi/panel_extra_costs', get_defined_vars());
+    } else {
+        // Fallback: show OK button
+        echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button><br>
 </div></form>";
+    }
 }
 } # fine if ($passo == 12)
 
@@ -3532,23 +3561,22 @@ esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where id
 aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
 // Immediate redirect after successful price insertion
 unlock_tabelle($tabelle_lock);
+// Add success message for weekly price insertion
+$inizioperiodosett1_f = formatta_data($inizioperiodosett1,$stile_data);
+$fineperiodosett1_f = formatta_data($fineperiodosett1,$stile_data);
+$success_messages[] = mex("I prezzi per le settimane dal",$pag)." <b>$inizioperiodosett1_f</b> ".mex("al",$pag)." <b>$fineperiodosett1_f</b> ".mex("della <b>tariffa",$pag)."$num_tariffa</b> ".mex("sono stati inseriti",$pag).".";
+if ($per_imp) $warning_messages[] = mex("i prezzi di alcuni periodi non sono stati inseriti perchè importati da altre tariffe",$pag).".";
+$active_panel = 'panel_weekly_entry';
+
+// Redirect to main page with success message in session
 if (controlla_pag_origine($origine) == "SI") {
+    $_SESSION['creaprezzi_success'] = $success_messages;
+    if (!empty($warning_messages)) $_SESSION['creaprezzi_warnings'] = $warning_messages;
+    $_SESSION['creaprezzi_active_panel'] = 'panel_weekly_entry';
+    $_SESSION['creaprezzi_tariffa'] = $num_tariffa;
     header("Location: creaprezzi.php?anno=$anno&id_sessione=$id_sessione&tariffa_selected=$num_tariffa");
     exit;
 }
-// Fallback: show message if redirect fails
-$inizioperiodosett1_f = formatta_data($inizioperiodosett1,$stile_data);
-$fineperiodosett1_f = formatta_data($fineperiodosett1,$stile_data);
-echo mex("I prezzi per le settimane dal",$pag)." <b>$inizioperiodosett1_f</b> ".mex("al",$pag)." <b>$fineperiodosett1_f</b> ".mex("della <b>tariffa",$pag)."$num_tariffa</b> ".mex("sono stati inseriti",$pag).".";
-if ($per_imp) echo " <small>(".mex("i prezzi di alcuni periodi <em>non sono stati inseriti</em> perchè importati da altre tariffe",$pag).")</small>";
-echo "<br>";
-echo "
-<form accept-charset=\"utf-8\" method=\"post\" action=\"creaprezzi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tariffa_selected\" value=\"$num_tariffa\">
-<button class=\"cont\" type=\"submit\"><div>OK</div></button><br>
-</div></form>";
 } # fine if ($inserire_prezzi != "NO")
 else {
 unlock_tabelle($tabelle_lock);
@@ -3558,14 +3586,13 @@ unlock_tabelle($tabelle_lock);
 
 
 if (isset($cambia_nome_tariffa) and $priv_mod_tariffe != "n") {
-$nascondi_form_iniziale = 1;
-$mostra_ok = 1;
 $tabelle_lock = array($tablenometariffe);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 $rigatariffe = esegui_query("select * from $tablenometariffe where idntariffe = '1' ");
 $numero_tariffe = risul_query($rigatariffe,0,'nomecostoagg');
 $num_tariffa = intval($cambia_nome_tariffa);
-$nometariffa = fixset(${"nometariffa_".$num_tariffa});
+// Get the tariff name from POST since dynamic variable names aren't auto-registered
+$nometariffa = isset($_POST["nometariffa_".$num_tariffa]) ? $_POST["nometariffa_".$num_tariffa] : "";
 if ($num_tariffa > 0 and $num_tariffa <= $numero_tariffe and strcmp((string) $nometariffa,"")) {
 $tipotariffa = "tariffa".$num_tariffa;
 if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num_tariffa])) {
@@ -3578,18 +3605,32 @@ $tariffa_controlla = "tariffa".$num1;
 if ($tariffa_controlla != $tipotariffa) {
 $nome_tariffa_controlla = risul_query($rigatariffe,0,$tariffa_controlla);
 if ($nome_tariffa_controlla == $nometariffa) {
-echo mex("Il soprannome",$pag)." $nometariffa ".mex("già esiste, ne devi usare un'altro",$pag).".<br>";
+$error_messages[] = mex("Il soprannome",$pag)." $nometariffa ".mex("già esiste, ne devi usare un'altro",$pag).".";
+$active_panel = 'panel_tariff_names';
 $inserire = "NO";
 } # fine if ($nome_tariffa_controlla == $nometariffa)
 } # fine if ($tariffa_controlla != $tipotariffa)
 } # fine for $num1
 if ($inserire == "SI") {
 esegui_query("update $tablenometariffe set $tipotariffa = '".aggslashdb($nometariffa)."' where idntariffe = '1' ");
-echo mex("Il soprannome della",$pag)." $tipotariffa_vedi ".mex("è stato cambiato",$pag).".<br>";
+$success_messages[] = mex("Il soprannome della",$pag)." $tipotariffa_vedi ".mex("è stato cambiato",$pag).".";
+$active_panel = 'panel_tariff_names';
+// Unset the form field so it shows the updated name from database
+unset(${"nometariffa_".$num_tariffa});
 } # fine if ($inserire == "SI")
 } # fine if ($attiva_tariffe_consentite == "n" or isset($tariffe_consentite_vett[$num_tariffa]))
 } # fine if ($num_tariffa > 0 and $num_tariffa <= $numero_tariffe and strcmp((string) $nometariffa,""))
+else {
+    if ($num_tariffa > 0 and $num_tariffa <= $numero_tariffe) {
+        $error_messages[] = mex("Il nome della tariffa non può essere vuoto",$pag).".";
+        $active_panel = 'panel_tariff_names';
+    }
+}
 unlock_tabelle($tabelle_lock);
+// Reload tariff data to show updated name
+if (isset($cambia_nome_tariffa) && isset($active_panel) && $active_panel == 'panel_tariff_names') {
+    $dati_tariffe = dati_tariffe($tablenometariffe,"",$tablepersonalizza,$tableregole);
+}
 } # fine if (isset($cambia_nome_tariffa) and $priv_mod_tariffe != "n")
 
 
@@ -3597,8 +3638,6 @@ unlock_tabelle($tabelle_lock);
 # Inserisco i prezzi (della form da-a)
 
 if ((isset($inserisci) or isset($modifica)) and $priv_mod_tariffe != "n") {
-$nascondi_form_iniziale = 1;
-$mostra_ok = 1;
 $tabelle_lock = array($tablenometariffe,$tableperiodi,$tablepersonalizza);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 $inserire = "SI";
@@ -3640,12 +3679,12 @@ $IDinizioperiodo[$numperiodo] = $idinizioperiodo;
 $IDfineperiodo[$numperiodo] = $idfineperiodo;
 if ($idfineperiodo < $idinizioperiodo) {
 $inserire = "NO";
-echo mex("Le date del periodo numero",$pag)." $numperiodo ".mex("sono sbagliate",$pag).". <br>";
+$error_messages[] = mex("Le date del periodo numero",$pag)." $numperiodo ".mex("sono sbagliate",$pag).".";
 } # fine if ($idfineperiodo < $idinizioperiodo)
 else {
 for ( ; $idfineperiodo >= $idinizioperiodo ; $idinizioperiodo = $idinizioperiodo + 1) {
 if (isset($inserirepp[$idinizioperiodo])) {
-echo mex("Il periodo",$pag)." $numperiodo ".mex("si sovrappone ad un periodo precedente",$pag).". <br>";
+$error_messages[] = mex("Il periodo",$pag)." $numperiodo ".mex("si sovrappone ad un periodo precedente",$pag).".";
 $inserire = "NO";
 } # fine if (isset($inserirepp[$idinizioperiodo]))
 else {
@@ -3653,13 +3692,13 @@ $inserirepp[$idinizioperiodo] = 1;
 $vecchioprezzoperiodo = esegui_query("select $tipotariffa from $tableperiodi where idperiodi = '$idinizioperiodo' and ($tipotariffa is not NULL or $tipotariffa"."p is not NULL)");
 $esisteprezzoperiodo = numlin_query($vecchioprezzoperiodo);
 if ($esisteprezzoperiodo > 0 and isset($inserisci)) {
-echo mex("Un prezzo nel periodo numero",$pag)." $numperiodo ".mex("esiste già, usa il tasto \"modifica i prezzi già inseriti\" per cambiarlo",$pag).". <br>";
+$error_messages[] = mex("Un prezzo nel periodo numero",$pag)." $numperiodo ".mex("esiste già, usa il tasto \"modifica i prezzi già inseriti\" per cambiarlo",$pag).".";
 $inserire = "NO";
 } # fine if ($esisteprezzoperiodo > 0 and isset($inserisci))
 } # fine else if (isset($inserirepp[$idinizioperiodo]))
 } # fine for $idinizioperiodo
 if ((strcmp((string) $$prezzoperiodo,"") and controlla_soldi($$prezzoperiodo) == "NO") or (strcmp((string) $$prezzoperiodop,"") and controlla_soldi($$prezzoperiodop) == "NO")) {
-echo mex("Il prezzo del periodo numero",$pag)." $numperiodo ".mex("è sbagliato",$pag).". <br>";
+$error_messages[] = mex("Il prezzo del periodo numero",$pag)." $numperiodo ".mex("è sbagliato",$pag).".";
 $inserire = "NO";
 } # fine if ((strcmp((string) $$prezzoperiodo,"") and controlla_soldi($$prezzoperiodo) == "NO") or...
 } # fine else if ($idfineperiodo < $idinizioperiodo)
@@ -3703,9 +3742,8 @@ aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,$idinizioperiodo,$prezzoperi
 } # fine if ($ins_periodo)
 else $periodi_importati = 1;
 } # fine for $idinizioperiodo
-echo mex("Il prezzo del periodo",$pag)." $numperiodo ".mex("è stato inserito",$pag)."!";
-if ($periodi_importati) echo " <small>(".mex("i prezzi di alcuni periodi <em>non sono stati inseriti</em> perchè importati da altre tariffe",$pag).")</small>";
-echo "<br>";
+$success_messages[] = mex("Il prezzo del periodo",$pag)." $numperiodo ".mex("è stato inserito",$pag)."!";
+if ($periodi_importati) $warning_messages[] = mex("i prezzi di alcuni periodi <em>non sono stati inseriti</em> perchè importati da altre tariffe",$pag);
 } # fine if (strcmp((string) $prezzoperiodo,"") or strcmp((string) $prezzoperiodop,""))
 } # fine for $numperiodo
 $opztariffa = esegui_query("select * from $tableperiodi where $tipotariffa"."p is not NULL and $tipotariffa"."p != '0' ");
@@ -3713,37 +3751,46 @@ if (numlin_query($opztariffa)) $opztariffa = "p";
 else $opztariffa = "s";
 esegui_query("update $tablenometariffe set $tipotariffa = '$opztariffa' where idntariffe = '4' ");
 aggiorna_tariffe_esporta($dati_tariffe,$tipotariffa,"opztariffa","",$tablenometariffe,$tableperiodi,$agg_vett_tar_esp,$num_agg_tar_esp);
-// Immediate redirect after successful price insertion
-if (controlla_pag_origine($origine) == "SI") {
-    unlock_tabelle($tabelle_lock);
-    header("Location: creaprezzi.php?anno=$anno&id_sessione=$id_sessione&tariffa_selected=$num_tariffa");
-    exit;
+
+// Set active panel and clear form fields for immediate feedback
+$active_panel = 'panel_price_entry';
+// Clear form fields after successful insertion
+for ($np = 1; $np <= $numcaselle; $np++) {
+    unset(${"inizioperiodo".$np});
+    unset(${"fineperiodo".$np});
+    unset(${"prezzoperiodo".$np});
+    unset(${"prezzoperiodo".$np."p"});
 }
+$numcaselle = 1; // Reset to single entry form
 } # fine if ($inserire == "SI")
 else {
-echo mex("Nessun dato è stato inserito",$pag).".<br>";
+if (count($error_messages) == 0) $warning_messages[] = mex("Nessun dato è stato inserito",$pag).".";
+$active_panel = 'panel_price_entry';
 } # fine else if ($inserire == "SI")
 unlock_tabelle($tabelle_lock);
 } # fine if ((isset($inserisci) or isset($modifica)) and $priv_mod_tariffe != "n")
 
 
 
-if (isset($mostra_ok)) {
-$action = $pag;
-if (isset($ancora)) $action .= "#$ancora";
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button><br>
-</div></form>";
-} # fine if (isset($mostra_ok))
+if (true) {
 
-
-
-
-
-if (!isset($nascondi_form_iniziale)) {
-
+// Restore success messages from session (e.g., after weekly price insertion redirect)
+if (isset($_SESSION['creaprezzi_success'])) {
+    $success_messages = array_merge($success_messages ?? array(), $_SESSION['creaprezzi_success']);
+    unset($_SESSION['creaprezzi_success']);
+}
+if (isset($_SESSION['creaprezzi_warnings'])) {
+    $warning_messages = array_merge($warning_messages ?? array(), $_SESSION['creaprezzi_warnings']);
+    unset($_SESSION['creaprezzi_warnings']);
+}
+if (isset($_SESSION['creaprezzi_active_panel'])) {
+    $active_panel = $_SESSION['creaprezzi_active_panel'];
+    unset($_SESSION['creaprezzi_active_panel']);
+}
+if (isset($_SESSION['creaprezzi_tariffa'])) {
+    $tariffa_selected = $_SESSION['creaprezzi_tariffa'];
+    unset($_SESSION['creaprezzi_tariffa']);
+}
 
 echo "<h4 id=\"h_ipri\"><span>".mex("Inserisci i prezzi per l'anno",$pag)." $anno</span></h4>";
 
@@ -3846,8 +3893,8 @@ $numcaselle = $ultime_sel_ins_prezzi[0];
 else $numcaselle = 1; // Changed from 8 to 1 - start with single entry
 } # fine if (!$numcaselle)
 else {
-if ($elimina_casella) $numcaselle--;
-if ($aggiungi_casella) $numcaselle++;
+if (isset($elimina_casella) && $elimina_casella) $numcaselle--;
+if (isset($aggiungi_casella) && $aggiungi_casella) $numcaselle++;
 } # fine else if (!$numcaselle)
 if ($numcaselle < 1 or $numcaselle > $numcaselle_max) $numcaselle = 1; // Changed from 8 to 1
 

@@ -116,6 +116,14 @@ function esc_js($str) {
         <?php echo mex("Gestione Finanziaria",$pag); ?>
     </div>
     <div class="rcontent">
+        <?php
+        // Display feedback messages if this panel is active
+        if (isset($active_panel) && $active_panel === 'panel_finances') {
+            if (class_exists('HotelDruidTemplate')) {
+                HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+            }
+        }
+        ?>
         
         <!-- DEPOSITS SECTION -->
         <div class="finances-section">
