@@ -210,14 +210,14 @@ HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars()
 }
 }
 
-echo "<table class=\"buttonbar\"><tr><td align=\"left\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
+// Date range selection form
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div style=\"margin-bottom: 15px;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"senza_colori\" value=\"$senza_colori\">
 <input type=\"hidden\" name=\"metodo_selezionato\" value=\"".htmlspecialchars(fixstr($metodo_selezionato))."\">
-<input class=\"sbutton\" type=\"submit\" name=\"cerca_prenota\" value=\"".mex("Vedi le modifiche",$pag)."\">
- ".mex("dal",$pag)." <select name=\"cerca_inizioperiodo\">
+<strong>".mex("Periodo",$pag).":</strong> 
+".mex("dal",$pag)." <select name=\"cerca_inizioperiodo\">
 <option value=\"\">----</option>";
 $oggi = date("-m-d",(time() + (C_DIFF_ORE * 3600)));
 $domani = date("-m-d",(time() + (C_DIFF_ORE * 3600) + 86400));
@@ -256,9 +256,35 @@ echo "</select>
 <option value=\"$anno_prec\">$anno_prec</option>
 <option value=\"$anno\" selected>$anno</option>
 <option value=\"$anno_succ\">$anno_succ</option>
-</select></div></form></td>";
+</select>
+</div>";
+
+// Payment method selection if available
+$metodi_pagamento = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'metodi_pagamento' and idutente = '$id_utente'");
+$metodi_pagamento = risul_query($metodi_pagamento,0,'valpersonalizza');
+if ($metodi_pagamento) {
+echo "<div style=\"margin-bottom: 15px;\">
+<strong>".mex("Metodo di pagamento",$pag).":</strong> 
+<select name=\"metodo_selezionato\">
+<option value=\"\">----</option>";
+$metodi_pagamento_array = explode(",",$metodi_pagamento);
+for ($num1 = 0 ; $num1 < count($metodi_pagamento_array) ; $num1++) {
+$sel_met = "";
+if ($metodo_selezionato == $metodi_pagamento_array[$num1]) $sel_met = " selected";
+echo "<option value=\"".htmlspecialchars($metodi_pagamento_array[$num1])."\"$sel_met>$metodi_pagamento_array[$num1]</option>";
+}
+echo "</select>
+</div>";
+} # fine if ($metodi_pagamento)
+
+// Buttons section
+echo "<div style=\"margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;\">
+<table class=\"buttonbar\"><tr><td align=\"left\">
+<input class=\"sbutton\" type=\"submit\" name=\"cerca_prenota\" value=\"".mex("Vedi le modifiche",$pag)."\">
+</td></form>";
+
 if ($id_utente == 1) {
-echo "<td style=\"width: 200px;\" align=\"center\" >
+echo "<td style=\"width: 200px;\" align=\"center\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -267,6 +293,7 @@ echo "<td style=\"width: 200px;\" align=\"center\" >
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Azzera entrate e uscite prenotazioni",$pag)."\">
 </div></form></td>";
 } # fine if ($id_utente == 1)
+
 echo "<td align=\"right\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -278,23 +305,9 @@ echo "<input type=\"hidden\" name=\"senza_colori\" value=\"SI\">
 <input class=\"sbutton\" type=\"submit\" name=\"cambia_colori\" value=\"".mex("Senza colori",$pag)."\">";
 } # fine if (!$senza_colori)
 else echo "<input class=\"sbutton\" type=\"submit\" name=\"cambia_colori\" value=\"".mex("Con colori",$pag)."\">";
-echo "</div></form>";
-$metodi_pagamento = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'metodi_pagamento' and idutente = '$id_utente'");
-$metodi_pagamento = risul_query($metodi_pagamento,0,'valpersonalizza');
-if ($metodi_pagamento) {
-echo "</td></tr><tr><td>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"pagina_prenota\" value=\"$pagina_prenota\">
-<input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi solo le entrate-uscite",$pag)."\">
- ".mex("con metodo",$pag)." <select name=\"metodo_selezionato\">
-<option value=\"\">----</option>";
-$metodi_pagamento = explode(",",$metodi_pagamento);
-for ($num1 = 0 ; $num1 < count($metodi_pagamento) ; $num1++) echo "<option value=\"".htmlspecialchars($metodi_pagamento[$num1])."\">$metodi_pagamento[$num1]</option>";
-echo "</select></div></form></td><td></td><td>";
-} # fine if ($metodi_pagamento)
-echo "</td></tr></table>";
+echo "</div></form></td>
+</tr></table>
+</div>";
 
 echo "</div></div>"; // Close rcontent and rbox (Filters Panel)
 echo "<br>";
