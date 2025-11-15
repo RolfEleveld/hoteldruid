@@ -100,21 +100,11 @@ $titolo = "HotelDruid: ".mex("Costi Gestione",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
-// Include template system if available
-if (file_exists("./includes/template.php")) {
-    include_once("./includes/template.php");
-}
-
-// Include panel feedback system
-if (file_exists("./includes/panel_feedback.php")) {
-    include_once("./includes/panel_feedback.php");
-}
-
-// Initialize panel feedback message arrays
+include("./includes/panel_feedback.php");
+$active_panel = '';
 $success_messages = array();
 $error_messages = array();
 $warning_messages = array();
-$active_panel = '';
 
 $Euro = nome_valuta();
 $altre_valute = altre_valute();
@@ -354,12 +344,27 @@ $data_txt .= "<option value=\"$num1\"$sel>$num1</option>";
 } # fine for $num1
 $data_txt .= "</select>.</td></tr>";
 
-// CSS Styles for panel layout (matching clienti.php)
+// CSS Styles for panel layout
 echo "<style>
-.rpanels{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.rpanels{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;margin-bottom:20px}
 .rpanels .rbox{box-sizing:border-box;max-width:500px}
 .rpanels .rbox .wsnw{display:block;margin:8px 0;width:100%;box-sizing:border-box}
+.main-panel-content{padding:20px}
 </style>";
+
+// Open main Costi Gestione panel
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Gestión de Costos",$pag)." - ".$anno."</h5>
+</div>
+<div class=\"rcontent main-panel-content\">";
+
+// Display feedback messages for main panel
+if (isset($active_panel) && ($active_panel === 'panel_entrate' || $active_panel === 'panel_spese')) {
+    if (class_exists('HotelDruidTemplate')) {
+        HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+    }
+}
 
 // Use template system if available, otherwise fallback to inline rendering
 if (class_exists('HotelDruidTemplate')) {
@@ -449,7 +454,28 @@ $data_txt";
     }
 }
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div style=\"text-align: center;\">
+// Add Total/Reserve panel
+$costo_cassa = esegui_query("select * from $tablecosti where idcosti = 0");
+if (numlin_query($costo_cassa)) {
+    $costo_cassa_val = risul_query($costo_cassa,0,'val_costo');
+    $costo_cassa_formatted = punti_in_num($costo_cassa_val,$stile_soldi);
+    
+    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; margin: 0 0 16px 0; max-width: 500px;\">
+    <div style=\"background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+        ".mex("Totale in Riserva",$pag)." - ".$anno."
+    </div>
+    <div style=\"text-align: center; font-size: 24px; font-weight: bold; color: #4CAF50; margin: 20px 0;\">
+        $costo_cassa_formatted $Euro
+    </div>
+    <div style=\"text-align: center; color: #666; font-size: 14px;\">
+        ".mex("Importo trasferito dalla cassa prenotazioni",$pag).".
+    </div>
+</div>";
+}
+
+echo "</div></div>"; // Close main-panel-content and main rbox
+
+echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"costi\">
