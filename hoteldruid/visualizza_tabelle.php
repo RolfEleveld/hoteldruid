@@ -1149,8 +1149,31 @@ $filter_form_inside_panel .= " ".mex("al",$pag)." ";
 ob_start();
 mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","cerca_fine",$fine_select,1,"",$id_utente,$tema);
 $filter_form_inside_panel .= ob_get_clean();
-$filter_form_inside_panel .= " <input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi",$pag)."\">
-</div></form></div>";
+$filter_form_inside_panel .= "<br><input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi",$pag)."\">
+</div></form>
+<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: inline; margin-left: 10px;\"><div style=\"display: inline;\">
+<input type=\"hidden\" name=\"anno\" value=\"$anno\">
+<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
+<input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
+<input type=\"hidden\" name=\"pag_pren_corr\" value=\"$pag_pren_corr\">
+<input type=\"hidden\" name=\"pag_pren_succ\" value=\"$pag_pren_succ\">
+<input type=\"hidden\" name=\"pag_pren_prec\" value=\"$pag_pren_prec\">
+<input type=\"hidden\" name=\"ordine_prenota\" value=\"$ordine_prenota\">
+<input type=\"hidden\" name=\"mos_tut_dat\" value=\"$mos_tut_dat\">
+<input type=\"hidden\" name=\"cerca_prenota\" value=\"$cerca_prenota\">
+<input type=\"hidden\" name=\"opz_cerc_pren\" value=\"$opz_cerc_pren\">
+<input type=\"hidden\" name=\"cerca_ini\" value=\"$cerca_ini\">
+<input type=\"hidden\" name=\"cerca_fine\" value=\"$cerca_fine\">
+<input type=\"hidden\" name=\"id_utente_vedi\" value=\"$id_utente_vedi\">
+<input type=\"hidden\" name=\"lista_prenota\" value=\"$lista_prenota\">
+<input type=\"hidden\" name=\"sel_tab_prenota\" value=\"$sel_tab_prenota\">";
+if (!$senza_colori) {
+$filter_form_inside_panel .= "<input type=\"hidden\" name=\"senza_colori\" value=\"SI\">
+<input class=\"sbutton\" type=\"submit\" value=\"".mex("Senza colori",$pag)."\">";
+} else {
+$filter_form_inside_panel .= "<input class=\"sbutton\" type=\"submit\" value=\"".mex("Con colori",$pag)."\">";
+}
+$filter_form_inside_panel .= "</div></form></div>";
 } # fine if (!$cerca_prenota or $cerca_prenota == "tutte")
 else {
 $filter_form_inside_panel = "<div style=\"margin-bottom: 15px;\"><form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: inline;\"><div style=\"display: inline;\">
@@ -1205,29 +1228,8 @@ $option_select
 } # fine if ($option_select)
 $id_utente_vedi_passa = "&amp;id_utente_vedi=$id_utente_vedi";
 } # fine if ($priv_vedi_tab_prenotazioni_orig == "s" or $priv_vedi_tab_prenotazioni_orig == "g")
-echo "<td align=\"right\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
-<input type=\"hidden\" name=\"pag_pren_corr\" value=\"$pag_pren_corr\">
-<input type=\"hidden\" name=\"pag_pren_succ\" value=\"$pag_pren_succ\">
-<input type=\"hidden\" name=\"pag_pren_prec\" value=\"$pag_pren_prec\">
-<input type=\"hidden\" name=\"ordine_prenota\" value=\"$ordine_prenota\">
-<input type=\"hidden\" name=\"mos_tut_dat\" value=\"$mos_tut_dat\">
-<input type=\"hidden\" name=\"cerca_prenota\" value=\"$cerca_prenota\">
-<input type=\"hidden\" name=\"opz_cerc_pren\" value=\"$opz_cerc_pren\">
-<input type=\"hidden\" name=\"cerca_ini\" value=\"$cerca_ini\">
-<input type=\"hidden\" name=\"cerca_fine\" value=\"$cerca_fine\">
-<input type=\"hidden\" name=\"id_utente_vedi\" value=\"$id_utente_vedi\">
-<input type=\"hidden\" name=\"lista_prenota\" value=\"$lista_prenota\">
-<input type=\"hidden\" name=\"sel_tab_prenota\" value=\"$sel_tab_prenota\">";
-if (!$senza_colori) {
-echo "<input type=\"hidden\" name=\"senza_colori\" value=\"SI\">
-<input class=\"sbutton\" type=\"submit\" value=\"".mex("Senza colori",$pag)."\">";
-} # fine if (!$senza_colori)
-else echo "<input class=\"sbutton\" type=\"submit\" value=\"".mex("Con colori",$pag)."\">";
-echo "</div></form></td></tr></table>";
+// Removed separate "Senza colori" button - now integrated into filter form inside panel
+echo "</tr></table>";
 } # fine if (!isset($show_bar) or $show_bar != "NO")
 
 

@@ -753,7 +753,6 @@ if ($priv_mod_prenota_iniziate != "s" or $priv_oscura_tab_mesi == "f") $id_perio
 
 $oggi = date("j/n/Y",(time() + (C_DIFF_ORE * 3600)));
 $ora = date("H:i",(time() + (C_DIFF_ORE * 3600)));
-echo "<small><small>".mex("situazione alle",$pag)." $ora ".mex("del",$pag)." $oggi</small></small><br>";
 
 $lista_prenota_contr = "";
 
@@ -816,57 +815,13 @@ else $mese_inizio_tab = $mese;
 if ($mese != 48 and $tipo_periodi != "g") $mese_fine_tab = $mese + 1;
 else $mese_fine_tab = $mese;
 
-echo "<table style=\"margin-left: auto; margin-right: auto;\"><tr><td style=\"width: 100px;\" align=\"right\">";
-if ($mese != 1) {
-if ($tipo_periodi == "g") $mese_freccia = ($mese_inizio_tab - 1);
-else  $mese_freccia = $mese_inizio_tab;
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" id=\"m_prec_su\" name=\"mese\" value=\"$mese_freccia\">
-<button type=\"submit\" class=\"wbutton\"><img src=\"./img/dir3_sin.png\" alt=\"&lt;--\"></button>
-&nbsp;&nbsp;&nbsp;&nbsp;</div></form>";
-} # fine if ($mese != 1)
-else {
-if (@is_file(C_DATI_PATH."/selectperiodi".($anno - 1).".1.php")) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php#vai_anno\"><div style=\"white-space: nowrap;\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"vai_anno\" value=\"".($anno - 1)."\">
-<input class=\"sbutton\" type=\"submit\" value=\"".ucfirst(mex("richiedi l'anno",'inizio.php'))." ".($anno - 1)."\">
-&nbsp;&nbsp;&nbsp;&nbsp;
-</div></form>";
-} # fine if (@is_file(C_DATI_PATH."/selectperiodi".($anno - 1).".1.php")) 
-else echo "&nbsp;";
-} # fine else if ($mese != 1)
-echo "</td><td align=\"center\">
-<h3 id=\"h_mon\">".mex("Tabella prenotazioni del",$pag)." <span id=\"m_corr_su\">$mese_mostra-$anno_mostra</span>.</h3>
-</td><td style=\"width: 100px;\" align=\"left\">";
-if ($mese != $mese_fine_periodi) {
-if ($tipo_periodi == "g") $mese_freccia = ($mese_fine_tab + 1);
-else  $mese_freccia = $mese_fine_tab;
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" id=\"m_succ_su\" name=\"mese\" value=\"$mese_freccia\">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<button type=\"submit\" class=\"wbutton\"><img src=\"./img/dir3_des.png\" alt=\"--&gt;\"></button>
-</div></form>";
-} # fine if ($mese != $mese_fine_periodi)
-else {
-if ($id_utente == 1) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php#agg_per\"><div style=\"white-space: nowrap;\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"tipo_tabella\" value=\"periodi\">
-<input type=\"hidden\" id=\"m_succ_su\" name=\"mese\" value=\"$mese_fine_periodi\">
-&nbsp;&nbsp;&nbsp;&nbsp;
-<input class=\"sbutton\" type=\"submit\" value=\"".mex("Aggiungi periodi",'visualizza_tabelle.php')."\">
-</div></form>";
-} # fine if ($id_utente == 1)
-else echo "&nbsp;";
-} # fine else if ($mese != $mese_fine_periodi)
-echo "</td></tr></table>";
+// Main panel wrapper for tabella
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Tabella prenotazioni del",$pag)." <span id=\"m_corr_su\">$mese_mostra-$anno_mostra</span>.</h5>
+</div>
+<div class=\"rcontent\">
+<div style=\"text-align: center; padding-bottom: 10px;\"><small><small>".mex("situazione alle",$pag)." $ora ".mex("del",$pag)." $oggi</small></small></div>";
 
 $data_inizio_tab = date("Y-m-d" , mktime(0,0,0,$mese_inizio_tab,1,$anno));
 $id_data_inizio_tab = esegui_query("select * from $tableperiodi where datainizio >= '$data_inizio_tab' order by idperiodi");
@@ -1373,7 +1328,33 @@ attiva_colora_date(allinea_tab_mesi);
 <input type=\"hidden\" id=\"ins_app\" name=\"appartamento1\" value=\"\">
 </div></form>
 <table><tr><td style=\"height: 2px;\"></td></tr></table>
-<table style=\"margin-left: auto; margin-right: auto;\"><tr><td style=\"width: 100px;\" align=\"right\">";
+";
+
+// Color coding legend inside panel
+if ($show_bar != "NO") {
+if (!$mobile_device) echo "<div style=\"text-align: center; font-size: 80%; padding-bottom: 6px;\">".mex("Premere su una prenotazione e trascinarla per spostarla in un nuovo appartamento",'unit.php').".
+ ".mex(" Trascinare l'inizio o la fine di una prenotazione per cambiare la data di arrivo o partenza",$pag).".</div>";
+echo "<table style=\"margin-left: auto; margin-right: auto;\" cellspacing=\"0\" cellpadding=\"1\"><tr>
+<td>&nbsp;</td><td style=\"background-color: $colore_rosso; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
+<td style=\"width: 50px;\"></td>
+<td>&nbsp;</td><td style=\"background-color: $colore_arancione; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
+<td style=\"width: 50px;\"></td>
+<td>&nbsp;</td><td style=\"background-color: $colore_giallo; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
+<td style=\"width: 50px;\"></td>
+<td>&nbsp;</td><td style=\"background-color: $colore_trasp; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
+</tr><tr><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
+".mex("Prenotazione non confermata",$pag)."</td>
+<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
+".mex("Prenotazione confermata, caparra non pagata",$pag)."</td>
+<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
+".mex("Caparra pagata",$pag)."</td>
+<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
+".mex("Tutto pagato",$pag)."</td>
+</tr></table><br>";
+} # fine if ($show_bar != "NO")
+
+// Navigation and print buttons after color legend, inside panel
+echo "<table style=\"margin-left: auto; margin-right: auto;\"><tr><td style=\"width: 100px;\" align=\"right\">";
 if ($mese != 1) {
 if ($tipo_periodi == "g") $mese_inizio_tab--; 
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
@@ -1421,6 +1402,10 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Aggiungi periodi",'visualizza_tabelle.php')."\">
 </div></form>";
 } # fine else if ($mese != $mese_fine_periodi)
+echo "</td></tr></table><br>";
+
+// Close main panel
+echo "</div></div><br>"; // Close rcontent and rbox
 
 if ($lista_prenota_contr) $lista_prenota_contr .= ",";
 $nomi_contratti = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'nomi_contratti' and idutente = '$id_utente'");
@@ -1442,7 +1427,12 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine if ($attiva_contratti_consentiti == "n" or...
 } # fine for $num_contratto
 if ($option_num_contr and $show_bar != "NO") {
-echo "</td></tr><tr><td style=\"height: 2px;\"></td></tr><tr><td></td><td align=\"center\">
+// Document selector panel
+echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
+<h5>".ucfirst(mex("documento di tipo",$pag))."</h5>
+</div>
+<div class=\"rcontent\" style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\" onsubmit=\"contr_da_tab_mese()\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -1450,35 +1440,11 @@ echo "</td></tr><tr><td style=\"height: 2px;\"></td></tr><tr><td></td><td align=
 <input type=\"hidden\" id=\"lpren_contr\" name=\"lista_prenota\" value=\"$lista_prenota_contr\">
 <input type=\"hidden\" id=\"dini_contr\" name=\"data_inizio_selezione\" value=\"$data_inizio_selezione\">
 <input type=\"hidden\" id=\"dfine_contr\" name=\"data_fine_selezione\" value=\"$data_fine_tab\">
-".ucfirst(mex("documento di tipo",$pag))."
- <select name=\"numero_contratto\">$option_num_contr</select>
+<select name=\"numero_contratto\">$option_num_contr</select>
  <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
-</div></form>";
+</div></form>
+</div></div><br>";
 } # fine if ($option_num_contr and $show_bar != "NO")
-
-echo "</td></tr><tr><td style=\"height: 12px;\"></td></tr></table>";
-
-if ($show_bar != "NO") {
-if (!$mobile_device) echo "<div style=\"text-align: center; font-size: 80%; padding-bottom: 6px;\">".mex("Premere su una prenotazione e trascinarla per spostarla in un nuovo appartamento",'unit.php').".
- ".mex("Trascinare l'inizio o la fine di una prenotazione per cambiare la data di arrivo o partenza",$pag).".</div>";
-echo "<table style=\"margin-left: auto; margin-right: auto;\" cellspacing=\"0\" cellpadding=\"1\"><tr>
-<td>&nbsp;</td><td style=\"background-color: $colore_rosso; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
-<td style=\"width: 50px;\"></td>
-<td>&nbsp;</td><td style=\"background-color: $colore_arancione; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
-<td style=\"width: 50px;\"></td>
-<td>&nbsp;</td><td style=\"background-color: $colore_giallo; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
-<td style=\"width: 50px;\"></td>
-<td>&nbsp;</td><td style=\"background-color: $colore_trasp; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
-</tr><tr><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
-".mex("Prenotazione non confermata",$pag)."</td>
-<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
-".mex("Prenotazione confermata, caparra non pagata",$pag)."</td>
-<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
-".mex("Caparra pagata",$pag)."</td>
-<td></td><td colspan=\"3\" align=\"center\" style=\"font-size: x-small; max-width: 180px; vertical-align: top;\">
-".mex("Tutto pagato",$pag)."</td>
-</tr></table><br>";
-} # fine if ($show_bar != "NO")
 
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
