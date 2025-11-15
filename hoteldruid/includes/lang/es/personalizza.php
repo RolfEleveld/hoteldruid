@@ -11,7 +11,7 @@ case "Nome della valuta principale":  		$messaggio = "Nombre de la divisa princi
 case "Scegli le colonne da far comparire":  	$messaggio = "Escoger las columnas que aparecerán"; break;
 case "n° di settimane":  			$messaggio = "n° de semanas"; break;
 case "n° di giorni":  				$messaggio = "n° de días"; break;
-case "caparra":  				$messaggio = "fianza"; break;
+case "caparra":  				$messaggio = "depósito"; break;
 case "pagato":  				$messaggio = "pagado"; break;
 case "resto da pagare":  			$messaggio = "resto a pagar"; break;
 case "n° di persone":  				$messaggio = "n° de personas"; break;
@@ -345,7 +345,7 @@ case "I dati per lo scaricamento delle email sono sbagliati o incompleti":	$mess
 case "Lo scaricamento delle email di richiesta disponibiltà dal server di posta è stato cambiato":	$messaggio = "La Decarga de los emails de pedido disponibilidad desde el servidor de correo ha sido cambiada"; break;
 case "Colori delle prenotazioni":  		$messaggio = "Colores de las reservas"; break;
 case "Tutto pagato":  				$messaggio = "Todo pagado"; break;
-case "Caparra pagata":  			$messaggio = "Fianza pagada"; break;
+case "Caparra pagata":  			$messaggio = "Depósito pagado"; break;
 case "Confermate":  				$messaggio = "Confirmadas"; break;
 case "Non confermate":  			$messaggio = "No confirmadas"; break;
 case "I colori sono sbagliati":  		$messaggio = "Los colores están equivocados"; break;

@@ -65,8 +65,8 @@ case "Il costo non verrà più considerato come letto(i) aggiuntivo(i)":	$messag
 case "Continua":  				$messaggio = "Continua"; break;
 case "% su":  					$messaggio = "% de"; break;
 case "il prezzo totale":  			$messaggio = "el precio total"; break;
-case "la caparra":  				$messaggio = "la fianza"; break;
-case "totale meno caparra":  			$messaggio = "total menos fianza"; break;
+case "la caparra":  				$messaggio = "el depósito"; break;
+case "totale meno caparra":  			$messaggio = "total menos depósito"; break;
 case "minimo":  				$messaggio = "mínimo"; break;
 case "massimo":  				$messaggio = "máximo"; break;
 case "esattamente":  				$messaggio = "exactamente"; break;

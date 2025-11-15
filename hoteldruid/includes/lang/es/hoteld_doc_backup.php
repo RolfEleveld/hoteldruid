@@ -188,7 +188,7 @@ Saludos,
 [texto_citado_email_pedido]
 </cmp></riga>
 <riga><cmp>7</cmp><cmp>mln_es</cmp><cmp>Estimad[o] Señor[a] [apellido_ec],
-le confirmo que he reservado a su nombre un apartamento[c num_personas_tot!=""] para [num_personas_tot] personas[/c] para el período desde el [fecha_inicial] hasta el [fecha_final]. El precio para dicho período es de [coste_tot_p] [nombre_divisa] (incluyendo costes asociados). Para completar la reserva es necesario pagar por adelantado [fianza_p] [nombre_divisa], puede efectuar este pago siguiendo [c arr_enlaces_ec(numero_cliente)=""]este enlace[/c][c arr_enlaces_ec(numero_cliente)!=""]estos enlaces[/c]:
+le confirmo que he reservado a su nombre un apartamento[c num_personas_tot!=""] para [num_personas_tot] personas[/c] para el período desde el [fecha_inicial] hasta el [fecha_final]. El precio para dicho período es de [coste_tot_p] [nombre_divisa] (incluyendo costes asociados). Para completar la reserva es necesario pagar por adelantado [deposito_p] [nombre_divisa], puede efectuar este pago siguiendo [c arr_enlaces_ec(numero_cliente)=""]este enlace[/c][c arr_enlaces_ec(numero_cliente)!=""]estos enlaces[/c]:
 
 [arr_enlaces_ec(numero_cliente)][url_base_paginas_web]mdl_confirma_reserva.php?cn=[apel_no_esp_ec]&cp=[codigo_reserva]
 
@@ -560,7 +560,7 @@ tr.bgclr { background-color: #eeeeee; }
 [El_] señor[a] [nombre] [apellido] nacid[o3] el [fecha_nacimiento] residente en [ciudad] [calle2] n 
 [numero_calle] tel [telefono] alqilará un apartamento en hoteldruid
 con su familia de [num_personas_tot] personas desde [fecha_inicial] hasta [fecha_final].
-El precio será de [coste_tot_p]. Ha dejado una fianza de [fianza_p].
+El precio será de [coste_tot_p]. Ha dejado un depósito de [deposito_p].
 </P>
 <P ALIGN="JUSTIFY">
 Nign sitio, [hoy].

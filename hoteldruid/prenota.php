@@ -2590,7 +2590,6 @@ $tableprenota = $tableprenota_orig;
 
 
 # Inizio della pagina.
-echo "<h4 id=\"h_ires\"><span>".mex("Inserisci una nuova prenotazione",$pag).".</span></h4>";
 if (!isset($cognome)) $cognome = "";
 if (!isset($nome)) $nome = "";
 if (@get_magic_quotes_gpc()) {
@@ -2600,23 +2599,58 @@ $nome = stripslashes($nome);
 $cognome = htmlspecialchars($cognome,ENT_COMPAT);
 $nome = htmlspecialchars($nome,ENT_COMPAT);
 
-# Form per nuova prenotazione.
-echo "<br>
+# Panel wrapper with title in header
+echo "<div class=\"rbox\" style=\"background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 20px; overflow: hidden;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 15px 20px;\">
+<h5 style=\"margin: 0; color: white; font-size: 18px; font-weight: bold;\">".mex("Inserisci una nuova prenotazione",$pag)."</h5>
+</div>
+<div class=\"rcontent\" style=\"padding: 25px;\">
+
 <form accept-charset=\"utf-8\" method=\"post\" action=\"clienti.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"origine\" value=\"prenota.php\">";
 if ($idcognome_cp) echo "<input type=\"hidden\" name=\"idcognome_cp\" value=\"$idcognome_cp\">";
 if ($idospiti_cp) echo "<input type=\"hidden\" name=\"idospiti_cp\" value=\"$idospiti_cp\">";
-echo "<hr style=\"width: 95%\"><div class=\"linhbox2\">
-".mex("Cliente titolare",$pag).": <span class=\"wsnw\">".mex("cognome",$pag).": ";
+echo "<style>
+.form-row-prenota {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+.form-row-prenota label {
+  min-width: 180px;
+  font-weight: 500;
+  color: #424242;
+  flex-shrink: 0;
+}
+.form-row-prenota input[type=\"text\"],
+.form-row-prenota select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  max-width: 400px;
+}
+</style>
+
+<div class=\"form-row-prenota\">
+<label>".mex("Cliente titolare",$pag)." - ".mex("cognome",$pag).":</label>";
 if ($attiva_prefisso_clienti == "p") echo $prefisso_clienti;
 echo "<input type=\"text\" name=\"cognome\" value=\"".str_replace("&amp;","&",$cognome)."\">";
-if ($attiva_prefisso_clienti == "s") echo $prefisso_clienti." ";
-echo ",</span> <span class=\"wsnw\">".mex("nome",$pag).": <input type=\"text\" name=\"nome\" value=\"".str_replace("&amp;","&",$nome)."\"></span><br>";
+if ($attiva_prefisso_clienti == "s") echo $prefisso_clienti;
+echo "</div>
+
+<div class=\"form-row-prenota\">
+<label>".mex("Cliente titolare",$pag)." - ".mex("nome",$pag).":</label>
+<input type=\"text\" name=\"nome\" value=\"".str_replace("&amp;","&",$nome)."\">
+</div>";
+
 if (fixset($prenota_vicine) == "SI") $checked = " checked";
 else $checked = "";
-$mess_app_vicini = "<label><input type=\"checkbox\" name=\"prenota_vicine\" value=\"SI\"$checked> ".mex("Appartamenti vicini",'unit.php').".</label><br>";
+$mess_app_vicini = "<div class=\"form-row-prenota\"><label>&nbsp;</label><label><input type=\"checkbox\" name=\"prenota_vicine\" value=\"SI\"$checked> ".mex("Appartamenti vicini",'unit.php').". </label></div>";
 if ($num_tipologie > 1 and $priv_ins_multiple == "s") echo $mess_app_vicini;
 
 if ($priv_ins_checkin == "s") {
@@ -2702,7 +2736,7 @@ n_comm.appendChild(n_comm_node);
 </script>";
 } # fine if ($attiva_checkin == "SI" or $campi_pers_comm)
 
-if ($num_tipologie > 1) echo "<table><tr><td style=\"height: 3px\"></td></tr></table><table bgcolor=\"#000000\" border=\"0\" cellpadding=\"10\" cellspacing=\"0\" width=\"100%\">";
+if ($num_tipologie > 1) echo "<table><tr><td style=\"height: 3px\"></td></tr></table><table bgcolor=\"#000000\" border=\"0\" cellpadding=\"10\" cellspacing=\"0\" width=\"100%\" style=\"font-size: 14px;\">";
 $bgcolor_tipologia = $t2row1color;
 
 for ($n_t = 1 ; $n_t <= $num_tipologie ; $n_t++) {
@@ -2981,7 +3015,7 @@ mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","fineperiodo$
 if (!isset($nometipotariffa)) $sel = " selected";
 else $sel = "";
 echo "</span><br>
-<table id=\"ir_dat\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr><td>
+<table id=\"ir_dat\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"font-size: 14px;\"><tr><td>
 ".mex("Tipo di tariffa",$pag)." :
 <select name=\"nometipotariffa$n_t\">
 <option value=\"\"$sel>----</option>";
@@ -3041,7 +3075,7 @@ echo "</select>;</span></td>";
 } # fine if ($priv_ins_sconto == "s")
 echo "</tr></table>";
 if ($priv_ins_num_persone == "s") {
-echo "<table id=\"cat_p\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr><td>";
+echo "<table id=\"cat_p\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"font-size: 14px;\"><tr><td>";
 if ($dati_cat_pers['num']) {
 if (!empty(${"cat0_numpers".$n_t}) and controlla_num_pos(${"cat0_numpers".$n_t}) != "SI") ${"cat0_numpers".$n_t} = "";
 echo " ".ucfirst($dati_cat_pers[0]['n_plur']).": <input type=\"text\" name=\"cat0_numpers$n_t\" size=\"2\" maxlength=\"2\" value =\"".fixset(${"cat0_numpers".$n_t})."\">";
@@ -3234,7 +3268,7 @@ if ($priv_ins_orig_prenota == "s") {
 $origini_prenota = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'origini_prenota' and idutente = '$id_utente'");
 $origini_prenota = risul_query($origini_prenota,0,'valpersonalizza');
 if ($origini_prenota) {
-if ($priv_ins_caparra == "s") echo "<table class=\"nomob\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\"><tr><td>";
+if ($priv_ins_caparra == "s") echo "<table class=\"nomob\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"font-size: 14px;\"><tr><td>";
 if (empty(${"origine_prenota".$n_t})) $sel = " selected";
 else $sel = "";
 echo mex("Origine",$pag).": <select name=\"origine_prenota$n_t\">
@@ -3272,7 +3306,7 @@ if ($origini_prenota) echo "</td></tr></table>";
 echo "</div>";
 if ($priv_ins_multiple != "n") {
 echo "<div class=\"rbox\" style=\"padding-right: 10px; padding-bottom: 3px;\">
-<table class=\"nomob\"><tr><td>".mex("Nº di prenotazioni di questa tipologia",$pag).":";
+<table class=\"nomob\" style=\"font-size: 14px;\"><tr><td>".mex("Nº di prenotazioni di questa tipologia",$pag).":";
 if (!${"num_app_richiesti".$n_t} or controlla_num_pos(${"num_app_richiesti".$n_t}) != "SI") ${"num_app_richiesti".$n_t} = 1;
 echo "<input type=\"text\" name=\"num_app_richiesti$n_t\" size=\"2\" maxlength=\"3\" value =\"".${"num_app_richiesti".$n_t}."\">.";
 if ($num_tipologie == $n_t and $num_tipologie < 999) echo "</td><td style=\"width: 80px;\"></td><td><button class=\"plum\" type=\"submit\" name=\"aggiungi_tipologie\" value =\"1\"><div>".mex("Aggiungi altre tipologie",$pag)."</div></button>";
@@ -3350,8 +3384,12 @@ echo "<div style=\"text-align: center;\"><input type=\"hidden\" name=\"numcostia
 <input type=\"hidden\" name=\"mos_tut_dat\" value=\"$mos_tut_dat\">
 <input type=\"hidden\" name=\"nuovaprenotazione\" value=\"SI\">
 <button id=\"inse\" class=\"ires\" type=\"submit\"><div>".mex("Inserisci la prenotazione",$pag)."</div></button>
-<hr style=\"width: 95%\">
-</div></div></form><br>
+</div></div></form>
+
+</div>
+</div>
+
+<br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
