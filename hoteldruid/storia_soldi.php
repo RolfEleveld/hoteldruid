@@ -199,6 +199,17 @@ if (!isset($cerca_prenota)) $cerca_prenota = null;
 if ($priv_mod_prenota_iniziate != "s") $id_periodo_corrente = calcola_id_periodo_corrente($anno);
 
 if (!$cerca_prenota) {
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Filtri e Azioni",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'filters') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
+
 echo "<table class=\"buttonbar\"><tr><td align=\"left\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -284,6 +295,9 @@ for ($num1 = 0 ; $num1 < count($metodi_pagamento) ; $num1++) echo "<option value
 echo "</select></div></form></td><td></td><td>";
 } # fine if ($metodi_pagamento)
 echo "</td></tr></table>";
+
+echo "</div></div>"; // Close rcontent and rbox (Filters Panel)
+echo "<br>";
 } # fine if (!$cerca_prenota)
 
 else {
@@ -328,9 +342,15 @@ if (@get_magic_quotes_gpc()) $metodo_selezionato = stripslashes($metodo_selezion
 $cond_metodo = "and metodo_pagamento = '".aggslashdb($metodo_selezionato)."'";
 } # fine if ($metodo_selezionato)
 
+$panel_subtitle = mex("Storia delle entate e uscite delle prenotazioni inserite nel",$pag)." $anno$frase_periodo";
+if ($metodo_selezionato) {
+$metodo_selezionato_dec = html_decod($metodo_selezionato);
+$panel_subtitle .= " (".htmlspecialchars($metodo_selezionato_dec).")";
+}
+
 echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
-<h5>".mex("Storico Entrate",$pag)."</h5>
+<h5>$panel_subtitle</h5>
 </div>
 <div class=\"rcontent\">";
 if (isset($active_panel) && $active_panel === 'history') {
@@ -338,13 +358,6 @@ if (class_exists('HotelDruidTemplate')) {
 HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
 }
 }
-
-echo "<h3 id=\"h_resp\"><span>".mex("Storia delle entate e uscite delle prenotazioni inserite nel",$pag)." $anno$frase_periodo</span></h3>";
-if ($metodo_selezionato) {
-$metodo_selezionato = html_decod($metodo_selezionato);
-echo "<div style=\"text-align: center;\">(".htmlspecialchars($metodo_selezionato).")</div>";
-} # fine if ($metodo_selezionato)
-echo "<br>";
 
 $storia_soldi_prenota = esegui_query("select * from $tablesoldi where saldo_prenota is not NULL$periodo_query $cond_metodo $condizione_variazioni_proprie order by idsoldi");
 $num_storia_soldi_prenota = numlin_query($storia_soldi_prenota);
