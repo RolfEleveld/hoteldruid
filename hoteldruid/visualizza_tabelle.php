@@ -3191,7 +3191,7 @@ echo "</tr>";
 echo "</table><div style=\"text-align: center;\">* ".mex("entrata presa dalle prenotazioni",$pag)."$stringa_pagine
 <br>
 
-</div></div>"; // Close entrate subsection
+</div></div></div>"; // Close entrate panel
 
 echo "<a name=\"usci_cassa$id_cassa\"></a>
 <div class=\"rbox\" style=\"border-left-color: #c0392b; margin: 15px 0;\">
@@ -3409,14 +3409,19 @@ echo "<tr><td><b><i>".mex("TOTALE",$pag)."</i></b></td>
 if ($priv_ins_spese == "s") echo "<td>&nbsp;</td>";
 echo "</tr>";
 } # fine if ($mostra_tot_tab)
-echo "</table>$stringa_pagine<br><br>";
+echo "</table>$stringa_pagine<br><br></div></div>"; // Close spese panel
 
 
 $cassa = $entrate_TOT - $spese_TOT;
 $cassa_p = punti_in_num($cassa,$stile_soldi);
-echo "<div class=\"biggerfont\"><div class=\"biggerfont\">";
-if ($id_cassa == 1) echo mex("Totale nella cassa principale",$pag);
-else echo mex("Totale nella cassa",$pag)." \"$nome_cassa\"";
+echo "<div class=\"rbox\" style=\"border-left-color: #27ae60; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 8px 15px;\">
+<h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Totale in cassa",$pag)."</h6>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">
+<div class=\"biggerfont\" style=\"text-align: center;\">";
+if ($id_cassa == 1) echo mex("Cassa principale",$pag);
+else echo mex("Cassa",$pag)." <em>$nome_cassa</em>";
 echo ": <b>$cassa_p</b> $Euro</div>";
 $altre_valute_TOT = "";
 $valuta_convertibile = 0;
@@ -3461,9 +3466,8 @@ echo substr($altre_valute_TOT,0,-3);
 if ($valuta_convertibile) echo " <button class=\"xchm\" type=\"submit\"><div>".mex("Converti definitivamente in",$pag)." $Euro ".mex("al cambio attuale",$pag)."</div></button>";
 echo ")</div></form>";
 } # fine if ($altre_valute_TOT)
-echo "</div></div><br>";
+echo "</div></div>"; // Close total panel
 
-echo "</div></div>"; // Close spese subsection
 echo "<hr style=\"width: 95%\">"; // Separator between cash registers
 
 } # fine foreach ($casse_mostra as $id_cassa => $nome_cassa)
@@ -3518,13 +3522,8 @@ $opt_casse_canc</select>
 echo "</div></div>"; // Close cash register management panel
 } # fine if ($id_utente == 1)
 
-// Actions sub-panel
-echo "<div class=\"rbox\" style=\"border-left-color: #3498db; margin: 15px 0;\">
-<div class=\"rheader\" style=\"background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);\">
-<h5>".mex("Azioni",$pag)."</h5>
-</div>
-<div class=\"rcontent\" style=\"padding: 15px;\">
-<div style=\"display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;\">";
+// Action buttons (no panel wrapper)
+echo "<div style=\"display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 20px 0;\">";  
 if ($priv_ins_spese == "s" or $priv_ins_entrate == "s") {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -3537,8 +3536,7 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"resp\" type=\"submit\"><div>".mex("Storia entrate-uscite prenotazioni",$pag)."</div></button>
 </div></form>
-</div>
-</div></div>"; // Close actions panel
+</div>"; // Close button container
 
 echo "</div></div>"; // Close rcontent and rbox
 
