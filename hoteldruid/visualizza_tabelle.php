@@ -1113,9 +1113,11 @@ elseif ($sel_tab_prenota != "tutte") $sel_tab_prenota = "";
 } # fine if (!$cerca_prenota)
 
 if (!isset($show_bar) or $show_bar != "NO") {
+// Store filter form HTML to display inside panel instead of before it
+$filter_form_inside_panel = "";
 if (!$cerca_prenota or $cerca_prenota == "tutte") {
-echo "<table class=\"buttonbar\"><tr><td align=\"left\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
+$filter_form_inside_panel = "<div style=\"margin-bottom: 15px;\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: inline;\"><div style=\"display: inline;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
@@ -1140,15 +1142,18 @@ else {
 $inizio_select = "";
 $fine_select = "";
 } # fine else if (numlin_query($date_select) != 0)
+ob_start();
 mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","cerca_ini",$inizio_select,"","",$id_utente,$tema);
-echo " ".mex("al",$pag)." ";
+$filter_form_inside_panel .= ob_get_clean();
+$filter_form_inside_panel .= " ".mex("al",$pag)." ";
+ob_start();
 mostra_menu_date(C_DATI_PATH."/selperiodimenu$anno.$id_utente.php","cerca_fine",$fine_select,1,"",$id_utente,$tema);
-echo " <input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi",$pag)."\">
-</div></form></td>";
+$filter_form_inside_panel .= ob_get_clean();
+$filter_form_inside_panel .= " <input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi",$pag)."\">
+</div></form></div>";
 } # fine if (!$cerca_prenota or $cerca_prenota == "tutte")
 else {
-echo "<table class=\"buttonbar\"><tr><td align=\"left\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div>
+$filter_form_inside_panel = "<div style=\"margin-bottom: 15px;\"><form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: inline;\"><div style=\"display: inline;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
@@ -1158,8 +1163,11 @@ echo "<table class=\"buttonbar\"><tr><td align=\"left\">
 <input type=\"hidden\" name=\"cerca_prenota\" value=\"tutte\">
 <input type=\"hidden\" name=\"id_utente_vedi\" value=\"$id_utente_vedi\">
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Vedi tutte le prenotazioni",$pag)."\">
-</div></form></td>";
+</div></form></div>";
 } # fine else if (!$cerca_prenota or $cerca_prenota == "tutte")
+
+// Keep the rest of the toolbar visible above the panel
+echo "<table class=\"buttonbar\"><tr>";
 if ($priv_vedi_tab_prenotazioni_orig == "s" or $priv_vedi_tab_prenotazioni_orig == "g") {
 $tutti_utenti = esegui_query("select * from $tableutenti order by idutenti");
 $option_select = "";
@@ -1660,7 +1668,6 @@ $frase_tab = mex("Tabella con tutte le prenotazioni",$pag);
 if ($opz_cerc_pren == "arr") $frase_tab = mex("Tabella con tutti gli arrivi",$pag);
 if ($opz_cerc_pren == "part") $frase_tab =  mex("Tabella con tutte le partenze",$pag);
 if ($pcanc) $frase_tab =  mex("Tabella con le prenotazioni cancellate",$pag);
-echo "<br><div style=\"text-align: center; font-size: large;\"><h5 class=\"h_ares\">$freccia_sx<b>$frase_tab $frase_cerca.</b>$freccia_dx</h5></div><br>";
 } # fine else if ($num_tab > 1)
 
 if (empty($tabella_unica_riassuntiva) and $num_prenotazioni > $num_vedi_in_tab) {
@@ -1687,7 +1694,6 @@ if ($num1 != $pagina_prenota) $stringa_pagine .= "</a>";
 else $stringa_pagine .= "</b>";
 } # fine for $num1
 $stringa_pagine .= "</div>";
-echo $stringa_pagine;
 $stringa_puntini_tab = "<tr><td colspan=\"".($num_colonne_selezionate+6)."\">...</td></tr>";
 if ($num_tab == 1 and empty($tab_precedenti) and $pagina_prenota != $num_pagine_prenota) $num_tabelle = 1;
 } # fine if (empty($tabella_unica_riassuntiva) and $num_prenotazioni > $num_vedi_in_tab)
@@ -1701,6 +1707,7 @@ $class = "t1wc";
 } # fine if ($senza_colori)
 
 if ($num_tab == 1) {
+// Main Prenotazioni wrapper panel
 echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>".mex("Prenotazioni",$pag)."</h5>
@@ -1711,6 +1718,29 @@ if (class_exists('HotelDruidTemplate')) {
 HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
 }
 }
+
+// Display filter form inside panel if it exists
+if (!empty($filter_form_inside_panel)) {
+echo $filter_form_inside_panel;
+}
+
+// Navigation arrows
+echo "<div style=\"text-align: center;\">$freccia_sx $freccia_dx</div><br>";
+
+if (isset($stringa_pagine)) echo $stringa_pagine;
+
+// Table Display sub-panel with dynamic title from $frase_tab
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>";
+if (isset($frase_tab)) {
+echo "<b>$frase_tab $frase_cerca</b>";
+} else {
+echo mex("Elenco Prenotazioni",$pag);
+}
+echo "</h5>
+</div>
+<div class=\"rcontent\">";
 }
 
 echo "<div class=\"tab_cont\">
@@ -2547,15 +2577,23 @@ echo "</tr>";
 } # fine if ($costo_cassa)
 
 echo "</table></div>";
-if (empty($tabella_unica_riassuntiva) and $num_prenotazioni > $num_vedi_in_tab) echo $stringa_pagine;
+if (empty($tabella_unica_riassuntiva) and $num_prenotazioni > $num_vedi_in_tab) echo "<br>".$stringa_pagine;
 
 } # fine for $num_tab
 
 if ($lista_prenota_contr) $lista_prenota_contr .= ",";
 $lista_prenota_mod = substr($lista_prenota_mod,1);
 
+echo "</div></div><br>"; // Close Table Display panel
+
 if (!isset($show_bar) or $show_bar != "NO") {
-echo "<br><div style=\"text-align: center;\">";
+// Payment Actions sub-panel
+echo "<div class=\"rbox\" style=\"border-left-color: #27ae60;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%);\">
+<h5>".mex("Azioni Pagamento",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+echo "<div style=\"text-align: center;\">";
 if ($priv_mod_pagato != "n" and !$pcanc) {
 echo "".ucfirst(mex("porre per le prenotazioni selezionate",$pag))." <select name=\"somma_pagata\">";
 if ($priv_mod_pagato == "s") echo "<option value=\"tutto\" selected>".mex("tutto pagato",$pag)."</option>
@@ -2568,13 +2606,21 @@ echo "</select>
 } # fine if ($priv_mod_pagato != "n" and !$pcanc)
 echo "<button class=\"seld smlscrfnt\" type=\"submit\" name=\"subtotale_selezionate\" value=\"1\"><div>".mex("Calcola il subtotale delle prenotazioni selezionate",$pag)."</div></button>
 </div>";
+echo "</div></div><br>"; // Close Payment Actions panel
 } # fine if (!isset($show_bar) or $show_bar != "NO")
 echo "<input type=\"hidden\" name=\"num_cambia_pren\" value=\"$num_cambia\">
 <input type=\"hidden\" name=\"pcanc\" value=\"$pcanc\">
 </div></form>";
 
 if (!isset($show_bar) or $show_bar != "NO") {
-echo "<br><div style=\"text-align: center;\">
+// Group Modify sub-panel
+echo "<div class=\"rbox\" style=\"border-left-color: #e67e22;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);\">
+<h5>".mex("Modifica Gruppo",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (strcmp((string) $lista_prenota_mod,"")) {
+echo "<div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -2585,6 +2631,10 @@ echo "<br><div style=\"text-align: center;\">
 <input id=\"fms_prenota_mod\" type=\"hidden\" value=\"".mex("Modifica come gruppo le prenotazioni mostrate in tabella",$pag)."\">
 <button id=\"smt_prenota_mod\" class=\"mress smlscrfnt\" type=\"submit\"><div>".mex("Modifica come gruppo le prenotazioni mostrate in tabella",$pag)."</div></button>
 </div></form></div>";
+} else {
+echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione da modificare",$pag)."</em></div>";
+}
+echo "</div></div><br>"; // Close Group Modify panel
 } # fine if (!isset($show_bar) or $show_bar != "NO")
 
 $nomi_contratti = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'nomi_contratti' and idutente = '$id_utente'");
@@ -2607,7 +2657,14 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine if ($attiva_contratti_consentiti == "n" or...
 } # fine for $num_contratto
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
-echo "<br><div style=\"text-align: center;\">
+// Document Selector sub-panel
+echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
+<h5>".mex("Visualizza Documento",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (strcmp((string) $lista_prenota_contr,"")) {
+echo "<div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -2622,10 +2679,14 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
  <select name=\"numero_contratto\">$option_num_contr</select>
  <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
 </div></form></div>";
+} else {
+echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em></div>";
+}
+echo "</div></div><br>"; // Close Document Selector panel
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
 
-echo "</div></div>"; // Close rcontent and rbox
-
+if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO") {
+echo "</div></div>"; // Close main Prenotazioni wrapper (rcontent and rbox)
 } # fine if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO")
 
 } # fine if ($tipo_tabella == "prenotazioni" and $priv_vedi_tab_prenotazioni != "n")
@@ -6354,6 +6415,10 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
  <select name=\"numero_contratto\">$option_num_contr</select>
  <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
 </div></form></div>";
+} else {
+echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em></div>";
+}
+echo "</div></div><br>"; // Close Documents panel
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
 } # fine if ($lista_clienti_contr) 
 

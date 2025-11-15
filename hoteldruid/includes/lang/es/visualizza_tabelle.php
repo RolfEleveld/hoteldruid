@@ -4,6 +4,13 @@ switch ($messaggio) {
 
 case "Visualizza Tabelle":  			$messaggio = "Ver Tablas"; break;
 case "Costi":  					$messaggio = "Costos"; break;
+case "Prenotazioni":  				$messaggio = "Reservas"; break;
+case "Navigazione":  				$messaggio = "Navegación"; break;
+case "Elenco Prenotazioni":  			$messaggio = "Lista de Reservas"; break;
+case "Azioni Pagamento":  			$messaggio = "Acciones de Pago"; break;
+case "Modifica Gruppo":  			$messaggio = "Modificar Grupo"; break;
+case "Nessuna prenotazione da modificare":  	$messaggio = "No hay reservas para modificar"; break;
+case "Nessuna prenotazione per generare documenti":  $messaggio = "No hay reservas para generar documentos"; break;
 case "Vedi le prenotazioni":  			$messaggio = "Mira las reservas"; break;
 case "presenti dal":  				$messaggio = "presentes desde"; break;
 case "al":  					$messaggio = "hasta"; break;

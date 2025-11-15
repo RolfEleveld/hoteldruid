@@ -2,9 +2,16 @@
 
 switch ($messaggio) {
 
-case "Visualizza Tabelle":  			$messaggio = "Show Tables"; break;
+case "Visualizza Tabelle":  			$messaggio = "View Tables"; break;
 case "Costi":  					$messaggio = "Costs"; break;
-case "Vedi le prenotazioni":  			$messaggio = "See the reservations"; break;
+case "Prenotazioni":  				$messaggio = "Reservations"; break;
+case "Navigazione":  				$messaggio = "Navigation"; break;
+case "Elenco Prenotazioni":  			$messaggio = "Reservation List"; break;
+case "Azioni Pagamento":  			$messaggio = "Payment Actions"; break;
+case "Modifica Gruppo":  			$messaggio = "Modify Group"; break;
+case "Nessuna prenotazione da modificare":  	$messaggio = "No reservations to modify"; break;
+case "Nessuna prenotazione per generare documenti":  $messaggio = "No reservations to generate documents"; break;
+case "Vedi le prenotazioni":  			$messaggio = "View reservations"; break;
 case "presenti dal":  				$messaggio = "present from"; break;
 case "al":  					$messaggio = "to"; break;
 case "Senza colori":  				$messaggio = "Without colors"; break;
