@@ -2,8 +2,9 @@
 
 switch ($messaggio) {
 
-case "Visualizza Tabelle":  			$messaggio = "View Tables"; break;
-case "Vedi le prenotazioni":  			$messaggio = "View the reservations"; break;
+case "Visualizza Tabelle":  			$messaggio = "Show Tables"; break;
+case "Costi":  					$messaggio = "Costs"; break;
+case "Vedi le prenotazioni":  			$messaggio = "See the reservations"; break;
 case "presenti dal":  				$messaggio = "present from"; break;
 case "al":  					$messaggio = "to"; break;
 case "Senza colori":  				$messaggio = "Without colors"; break;

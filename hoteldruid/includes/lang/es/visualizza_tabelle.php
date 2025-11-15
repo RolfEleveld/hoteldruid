@@ -3,6 +3,7 @@
 switch ($messaggio) {
 
 case "Visualizza Tabelle":  			$messaggio = "Ver Tablas"; break;
+case "Costi":  					$messaggio = "Costos"; break;
 case "Vedi le prenotazioni":  			$messaggio = "Mira las reservas"; break;
 case "presenti dal":  				$messaggio = "presentes desde"; break;
 case "al":  					$messaggio = "hasta"; break;
