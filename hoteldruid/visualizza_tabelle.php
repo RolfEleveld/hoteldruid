@@ -3464,7 +3464,9 @@ echo ")</div></form>";
 echo "</div></div><br>";
 
 echo "</div></div>"; // Close spese subsection
-echo "<hr style=\"width: 95%\">"; // Separator between cash registers} # fine foreach ($casse_mostra as $id_cassa => $nome_cassa)
+echo "<hr style=\"width: 95%\">"; // Separator between cash registers
+
+} # fine foreach ($casse_mostra as $id_cassa => $nome_cassa)
 
 // Document selector sub-panel
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
