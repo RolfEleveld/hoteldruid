@@ -127,6 +127,11 @@ $titolo = "HotelDruid: ".mex("Storico Entrate",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+include("./includes/panel_feedback.php");
+$active_panel = '';
+$success_messages = array();
+$error_messages = array();
+$warning_messages = array();
 
 $stile_soldi = stile_soldi();
 $stile_data = stile_data();
@@ -175,6 +180,8 @@ if (numlin_query($transazione_presente) == 1) {
 esegui_query("delete from $tablesoldi where idsoldi != '1'");
 esegui_query("update $tablecosti set val_costo = '0' where idcosti = '0'");
 esegui_query("delete from $tabletransazioni where idtransazioni = '".aggslashdb($id_transazione)."' and idsessione = '".aggslashdb($id_sessione)."' and tipo_transazione = 'can_s'");
+$active_panel = 'history';
+$success_messages[] = mex("Entrate e uscite azzerate",$pag);
 } # fine if (numlin_query($transazione_presente) == 1)
 unlock_tabelle($tabelle_lock);
 } # fine else if (empty($continua))
@@ -320,6 +327,17 @@ if ($metodo_selezionato) {
 if (@get_magic_quotes_gpc()) $metodo_selezionato = stripslashes($metodo_selezionato);
 $cond_metodo = "and metodo_pagamento = '".aggslashdb($metodo_selezionato)."'";
 } # fine if ($metodo_selezionato)
+
+echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
+<h5>".mex("Storico Entrate",$pag)."</h5>
+</div>
+<div class=\"rcontent\">";
+if (isset($active_panel) && $active_panel === 'history') {
+if (class_exists('HotelDruidTemplate')) {
+HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
+}
+}
 
 echo "<h3 id=\"h_resp\"><span>".mex("Storia delle entate e uscite delle prenotazioni inserite nel",$pag)." $anno$frase_periodo</span></h3>";
 if ($metodo_selezionato) {
@@ -539,9 +557,11 @@ echo "<td>&nbsp;</td>
 } # fine if ($costo_cassa and !$cerca_prenota)
 
 echo "</table></div>
-$stringa_pagine
+$stringa_pagine";
 
-<br>
+echo "</div></div>"; // Close rcontent and rbox (History Panel)
+
+echo "<br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
