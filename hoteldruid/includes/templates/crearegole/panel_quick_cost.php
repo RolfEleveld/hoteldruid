@@ -86,8 +86,7 @@
             <input type="hidden" name="origine" value="crearegole.php">
             
             <div class="form-row">
-                <label><?php echo mex("Tipo di costo aggiuntivo",'creaprezzi.php'); ?>:</label>
-                <select name="tipocostoagg">
+                <select name="tipocostoagg" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                     <option value="perm_min"><?php echo mex("permanenza minima",'creaprezzi.php'); ?></option>
                     <option value="num_bamb"><?php echo mex("numero di neonati",'creaprezzi.php'); ?></option>
                     <option value="letto_agg"><?php echo mex("letto aggiuntivo",'creaprezzi.php'); ?></option>
