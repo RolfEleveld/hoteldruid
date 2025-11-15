@@ -3464,61 +3464,79 @@ echo ")</div></form>";
 echo "</div></div><br>";
 
 echo "</div></div>"; // Close spese subsection
+echo "<hr style=\"width: 95%\">"; // Separator between cash registers} # fine foreach ($casse_mostra as $id_cassa => $nome_cassa)
 
+// Document selector sub-panel
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\"><div  class=\"txtcenter\">
+echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
+<h5>".mex("Visualizza Documento",$pag)."</h5>
+</div>
+<div class=\"rcontent\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\"><div class=\"txtcenter\" style=\"padding: 10px 0;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"origine\" value=\"$pag?id_sessione=$id_sessione&amp;anno=$anno&amp;tipo_tabella=$tipo_tabella#entr_cassa$id_cassa\">
-<input type=\"hidden\" name=\"lista_cassa\" value=\"$id_cassa\">
-".ucfirst(mex("documento di tipo",$pag))."
- <select name=\"numero_contratto\">$option_num_contr</select>
- <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
-</div></form><br>";
+<input type=\"hidden\" name=\"origine\" value=\"$pag?id_sessione=$id_sessione&amp;anno=$anno&amp;tipo_tabella=$tipo_tabella#entr_cassa1\">
+<input type=\"hidden\" name=\"lista_cassa\" value=\"1\">
+<label style=\"margin-right: 10px;\">".ucfirst(mex("documento di tipo",$pag)).":</label>
+<select name=\"numero_contratto\" style=\"margin-right: 10px;\">$option_num_contr</select>
+<button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
+</div></form>
+</div></div>";
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
-echo "<hr style=\"width: 95%\">";
 
-} # fine foreach ($casse_mostra as $id_cassa => $nome_cassa)
-
-
+// Cash register management sub-panel (admin only)
 if ($id_utente == 1) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div class=\"txtcenter\" style=\"padding: 2px 0 2px 0;\">
+echo "<div class=\"rbox\" style=\"border-left-color: #e67e22; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);\">
+<h5>".mex("Gestione Casse",$pag)."</h5>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">
+<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div class=\"txtcenter\" style=\"padding: 8px 0;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
 <input type=\"hidden\" name=\"crea_cassa\" value=\"1\">
-".mex("Nuova cassa chiamata",$pag)." <input type=\"text\" name=\"n_nome_cassa\" size=\"10\" value=\"\">
+<label style=\"margin-right: 10px;\">".mex("Nuova cassa chiamata",$pag).":</label>
+<input type=\"text\" name=\"n_nome_cassa\" size=\"20\" value=\"\" style=\"margin-right: 10px;\">
 <button class=\"inex\" type=\"submit\"><div>".mex("Crea",$pag)."</div></button>
 </div></form>";
 if ($opt_casse_canc) {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div class=\"txtcenter\" style=\"padding: 2px 0 2px 0;\">
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div class=\"txtcenter\" style=\"padding: 8px 0;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
 <input type=\"hidden\" name=\"canc_cassa\" value=\"1\">
-".mex("Cassa chiamata",$pag)." <select name=\"c_id_cassa\">
+<label style=\"margin-right: 10px;\">".mex("Cassa chiamata",$pag).":</label>
+<select name=\"c_id_cassa\" style=\"margin-right: 10px;\">
 $opt_casse_canc</select>
 <button class=\"caex\" type=\"submit\"><div>".mex("Cancella",$pag)."</div></button>
 </div></form>";
 } # fine if ($opt_casse_canc)
-echo "<hr style=\"width: 95%\">";
+echo "</div></div>"; // Close cash register management panel
 } # fine if ($id_utente == 1)
 
-echo "<table style=\"margin-left: auto; margin-right: auto;\"><tr>";
+// Actions sub-panel
+echo "<div class=\"rbox\" style=\"border-left-color: #3498db; margin: 15px 0;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);\">
+<h5>".mex("Azioni",$pag)."</h5>
+</div>
+<div class=\"rcontent\" style=\"padding: 15px;\">
+<div style=\"display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;\">";
 if ($priv_ins_spese == "s" or $priv_ins_entrate == "s") {
-echo "<td><div style=\"text-align: center;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"costi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"inex\" type=\"submit\"><div>".mex("Inserisci nuove spese o entrate",$pag)."</div></button>
-</div></form></div></td>";
+</div></form>";
 } # fine if ($priv_ins_spese == "s" or $priv_ins_entrate == "s")
-echo "<td><div style=\"text-align: center;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
+echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"storia_soldi.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"resp\" type=\"submit\"><div>".mex("Storia entrate-uscite prenotazioni",$pag)."</div></button>
-</div></form></div></td></tr></table>";
+</div></form>
+</div>
+</div></div>"; // Close actions panel
 
 echo "</div></div>"; // Close rcontent and rbox
 
