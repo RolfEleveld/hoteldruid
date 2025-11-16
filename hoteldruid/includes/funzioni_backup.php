@@ -1588,11 +1588,11 @@ $PHPR_TAB_PRE = $N_PHPR_TAB_PRE;
 $tablepersonalizza = $PHPR_TAB_PRE."personalizza";
 include("./includes/funzioni_costi_agg.php");
 include("./includes/funzioni_web.php");
-include("./includes/templates/funzioni_modelli.php");
+	if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 $modello_esistente = "SI";
 $cambia_frasi = "NO";
-include("./includes/templates/frasi_mod_disp.php");
-include("./includes/templates/funzioni_mod_disp.php");
+	if (is_file("./includes/templates/frasi_mod_disp.php")) include_once("./includes/templates/frasi_mod_disp.php");
+	if (is_file("./includes/templates/funzioni_mod_disp.php")) include_once("./includes/templates/funzioni_mod_disp.php");
 for ($num_cart = 0 ; $num_cart < $num_perc_cart_mod_vett ; $num_cart++) {
 $percorso_cartella_modello = $perc_cart_mod_vett[$num_cart];
 if (!empty($contenuto_mod[$percorso_cartella_modello]['mdl_disponibilita.php'])) {
@@ -1647,9 +1647,9 @@ closedir($lang_dir);
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
-include("./includes/templates/$modello_ext/phrases.php");
-include("./includes/templates/$modello_ext/functions.php");
+			if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
+			if (is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
+			if (is_file("./includes/templates/$modello_ext/functions.php")) include_once("./includes/templates/$modello_ext/functions.php");
 $funz_recupera_var_modello = "recupera_var_modello_".$modello_ext;
 $funz_crea_modello = "crea_modello_".$modello_ext;
 $funz_mext = "mext_".$modello_ext;

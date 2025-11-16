@@ -631,7 +631,7 @@ unset($altri_domini);
 if (!$url_base_pagine_web and (!defined('C_PAGINA_WEB') or C_PAGINA_WEB != '1')) {
 if (!function_exists('trova_url_pagina')) {
 $perc_cart_mod_sel = "";
-include("./includes/templates/funzioni_modelli.php");
+	if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 } # fine if (!function_exists('trova_url_pagina'))
 $url_base_pagine_web = trova_url_pagina("",$percorso_cartella_modello,"");
 } # fine if (!$url_base_pagine_web and (!defined('C_PAGINA_WEB') or C_PAGINA_WEB != '1'))

@@ -80,6 +80,15 @@ docker-compose logs -f
 docker-compose -f docker-compose.yml up -d
 ```
 
+### Option 4: use the phpdesktop
+
+```powershell
+setup-phpdesktop.ps1
+start-hoteldruid-desktop.ps1
+package-release.ps1
+```
+
+
 ## 📁 Project Structure
 
 ```text

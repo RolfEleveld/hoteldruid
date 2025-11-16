@@ -1,9 +1,11 @@
 # Inline Message System - Implementation Guide
 
 ## Overview
+
 The inline message system provides consistent user feedback across all HotelDruid pages by displaying success, error, and warning messages at the top of the page without redirects or intermediate pages.
 
 ## Benefits
+
 - ✅ User stays on the same page after form submission
 - ✅ Consistent look and feel across all pages
 - ✅ No "headers already sent" errors
@@ -15,6 +17,7 @@ The inline message system provides consistent user feedback across all HotelDrui
 ## Implementation Steps
 
 ### Step 1: Initialize Message Arrays
+
 Add these lines near the top of your PHP file (after database connection):
 
 ```php
@@ -25,6 +28,7 @@ $warning_messages = array();
 ```
 
 ### Step 2: Include Template System and Display Messages
+
 After `head.php` is included, add:
 
 ```php
@@ -38,6 +42,7 @@ if (!empty($success_messages) or !empty($error_messages) or !empty($warning_mess
 ```
 
 ### Step 3: Replace Echo Statements with Message Arrays
+
 Instead of echoing messages directly:
 
 ```php
@@ -56,6 +61,7 @@ $warning_messages[] = mex("Attenzione: verificare i dati", $pag);
 ```
 
 ### Step 4: Modify Form Processing Flow
+
 Ensure the page shows the main form after processing instead of redirecting:
 
 ```php
@@ -76,27 +82,34 @@ if (empty($inserisci) or !empty($show_main_form)) {
 ## Message Types
 
 ### Success Messages (Green)
+
 Use for successful operations:
+
 ```php
 $success_messages[] = "Operation completed successfully";
 $success_messages[] = mex("La regola è stata inserita", $pag);
 ```
 
 ### Error Messages (Red)
+
 Use for errors and validation failures:
+
 ```php
 $error_messages[] = "Please fill in all required fields";
 $error_messages[] = mex("Si deve scegliere la tariffa", $pag);
 ```
 
 ### Warning Messages (Yellow/Orange)
+
 Use for warnings and confirmations needed:
+
 ```php
 $warning_messages[] = "This action requires confirmation";
 $warning_messages[] = mex("Esiste già una regola in questo periodo", $pag);
 ```
 
 ## Confirmation Forms
+
 For confirmations that need user action (e.g., overlapping rules), create a template and display it in the appropriate panel:
 
 ```php

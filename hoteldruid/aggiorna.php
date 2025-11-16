@@ -66,7 +66,7 @@ $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB
 } # fine else if ($molto_vecchio)
 
 
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/funzioni_aggiorna.php");
 
 

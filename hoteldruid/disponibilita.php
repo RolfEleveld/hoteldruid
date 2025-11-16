@@ -76,7 +76,7 @@ include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
 include("./includes/liberasettimane.php");
 include("./includes/spezzaprenota.php");
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/funzioni_tariffe.php");
 include("./includes/funzioni_costi_agg.php");
 include("./includes/sett_gio.php");

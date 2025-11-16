@@ -29,7 +29,7 @@ $var_pag[1] = 'raw';
 $n_var_pag = 2;
 
 include("./costanti.php");
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/files_sorgente.php");
 if (!isset($raw)) $raw = "";
 $mostra_lista = "";

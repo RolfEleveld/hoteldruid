@@ -129,7 +129,7 @@ echo "</select><br><br>
 exit; // Stop execution here so we don't try to connect to database
 } # fine if (@is_file(C_DATI_PATH."/dati_connessione.php") != true)
 
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 
 // Configure secure session
 if (session_status() == PHP_SESSION_NONE) {

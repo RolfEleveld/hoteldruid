@@ -1,0 +1,50 @@
+{
+  "application": {
+    "name": "HotelDruid",
+    "version": "3.0.7",
+    "main_window": {
+      "title": "HotelDruid - Hotel Management System",
+      "icon": "img/favicon.ico",
+      "width": 1280,
+      "height": 800,
+      "min_width": 1024,
+      "min_height": 600,
+      "maximized": false,
+      "resizable": true,
+      "always_on_top": false,
+      "fullscreen": false,
+      "kiosk": false
+    }
+  },
+  "php": {
+    "php_version": "8.1",
+    "extensions": [
+      "sqlite3",
+      "session",
+      "json",
+      "mbstring",
+      "pdo",
+      "pdo_sqlite"
+    ]
+  },
+  "web_server": {
+    "listen_on": [
+      "127.0.0.1",
+      "8080"
+    ],
+    "document_root": ".",
+    "index_files": [
+      "inizio.php",
+      "index.html",
+      "index.php"
+    ],
+    "router_script": "server.php"
+  },
+  "chrome": {
+    "command_line_switches": [
+      "--disable-web-security",
+      "--disable-features=TranslateUI"
+    ]
+  }
+}
+

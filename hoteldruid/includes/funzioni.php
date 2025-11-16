@@ -178,12 +178,14 @@ return $messaggio;
 
 
 
+if (!function_exists('fixset')) {
 function fixset (&$var) {
 
 if (isset($var)) return $var;
 else return null;
 
 } # fine function fixset
+}
 
 
 

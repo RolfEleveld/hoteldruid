@@ -319,8 +319,6 @@ case "Importazioni configurate":  		$messaggio = "Configured imports"; break;
 case "Gestione Finanziaria":  		$messaggio = "Financial Management"; break;
 case "":  		$messaggio = ""; break;
 case "":  		$messaggio = ""; break;
-
-} # fine switch ($messaggio)
 case "cancella":  				$messaggio = "delete"; break;
 case "L'importatazione dei prezzi è stata cancellata":	$messaggio = "The prices import has been deleted"; break;
 case "al prezzo fisso":  			$messaggio = "to fixed price"; break;
@@ -359,5 +357,3 @@ case "Gestione Finanziaria":  		$messaggio = "Financial Management"; break;
 case "":  		$messaggio = ""; break;
 
 } # fine switch ($messaggio)
-
-?>

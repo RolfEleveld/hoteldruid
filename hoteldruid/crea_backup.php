@@ -66,7 +66,7 @@ include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 include("./includes/funzioni_backup.php");
 $numconnessione = connetti_db_per_backup($PHPR_DB_TYPE,$PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT,$PHPR_TAB_PRE,$ext_pgsql_caricata,$ext_mysql_caricata);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 $tableanni = $PHPR_TAB_PRE."anni";
 $tableversioni = $PHPR_TAB_PRE."versioni";
 $tableutenti = $PHPR_TAB_PRE."utenti";
@@ -362,7 +362,7 @@ $lingua_mex_1 = $lingua[1];
 } # fine if ($id_utente != 1)
 else $lingua_mex_1 = $lingua_mex;
 $lingua_mex = $lingua_mex_1;
-include("./includes/templates/funzioni_modelli.php");
+if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 for ($num_cart = 0 ; $num_cart < $num_perc_cart_mod_vett ; $num_cart++) {
 $percorso_cartella_modello = $perc_cart_mod_vett[$num_cart];
 if (@is_file("$percorso_cartella_modello/mdl_disponibilita.php")) dump_modello("mdl_disponibilita.php",$percorso_cartella_modello,$file);
@@ -377,7 +377,9 @@ closedir($lang_dir);
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." && $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
+				if (@is_file("./includes/templates/$modello_ext/name.php")) {
+					include_once("./includes/templates/$modello_ext/name.php");
+				}
 if ($template_file_name['ita']) $nome_file = $template_file_name['ita'];
 else $nome_file = "ita_".$template_file_name['en'];
 if (@is_file("$percorso_cartella_modello/$nome_file")) dump_modello($nome_file,$percorso_cartella_modello,$file);

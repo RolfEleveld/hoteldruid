@@ -53,6 +53,7 @@ case "giornalieri":  				$messaggio = "daily periods"; break;
 case "e prenotazioni da":  			$messaggio = "and reservations from"; break;
 case "a":  					$messaggio = "to"; break;
 case "anno successivo": 			$messaggio = "next year"; break;
+case "Feb. anno successivo":                   	$messaggio = "Feb. next year"; break;
 case "anni successivi":  			$messaggio = "years later"; break;
 case "Importa dall'anno precedente prenotazioni, tariffe (compresi costi aggiuntivi), privilegi degli utenti e regole d'assegnazione.":  $messaggio = "Import from previous year reservations, rates (inclusive the extra costs), users privileges and assignment rules."; break;
 case "Anno ":  					$messaggio = "Year "; break;
@@ -132,7 +133,9 @@ case "Nuovo Cliente": 				$messaggio = "New Client"; break;
 case "Stato Sistema": 				$messaggio = "System Status"; break;
 case "Anno Attivo": 				$messaggio = "Active Year"; break;
 case "Versione": 				$messaggio = "Version"; break;
-case "":  		$messaggio = ""; break;
+case "Clienti":  		$messaggio = "Clients"; break;
+case "Prenotazioni":  		$messaggio = "Reservations"; break;
+case "Calendario":  		$messaggio = "Calendar"; break;
 case "":  		$messaggio = ""; break;
 
 } # fine switch ($messaggio)

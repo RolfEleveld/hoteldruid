@@ -238,10 +238,10 @@ include("./costanti.php");
 include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_testo.php");
-include("./includes/panel_feedback.php");
+include_once("./includes/panel_feedback.php");
 $active_panel = '';
 $tipo_tabella = fixstr($tipo_tabella);
 if ($tipo_tabella == "appartamenti" or $tipo_tabella == "periodi") $base_js = 1;
@@ -6994,29 +6994,36 @@ if (!isset($inserire) or $inserire != "NO") {
         $bed_count = !empty($n_letti_single) ? intval($n_letti_single) : 2;
         
         // Always store maxoccupanti regardless of bed count
-        esegui_query("insert into $tableappartamenti (idappartamenti,maxoccupanti) values ('".aggslashdb($n_app)."','".aggslashdb($bed_count)."') ");
-        
-        // Regenerate apartment selection file
-        $id_appartamenti = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti ");
-        $num_appartamenti = numlin_query($id_appartamenti);
-        $fileaperto = fopen(C_DATI_PATH."/selectappartamenti.php","w+");
-        flock($fileaperto,2);
-        fwrite($fileaperto,"<?php \necho '\n");
-        for ( $num = 0; $num < $num_appartamenti; $num = $num + 1) {
-            $numapp = risul_query($id_appartamenti,$num,'idappartamenti');
-            fwrite($fileaperto,"<option value=\"$numapp\">$numapp</option>\n");
-        }
-        fwrite($fileaperto,"';\n?>");
-        flock($fileaperto,3);
-        fclose($fileaperto);
-        
-        // Redirect - use header if possible, otherwise JavaScript
-        if (!headers_sent()) {
-            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
-            exit;
+        $ins_res = esegui_query("insert into $tableappartamenti (idappartamenti,maxoccupanti) values ('".aggslashdb($n_app)."','".aggslashdb($bed_count)."') ");
+
+        if ($ins_res === false) {
+            if (!function_exists('panel_feedback_error')) include_once("./includes/panel_feedback.php");
+            if (function_exists('panel_feedback_init')) panel_feedback_init();
+            $db_err = function_exists('ultimo_errore_sqlite') ? ultimo_errore_sqlite() : mex("Errore sconosciuto","unit.php");
+            $err_msg = "<b>".mex("Errore durante la creazione dell'appartamento","unit.php")."</b>: ".htmlspecialchars($db_err,ENT_COMPAT).".<br>";
+            if (function_exists('panel_feedback_error')) panel_feedback_error($err_msg,'panel_appartamenti');
+            if (function_exists('panel_feedback_set_active_panel')) panel_feedback_set_active_panel('panel_appartamenti');
         } else {
-            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
-            exit;
+            // Regenerate apartment selection file
+            $id_appartamenti = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti ");
+            $num_appartamenti = numlin_query($id_appartamenti);
+            $fileaperto = fopen(C_DATI_PATH."/selectappartamenti.php","w+");
+            flock($fileaperto,2);
+            fwrite($fileaperto,"<?php \necho '\n");
+            for ( $num = 0; $num < $num_appartamenti; $num = $num + 1) {
+                $numapp = risul_query($id_appartamenti,$num,'idappartamenti');
+                fwrite($fileaperto,"<option value=\"$numapp\">$numapp</option>\n");
+            }
+            fwrite($fileaperto,"';\n?>");
+            flock($fileaperto,3);
+            fclose($fileaperto);
+
+            // Show in-panel feedback instead of redirecting
+            if (!function_exists('panel_feedback_success')) include_once("./includes/panel_feedback.php");
+            if (function_exists('panel_feedback_init')) panel_feedback_init();
+            $success_msg = "<b>".mex("appartamento aggiunto","unit.php")."</b>: ".htmlspecialchars($n_app,ENT_COMPAT).".<br>";
+            if (function_exists('panel_feedback_success')) panel_feedback_success($success_msg,'panel_appartamenti');
+            if (function_exists('panel_feedback_set_active_panel')) panel_feedback_set_active_panel('panel_appartamenti');
         }
     }
     
@@ -7036,13 +7043,14 @@ if (!isset($inserire) or $inserire != "NO") {
         fwrite($fileaperto,"';\n?>");
         flock($fileaperto,3);
         fclose($fileaperto);
-        if (!headers_sent()) {
-            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
-            exit;
-        } else {
-            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
-            exit;
-        }
+        // Show feedback for the newly created apartment and continue rendering
+        if (!function_exists('panel_feedback_success')) include_once("./includes/panel_feedback.php");
+        if (function_exists('panel_feedback_init')) panel_feedback_init();
+        $success_msg = "<b>".mex("appartamenti creati","unit.php")."</b>.<br>";
+        if (!empty($mess_letti)) $success_msg .= $mess_letti;
+        else $success_msg .= mex("Operazione completata con successo","unit.php").".<br>";
+        if (function_exists('panel_feedback_success')) panel_feedback_success($success_msg,'panel_appartamenti');
+        if (function_exists('panel_feedback_set_active_panel')) panel_feedback_set_active_panel('panel_appartamenti');
     } else {
         for ($num2 = 0 ; $num2 < $n_letti ; $num2++) {
             $n_letto = $nomi_letti[$num2];
@@ -7071,13 +7079,13 @@ if (!isset($inserire) or $inserire != "NO") {
         fclose($fileaperto);
         
         // Redirect back to show updated list
-        if (!headers_sent()) {
-            header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
-            exit;
-        } else {
-            echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
-            exit;
-        }
+        // Show feedback for the created apartments and continue rendering
+        if (!function_exists('panel_feedback_success')) include_once("./includes/panel_feedback.php");
+        if (function_exists('panel_feedback_init')) panel_feedback_init();
+        $success_msg = "<b>".mex("appartamenti creati","unit.php")."</b>.<br>";
+        if (!empty($mess_letti)) $success_msg .= $mess_letti;
+        if (function_exists('panel_feedback_success')) panel_feedback_success($success_msg,'panel_appartamenti');
+        if (function_exists('panel_feedback_set_active_panel')) panel_feedback_set_active_panel('panel_appartamenti');
     }
 }
 
@@ -7116,7 +7124,7 @@ else {
 
 echo "<div class=\"rbox\" style=\"border-left-color: #1abc9c;\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);\">
-<h5>".mex("Appartamenti",'unit.php')."</h5>
+<h5>".mex("Tabella con tutti gli appartamenti",'unit.php')."</h5>
 </div>
 <div class=\"rcontent\">";
 if (isset($active_panel) && $active_panel === 'panel_appartamenti') {
@@ -7124,8 +7132,6 @@ if (class_exists('HotelDruidTemplate')) {
 HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars());
 }
 }
-
-echo "<h3 id=\"h_room\"><span>".mex("Tabella con tutti gli appartamenti",'unit.php').".</span></h3><br>";
 
 if ($id_utente != 1 or (isset($installazione_subordinata) and $installazione_subordinata == "SI")) $form_tabella = "";
 if (!empty($form_tabella)) {

@@ -1,5 +1,8 @@
 <?php
 
+// Guard all declarations so the file can be safely included multiple times
+if (!function_exists('panel_feedback_init')) {
+
 /**
  * Panel Feedback System - Common Architecture
  * 
@@ -173,5 +176,7 @@ function panel_feedback_get_messages() {
         'warning' => isset($warning_messages) ? $warning_messages : array()
     );
 }
+
+} // end guard for panel_feedback functions
 
 ?>
