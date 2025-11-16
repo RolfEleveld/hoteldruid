@@ -1958,12 +1958,14 @@ else {
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
+if (file_exists("./includes/templates/$modello_ext/name.php")) {
 include("./includes/templates/$modello_ext/name.php");
 if (!empty(${"form_".$template_name}) and (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")) {
 $mostra_form_creazione = "NO";
 include("./includes/templates/$modello_ext/form.php");
 break;
 } # fine if (${"form_".$template_name} and (!isset($template_name_show['tpl_type']) or...
+} # fine if (file_exists...
 } # fine if ($modello_ext != "." and $modello_ext != ".." and...
 } # fine while ($file = readdir($lang_dig))
 closedir($templates_dir);
@@ -2304,6 +2306,7 @@ echo "<label><input type=\"checkbox\" name=\"cambia_frasi\" value=\"SI\">".mex("
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
+if (file_exists("./includes/templates/$modello_ext/name.php")) {
 include("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if (!empty($template_name_show[$lingua_mex])) $nome_modello_ext = $template_name_show[$lingua_mex];
@@ -2321,6 +2324,7 @@ echo "<hr style=\"width: 85%\"><div style=\"text-align: center;\">
 <button class=\"$template_class\" type=\"submit\" name=\"form_$template_name\" value=\"1\"><div>".$nome_modello_ext."</div></button>
 </div>";
 } # fine if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")
+} # fine if (file_exists...
 } # fine if ($modello_ext != "." and $modello_ext != ".." and...
 } # fine while ($file = readdir($lang_dig))
 closedir($templates_dir);
@@ -2337,6 +2341,7 @@ closedir($templates_dir);
 ksort($modelli);
 reset($modelli);
 foreach ($modelli as $modello_ext => $val_i) {
+if (file_exists("./includes/templates/$modello_ext/name.php")) {  
 include("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if ($template_file_name['ita']) $nome_file = $template_file_name['ita'];
@@ -2361,6 +2366,7 @@ if (@is_file($perc_cart_mod_vett[$num_cart]."/$nome_file")) $mod_presenti_vett[$
 } # fine while ($file = readdir($lang_dir))
 closedir($lang_dir);
 } # fine if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")
+} # fine if (file_exists...
 } # fine foreach ($modelli as $modello_ext => $val_i)
 
 if ($num_cart > 1 and !empty($mod_presenti_vett)) {

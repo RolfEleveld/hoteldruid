@@ -118,7 +118,7 @@ else include("./includes/head.php");
 
 
 if (!empty($modifica_utenti) and $id_utente == 1) {
-$mostra_tabella_iniziale = "NO";
+$mostra_tabella_iniziale = "SI";
 $tabelle_lock = array($tableutenti,$tablesessioni);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 if (defined('C_RESTRIZIONI_DEMO_ADMIN') and C_RESTRIZIONI_DEMO_ADMIN == "SI") $cond_escludi_admin = " where idutenti != '1'";
@@ -126,13 +126,11 @@ else $cond_escludi_admin = "";
 $lista_utenti = esegui_query("select idutenti,nome_utente,password,tipo_pass from $tableutenti$cond_escludi_admin order by idutenti");
 $num_lista_utenti = numlin_query($lista_utenti);
 
-if (!isset($continua) or $continua != "SI") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"modifica_utenti\" value=\"SI\">
-<input type=\"hidden\" name=\"num_utenti_tab\" value=\"$num_lista_utenti\">
-<input type=\"hidden\" name=\"continua\" value=\"SI\">";
+// Process changes immediately without confirmation page
+$continua = "SI";
+if (1==1) {
+$ci_sono_cambiamenti = "NO";
+$cambiamenti_html = "";
 for ($num1 = 0 ; $num1 < $num_lista_utenti ; $num1++) {
 $cambiato = "NO";
 $id = risul_query($lista_utenti,$num1,'idutenti');
@@ -149,53 +147,53 @@ $tipo_pass = risul_query($lista_utenti,$num1,'tipo_pass');
 $cambia_nome = 0;
 if ($nome != ${"nome".$id} and str_replace("&","",${"nome".$id}) == ${"nome".$id}) {
 $cambiato = "SI";
+$ci_sono_cambiamenti = "SI";
 $cambia_nome = 1;
-echo mex("Il <b>nome</b> dell'utente",$pag)." <b>$id</b> ".mex("verrà cambiato da",$pag)." <i>$nome</i> ".mex("a",$pag)." <i>".${"nome".$id}."</i>.<br>";
-echo "<input type=\"hidden\" name=\"nome$id\" value=\"".${"nome".$id}."\">";
+$cambiamenti_html .= mex("Il <b>nome</b> dell'utente",$pag)." <b>$id</b> ".mex("verrà cambiato da",$pag)." <i>$nome</i> ".mex("a",$pag)." <i>".${"nome".$id}."</i>.<br>";
+$cambiamenti_html .= "<input type=\"hidden\" name=\"nome$id\" value=\"".${"nome".$id}."\">";
 } # fine if ($nome != ${"nome".$id} and...
 $n_tipo_pass = ${"tipo_pass".$id};
 if ($n_tipo_pass != "5" and $n_tipo_pass != "t") $n_tipo_pass = "n";
 if (defined('C_DISABILITA_PASS_ADMIN') and C_DISABILITA_PASS_ADMIN == "NO" and $id == 1 and $tipo_pass != "n" and $n_tipo_pass == "n") $n_tipo_pass = $tipo_pass;
 if ($tipo_pass != $n_tipo_pass) {
 $cambiato = "SI";
-echo mex("Il <b>login</b> dell'utente",$pag)." <b>$id</b>";
-if (!$cambia_nome) echo " (<em>$nome</em>)";
-echo " ".mex("verrà cambiato da",$pag)." <i>";
+$ci_sono_cambiamenti = "SI";
+$cambiamenti_html .= mex("Il <b>login</b> dell'utente",$pag)." <b>$id</b>";
+if (!$cambia_nome) $cambiamenti_html .= " (<em>$nome</em>)";
+$cambiamenti_html .= " ".mex("verrà cambiato da",$pag)." <i>";
 switch ($tipo_pass) {
-case "t":	echo mex("password conservata in chiaro",$pag); break;
-case "5":	echo mex("password conservata criptata con md5",$pag); break;
-case "c":	echo mex("password conservata criptata con mcrypt",$pag); break;
-case "h":	echo mex("password conservata criptata con mhash",$pag); break;
-default:	echo mex("disabilitato",$pag);
+case "t":	$cambiamenti_html .= mex("password conservata in chiaro",$pag); break;
+case "5":	$cambiamenti_html .= mex("password conservata criptata con md5",$pag); break;
+case "c":	$cambiamenti_html .= mex("password conservata criptata con mcrypt",$pag); break;
+case "h":	$cambiamenti_html .= mex("password conservata criptata con mhash",$pag); break;
+default:	$cambiamenti_html .= mex("disabilitato",$pag);
 } # fine switch ($tipo_pass)
-echo "</i> ".mex("a",$pag)." <i>";
+$cambiamenti_html .= "</i> ".mex("a",$pag)." <i>";
 switch ($n_tipo_pass) {
-case "t":	echo mex("password conservata in chiaro",$pag); break;
-case "5":	echo mex("password conservata criptata con md5",$pag); break;
-case "c":	echo mex("password conservata criptata con mcrypt",$pag); break;
-case "h":	echo mex("password conservata criptata con mhash",$pag); break;
-default:	echo mex("disabilitato",$pag);
+case "t":	$cambiamenti_html .= mex("password conservata in chiaro",$pag); break;
+case "5":	$cambiamenti_html .= mex("password conservata criptata con md5",$pag); break;
+case "c":	$cambiamenti_html .= mex("password conservata criptata con mcrypt",$pag); break;
+case "h":	$cambiamenti_html .= mex("password conservata criptata con mhash",$pag); break;
+default:	$cambiamenti_html .= mex("disabilitato",$pag);
 } # fine switch (${"tipo_pass".$id})
-echo "</i>.<br>";
+$cambiamenti_html .= "</i>.<br>";
 if ($n_tipo_pass != "n") {
-echo "".mex("Inserisci una nuova password",$pag).": <input type=\"password\" name=\"prima_pass$id\" size=\"12\"><br>
+$cambiamenti_html .= "".mex("Inserisci una nuova password",$pag).": <input type=\"password\" name=\"prima_pass$id\" size=\"12\"><br>
 ".mex("Ripeti la password",$pag).": <input type=\"password\" name=\"seconda_pass$id\" size=\"12\"><br>";
 } # fine if ($n_tipo_pass != "n")
-echo "<input type=\"hidden\" name=\"tipo_pass$id\" value=\"$n_tipo_pass\">";
+$cambiamenti_html .= "<input type=\"hidden\" name=\"tipo_pass$id\" value=\"$n_tipo_pass\">";
 } # fine if ($tipo_pass != ${"tipo_pass".$id})
-if ($cambiato == "SI") echo "<input type=\"hidden\" name=\"id_utente_tab$num1\" value=\"$id\">
+if ($cambiato == "SI") $cambiamenti_html .= "<input type=\"hidden\" name=\"id_utente_tab$num1\" value=\"$id\">
 <hr style=\"width: 45%; margin-left: 0; text-align: left;\">";
 } # fine for $num1
-echo "<button class=\"musr\" type=\"submit\"><div>".mex("Continua",$pag)."</div></button>
-</div></form><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form>";
-} # fine if (!isset($continua) or $continua != "SI")
 
+if ($ci_sono_cambiamenti == "NO") {
+$mess_agg = "<div style=\"background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\"><b>".mex("Nessuna modifica rilevata",$pag)."</b>. ".mex("Torna alla tabella degli utenti per modificare i nomi o i tipi di login",$pag).".</div>";
+} # fine if ($ci_sono_cambiamenti == "NO")
 else {
+// Changes detected - process them immediately
+$cambiamenti_info = "<div style=\"background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\"><b>".mex("Cambiamenti",$pag)."</b>:<br>".$cambiamenti_html."</div>";
+// Process changes now - validate and apply
 for ($num1 = 0 ; $num1 < $num_lista_utenti ; $num1++) {
 $id = risul_query($lista_utenti,$num1,'idutenti');
 ${"nome".$id} = trim(elimina_caratteri_slash(${"nome".$id}));
@@ -207,26 +205,20 @@ $nome_esistente = esegui_query("select idutenti from $tableutenti where nome_ute
 if (str_replace("&","",${"nome".$id}) != ${"nome".$id}) $continua = "NO";
 if (numlin_query($nome_esistente) != 0) {
 $continua = "NO";
-echo mex("<div style=\"display: inline; color: red;\">Esiste già</div> un utente chiamato",$pag)." ".${"nome".$id}.".<br>";
+$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("<div style=\\\"display: inline; color: red;\\\">Esiste già</div> un utente chiamato",$pag)." ".${'nome'.$id}.".</div>";
 } # fine if (numlin_query($nome_esistente) != 0)
 $n_tipo_pass = ${"tipo_pass".$id};
 if ($n_tipo_pass and $tipo_pass != $n_tipo_pass) {
-if ($n_tipo_pass != "n" and (!${"prima_pass".$id} or ${"prima_pass".$id} != ${"seconda_pass".$id} or ${"prima_pass".$id} != str_replace("&","",${"prima_pass".$id}))) {
+if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or ${'prima_pass'.$id} != ${'seconda_pass'.$id} or ${'prima_pass'.$id} != str_replace("&","",${'prima_pass'.$id}))) {
 $continua = "NO";
-echo mex("Nuova password dell'utente",$pag)." $id ".mex("<div style=\"display: inline; color: red;\">non</div> inserita correttamente",$pag).".<br>";
-} # fine if ($n_tipo_pass != "n" and (!${"prima_pass".$id} or...
+$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Nuova password dell'utente",$pag)." $id ".mex("<div style=\\\"display: inline; color: red;\\\">non</div> inserita correttamente",$pag).".</div>";
+} # fine if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or...
 } # fine if ($n_tipo_pass and $tipo_pass != $n_tipo_pass)
 } # fine for $num1
 if ($continua == "NO") {
-echo mex("<b>Non</b> è stato effettuato nessun cambiamento",$pag).".<br>";
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form>";
+$mess_agg .= "<div style=\"background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("<b>Non</b> è stato effettuato nessun cambiamento",$pag).".</div>";
 } # fine if ($continua == "NO")
 else {
-$mostra_tabella_iniziale = "SI";
 for ($num1 = 0 ; $num1 < numlin_query($lista_utenti) ; $num1++) {
 $id = risul_query($lista_utenti,$num1,'idutenti');
 $nome = risul_query($lista_utenti,$num1,'nome_utente');
@@ -260,8 +252,11 @@ if ($id == 1 and @is_file(C_DATI_PATH."/abilita_login")) unlink(C_DATI_PATH."/ab
 } # fine else if ($n_tipo_pass != "n")
 } # fine if ($n_tipo_pass and $tipo_pass != $n_tipo_pass)
 } # fine for $num1
+// Show success message with changes applied
+$mess_agg = "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\"><b>".mex("Cambiamenti",$pag)."</b> ".mex("effettuati con successo",$pag)."!<br><br>".$cambiamenti_html."</div>";
 } # fine else if ($continua == "NO")
-} # fine else if (!isset($continua) or $continua != "SI")
+} # fine else if ($ci_sono_cambiamenti == "NO")
+} # fine if (1==1)
 
 unlock_tabelle($tabelle_lock);
 } # fine if (!empty($modifica_utenti) and $id_utente == 1)
@@ -283,7 +278,7 @@ if ($num_utenti_esistenti >= C_MASSIMO_NUM_UTENTI) $continua = "NO";
 $nome_esistente = esegui_query("select idutenti from $tableutenti where nome_utente = '$nome'");
 if (numlin_query($nome_esistente) != 0) {
 $continua = "NO";
-echo mex("Esiste già un utente chiamato",$pag)." $nome.<br>";
+echo "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Esiste già un utente chiamato",$pag)." $nome.</div>";
 } # fine if (numlin_query($nome_esistente) != 0)
 if ($nome != str_replace("&","",$nome)) $continua = "NO";
 if ($continua == "NO") {
@@ -405,7 +400,7 @@ else $nome_utente = risul_query($dati_utente,0,'nome_utente');
 if ($id_utente_pass == 1 and defined('C_RESTRIZIONI_DEMO_ADMIN') and C_RESTRIZIONI_DEMO_ADMIN == "SI") $continua = "NO";
 if (isset($continua) and $continua == "SI" and ($prima_pass != $seconda_pass or $prima_pass == "" or $prima_pass != str_replace("&","",$prima_pass))) {
 unset($continua);
-echo mex("Le nuove password non coincidono",$pag).".<br><br>";
+echo "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\">".mex("Le nuove password non coincidono",$pag).".</div>";
 } # fine if (isset($continua) and $continua == "SI" and ($prima_pass != $seconda_pass or...
 if (empty($continua)) {
 $mostra_tabella_iniziale = "NO";
@@ -477,7 +472,7 @@ if ($num_gruppi_esistenti >= C_MASSIMO_NUM_UTENTI) $continua = "NO";
 $nome_esistente = esegui_query("select idgruppi from $tablegruppi where nome_gruppo = '".aggslashdb($nuovo_gruppo)."'");
 if (numlin_query($nome_esistente) != 0) {
 $continua = "NO";
-echo mex("Esiste già un gruppo chiamato",$pag)." $nuovo_gruppo.<br>";
+echo "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Esiste già un gruppo chiamato",$pag)." $nuovo_gruppo.</div>";
 } # fine if (numlin_query($nome_esistente) != 0)
 if ($nuovo_gruppo != str_replace("&","",$nuovo_gruppo)) $continua = "NO";
 } # fine if ($nuovo_gruppo)
@@ -550,7 +545,7 @@ if ($n_phpr_log == "NO" and @is_file(C_DATI_PATH."/log_utenti.php")) unlink(C_DA
 } # fine if ($file_dati_conn = @file(C_DATI_PATH."/dati_connessione.php"))
 distruggi_lock_file($filelock,C_DATI_PATH."/dati_connessione.php");
 } # fine if ($n_phpr_log)
-echo "".mex("Aggiornati i gruppi dell'utente",$pag)." $nome_utente!<br>";
+echo "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Aggiornati i gruppi dell'utente",$pag)." $nome_utente!</div>";
 } # fine if ($continua == "SI")
 unlock_tabelle($tabelle_lock);
 if ($continua == "NO") $mostra_tabella_iniziale = "NO";
@@ -783,9 +778,9 @@ $grup_importati = "SI";
 } # fine if (numlin_query($utente_imp) == 1 and numlin_query($utente_esp) == 1)
 } # fine if ($id_utente_importa >= 2 and $id_utente_esporta >= 2 and...
 } # fine for $num_imp
-if (isset($priv_importati) and $priv_importati == "SI") echo "<b>".mex("Privilegi importati",$pag).".</b><br>";
-if (isset($pers_importate) and $pers_importate == "SI") echo "<b>".mex("Personalizzazioni importate",$pag).".</b><br>";
-if (isset($grup_importati) and $grup_importati == "SI") echo "<b>".mex("Gruppi importati",$pag).".</b><br>";
+if (isset($priv_importati) and $priv_importati == "SI") echo "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\"><b>".mex("Privilegi importati",$pag).".</b></div>";
+if (isset($pers_importate) and $pers_importate == "SI") echo "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\"><b>".mex("Personalizzazioni importate",$pag).".</b></div>";
+if (isset($grup_importati) and $grup_importati == "SI") echo "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\"><b>".mex("Gruppi importati",$pag).".</b></div>";
 unlock_tabelle($tabelle_lock);
 } # fine if (!empty($importa_priv) and $id_utente == 1)
 
@@ -793,10 +788,22 @@ unlock_tabelle($tabelle_lock);
 
 if (!isset($mostra_tabella_iniziale) or $mostra_tabella_iniziale != "NO") {
 
-echo "<h4 id=\"h_usrs\"><span>";
+# Main panel wrapper
+echo "<div class=\"rbox\" style=\"background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 20px; overflow: hidden;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 15px 20px;\">
+<h5 style=\"margin: 0; color: white; font-size: 18px; font-weight: bold;\">";
 if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo mex("Gestione degli utenti",$pag);
 else echo mex("Gestione degli utenti di hoteldruid",$pag);
-echo "</span></h4><br>$mess_agg";
+echo "</h5>
+</div>
+<div class=\"rcontent\" style=\"padding: 25px;\">";
+
+# Display feedback messages if present
+if ($mess_agg) {
+echo $mess_agg;
+}
+
+echo "<br>";
 
 $tabelle_lock = "";
 $altre_tab_lock = array($tableutenti,$tablegruppi,$tablerelgruppi);
@@ -970,6 +977,9 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.ph
 </div></form>";
 } # fine if (!isset($aggiungi_utenti) or $aggiungi_utenti != "NO")
 } # fine if ($id_utente == 1)
+
+# Close main panel content and wrapper
+echo "</div></div>";
 
 echo "<br><div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"personalizza.php\"><div>

@@ -286,15 +286,56 @@ $tableanni = $PHPR_TAB_PRE."anni";
 $tablenometariffe = $PHPR_TAB_PRE."ntariffe".$anno;
 $tablecontratti = $PHPR_TAB_PRE."contratti";
 $tablecasse = $PHPR_TAB_PRE."casse";
+$tablemessaggi = $PHPR_TAB_PRE."messaggi";
 
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
 if ($id_utente and $id_utente == 1) {
 
 
+$mess_agg = "";
+
+// Process form submissions BEFORE HTML output so messages can be displayed
+// Lock tables and load privilege data
+$tabelle_lock = array($tablepersonalizza,$tableutenti,$tableprivilegi);
+if (!empty($modifica_privilegi_anno) and controlla_anno($modifica_privilegi_anno) == "SI") $tablenometariffe_mostra = $PHPR_TAB_PRE."ntariffe".$modifica_privilegi_anno;
+else {
+$modifica_privilegi_anno = "";
+$tablenometariffe_mostra = $tablenometariffe;
+} # fine else if ($modifica_privilegi_anno and controlla_anno($modifica_privilegi_anno) == "SI") 
+$altre_tab_lock = array($tableanni,$tablenometariffe_mostra,$tablecontratti,$tablecasse,$tablemessaggi);
+$tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
+if (!isset($id_utente_privilegi) or controlla_num_pos($id_utente_privilegi) != "SI") $id_utente_privilegi = "-1";
+$id_utente_privilegi = aggslashdb($id_utente_privilegi);
+$utente_privilegi = esegui_query("select * from $tableutenti where idutenti = '$id_utente_privilegi'");
+if (numlin_query($utente_privilegi)) {
+
+$nome_utente_privilegi = risul_query($utente_privilegi,0,'nome_utente');
+$privilegi_globali = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_privilegi' and anno = '1'");
+$anni = esegui_query("select * from $tableanni order by idanni");
+$num_anni = numlin_query($anni);
+unset ($anno_esistente);
+for ($num1 = 0 ; $num1 < $num_anni ; $num1++) {
+$anno_mostra = risul_query($anni,$num1,'idanni');
+$anno_esistente[$anno_mostra] = "SI";
+$privilegi_anno[$anno_mostra] = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_privilegi' and anno = '$anno_mostra'");
+} # fine for $num1
+
 $titolo = "HotelDruid: ".mex("Privilegi Utenti",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
+echo "<div class=\"rbox\" style=\"background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px auto; max-width: 1400px;\">
+<div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 15px 25px; border-radius: 8px 8px 0 0;\">
+<h5 style=\"margin: 0; font-size: 18px; font-weight: bold;\">".mex("Privilegi Utenti",$pag)."</h5>
+</div>
+<div class=\"rcontent\" style=\"padding: 25px;\">";
+
+# Display feedback messages if present
+if ($mess_agg) {
+echo $mess_agg;
+}
+
+echo "<br>";
 
 /*
 STRUTTURA TABELLA PRIVILEGI
@@ -419,37 +460,12 @@ priv_inventario(varchar10)	s-p-g-n			vedere beni inventario: si - solo propri - 
 
 */
 
-$tabelle_lock = array($tablepersonalizza,$tableutenti,$tableprivilegi);
-if (!empty($modifica_privilegi_anno) and controlla_anno($modifica_privilegi_anno) == "SI") $tablenometariffe_mostra = $PHPR_TAB_PRE."ntariffe".$modifica_privilegi_anno;
-else {
-$modifica_privilegi_anno = "";
-$tablenometariffe_mostra = $tablenometariffe;
-} # fine else if ($modifica_privilegi_anno and controlla_anno($modifica_privilegi_anno) == "SI") 
-$altre_tab_lock = array($tableanni,$tablenometariffe_mostra,$tablecontratti,$tablecasse);
-$tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
-if (!isset($id_utente_privilegi) or controlla_num_pos($id_utente_privilegi) != "SI") $id_utente_privilegi = "-1";
-$id_utente_privilegi = aggslashdb($id_utente_privilegi);
-$utente_privilegi = esegui_query("select * from $tableutenti where idutenti = '$id_utente_privilegi'");
-if (numlin_query($utente_privilegi)) {
-
-$nome_utente_privilegi = risul_query($utente_privilegi,0,'nome_utente');
-$privilegi_globali = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_privilegi' and anno = '1'");
-$anni = esegui_query("select * from $tableanni order by idanni");
-$num_anni = numlin_query($anni);
-unset ($anno_esistente);
-for ($num1 = 0 ; $num1 < $num_anni ; $num1++) {
-$anno_mostra = risul_query($anni,$num1,'idanni');
-$anno_esistente[$anno_mostra] = "SI";
-$privilegi_anno[$anno_mostra] = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_privilegi' and anno = '$anno_mostra'");
-} # fine for $num1
-
-
 if (!empty($modifica_privilegi_globali)) {
 $testo_prefisso_clienti = str_replace(",","",fixstr($testo_prefisso_clienti));
 $modificare = "";
 if (!empty($tipo_prefisso_clienti) and $tipo_prefisso_clienti != "n" and !$testo_prefisso_clienti) {
 $modificare = "NO";
-echo mex("Si deve inserire il <div style=\"display: inline; color: red;\">prefisso/suffisso</div> da utilizzare per i clienti dell'utente",$pag)." $nome_utente_privilegi.<br>";
+$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Si deve inserire il <div style=\\\"display: inline; color: red;\\\">prefisso/suffisso</div> da utilizzare per i clienti dell'utente",$pag)." $nome_utente_privilegi.</div>";
 } # fine if ($tipo_prefisso_clienti and $tipo_prefisso_clienti != "n" and !$prefisso_clienti)
 if ($modificare != "NO") {
 $priv_mod_pers = risul_query($privilegi_globali,0,'priv_mod_pers');
@@ -460,114 +476,115 @@ $casse_consentite = risul_query($privilegi_globali,0,'casse_consentite');
 $priv_inventario = risul_query($privilegi_globali,0,'priv_inventario');
 
 if (empty($continua)) {
-$mostra_form_iniziale = "NO";
 $dati_da_modificare = "";
+$cambiamenti_html = "";
 if (substr($priv_mod_pers,0,1) != fix_set($modifica_pers)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_pers\" value=\"".htmlspecialchars((string) $modifica_pers)."\">";
-if ($modifica_pers == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>personalizzazioni</b>",$pag).".<br>";
-if ($modifica_pers == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>personalizzazioni</b>",$pag).".<br>";
+if ($modifica_pers == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>personalizzazioni</b>",$pag).".<br>";
+if ($modifica_pers == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>personalizzazioni</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,0,1) != fix_set($modifica_pers))
 if (fix_set($modpers_valute) == "s" and ($modpers_valute_altri == "g" or $modpers_valute_altri == "t")) $modpers_valute = $modpers_valute_altri;
 if (substr($priv_mod_pers,7,1) != $modpers_valute) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modpers_valute\" value=\"".htmlspecialchars((string) $modpers_valute)."\">";
-if ($modpers_valute == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag).".<br>";
-if ($modpers_valute == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag)." ".mex("e quelle di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($modpers_valute == "t") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag)." ".mex("e quelle di tutti gli altri utenti",$pag).".<br>";
-if ($modpers_valute == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>valute</b>",$pag).".<br>";
+if ($modpers_valute == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag).".<br>";
+if ($modpers_valute == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag)." ".mex("e quelle di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($modpers_valute == "t") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>valute</b>",$pag)." ".mex("e quelle di tutti gli altri utenti",$pag).".<br>";
+if ($modpers_valute == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>valute</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,7,1) != $modpers_valute)
 if (fix_set($modpers_cat_pers) == "s" and ($modpers_cat_pers_altri == "g" or $modpers_cat_pers_altri == "t")) $modpers_cat_pers = $modpers_cat_pers_altri;
 if (substr($priv_mod_pers,6,1) != $modpers_cat_pers) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modpers_cat_pers\" value=\"".htmlspecialchars((string) $modpers_cat_pers)."\">";
-if ($modpers_cat_pers == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag).".<br>";
-if ($modpers_cat_pers == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag)." ".mex("e quelle di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($modpers_cat_pers == "t") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag)." ".mex("e quelle di tutti gli altri utenti",$pag).".<br>";
-if ($modpers_cat_pers == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>tipologie di persone</b>",$pag).".<br>";
+if ($modpers_cat_pers == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag).".<br>";
+if ($modpers_cat_pers == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag)." ".mex("e quelle di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($modpers_cat_pers == "t") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le sue <b>tipologie di persone</b>",$pag)." ".mex("e quelle di tutti gli altri utenti",$pag).".<br>";
+if ($modpers_cat_pers == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le sue <b>tipologie di persone</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,6,1) != $modpers_cat_pers)
 if (substr($priv_mod_pers,10,1) != fix_set($modifica_pass)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_pass\" value=\"".htmlspecialchars((string) $modifica_pass)."\">";
-if ($modifica_pass == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo la sua <b>password</b>",$pag).".<br>";
-if ($modifica_pass == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le <b>password</b>",$pag).".<br>";
+if ($modifica_pass == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo la sua <b>password</b>",$pag).".<br>";
+if ($modifica_pass == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare le <b>password</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,10,1) != fix_set($modifica_pass))
 if (substr($priv_mod_pers,1,1) != fix_set($crea_backup)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"crea_backup\" value=\"".htmlspecialchars((string) $crea_backup)."\">";
-if ($crea_backup == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare i <b>backup</b>",$pag).".<br>";
-if ($crea_backup == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare i <b>backup</b>",$pag).".<br>";
+if ($crea_backup == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare i <b>backup</b>",$pag).".<br>";
+if ($crea_backup == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare i <b>backup</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,1,1) != fix_set($crea_backup))
 if (substr($priv_mod_pers,8,1) != fix_set($crea_pagineweb)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"crea_pagineweb\" value=\"".htmlspecialchars((string) $crea_pagineweb)."\">";
-if ($crea_pagineweb == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare e modificare le <b>pagine per il sito web</b>",$pag).".<br>";
-if ($crea_pagineweb == "c") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le <b>pagine per il sito web</b> solo quando crea e modifica i costi aggiuntivi",$pag).".<br>";
-if ($crea_pagineweb == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare e modificare le <b>pagine per il sito web</b>",$pag).".<br>";
+if ($crea_pagineweb == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare e modificare le <b>pagine per il sito web</b>",$pag).".<br>";
+if ($crea_pagineweb == "c") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare le <b>pagine per il sito web</b> solo quando crea e modifica i costi aggiuntivi",$pag).".<br>";
+if ($crea_pagineweb == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare e modificare le <b>pagine per il sito web</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,8,1) != fix_set($crea_pagineweb))
 if (substr($priv_mod_pers,3,1) != fix_set($crea_interconnessioni)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"crea_interconnessioni\" value=\"".htmlspecialchars((string) $crea_interconnessioni)."\">";
-if ($crea_interconnessioni == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare e modificare le <b>interconnessioni</b>",$pag).".<br>";
-if ($crea_interconnessioni == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare e modificare le <b>interconnessioni</b>",$pag).".<br>";
+if ($crea_interconnessioni == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà creare e modificare le <b>interconnessioni</b>",$pag).".<br>";
+if ($crea_interconnessioni == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più creare e modificare le <b>interconnessioni</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,3,1) != fix_set($crea_interconnessioni))
 if (substr($priv_mod_pers,5,1) != fix_set($gest_pass_cc)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"gest_pass_cc\" value=\"".htmlspecialchars((string) $gest_pass_cc)."\">";
-if ($gest_pass_cc == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà gestire la <b>password per le carte di credito</b>",$pag).".<br>";
-if ($gest_pass_cc == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più gestire la <b>password per le carte di credito</b>",$pag).".<br>";
+if ($gest_pass_cc == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà gestire la <b>password per le carte di credito</b>",$pag).".<br>";
+if ($gest_pass_cc == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più gestire la <b>password per le carte di credito</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,5,1) != fix_set($gest_pass_cc))
 if (substr($priv_mod_pers,2,1) != fix_set($modifica_doc)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_doc\" value=\"".htmlspecialchars((string) $modifica_doc)."\">";
-if ($modifica_doc == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti</b>",$pag).".<br>";
-if ($modifica_doc == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti</b>",$pag).".<br>";
+if ($modifica_doc == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti</b>",$pag).".<br>";
+if ($modifica_doc == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,2,1) != fix_set($modifica_doc))
 if ($modifica_doc == "n") $modifica_doc_html = "n";
 if (substr($priv_mod_pers,9,1) != fix_set($modifica_doc_html)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_doc_html\" value=\"".htmlspecialchars((string) $modifica_doc_html)."\">";
-if ($modifica_doc_html == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti con formato HTML</b>",$pag).".
+if ($modifica_doc_html == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti con formato HTML</b>",$pag).".
 <b class=\"colwarn\">".mex("Attenzione",$pag)."</b>: ".mex("questo può consentire di portare attacchi di tipo \"Cross Site Scripting\" per rubare le credenziali di altri utenti",$pag).".<br>";
-if ($modifica_doc_html == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti con formato HTML</b>",$pag).".<br>";
+if ($modifica_doc_html == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti con formato HTML</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,9,1) != fix_set($modifica_doc_html))
 if ($modifica_doc == "n") $modifica_doc_api = "n";
 if (substr($priv_mod_pers,4,1) != fix_set($modifica_doc_api)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_doc_api\" value=\"".htmlspecialchars((string) $modifica_doc_api)."\">";
-if ($modifica_doc_api == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti come API</b>",$pag).".
+if ($modifica_doc_api == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare i <b>documenti come API</b>",$pag).".
 <b class=\"colwarn\">".mex("Attenzione",$pag)."</b>: ".mex("questo può consentire l'accesso ai dati di tutte le prenotazioni",$pag).".<br>";
-if ($modifica_doc_api == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti come API</b>",$pag).".<br>";
+if ($modifica_doc_api == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare i <b>documenti come API</b>",$pag).".<br>";
 } # fine if (substr($priv_mod_pers,4,1) != fix_set($modifica_doc_api))
 if (substr($priv_ins_clienti,0,1) != fix_set($inserimento_clienti)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"inserimento_clienti\" value=\"".htmlspecialchars((string) $inserimento_clienti)."\">";
-if ($inserimento_clienti == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà inserire <b>nuovi clienti</b>",$pag).".<br>";
-if ($inserimento_clienti == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più inserire <b>nuovi clienti</b>",$pag).".<br>";
+if ($inserimento_clienti == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà inserire <b>nuovi clienti</b>",$pag).".<br>";
+if ($inserimento_clienti == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più inserire <b>nuovi clienti</b>",$pag).".<br>";
 } # fine if (substr($priv_ins_clienti,0,1) != fix_set($inserimento_clienti))
 if (fix_set($modifica_clienti) == "p" and fixset($modifica_clienti_gr) == "SI") $modifica_clienti = "g";
 if (substr($priv_ins_clienti,1,1) != $modifica_clienti) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"modifica_clienti\" value=\"".htmlspecialchars((string) $modifica_clienti)."\">";
-if ($modifica_clienti == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare <b>tutti i clienti</b>",$pag).".<br>";
-if ($modifica_clienti == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo i <b>propri clienti</b>",$pag).".<br>";
-if ($modifica_clienti == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo i <b>propri clienti</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($modifica_clienti == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare <b>nessun cliente</b>",$pag).".<br>";
+if ($modifica_clienti == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare <b>tutti i clienti</b>",$pag).".<br>";
+if ($modifica_clienti == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo i <b>propri clienti</b>",$pag).".<br>";
+if ($modifica_clienti == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà modificare solo i <b>propri clienti</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($modifica_clienti == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più modificare <b>nessun cliente</b>",$pag).".<br>";
 } # fine if (substr($priv_ins_clienti,1,1) != $modifica_clienti)
 if (fix_set($vedi_clienti) == "p" and fixset($vedi_clienti_gr) == "SI") $vedi_clienti = "g";
 if (substr($priv_ins_clienti,2,1) != $vedi_clienti) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_clienti\" value=\"".htmlspecialchars((string) $vedi_clienti)."\">";
-if ($vedi_clienti == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>nessun cliente</b>",$pag).".<br>";
-if ($vedi_clienti == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>propri clienti</b>",$pag).".<br>";
-if ($vedi_clienti == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>propri clienti</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($vedi_clienti == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>tutti i clienti</b>",$pag).".<br>";
+if ($vedi_clienti == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>nessun cliente</b>",$pag).".<br>";
+if ($vedi_clienti == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>propri clienti</b>",$pag).".<br>";
+if ($vedi_clienti == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>propri clienti</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($vedi_clienti == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>tutti i clienti</b>",$pag).".<br>";
 } # fine if (substr($priv_ins_clienti,2,1) != $vedi_clienti)
 if (substr($priv_ins_clienti,3,1) != fix_set($vedi_telefoni)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_telefoni\" value=\"".htmlspecialchars((string) $vedi_telefoni)."\">";
-if ($vedi_telefoni == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>email, telefoni e fax</b> dei clienti",$pag).".<br>";
-if ($vedi_telefoni == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più vedere <b>email, telefoni e fax</b> dei clienti",$pag).".<br>";
+if ($vedi_telefoni == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>email, telefoni e fax</b> dei clienti",$pag).".<br>";
+if ($vedi_telefoni == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più vedere <b>email, telefoni e fax</b> dei clienti",$pag).".<br>";
 } # fine if (substr($priv_ins_clienti,3,1) != fix_set($vedi_telefoni))
 if (substr($priv_ins_clienti,4,1) != fix_set($vedi_indirizzo)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_indirizzo\" value=\"".htmlspecialchars((string) $vedi_indirizzo)."\">";
-if ($vedi_indirizzo == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'indirizzo</b> dei clienti",$pag).".<br>";
-if ($vedi_indirizzo == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più vedere <b>l'indirizzo</b> dei clienti",$pag).".<br>";
+if ($vedi_indirizzo == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'indirizzo</b> dei clienti",$pag).".<br>";
+if ($vedi_indirizzo == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà più vedere <b>l'indirizzo</b> dei clienti",$pag).".<br>";
 } # fine if (substr($priv_ins_clienti,4,1) != fix_set($vedi_indirizzo))
+$prefisso_clienti_originale = $prefisso_clienti; // Save original string before exploding
 $prefisso_clienti = explode(",",$prefisso_clienti);
 if (@get_magic_quotes_gpc()) $testo_prefisso_clienti = stripslashes($testo_prefisso_clienti);
 $testo_prefisso_clienti = htmlspecialchars(fixstr($testo_prefisso_clienti),ENT_COMPAT);
 if (substr($prefisso_clienti[0],0,1) != fix_set($tipo_prefisso_clienti)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"tipo_prefisso_clienti\" value=\"".htmlspecialchars((string) $tipo_prefisso_clienti)."\">
 <input type=\"hidden\" name=\"testo_prefisso_clienti\" value=\"$testo_prefisso_clienti\">";
-if ($tipo_prefisso_clienti == "p") echo mex("Verrà aggiunto un <b>prefisso</b> a tutti i cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
-if ($tipo_prefisso_clienti == "s") echo mex("Verrà aggiunto un <b>suffisso</b> a tutti i cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
-if ($tipo_prefisso_clienti == "n") echo mex("Non verrà aggiunto più alcun <b>prefisso/suffisso</b> ai cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
+if ($tipo_prefisso_clienti == "p") $cambiamenti_html .= mex("Verrà aggiunto un <b>prefisso</b> a tutti i cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
+if ($tipo_prefisso_clienti == "s") $cambiamenti_html .= mex("Verrà aggiunto un <b>suffisso</b> a tutti i cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
+if ($tipo_prefisso_clienti == "n") $cambiamenti_html .= mex("Non verrà aggiunto più alcun <b>prefisso/suffisso</b> ai cognomi dei clienti inseriti dall'utente",$pag)." <i>$nome_utente_privilegi</i>.<br>";
 } # fine if (substr($prefisso_clienti[0],0,1) != fix_set($tipo_prefisso_clienti))
 if ($prefisso_clienti[1] != $testo_prefisso_clienti and $tipo_prefisso_clienti != "n") {
 if (substr($prefisso_clienti[0],0,1) == $tipo_prefisso_clienti) $dati_da_modificare .= "<input type=\"hidden\" name=\"testo_prefisso_clienti\" value=\"$testo_prefisso_clienti\">";
@@ -575,18 +592,18 @@ echo mex("Il nuovo testo del <b>prefisso/suffisso</b> dei cognomi dei clienti in
 } # fine if ($prefisso_clienti[1] != $testo_prefisso_clienti and $tipo_prefisso_clienti != "n")
 if (substr($priv_messaggi,0,1) != fix_set($vedi_messaggi)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_messaggi\" value=\"".htmlspecialchars((string) $vedi_messaggi)."\">";
-if ($vedi_messaggi == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>i messaggi ricevuti</b>",$pag).".<br>";
-if ($vedi_messaggi == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>i messaggi ricevuti</b>",$pag).".<br>";
+if ($vedi_messaggi == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>i messaggi ricevuti</b>",$pag).".<br>";
+if ($vedi_messaggi == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>i messaggi ricevuti</b>",$pag).".<br>";
 } # fine if (substr($priv_messaggi,0,1) != fix_set($vedi_messaggi))
 if (substr($priv_messaggi,1,1) != fix_set($ins_messaggi)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"ins_messaggi\" value=\"".htmlspecialchars((string) $ins_messaggi)."\">";
-if ($ins_messaggi == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inviare messaggi</b>",$pag).".<br>";
-if ($ins_messaggi == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inviare messaggi</b>",$pag).".<br>";
+if ($ins_messaggi == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inviare messaggi</b>",$pag).".<br>";
+if ($ins_messaggi == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inviare messaggi</b>",$pag).".<br>";
 } # fine if (substr($priv_messaggi,1,1) != fix_set($ins_messaggi))
 if (substr($casse_consentite,0,1) != fix_set($seleziona_casse)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"seleziona_casse\" value=\"".htmlspecialchars((string) $seleziona_casse)."\">";
-if ($seleziona_casse == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà usare <b>tutte le casse</b>",$pag).".<br>";
-if ($seleziona_casse == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà usare solo le <b>casse selezionate</b>",$pag).".<br>";
+if ($seleziona_casse == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà usare <b>tutte le casse</b>",$pag).".<br>";
+if ($seleziona_casse == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà usare solo le <b>casse selezionate</b>",$pag).".<br>";
 } # fine if (substr($casse_consentite,0,1) != fixset($seleziona_casse))
 $nuove_casse_sel = "";
 $casse = esegui_query("select * from $tablecasse order by idcasse ");
@@ -604,81 +621,77 @@ echo mex("Verranno cambiate le <b>casse</b> utilizzabili",$pag).".<br>";
 if (fix_set($vedi_beni_inv) == "p" and fixset($vedi_beni_inv_gr) == "SI") $vedi_beni_inv = "g";
 if (substr($priv_inventario,0,1) != $vedi_beni_inv) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_beni_inv\" value=\"".htmlspecialchars((string) $vedi_beni_inv)."\">";
-if ($vedi_beni_inv == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere i <b>beni dell'inventario</b>",$pag).".<br>";
-if ($vedi_beni_inv == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>suoi beni dell'inventario</b>",$pag).".<br>";
-if ($vedi_beni_inv == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>suoi beni dell'inventario</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($vedi_beni_inv == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere i <b>beni dell'inventario</b>",$pag).".<br>";
+if ($vedi_beni_inv == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere i <b>beni dell'inventario</b>",$pag).".<br>";
+if ($vedi_beni_inv == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>suoi beni dell'inventario</b>",$pag).".<br>";
+if ($vedi_beni_inv == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere solo i <b>suoi beni dell'inventario</b>",$pag)." ".mex("e quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($vedi_beni_inv == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere i <b>beni dell'inventario</b>",$pag).".<br>";
 } # fine if (substr($priv_inventario,0,1) != $vedi_beni_inv)
 if (substr($priv_inventario,1,1) != fix_set($ins_beni_inv)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"ins_beni_inv\" value=\"".htmlspecialchars((string) $ins_beni_inv)."\">";
-if ($ins_beni_inv == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inserire nuovi beni</b> nell'inventario",$pag).".<br>";
-if ($ins_beni_inv == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inserire nuovi beni</b> nell'inventario",$pag).".<br>";
+if ($ins_beni_inv == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inserire nuovi beni</b> nell'inventario",$pag).".<br>";
+if ($ins_beni_inv == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inserire nuovi beni</b> nell'inventario",$pag).".<br>";
 } # fine if (substr($priv_inventario,1,1) != fix_set($ins_beni_inv))
 if (fix_set($vedi_inv_mag) == "p" and fixset($vedi_inv_mag_gr) == "SI") $vedi_inv_mag = "g";
 if (substr($priv_inventario,2,1) != $vedi_inv_mag) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_inv_mag\" value=\"".htmlspecialchars((string) $vedi_inv_mag)."\">";
-if ($vedi_inv_mag == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>l'inventario",$pag)." ".mex("dei magazzini</b>",$pag).".<br>";
-if ($vedi_inv_mag == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi magazzini</b>",$pag).".<br>";
-if ($vedi_inv_mag == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi magazzini</b>",$pag)." ".mex("e di quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($vedi_inv_mag == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("dei magazzini</b>",$pag).".<br>";
+if ($vedi_inv_mag == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>l'inventario",$pag)." ".mex("dei magazzini</b>",$pag).".<br>";
+if ($vedi_inv_mag == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi magazzini</b>",$pag).".<br>";
+if ($vedi_inv_mag == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi magazzini</b>",$pag)." ".mex("e di quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($vedi_inv_mag == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("dei magazzini</b>",$pag).".<br>";
 } # fine if (substr($priv_inventario,2,1) != $vedi_inv_mag)
 if (substr($priv_inventario,3,1) != fix_set($ins_mag)) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"ins_mag\" value=\"".htmlspecialchars((string) $ins_mag)."\">";
-if ($ins_mag == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inserire nuovi magazzini</b>",$pag).".<br>";
-if ($ins_mag == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inserire nuovi magazzini</b>",$pag).".<br>";
+if ($ins_mag == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>inserire nuovi magazzini</b>",$pag).".<br>";
+if ($ins_mag == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>inserire nuovi magazzini</b>",$pag).".<br>";
 } # fine if (substr($priv_inventario,3,1) != fix_set($ins_mag))
 if (fix_set($ins_beni_in_mag) == "p" and fixset($ins_beni_in_mag_gr) == "SI") $ins_beni_in_mag = "g";
 if (substr($priv_inventario,4,1) != $ins_beni_in_mag) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"ins_beni_in_mag\" value=\"".htmlspecialchars((string) $ins_beni_in_mag)."\">";
-if ($ins_beni_in_mag == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
-if ($ins_beni_in_mag == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag).".<br>";
-if ($ins_beni_in_mag == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag)." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($ins_beni_in_mag == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
+if ($ins_beni_in_mag == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
+if ($ins_beni_in_mag == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag).".<br>";
+if ($ins_beni_in_mag == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag)." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($ins_beni_in_mag == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
 } # fine if (substr($priv_inventario,4,1) != $ins_beni_in_mag)
 if (fix_set($mod_beni_in_mag) == "p" and fixset($mod_beni_in_mag_gr) == "SI") $mod_beni_in_mag = "g";
 if (substr($priv_inventario,5,1) != $mod_beni_in_mag) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"mod_beni_in_mag\" value=\"".htmlspecialchars((string) $mod_beni_in_mag)."\">";
-if ($mod_beni_in_mag == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
-if ($mod_beni_in_mag == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag).".<br>";
-if ($mod_beni_in_mag == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag)." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
-if ($mod_beni_in_mag == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
+if ($mod_beni_in_mag == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
+if ($mod_beni_in_mag == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag).".<br>";
+if ($mod_beni_in_mag == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi magazzini",$pag)." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",$pag).".<br>";
+if ($mod_beni_in_mag == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("nei magazzini",$pag).".<br>";
 } # fine if (substr($priv_inventario,5,1) != $mod_beni_in_mag)
 if (fix_set($vedi_inv_app) == "p" and fixset($vedi_inv_app_gr) == "SI") $vedi_inv_app = "g";
 if (substr($priv_inventario,6,1) != $vedi_inv_app) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"vedi_inv_app\" value=\"".htmlspecialchars((string) $vedi_inv_app)."\">";
-if ($vedi_inv_app == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>l'inventario",$pag)." ".mex("degli appartamenti</b>",'unit.php').".<br>";
-if ($vedi_inv_app == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi appartamenti</b>",'unit.php').".<br>";
-if ($vedi_inv_app == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi appartamenti</b>",'unit.php')." ".mex("e di quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
-if ($vedi_inv_app == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("degli appartamenti</b>",'unit.php').".<br>";
+if ($vedi_inv_app == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà vedere <b>l'inventario",$pag)." ".mex("degli appartamenti</b>",'unit.php').".<br>";
+if ($vedi_inv_app == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi appartamenti</b>",'unit.php').".<br>";
+if ($vedi_inv_app == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("solo dei suoi appartamenti</b>",'unit.php')." ".mex("e di quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
+if ($vedi_inv_app == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà vedere <b>l'inventario",$pag)." ".mex("degli appartamenti</b>",'unit.php').".<br>";
 } # fine if (substr($priv_inventario,6,1) != $vedi_inv_app)
 if (fix_set($ins_beni_in_app) == "p" and fixset($ins_beni_in_app_gr) == "SI") $ins_beni_in_app = "g";
 if (substr($priv_inventario,7,1) != $ins_beni_in_app) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"ins_beni_in_app\" value=\"".htmlspecialchars((string) $ins_beni_in_app)."\">";
-if ($ins_beni_in_app == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
-if ($ins_beni_in_app == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php').".<br>";
-if ($ins_beni_in_app == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php')." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
-if ($ins_beni_in_app == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
+if ($ins_beni_in_app == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
+if ($ins_beni_in_app == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php').".<br>";
+if ($ins_beni_in_app == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php')." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
+if ($ins_beni_in_app == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>aggiungere e cancellare beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
 } # fine if (substr($priv_inventario,7,1) != $ins_beni_in_app)
 if (fix_set($mod_beni_in_app) == "p" and fixset($mod_beni_in_app_gr) == "SI") $mod_beni_in_app = "g";
 if (substr($priv_inventario,8,1) != $mod_beni_in_app) {
 $dati_da_modificare .= "<input type=\"hidden\" name=\"mod_beni_in_app\" value=\"".htmlspecialchars((string) $mod_beni_in_app)."\">";
-if ($mod_beni_in_app == "n") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
-if ($mod_beni_in_app == "p") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php').".<br>";
-if ($mod_beni_in_app == "g") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php')." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
-if ($mod_beni_in_app == "s") echo mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
+if ($mod_beni_in_app == "n") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("non potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
+if ($mod_beni_in_app == "p") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php').".<br>";
+if ($mod_beni_in_app == "g") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("solo nei suoi appartamenti",'unit.php')." ".mex("e in quelli di utenti appartenenti ai suoi gruppi",'unit.php').".<br>";
+if ($mod_beni_in_app == "s") $cambiamenti_html .= mex("L'utente",$pag)." <i>$nome_utente_privilegi</i> ".mex("potrà <b>modificare le quantità dei beni</b>",$pag)." ".mex("negli appartamenti",'unit.php').".<br>";
 } # fine if (substr($priv_inventario,8,1) != $mod_beni_in_app)
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"privilegi_utenti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"id_utente_privilegi\" value=\"$id_utente_privilegi\">
-<input type=\"hidden\" name=\"modifica_privilegi_globali\" value=\"SI\">
-$dati_da_modificare
-<input class=\"sbutton\" type=\"submit\" name=\"continua\" value=\"".mex("Continua",$pag)."\">
-</div></form>";
+// Process changes immediately without separate confirmation page
+if ($cambiamenti_html) {
+$continua = "SI";
+}
 } # fine if (empty($continua))
 
-else {
+if (!empty($continua) and $continua == "SI") {
 $nuovi_priv_mod_pers = $priv_mod_pers;
 if ($modifica_pers == "s" or $modifica_pers == "n") $nuovi_priv_mod_pers = $modifica_pers.substr($nuovi_priv_mod_pers,1);
 if (isset($crea_backup) and ($crea_backup == "s" or $crea_backup == "n")) $nuovi_priv_mod_pers = substr($nuovi_priv_mod_pers,0,1).$crea_backup.substr($nuovi_priv_mod_pers,2);
@@ -699,19 +712,21 @@ if (isset($vedi_clienti) and ($vedi_clienti == "s" or $vedi_clienti == "p" or $v
 if (isset($vedi_telefoni) and ($vedi_telefoni == "s" or $vedi_telefoni == "n")) $nuovi_priv_ins_clienti = substr($nuovi_priv_ins_clienti,0,3).$vedi_telefoni.substr($nuovi_priv_ins_clienti,4);
 if (isset($vedi_indirizzo) and ($vedi_indirizzo == "s" or $vedi_indirizzo == "n")) $nuovi_priv_ins_clienti = substr($nuovi_priv_ins_clienti,0,4).$vedi_indirizzo.substr($nuovi_priv_ins_clienti,5);
 if ($nuovi_priv_ins_clienti != $priv_ins_clienti) esegui_query("update $tableprivilegi set priv_ins_clienti = '$nuovi_priv_ins_clienti' where idutente = '$id_utente_privilegi' and anno = '1'");
-$nuovo_prefisso_clienti = $prefisso_clienti;
+$nuovo_prefisso_clienti = $prefisso_clienti_originale; // Use original string value, not the exploded array
 if (isset($tipo_prefisso_clienti) and ($tipo_prefisso_clienti == "p" or $tipo_prefisso_clienti == "s" or $tipo_prefisso_clienti == "n")) $nuovo_prefisso_clienti = $tipo_prefisso_clienti.substr($nuovo_prefisso_clienti,1);
 if (@get_magic_quotes_gpc()) $testo_prefisso_clienti = stripslashes($testo_prefisso_clienti);
 $testo_prefisso_clienti = htmlspecialchars($testo_prefisso_clienti,ENT_COMPAT);
 if ($testo_prefisso_clienti) $nuovo_prefisso_clienti = substr($nuovo_prefisso_clienti,0,2).$testo_prefisso_clienti;
 if (isset($tipo_prefisso_clienti) and $tipo_prefisso_clienti == "n") $nuovo_prefisso_clienti = substr($nuovo_prefisso_clienti,0,2);
-if ($nuovo_prefisso_clienti != $prefisso_clienti) esegui_query("update $tableprivilegi set prefisso_clienti = '$nuovo_prefisso_clienti' where idutente = '$id_utente_privilegi' and anno = '1'");
+if ($nuovo_prefisso_clienti != $prefisso_clienti_originale) esegui_query("update $tableprivilegi set prefisso_clienti = '$nuovo_prefisso_clienti' where idutente = '$id_utente_privilegi' and anno = '1'");
 $nuovi_priv_messaggi = $priv_messaggi;
 if (isset($vedi_messaggi) and ($vedi_messaggi == "s" or $vedi_messaggi == "n")) $nuovi_priv_messaggi = $vedi_messaggi.substr($nuovi_priv_messaggi,1);
 if (isset($ins_messaggi) and ($ins_messaggi == "s" or $ins_messaggi == "n")) $nuovi_priv_messaggi = substr($nuovi_priv_messaggi,0,1).$ins_messaggi;
 if ($nuovi_priv_messaggi != $priv_messaggi) esegui_query("update $tableprivilegi set priv_messaggi = '$nuovi_priv_messaggi' where idutente = '$id_utente_privilegi' and anno = '1'");
 $nuove_casse_consentite = $casse_consentite;
 if (isset($seleziona_casse) and ($seleziona_casse == "n" or $seleziona_casse == "s")) $nuove_casse_consentite = $seleziona_casse.",".substr($nuove_casse_consentite,2);
+// Ensure $nuove_casse_sel is a string (might come as array from POST/GET)
+if (is_array($nuove_casse_sel)) $nuove_casse_sel = implode(",", $nuove_casse_sel);
 if (!empty($cambia_casse_sel) and preg_replace("/[0-9]+(,[0-9]+)*/","",$nuove_casse_sel) == "") $nuove_casse_consentite = substr($nuove_casse_consentite,0,2).$nuove_casse_sel;
 if ($nuove_casse_consentite != $casse_consentite) esegui_query("update $tableprivilegi set casse_consentite = '$nuove_casse_consentite' where idutente = '$id_utente_privilegi' and anno = '1'");
 $nuovi_priv_inventario = $priv_inventario;
@@ -726,7 +741,16 @@ if (isset($ins_beni_in_app) and ($ins_beni_in_app == "s" or $ins_beni_in_app == 
 if (isset($mod_beni_in_app) and ($mod_beni_in_app == "s" or $mod_beni_in_app == "p" or $mod_beni_in_app == "g" or $mod_beni_in_app == "n")) $nuovi_priv_inventario = substr($nuovi_priv_inventario,0,8).$mod_beni_in_app;
 if ($nuovi_priv_inventario != $priv_inventario) esegui_query("update $tableprivilegi set priv_inventario = '$nuovi_priv_inventario' where idutente = '$id_utente_privilegi' and anno = '1'");
 $privilegi_globali = esegui_query("select * from $tableprivilegi where idutente = '$id_utente_privilegi' and anno = '1'");
-} # fine else if (empty($continua))
+// Show success message with applied changes
+if ($cambiamenti_html) {
+$mess_agg = "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\"><b>✓ ".mex("Privilegi modificati con successo",$pag)."</b><br><br>".$cambiamenti_html."</div>";
+} else {
+// If no specific changes were tracked, show generic success
+$mess_agg = "<div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px 15px; border-radius: 4px; margin-bottom: 20px;\"><b>✓ ".mex("Privilegi modificati con successo",$pag)."</b></div>";
+}
+// DEBUG: Output directly to verify message is set
+echo "<!-- DEBUG: mess_agg is set, length: ".strlen($mess_agg)." -->";
+} # fine if (!empty($continua) and $continua == "SI")
 } # fine if ($modificare != "NO")
 else $mostra_form_iniziale = "NO";
 } # fine if (!empty($modifica_privilegi_globali))
@@ -1384,7 +1408,7 @@ echo "<hr style=\"width: 90%\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"id_utente_privilegi\" value=\"$id_utente_privilegi\">
 <input type=\"hidden\" name=\"modifica_privilegi_globali\" value=\"SI\">
-<div class=\"floatrbut\"><input class=\"rbutton\" type=\"submit\" value=\"".mex("Modifica i privilegi globali",$pag)."\"></div>";
+";
 $priv_mod_pers = risul_query($privilegi_globali,0,'priv_mod_pers');
 $priv_ins_clienti = risul_query($privilegi_globali,0,'priv_ins_clienti');
 $prefisso_clienti = risul_query($privilegi_globali,0,'prefisso_clienti');
@@ -3133,6 +3157,7 @@ echo "<hr style=\"width: 90%\">";
 
 } # fine for $num1
 
+echo "</div></div>";
 
 echo "<br><div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>

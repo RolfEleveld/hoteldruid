@@ -65,6 +65,10 @@ case "personalizzazioni e gruppi":  		$messaggio = "personalizaciones y grupos";
 case "solo i gruppi":  				$messaggio = "solo grupos"; break;
 case "Gruppi importati":  			$messaggio = "Grupos importados"; break;
 case "Password aggiornata":  			$messaggio = "Contraseña actualizada"; break;
+case "Nessuna modifica rilevata":  		$messaggio = "No se detectaron cambios"; break;
+case "Torna alla tabella degli utenti per modificare i nomi o i tipi di login":	$messaggio = "Volver a la tabla de usuarios para modificar los nombres o los tipos de login"; break;
+case "Cambiamenti":  				$messaggio = "Cambios"; break;
+case "effettuati con successo":  		$messaggio = "realizados con éxito"; break;
 case "":  		$messaggio = ""; break;
 case "":  		$messaggio = ""; break;
 

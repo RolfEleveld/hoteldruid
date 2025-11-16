@@ -403,8 +403,8 @@ case "Modifica delle password":  		$messaggio = "Modificar las contraseñas"; br
 case "solo la propria":  			$messaggio = "sólo la suya"; break;
 case "potrà modificare solo la sua <b>password</b>":	$messaggio = "podrá modificar sólo su <b>contraseña</b>"; break;
 case "on potrà più modificare le <b>password</b>":	$messaggio = "no podrá modificar las <b>contraseñas</b>"; break;
-case "":  		$messaggio = ""; break;
-case "":  		$messaggio = ""; break;
+case "Cambiamenti":  				$messaggio = "Cambios"; break;
+case "Privilegi modificati con successo":  	$messaggio = "Privilegios modificados con éxito"; break;
 
 } # fine switch ($messaggio)
 
