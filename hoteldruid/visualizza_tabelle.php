@@ -510,6 +510,16 @@ $priv_mod_reg1 = "s";
 $priv_mod_reg2 = "s";
 $utenti_gruppi = "";
 } # fine else if ($id_utente != 1)
+// Temporary debug helper: append &debug_vis=1 to the URL to show
+// login/privilege diagnostics inside the Clients panel only.
+if (isset($_GET['debug_vis']) && $_GET['debug_vis'] == '1') {
+    $num_priv_rows = 0;
+    if (isset($privilegi_annuali_utente)) $num_priv_rows = numlin_query($privilegi_annuali_utente);
+    $dbg_msg = "DEBUG visualizza_tabelle: id_utente=" . (isset($id_utente) ? $id_utente : 'NULL') . "; anno_utente_attivato=" . (isset($anno_utente_attivato) ? $anno_utente_attivato : 'UNSET') . "; priv_rows=" . $num_priv_rows;
+    panel_feedback_warning($dbg_msg, 'panel_clienti');
+    panel_feedback_set_active_panel('panel_clienti');
+}
+
 if ($anno_utente_attivato == "SI") {
 
 if (@is_file(C_DATI_PATH."/dati_subordinazione.php")) {
