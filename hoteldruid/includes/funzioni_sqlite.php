@@ -165,7 +165,15 @@ return $risul;
 function risul_query ($query,$riga,$colonna,$tab="") {
 
 //#if ($tab) $colonna = "$tab.$colonna";
-if (is_integer($colonna)) $colonna = $query['col'][$colonna];
+// Defensive: if the query failed or is not an array, return empty string
+if (!is_array($query)) return "";
+if ($colonna === null || $colonna === '') return "";
+if (is_integer($colonna)) {
+	if (!isset($query['col'][$colonna])) return "";
+	$colonna = $query['col'][$colonna];
+}
+if (!isset($query[$riga]) || !is_array($query[$riga])) return "";
+if (!array_key_exists($colonna, $query[$riga])) return "";
 $risul = $query[$riga][$colonna];
 
 return $risul;
@@ -176,7 +184,8 @@ return $risul;
 
 function numlin_query ($query) {
 
-return $query['num'];
+if (!is_array($query) || !isset($query['num'])) return 0;
+return (int)$query['num'];
 
 } # fine function numlin_query
 
@@ -194,7 +203,16 @@ return $risul;
 
 function arraylin_query ($query,$num) {
 
-for ($num1 = 0 ; $num1 < $query['numcol'] ; $num1++) $risul[$num1] = $query[$num][$query['col'][$num1]];
+if (!is_array($query) || !isset($query['numcol']) || !isset($query['col'])) return array();
+$risul = array();
+for ($num1 = 0 ; $num1 < $query['numcol'] ; $num1++) {
+	$colname = isset($query['col'][$num1]) ? $query['col'][$num1] : null;
+	if ($colname !== null && isset($query[$num]) && array_key_exists($colname, $query[$num])) {
+		$risul[$num1] = $query[$num][$colname];
+	} else {
+		$risul[$num1] = null;
+	}
+}
 return $risul;
 
 } # fine function arraylin_query
@@ -203,7 +221,8 @@ return $risul;
 
 function numcampi_query ($query) {
 
-return $query['numcol'];
+if (!is_array($query) || !isset($query['numcol'])) return 0;
+return (int)$query['numcol'];
 
 } # fine function numcampi_query
 
@@ -211,6 +230,7 @@ return $query['numcol'];
 
 function nomecampo_query ($query,$num) {
 
+if (!is_array($query) || !isset($query['col'][$num])) return "";
 return $query['col'][$num];
 
 } # fine function nomecampo_query

@@ -201,7 +201,8 @@ ${"tipo_pass".$id} = aggslashdb(fixset(${"tipo_pass".$id}));
 ${"prima_pass".$id} = aggslashdb(fixset(${"prima_pass".$id}));
 $nome = risul_query($lista_utenti,$num1,'nome_utente');
 $tipo_pass = risul_query($lista_utenti,$num1,'tipo_pass');
-$nome_esistente = esegui_query("select idutenti from $tableutenti where nome_utente = '".${"nome".$id}."'");
+// Exclude the current user id when checking for existing usernames
+$nome_esistente = esegui_query("select idutenti from $tableutenti where nome_utente = '".${"nome".$id}."' and idutenti != '$id'");
 if (str_replace("&","",${"nome".$id}) != ${"nome".$id}) $continua = "NO";
 if (numlin_query($nome_esistente) != 0) {
 	$continua = "NO";

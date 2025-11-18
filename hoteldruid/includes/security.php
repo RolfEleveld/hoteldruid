@@ -45,13 +45,13 @@ function sanitize_input($input, $type = 'string') {
  * Rate limiting for login attempts
  */
 function check_rate_limit($ip, $username = '') {
-    global $PHPR_TAB_PRE;
+    global $PHPR_TAB_PRE, $numconnessione;
     
     $key = 'login_attempts_' . md5($ip . $username);
     $max_attempts = 5;
     $time_window = 300; // 5 minutes
     
-    if (!$numconnessione) {
+    if (!isset($numconnessione) || !$numconnessione) {
         include(C_DATI_PATH."/dati_connessione.php");
         include("./includes/funzioni_$PHPR_DB_TYPE.php");
         $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
