@@ -70,12 +70,28 @@ $var_pag[$n_var_pag++] = "n_commento_$num1";
 } # fine if ($num1 != "." and $num1 != ".." and...
 } # fine while ($num1 = readdir($num2))
 
-include("./costanti.php");
-include(C_DATI_PATH."/dati_connessione.php");
-include("./includes/funzioni_$PHPR_DB_TYPE.php");
+// Initialize expected request variables from POST/GET to avoid undefined variable warnings
+foreach ($var_pag as $__v) {
+    if (isset($_POST[$__v])) $$__v = $_POST[$__v];
+    elseif (isset($_GET[$__v])) $$__v = $_GET[$__v];
+    else if (!isset($$__v)) $$__v = null;
+}
+
+// Use _once includes to avoid redeclaration of constants/functions if this file
+// gets included more than once in a request lifecycle.
+require_once("./costanti.php");
+require_once(C_DATI_PATH."/dati_connessione.php");
+include_once("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
-include("./includes/funzioni_web.php");
+include_once("./includes/funzioni.php");
+include_once("./includes/funzioni_web.php");
+// Panel feedback helper (used to show inline banner messages per-panel)
+include_once("./includes/panel_feedback.php");
+// Initialize panel feedback state and start output buffering so we can
+// capture any inline messages printed below and display them inside the
+// apartments panel instead of redirecting away.
+panel_feedback_init();
+ob_start();
 $tablenometariffe = $PHPR_TAB_PRE."ntariffe".$anno;
 $tableprenota = $PHPR_TAB_PRE."prenota".$anno;
 $tableperiodi = $PHPR_TAB_PRE."periodi".$anno;
@@ -651,7 +667,7 @@ if (isset($nome_cambiato[$d_app_vicino])) $d_app_vicino = $nome_cambiato[$d_app_
 $app_reciprici = esegui_query("select * from $tableappartamenti where idappartamenti = '".aggslashdb($d_app_vicino)."' ");
 if (numlin_query($app_reciprici) == 1) {
 $app_reciprici = risul_query($app_reciprici,0,'app_vicini');
-$app_reciprici = substr(str_replace(",".$idappartamenti.",",",".$n_nome_app.",",",".$app_reciprici.","),1,-1);
+$app_reciprici = substr(str_replace(",".$idappartamenti.",",",",",".$app_reciprici.","),1,-1);
 esegui_query("update $tableappartamenti set app_vicini = '".aggslashdb($app_reciprici)."' where idappartamenti = '".aggslashdb($d_app_vicino)."' ");
 } # fine if (numlin_query($app_reciprici) == 1)
 } # fine for $num2
@@ -736,15 +752,29 @@ esegui_query("update $tableappartamenti set commento = '".aggslashdb($n_commento
 if ($modificato == "SI") echo mex($fr1."L'appartamento",'unit.php')." $idappartamenti ".mex("è stato modificato",'unit.php').".<br>";
 } # fine for $num1
 
-// Redirect back to apartment table immediately after update
+// For inline table submissions show feedback inside the apartments panel
+// instead of redirecting away. We captured any echos above in the output
+// buffer and use them as the panel banner message.
 if ($form_tabella) {
-    if (!headers_sent()) {
-        header("Location: visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti");
-        exit;
-    } else {
-        echo "<script>window.location.href = 'visualizza_tabelle.php?anno=$anno&id_sessione=$id_sessione&tipo_tabella=appartamenti';</script>";
-        exit;
+    // Get buffered output (messages printed during processing)
+    $captured = ob_get_clean();
+    if (trim($captured) === "") {
+        // fallback message when nothing was printed
+        $captured = mex("Modifiche salvate","unit.php");
     }
+    // Ensure panel feedback is active for the appartamenti panel and push message
+    panel_feedback_set_active_panel('panel_appartamenti');
+    panel_feedback_success($captured, 'panel_appartamenti');
+
+    // Include the main table view so the user stays on the same page and
+    // sees the banner in the apartments panel. Exit afterward to avoid
+    // duplicate output.
+    // Make sure any table locks / transactions are committed so updates
+    // performed above are visible to the included view. unlock_tabelle
+    // will commit the transaction in the sqlite helper.
+    if (!empty($tabelle_lock)) unlock_tabelle($tabelle_lock);
+    include_once("visualizza_tabelle.php");
+    exit;
 }
 
 } # fine else if ($modificaappartamento != "Continua")
@@ -1075,10 +1105,24 @@ echo "<hr style=\"width: 95%\"><br><div style=\"text-align: center;\">
 </div></form><br></div>";
 
 
-
 } # fine if (!isset($mostra_form_modifica) or $mostra_form_modifica != "NO")
 
-
+// If this request was a POST performing modifications, capture any
+// confirmation output and show it inside the apartments panel instead
+// of rendering a separate minimal confirmation page. This makes the
+// UX return to the originating table with an inline banner message.
+$post_modify_keys = array('modificaappartamento','modificadescr','commentofoto','cancurlfoto','aggurlfoto','cancella_app');
+$is_post_modify = ($_SERVER['REQUEST_METHOD'] === 'POST' && count(array_intersect($post_modify_keys, array_keys($_POST))) > 0);
+if ($is_post_modify) {
+    $captured = ob_get_clean();
+    if (trim($captured) === "") $captured = mex("Operazione completata","unit.php");
+    // Ensure DB locks are released so visualizza_tabelle sees latest data
+    if (!empty($tabelle_lock)) unlock_tabelle($tabelle_lock);
+    panel_feedback_set_active_panel('panel_appartamenti');
+    panel_feedback_success($captured, 'panel_appartamenti');
+    include_once("visualizza_tabelle.php");
+    exit;
+}
 
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/foot.php");
 else include("./includes/foot.php");

@@ -34,7 +34,8 @@ if (session_status() == PHP_SESSION_NONE) {
 $pag = "inizio.php";
 $titolo = "HotelDruid";
 
-// Include security and template systems
+// Include site constants, security and template systems
+include("./costanti.php");
 include_once("./includes/security.php");
 include_once("./includes/template.php");
 
@@ -129,7 +130,7 @@ echo "</select><br><br>
 exit; // Stop execution here so we don't try to connect to database
 } # fine if (@is_file(C_DATI_PATH."/dati_connessione.php") != true)
 
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 
 // Configure secure session
 if (session_status() == PHP_SESSION_NONE) {
@@ -152,11 +153,18 @@ unset($numconnessione);
 
 // Enhanced login validation with security features
 $login_errors = array();
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($nome_utente_phpr) && !empty($password_phpr)) {
+
+// Ensure login variables are defined to avoid undefined variable warnings
+if (!isset($nome_utente_phpr)) $nome_utente_phpr = "";
+if (!isset($password_phpr)) $password_phpr = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Read login form inputs from POST to avoid undefined variable notices
+    $nome_utente_phpr = isset($_POST['nome_utente_phpr']) ? trim($_POST['nome_utente_phpr']) : '';
+    $password_phpr = isset($_POST['password_phpr']) ? $_POST['password_phpr'] : '';
     $csrf_token = $_POST['csrf_token'] ?? '';
-    
+
     $validation_result = enhanced_login_validation($nome_utente_phpr, $password_phpr, $csrf_token);
-    
+
     if (!$validation_result['valid']) {
         $login_errors = $validation_result['errors'];
         // Clear sensitive data
@@ -168,6 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($nome_utente_phpr) && !empty
 }
 
 # Database connection file exists, proceed with normal login logic
+// Ensure login variables are defined to avoid undefined variable warnings
+if (!isset($nome_utente_phpr)) $nome_utente_phpr = '';
+if (!isset($password_phpr)) $password_phpr = '';
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
 if ($id_utente and $numconnessione and isset($logout)) {
 $tabelle_lock = array($PHPR_TAB_PRE."sessioni");
@@ -463,12 +474,19 @@ else include("./includes/head.php");
 // Load user information for dashboard display
 $nome_utente = array();
 if ($numconnessione) {
-    $utenti_query = esegui_query("select idutenti, nome_utente from $tableutenti order by idutenti");
-    $num_utenti = numlin_query($utenti_query);
-    for ($i = 0; $i < $num_utenti; $i++) {
-        $uid = risul_query($utenti_query, $i, 'idutenti');
-        $nome = risul_query($utenti_query, $i, 'nome_utente');
-        $nome_utente[$uid] = $nome;
+    // ensure table variable exists
+    if (!isset($tableutenti)) $tableutenti = $PHPR_TAB_PRE . "utenti";
+
+    $utenti_query = @esegui_query("select idutenti, nome_utente from $tableutenti order by idutenti");
+    if ($utenti_query === false || !is_array($utenti_query) || !isset($utenti_query['num'])) {
+        $num_utenti = 0;
+    } else {
+        $num_utenti = numlin_query($utenti_query);
+        for ($i = 0; $i < $num_utenti; $i++) {
+            $uid = risul_query($utenti_query, $i, 'idutenti');
+            $nome = risul_query($utenti_query, $i, 'nome_utente');
+            if ($uid !== "") $nome_utente[$uid] = $nome;
+        }
     }
 }
 // Fallback for when user data is not available

@@ -133,7 +133,9 @@ case "Nuovo Cliente": 				$messaggio = "Nuevo Cliente"; break;
 case "Stato Sistema": 				$messaggio = "Estado del Sistema"; break;
 case "Anno Attivo": 				$messaggio = "Año Activo"; break;
 case "Versione": 				$messaggio = "Versión"; break;
-case "":  		$messaggio = ""; break;
+case "Clienti":  		$messaggio = "Clientes"; break;
+case "Prenotazioni":  		$messaggio = "Reservas"; break;
+case "Calendario":  		$messaggio = "Calendario"; break;
 case "":  		$messaggio = ""; break;
 
 } # fine switch ($messaggio)

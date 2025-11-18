@@ -22,10 +22,14 @@
 
 #Funzioni per usare il database SQLITE
 
+// Only define the DB helpers once to avoid redeclare errors when the
+// same file is included multiple times during a request lifecycle.
+if (!function_exists('connetti_db')) {
+
 ignore_user_abort(1);
 
-# variabili per le differenze nella sintassi delle query
-#global $ILIKE,$LIKE;
+// variabili per le differenze nella sintassi delle query
+//global $ILIKE,$LIKE;
 $ILIKE = "LIKE";
 $LIKE = "GLOB";
 $DATETIME = "text";
@@ -60,7 +64,7 @@ if (str_replace(" GLOB '","",$query) != $query) {
 $query .= " ";
 $q_vett = explode(" GLOB '",$query);
 for ($n = 1 ; $n < count($q_vett) ; $n++) {
-if (substr(str_replace("''","",$q_vett[$n]),0,1) != "'") {
+if (substr(str_replace("''","^'^",$q_vett[$n]),0,1) != "'") {
 $arg = str_replace("''","^'^",$q_vett[$n]);
 $arg = explode("' ",$arg);
 $arg = str_replace("^'^","''",$arg[0]);
@@ -79,7 +83,22 @@ function esegui_query_reale ($query,$silenzio = "") {
 global $numconnessione;
 prepara_query_sqlite($query);
 
-$risul = $numconnessione->query($query);
+// Retry loop to handle transient SQLITE_BUSY ('database is locked') errors.
+$risul = false;
+$max_attempts = 6;
+for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+	// Suppress PHP warning emission from SQLite3::query and capture error message ourselves.
+	$risul = @$numconnessione->query($query);
+	if ($risul !== false) break;
+	$errcode = $numconnessione->lastErrorCode();
+	// 5 is SQLITE_BUSY
+	if ($errcode == 5 && $attempt < $max_attempts) {
+		// exponential backoff (in microseconds)
+		usleep(50000 * $attempt);
+		continue;
+	}
+	break;
+}
 if ($risul) {
 $risultato = array();
 $num1 = 0;
@@ -94,14 +113,25 @@ $risultato['num'] = $num1;
 else $risultato = $risul;
 
 if (!$risul and $silenzio != "totale") {
-global $PHPR_TAB_PRE;
-if (!$silenzio) echo "<br>ERROR in: ".htmlspecialchars(str_replace(" ".$PHPR_TAB_PRE," ",$query))."<br>";
-error_log("IN ".$_SERVER['PHP_SELF']." SQLITE ERROR: ".substr(str_replace(" ".$PHPR_TAB_PRE," ",$query),0,25)."...");
-} # fine (!$risul and $silenzio != "totale")
+	// Store the last error message for callers to inspect
+	global $ULTIMO_ERRORE_SQLITE;
+	$ULTIMO_ERRORE_SQLITE = $numconnessione->lastErrorMsg();
+	global $PHPR_TAB_PRE;
+	// Do not echo raw database errors directly to the page (prevents leaking internals
+	// and avoids breaking panel-based UX). Log the full query and DB message instead.
+	error_log("IN " . $_SERVER['PHP_SELF'] . " SQLITE ERROR: " . str_replace(" " . $PHPR_TAB_PRE, " ", $query) . " => " . $ULTIMO_ERRORE_SQLITE);
+}
 
 return $risultato;
 
 } # fine function esegui_query_reale
+
+
+function ultimo_errore_sqlite() {
+	global $ULTIMO_ERRORE_SQLITE;
+	if (isset($ULTIMO_ERRORE_SQLITE)) return $ULTIMO_ERRORE_SQLITE;
+	return "";
+}
 
 
 
@@ -113,6 +143,7 @@ return $risul;
 } # fine function esegui_query
 
 } # fine if (substr($PHPR_LOG,0,2) != "SI")
+
 
 
 else {
@@ -133,8 +164,16 @@ return $risul;
 
 function risul_query ($query,$riga,$colonna,$tab="") {
 
-#if ($tab) $colonna = "$tab.$colonna";
-if (is_integer($colonna)) $colonna = $query['col'][$colonna];
+//#if ($tab) $colonna = "$tab.$colonna";
+// Defensive: if the query failed or is not an array, return empty string
+if (!is_array($query)) return "";
+if ($colonna === null || $colonna === '') return "";
+if (is_integer($colonna)) {
+	if (!isset($query['col'][$colonna])) return "";
+	$colonna = $query['col'][$colonna];
+}
+if (!isset($query[$riga]) || !is_array($query[$riga])) return "";
+if (!array_key_exists($colonna, $query[$riga])) return "";
 $risul = $query[$riga][$colonna];
 
 return $risul;
@@ -145,7 +184,8 @@ return $risul;
 
 function numlin_query ($query) {
 
-return $query['num'];
+if (!is_array($query) || !isset($query['num'])) return 0;
+return (int)$query['num'];
 
 } # fine function numlin_query
 
@@ -163,7 +203,16 @@ return $risul;
 
 function arraylin_query ($query,$num) {
 
-for ($num1 = 0 ; $num1 < $query['numcol'] ; $num1++) $risul[$num1] = $query[$num][$query['col'][$num1]];
+if (!is_array($query) || !isset($query['numcol']) || !isset($query['col'])) return array();
+$risul = array();
+for ($num1 = 0 ; $num1 < $query['numcol'] ; $num1++) {
+	$colname = isset($query['col'][$num1]) ? $query['col'][$num1] : null;
+	if ($colname !== null && isset($query[$num]) && array_key_exists($colname, $query[$num])) {
+		$risul[$num1] = $query[$num][$colname];
+	} else {
+		$risul[$num1] = null;
+	}
+}
 return $risul;
 
 } # fine function arraylin_query
@@ -172,7 +221,8 @@ return $risul;
 
 function numcampi_query ($query) {
 
-return $query['numcol'];
+if (!is_array($query) || !isset($query['numcol'])) return 0;
+return (int)$query['numcol'];
 
 } # fine function numcampi_query
 
@@ -180,6 +230,7 @@ return $query['numcol'];
 
 function nomecampo_query ($query,$num) {
 
+if (!is_array($query) || !isset($query['col'][$num])) return "";
 return $query['col'][$num];
 
 } # fine function nomecampo_query
@@ -239,6 +290,6 @@ $numconnessione->exec("create index $nome on $tabella ($colonne)");
 
 } # fine function crea_indice
 
-
+} // fine guard for connetti_db
 
 ?>

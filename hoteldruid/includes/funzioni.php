@@ -178,12 +178,14 @@ return $messaggio;
 
 
 
+if (!function_exists('fixset')) {
 function fixset (&$var) {
 
 if (isset($var)) return $var;
 else return null;
 
 } # fine function fixset
+}
 
 
 
@@ -830,10 +832,17 @@ if (@is_file(C_DATI_PATH."/dati_subordinazione.php")) include(C_DATI_PATH."/dati
 if (defined("C_HTML_PRE_LOGIN") and C_HTML_PRE_LOGIN != "") echo C_HTML_PRE_LOGIN;
 $mess = $titolo;
 if (isset($commento_subordinazione)) $mess .= " ($commento_subordinazione)";
+// Ensure CSRF token is included in the login form when available
+$csrf_token_field = "";
+if (function_exists('generate_csrf_token')) {
+        $csrf_token_field = '<input type="hidden" name="csrf_token" value="'.generate_csrf_token().'">';
+}
+
 echo "<big><big>$mess:</big></big><br><div style=\"height: 6px\"></div>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
-<input type=\"hidden\" name=\"vers_hinc\" value=\"1\">
-$input_var_passate
+<input type=\"hidden\" name=\"vers_hinc\" value=\"1\">\n";
+echo $csrf_token_field;
+echo "$input_var_passate
 ".mex("Nome utente","funzioni.php").": <input type=\"text\" name=\"nome_utente_phpr\" size=\"12\"><br>
 ".mex("Password","funzioni.php").": <input type=\"password\" name=\"password_phpr\" size=\"12\" autocorrect=\"off\" autocapitalize=\"off\"><br>
 <table><tr><td style=\"height: 2px;\"></td></tr></table>

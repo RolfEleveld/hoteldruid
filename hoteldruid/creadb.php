@@ -59,7 +59,7 @@ $var_pag[$n_var_pag++] = "priorita$num1";
 } # fine for $num1
 
 include("./costanti.php");
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 if (!defined('C_CREADB_TIPODB')) include("./includes/costanti.php");
 if (function_exists('ini_set')) @ini_set('opcache.enable',0);
 

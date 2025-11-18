@@ -41,7 +41,9 @@ $url_base_upload = "https://".trim($altri_domini[0])."/$percorso_cartella_upload
 unset($altri_domini);
 } # fine if (defined("C_FILE_DOMINIO") and C_FILE_DOMINIO != "" and (!defined('C_NASCONDI_MARCA') or C_NASCONDI_MARCA != "SI"))
 if (!$url_base_upload) {
-if (!function_exists('trova_url_pagina')) include("./includes/templates/funzioni_modelli.php");
+if (!function_exists('trova_url_pagina')) {
+	if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
+}
 if (substr($percorso_cartella_upload,-1) == "/") $percorso_cartella_upload = substr($percorso_cartella_upload,0,-1);
 $url_base_upload = trova_url_pagina("",C_CARTELLA_CREA_MODELLI."/$percorso_cartella_upload","");
 } # fine if (!$url_base_upload)

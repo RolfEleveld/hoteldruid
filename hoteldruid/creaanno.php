@@ -39,7 +39,7 @@ include("./costanti.php");
 include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/funzioni_costi_agg.php");
 
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);

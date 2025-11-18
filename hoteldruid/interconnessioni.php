@@ -93,7 +93,7 @@ if (@is_file(C_DATI_PATH."/selectperiodi".($anno + 1).".1.php")) $anno = $anno +
 elseif (!@is_file(C_DATI_PATH."/selectperiodi$anno.1.php") and @is_file(C_DATI_PATH."/selectperiodi".($anno - 1).".1.php")) $anno = $anno - 1;
 } # fine if (!isset($anno))
 } # fine if (!isset($anno))
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 if (function_exists('ini_set')) @ini_set('opcache.enable',0);
 $tableutenti = $PHPR_TAB_PRE."utenti";
 $tablegruppi = $PHPR_TAB_PRE."gruppi";
@@ -435,7 +435,7 @@ unset($interconnection_name);
 $interconn_dir = opendir("./includes/interconnect/");
 while ($mod_ext = readdir($interconn_dir)) {
 if ($mod_ext != "." and $mod_ext != ".." and @is_dir("./includes/interconnect/$mod_ext")) {
-include("./includes/interconnect/$mod_ext/name.php");
+				if (is_file("./includes/interconnect/$mod_ext/name.php")) include_once("./includes/interconnect/$mod_ext/name.php");
 if (isset($ic_present[$interconnection_name]) and $ic_present[$interconnection_name] == "SI" and (empty($id_ric) or $int_ric == $interconnection_name)) {
 include("./includes/interconnect/$mod_ext/functions_import.php");
 $funz_import_reservations = "import_reservations_".$interconnection_func_name;
@@ -456,7 +456,7 @@ $limite = date("YmdHis",mktime(date("H"),date("i"),(date("s") + (C_DIFF_ORE * 36
 if ($ultimo_aggiornamento_tariffe < $limite) {
 $agg_tariffe_da_remoto = 1;
 variabili_x_form($lista_tutti_app,$maxocc,$lista_regola2,$lista_regola3,$origini_prenota,$campi_pers_comm,$num_appartamenti,$pass_cc,$priv_gest_pass_cc,$id_sessione,$tableappartamenti,$tableregole,$tablepersonalizza);
-include("./includes/interconnect/$mod_ext/form.php");
+					if (is_file("./includes/interconnect/$mod_ext/form.php")) include_once("./includes/interconnect/$mod_ext/form.php");
 $ultimo_aggiornamento_tariffe = date("YmdHis",(time() + (C_DIFF_ORE * 3600)));
 esegui_query("update $tableinterconnessioni set idremoto1 = '$ultimo_aggiornamento_tariffe' where tipoid = 'u_agg_tar' and nome_ic = '$interconnection_name' ");
 } # fine if ($ultimo_aggiornamento_tariffe < $limite)
@@ -753,11 +753,11 @@ if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templat
 ksort($modelli);
 reset($modelli);
 foreach ($modelli as $modello_ext => $val_i) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (fixset($template_name_show['tpl_type']) == "interconnection") {
 if (!function_exists('mex2')) {
 $perc_cart_mod_sel = "";
-include("./includes/templates/funzioni_modelli.php");
+					if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 #$percorso_cartella_modello = $perc_cart_mod_vett[0];
 $anno_modello = $anno;
 $lingua_modello = $lingua_mex;
@@ -775,7 +775,7 @@ else $titolo = $template_name_show['en'];
 } # fine else if ($template_name_show[$lingua_mex])
 echo "<hr style=\"width: 95%\"><div id=\"h".$modello_ext."\" style=\"text-align: center;\"><b>$titolo</b></div><br>";
 $agg_tariffe_da_remoto = 0;
-include("./includes/templates/$modello_ext/form.php");
+					if (is_file("./includes/templates/$modello_ext/form.php")) include_once("./includes/templates/$modello_ext/form.php");
 } # fine if (fixset($template_name_show['tpl_type']) == "interconnection")
 } # fine foreach ($modelli as $modello_ext => $val_i)
 closedir($templates_dir);

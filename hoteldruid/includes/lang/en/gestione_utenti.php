@@ -16,13 +16,13 @@ case "Inserisci una nuova password":  		$messaggio = "Insert a new password"; br
 case "Ripeti la password":  			$messaggio = "Repeat the password"; break;
 case "Continua":  				$messaggio = "Continue"; break;
 case "Torna indietro":  			$messaggio = "Go back"; break;
-case "<div style=\"display: inline; color: red;\">Esiste già</div> un utente chiamato":	$messaggio = "<div style=\"display: inline; color: red;\">Already exists</div> a user called"; break;
-case "Nuova password dell'utente":  		$messaggio = "New password of user"; break;
-case "<div style=\"display: inline; color: red;\">non</div> inserita correttamente":	$messaggio = "<div style=\"display: inline; color: red;\">not</div> inserted correctly"; break;
-case "<b>Non</b> è stato effettuato nessun cambiamento":	$messaggio = "<b>No</b> changes have been done"; break;
-case "Esiste già un utente chiamato":  		$messaggio = "Already exists a user called"; break;
-case "Le nuove password non coincidono":  	$messaggio = "New passwrds do not coincide"; break;
-case "Inserisci una nuova password per l'utente":	$messaggio = "Insert a new password for user"; break;
+case "<div style=\"display: inline; color: red;\">Esiste già</div> un utente chiamato": 	$messaggio = "<div style=\"display: inline; color: red;\">Already exists</div> a user named"; break;
+case "Nuova password dell'utente": 	$messaggio = "User's new password"; break;
+case "<div style=\"display: inline; color: red;\">non</div> inserita correttamente": 	$messaggio = "<div style=\"display: inline; color: red;\">not</div> set correctly"; break;
+case "<b>Non</b> è stato effettuato nessun cambiamento": 	$messaggio = "<b>No</b> changes were applied"; break;
+case "Esiste già un utente chiamato": 	$messaggio = "A user with that name already exists"; break;
+case "Le nuove password non coincidono": 	$messaggio = "The new passwords do not match"; break;
+case "Inserisci una nuova password per l'utente": 	$messaggio = "Enter a new password for the user"; break;
 case "Nuova password":  			$messaggio = "New password"; break;
 case "Gestione degli utenti di hoteldruid":	$messaggio = "HotelDruid users management"; break;
 case "Gestione degli utenti":			$messaggio = "Users management"; break;
@@ -66,7 +66,10 @@ case "solo i gruppi":  				$messaggio = "only groups"; break;
 case "Gruppi importati":  			$messaggio = "Groups imported"; break;
 case "Password aggiornata":  			$messaggio = "Password updated"; break;
 case "":  		$messaggio = ""; break;
-case "":  		$messaggio = ""; break;
+case "Nuova password dell'utente non inserita correttamente":
+	$messaggio = "User's new password was not set correctly"; break;
+case "Non è stato effettuato nessun cambiamento":
+	$messaggio = "No changes were applied"; break;
 
 } # fine switch ($messaggio)
 

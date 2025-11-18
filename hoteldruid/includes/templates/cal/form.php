@@ -25,7 +25,7 @@
 if (function_exists('esegui_query')) {
 
 if (preg_replace("/[a-z]/","",$template_data_dir) != "") $template_data_dir = "";
-include("./includes/templates/$template_data_dir/phrases.php");
+if (is_file("./includes/templates/$template_data_dir/phrases.php")) include_once("./includes/templates/$template_data_dir/phrases.php");
 
 
 
@@ -45,7 +45,7 @@ unset($id_transazione);
 if (@is_file("$percorso_cartella_modello/$nome_file")) {
 $modello_esistente = "SI";
 $lingua_mex = $lingua_mex_1;
-include("./includes/templates/$template_data_dir/functions.php");
+if (is_file("./includes/templates/$template_data_dir/functions.php")) include_once("./includes/templates/$template_data_dir/functions.php");
 recupera_var_modello_cal($nome_file,$percorso_cartella_modello,$pag,$fr_frase,$frase,$num_frasi,$var_mod,$num_var_mod,$tipo_periodi,"NO",$anno_modello,$lingua_modello,$PHPR_TAB_PRE);
 $lingua_mex = $lingua_orig;
 
@@ -304,7 +304,7 @@ else $file_js_frame = htmlspecialchars($file_js_frame);
 echo mex("Url del file javascript per la modalità frame",$pag).":
  <input type=\"text\" id=\"file_js_frame\" name=\"file_js_frame\" size=\"35\" value=\"$file_js_frame\"> <small>(".mex("non deve contenere \"php\" e deve terminare con \".js\"",$pag).")</small> ".upload_hd_img_form("file_js_frame",$tablepersonalizza,"js")."<br>";
 
-include("./includes/templates/$template_data_dir/themes.php");
+if (is_file("./includes/templates/$template_data_dir/themes.php")) include_once("./includes/templates/$template_data_dir/themes.php");
 $num_temi = count($template_theme_name);
 $tema_sel = 0;
 $js_opz_tema = "";

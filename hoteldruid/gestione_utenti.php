@@ -71,7 +71,7 @@ include("./costanti.php");
 include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 $tableutenti = $PHPR_TAB_PRE."utenti";
 $tableprivilegi = $PHPR_TAB_PRE."privilegi";
 $tablegruppi = $PHPR_TAB_PRE."gruppi";
@@ -201,22 +201,23 @@ ${"tipo_pass".$id} = aggslashdb(fixset(${"tipo_pass".$id}));
 ${"prima_pass".$id} = aggslashdb(fixset(${"prima_pass".$id}));
 $nome = risul_query($lista_utenti,$num1,'nome_utente');
 $tipo_pass = risul_query($lista_utenti,$num1,'tipo_pass');
-$nome_esistente = esegui_query("select idutenti from $tableutenti where nome_utente = '".${"nome".$id}."'");
+// Exclude the current user id when checking for existing usernames
+$nome_esistente = esegui_query("select idutenti from $tableutenti where nome_utente = '".${"nome".$id}."' and idutenti != '$id'");
 if (str_replace("&","",${"nome".$id}) != ${"nome".$id}) $continua = "NO";
 if (numlin_query($nome_esistente) != 0) {
-$continua = "NO";
-$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("<div style=\\\"display: inline; color: red;\\\">Esiste già</div> un utente chiamato",$pag)." ".${'nome'.$id}.".</div>";
+	$continua = "NO";
+	$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Esiste già un utente chiamato",$pag)." ".${'nome'.$id}.".</div>";
 } # fine if (numlin_query($nome_esistente) != 0)
 $n_tipo_pass = ${"tipo_pass".$id};
 if ($n_tipo_pass and $tipo_pass != $n_tipo_pass) {
-if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or ${'prima_pass'.$id} != ${'seconda_pass'.$id} or ${'prima_pass'.$id} != str_replace("&","",${'prima_pass'.$id}))) {
-$continua = "NO";
-$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Nuova password dell'utente",$pag)." $id ".mex("<div style=\\\"display: inline; color: red;\\\">non</div> inserita correttamente",$pag).".</div>";
-} # fine if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or...
+	if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or ${'prima_pass'.$id} != ${'seconda_pass'.$id} or ${'prima_pass'.$id} != str_replace("&","",${'prima_pass'.$id}))) {
+		$continua = "NO";
+		$mess_agg .= "<div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Nuova password dell'utente non inserita correttamente",$pag)." $id.</div>";
+	} # fine if ($n_tipo_pass != "n" and (!${'prima_pass'.$id} or...
 } # fine if ($n_tipo_pass and $tipo_pass != $n_tipo_pass)
 } # fine for $num1
 if ($continua == "NO") {
-$mess_agg .= "<div style=\"background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("<b>Non</b> è stato effettuato nessun cambiamento",$pag).".</div>";
+	$mess_agg .= "<div style=\"background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px;\">".mex("Non è stato effettuato nessun cambiamento",$pag).".</div>";
 } # fine if ($continua == "NO")
 else {
 for ($num1 = 0 ; $num1 < numlin_query($lista_utenti) ; $num1++) {
@@ -831,14 +832,77 @@ $gruppi_utente_nome[$id][$num2] = $nome_gruppo[$id_gruppo];
 } # fine for $num1
 unlock_tabelle($tabelle_lock);
 
-echo "<div style=\"text-align: center;\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<div class=\"tab_cont\">
-<table class=\"usrs\" style=\"margin-left: auto; margin-right: auto;\" border=1 cellspacing=1 cellpadding=1>
-<tr style=\"background-color: $t1color;\"><td align=\"center\">".mex("N°",$pag)."</td>
-<td align=\"center\">".mex("nome",$pag)."</td>";
+// Insert password modal and client-side flow: when admin changes a user's 'tipo_pass' from disabled to a password mode,
+// show a small modal asking for the new password and confirmation. The values are inserted as hidden inputs
+// (`prima_pass{id}` and `seconda_pass{id}`) before form submit so server-side validation succeeds.
+echo "<div id=\"pwModal\" style=\"display:none;position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:9999;\">";
+echo "<div style=\"position:relative;max-width:420px;margin:90px auto;padding:18px;background:#fff;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.25);\">";
+echo "<h3 style=\"margin:0 0 10px 0;font-size:16px;\">".mex("Inserisci una nuova password per l'utente",$pag)."</h3>";
+echo "<div style=\"margin-bottom:8px;\"><label>".mex("Nuova password",$pag).": <input type=\"password\" id=\"pw_new\" style=\"width:100%\"></label></div>";
+echo "<div style=\"margin-bottom:12px;\"><label>".mex("Ripeti la password",$pag).": <input type=\"password\" id=\"pw_confirm\" style=\"width:100%\"></label></div>";
+echo "<div style=\"text-align:right;\"><button type=\"button\" id=\"pwCancelBtn\" style=\"margin-right:8px;\">".mex("Torna indietro",$pag)."</button><button type=\"button\" id=\"pwSetBtn\">".mex("Continua",$pag)."</button></div>";
+echo "</div></div>";
+
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+	function showPwModalForUser(uid){
+		var modal = document.getElementById('pwModal');
+		modal.dataset.userid = uid;
+		modal.style.display = 'block';
+	}
+	function hidePwModal(){
+		var modal = document.getElementById('pwModal');
+		modal.style.display = 'none';
+		document.getElementById('pw_new').value = '';
+		document.getElementById('pw_confirm').value = '';
+	}
+	var selects = document.querySelectorAll('select[name^="tipo_pass"]');
+	for (var i=0;i<selects.length;i++){
+		(function(sel){
+			sel.dataset.orig = sel.value;
+			sel.addEventListener('change', function(){
+				var newVal = this.value;
+				var origVal = this.dataset.orig;
+				var name = this.getAttribute('name');
+				var uid = name.replace('tipo_pass','');
+				if (origVal == 'n' && newVal != 'n'){
+					showPwModalForUser(uid);
+				}
+				this.dataset.orig = newVal;
+			});
+		})(selects[i]);
+	}
+	document.getElementById('pwSetBtn').addEventListener('click', function(){
+		var pw = document.getElementById('pw_new').value;
+		var pw2 = document.getElementById('pw_confirm').value;
+		if (!pw){ alert("<?php echo addslashes(mex("Nuova password dell'utente",$pag)); ?>"); return; }
+		if (pw !== pw2){ alert("<?php echo addslashes(mex("Le nuove password non coincidono",$pag)); ?>"); return; }
+		var modal = document.getElementById('pwModal');
+		var uid = modal.dataset.userid;
+		var form = document.querySelector('form[action="gestione_utenti.php"]');
+		if (!form) { hidePwModal(); return; }
+		var in1 = form.querySelector('input[name="prima_pass'+uid+'"]');
+		if (!in1){ in1 = document.createElement('input'); in1.type='hidden'; in1.name='prima_pass'+uid; form.appendChild(in1); }
+		var in2 = form.querySelector('input[name="seconda_pass'+uid+'"]');
+		if (!in2){ in2 = document.createElement('input'); in2.type='hidden'; in2.name='seconda_pass'+uid; form.appendChild(in2); }
+		in1.value = pw; in2.value = pw2;
+		hidePwModal();
+	});
+	document.getElementById('pwCancelBtn').addEventListener('click', function(){
+		var modal = document.getElementById('pwModal');
+		var uid = modal.dataset.userid;
+		if (uid){
+			var sel = document.querySelector('select[name="tipo_pass'+uid+'"]');
+			if (sel) sel.value = 'n';
+		}
+		hidePwModal();
+	});
+});
+</script>
+<?php
+
+echo "<div style=\"text-align: center;\">\n<form accept-charset=\"utf-8\" method=\"post\" action=\"gestione_utenti.php\"><div>\n<input type=\"hidden\" name=\"anno\" value=\"$anno\">\n<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">\n<div class=\"tab_cont\">\n<table class=\"usrs\" style=\"margin-left: auto; margin-right: auto;\" border=1 cellspacing=1 cellpadding=1>\n<tr style=\"background-color: $t1color;\"><td align=\"center\">".mex("N°",$pag)."</td>\n<td align=\"center\">".mex("nome",$pag)."</td>";
 if ($id_utente == 1) echo "<td align=\"center\">".mex("login",$pag)."</td>";
 echo "<td align=\"center\">".mex("modifica",$pag)."</td></tr>";
 $anni = esegui_query("select * from $tableanni order by idanni");

@@ -413,7 +413,7 @@ include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 if (function_exists('ini_set')) @ini_set('opcache.enable',0);
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_costi_agg.php");
 include("./includes/funzioni_web.php");
@@ -1560,7 +1560,7 @@ if ($canc_cart) {
 
 $pag_orig = $pag;
 $pag = "crea_modelli.php";
-include("./includes/templates/funzioni_modelli.php");
+if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 $nome_file = "mdl_disponibilita.php";
 for ($num1 = 0 ; $num1 < count($percorso_cart_esist) ; $num1++) {
 if (!empty($percorso_cart_esist['canc'][$num1])) {
@@ -1595,7 +1595,7 @@ closedir($templates_dir);
 ksort($modelli);
 reset($modelli);
 foreach ($modelli as $modello_ext => $val_i) {
-include("./includes/templates/$modello_ext/name.php");
+            if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if (!empty($template_file_name['ita'])) $nome_file = $template_file_name['ita'];
 else $nome_file = "ita_".$template_file_name['en'];
@@ -1613,7 +1613,9 @@ if ($ini_lingua != "." && $ini_lingua != "..") {
 if (!empty($template_file_name[$ini_lingua])) $nome_file = $template_file_name[$ini_lingua];
 else {
 $funz_trad = "mext_$modello_ext";
-if (!function_exists($funz_trad)) include("./includes/templates/$modello_ext/phrases.php");
+            if (!function_exists($funz_trad)) {
+                if (is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
+            }
 $nome_file = $funz_trad($template_file_name["ita"],$pag,$ini_lingua);
 if ($nome_file == $template_file_name['en'] or $nome_file == $template_file_name['ita']) $nome_file = $ini_lingua."_".$template_file_name['en'];
 } # fine else if (!empty($template_file_name[$ini_lingua]))
@@ -2270,11 +2272,11 @@ if (!$elimina_contratto_cont) echo mex("L'ordine dei documenti è stato cambiato
 
 $pag_orig = $pag;
 $pag = "crea_modelli.php";
-include("./includes/templates/funzioni_modelli.php");
+if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 $modello_esistente = "SI";
 $cambia_frasi = "NO";
-include("./includes/templates/frasi_mod_disp.php");
-include("./includes/templates/funzioni_mod_disp.php");
+if (is_file("./includes/templates/frasi_mod_disp.php")) include_once("./includes/templates/frasi_mod_disp.php");
+if (is_file("./includes/templates/funzioni_mod_disp.php")) include_once("./includes/templates/funzioni_mod_disp.php");
 $lista_n_contr = array();
 for ($num1 = 1 ; $num1 <= $max_contr ; $num1++) $lista_n_contr[$lista_contr[$num1]] = $num1;
 for ($num_cart = 0 ; $num_cart < $num_perc_cart_mod_vett ; $num_cart++) {
@@ -2324,8 +2326,8 @@ $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
 include("./includes/templates/$modello_ext/name.php");
-include("./includes/templates/$modello_ext/phrases.php");
-include("./includes/templates/$modello_ext/functions.php");
+            if (is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
+            if (is_file("./includes/templates/$modello_ext/functions.php")) include_once("./includes/templates/$modello_ext/functions.php");
 $funz_recupera_var_modello = "recupera_var_modello_".$modello_ext;
 $funz_crea_modello = "crea_modello_".$modello_ext;
 $funz_mext = "mext_".$modello_ext;

@@ -1,11 +1,13 @@
 .env
 windows
+phpdesktop
 logs
-hoteldruid\logs
-hoteldruid\dati\*
+hoteldruid/logs
+hoteldruid/dati/*
 # Hotel druid software
 hoteldruid*.zip
 # Easy PHP runtime services
 EasyPHP*.exe 
+phpdesktop*.zip
 vcredist_x64.exe
 vcredist_x86.exe

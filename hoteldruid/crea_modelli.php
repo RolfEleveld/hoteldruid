@@ -245,7 +245,7 @@ $parola_settimana = "";
 $lettera_a = "";
 $parola_settimane = "";
 $parola_le = "";
-include("includes/templates/frasi_mod_disp.php");
+if (is_file("includes/templates/frasi_mod_disp.php")) include_once("includes/templates/frasi_mod_disp.php");
 for ($num2 = 0 ; $num2 < $num_frasi ; $num2++) $var_pag[$n_var_pag++] = $fr_frase[$num2];
 } # fine if ($num2 or $num3 == "SI")
 } # fine if ($num1 == "SI")
@@ -257,7 +257,7 @@ if ($num2) {
 $num1 = opendir("./includes/templates/");
 while ($num2 = readdir($num1)) {
 if ($num2 != "." and $num2 != ".." and @is_dir("./includes/templates/$num2")) {
-include("./includes/templates/$num2/name.php");
+	if (is_file("./includes/templates/$num2/name.php")) include_once("./includes/templates/$num2/name.php");
 $var_pag[$n_var_pag++] = "form_$template_name";
 } # fine if ($num2 != "." and $num2 != ".." and...
 } # fine while ($file = readdir($num1))
@@ -284,7 +284,7 @@ include("./costanti.php");
 include(C_DATI_PATH."/dati_connessione.php");
 include("./includes/funzioni_$PHPR_DB_TYPE.php");
 $numconnessione = connetti_db($PHPR_DB_NAME,$PHPR_DB_HOST,$PHPR_DB_PORT,$PHPR_DB_USER,$PHPR_DB_PASS,$PHPR_LOAD_EXT);
-include("./includes/funzioni.php");
+include_once("./includes/funzioni.php");
 include("./includes/sett_gio.php");
 include("./includes/funzioni_costi_agg.php");
 include("./includes/funzioni_web.php");
@@ -370,7 +370,7 @@ if (!isset($perc_cart_mod_sel)) $perc_cart_mod_sel = "";
 $mostra_form_creazione = "SI";
 $pag_orig = "";
 
-include("./includes/templates/funzioni_modelli.php");
+if (is_file("./includes/templates/funzioni_modelli.php")) include_once("./includes/templates/funzioni_modelli.php");
 
 if (!isset($lingua_modello)) $lingua_modello = "";
 if (strlen($lingua_modello) > 3 or (!@is_dir("./includes/lang/".$lingua_modello) and $lingua_modello != "ita") or str_replace(".","",$lingua_modello) != $lingua_modello) $lingua_modello = $lingua_mex;
@@ -459,8 +459,8 @@ $M_PHPR_TAB_PRE = $T_PHPR_TAB_PRE;
 if (!empty($modello_disponibilita)) {
 
 if ($priv_crea_pagineweb == "s") {
-include("./includes/templates/frasi_mod_disp.php");
-include("./includes/templates/funzioni_mod_disp.php");
+	if (is_file("./includes/templates/frasi_mod_disp.php")) include_once("./includes/templates/frasi_mod_disp.php");
+	if (is_file("./includes/templates/funzioni_mod_disp.php")) include_once("./includes/templates/funzioni_mod_disp.php");
 crea_modello_disponibilita($percorso_cartella_modello,$anno_modello,$PHPR_TAB_PRE,$pag,$lingua_modello,"NO",$fr_frase,$frase,$num_frasi,$tipo_periodi,$lingua_orig);
 } # fine if ($priv_crea_pagineweb == "s")
 
@@ -471,14 +471,14 @@ else {
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($$template_name) and isset($_POST[$template_name])) $$template_name = $_POST[$template_name];
 if (!isset($$template_name) and isset($_GET[$template_name])) $$template_name = $_GET[$template_name];
 if (!empty($$template_name)) {
 $mostra_form_creazione = "NO";
 if (((!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") and $priv_crea_pagineweb == "s") or (isset($template_name_show['tpl_type']) and $template_name_show['tpl_type'] == "interconnection" and $priv_crea_interconnessioni == "s")) {
-include("./includes/templates/$modello_ext/phrases.php");
-include("./includes/templates/$modello_ext/functions.php");
+						if (is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
+						if (is_file("./includes/templates/$modello_ext/functions.php")) include_once("./includes/templates/$modello_ext/functions.php");
 $funz_crea_modello = "crea_modello_".$modello_ext;
 $funz_crea_modello($percorso_cartella_modello,$anno_modello,$PHPR_TAB_PRE,$pag,$lingua_modello,"NO",$fr_frase,$frase,$num_frasi,$tipo_periodi,$lingua_orig);
 } # fine if (((!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") and...
@@ -514,7 +514,7 @@ if (controlla_anno($anno_modello) != "SI" or !@is_file(C_DATI_PATH."/selectperio
 if (!empty($form_modello_disponibilita)) {
 $modello_ext = "ava";
 $mostra_form_creazione = "NO";
-include("./includes/templates/frasi_mod_disp.php");
+if (is_file("./includes/templates/frasi_mod_disp.php")) include_once("./includes/templates/frasi_mod_disp.php");
 
 
 esegui_query("delete from $tablepersonalizza where idpersonalizza = 'ultime_sel_crea_modelli' and idutente = '$id_utente'");
@@ -528,7 +528,7 @@ $id_transazione = "";
 if (@is_file("$percorso_cartella_modello/$nome_file") and (!defined('C_RESTRIZIONI_DEMO_ADMIN') or C_RESTRIZIONI_DEMO_ADMIN != "SI")) {
 $modello_esistente = "SI";
 $lingua_mex = $lingua_mex_1;
-include("./includes/templates/funzioni_mod_disp.php");
+if (is_file("./includes/templates/funzioni_mod_disp.php")) include_once("./includes/templates/funzioni_mod_disp.php");
 recupera_var_modello_disponibilita($nome_file,$percorso_cartella_modello,$pag,$fr_frase,$frase,$num_frasi,$var_mod,$num_var_mod,$tipo_periodi,"NO",$anno_modello,$lingua_modello,$PHPR_TAB_PRE);
 $lingua_mex = $lingua_orig;
 
@@ -1623,7 +1623,7 @@ $template_name_orig = fixset($template_name);
 $template_name_show_orig = fixset($template_name_show);
 $template_file_name_orig = fixset($template_file_name);
 $template_data_dir_orig = fixset($template_data_dir);
-@include("./includes/templates/pay/name.php");
+	if (is_file("./includes/templates/pay/name.php")) @include_once("./includes/templates/pay/name.php");
 if (!empty($template_file_name[$lingua_modello])) $val = $template_file_name[$lingua_modello];
 else $val = $lingua_modello."_".$template_file_name['en'];
 $template_name = $template_name_orig;
@@ -1798,7 +1798,7 @@ echo "".mex("Geometria della nuova finestra",$pag).":
  ".mex("altezza",$pag)." <input type=\"text\" name=\"altezza_finestra_da_frame\" size=\"4\" value=\"$val_altezza\">px.
 </td></tr></table>";
 
-include("./includes/templates/temi_mod_disp.php");
+if (is_file("./includes/templates/temi_mod_disp.php")) include_once("./includes/templates/temi_mod_disp.php");
 $num_temi = count($template_theme_name);
 $tema_sel = 0;
 $js_opz_tema = "";
@@ -1959,10 +1959,10 @@ $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
 if (file_exists("./includes/templates/$modello_ext/name.php")) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!empty(${"form_".$template_name}) and (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")) {
 $mostra_form_creazione = "NO";
-include("./includes/templates/$modello_ext/form.php");
+						if (is_file("./includes/templates/$modello_ext/form.php")) include_once("./includes/templates/$modello_ext/form.php");
 break;
 } # fine if (${"form_".$template_name} and (!isset($template_name_show['tpl_type']) or...
 } # fine if (file_exists...
@@ -1994,7 +1994,7 @@ if ($mod_presente != "SI") {
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." && $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if (!empty($template_file_name['ita'])) $nome_file = $template_file_name['ita'];
 else $nome_file = "ita_".$template_file_name['en'];
@@ -2059,7 +2059,7 @@ closedir($lang_dir);
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
+				if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if ($template_file_name['ita']) $nome_file = $template_file_name['ita'];
 else $nome_file = "ita_".$template_file_name['en'];
@@ -2156,7 +2156,7 @@ closedir($lang_dir);
 $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if ($template_file_name['ita']) $nome_file = $template_file_name['ita'];
 else $nome_file = "ita_".$template_file_name['en'];
@@ -2307,7 +2307,7 @@ $templates_dir = opendir("./includes/templates/");
 while ($modello_ext = readdir($templates_dir)) {
 if ($modello_ext != "." and $modello_ext != ".." and @is_dir("./includes/templates/$modello_ext")) {
 if (file_exists("./includes/templates/$modello_ext/name.php")) {
-include("./includes/templates/$modello_ext/name.php");
+					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection") {
 if (!empty($template_name_show[$lingua_mex])) $nome_modello_ext = $template_name_show[$lingua_mex];
 else {
@@ -2355,7 +2355,7 @@ if ($ini_lingua != "." && $ini_lingua != "..") {
 if (!empty($template_file_name[$ini_lingua])) $nome_file = $template_file_name[$ini_lingua];
 else {
 $funz_trad = "mext_$modello_ext";
-if (!function_exists($funz_trad)) include("./includes/templates/$modello_ext/phrases.php");
+				if (!function_exists($funz_trad) && is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
 $nome_file = $funz_trad($template_file_name["ita"],$pag,$ini_lingua);
 if ($nome_file == $template_file_name['en'] or $nome_file == $template_file_name['ita']) $nome_file = $ini_lingua."_".$template_file_name['en'];
 } # fine else if ($template_file_name[$ini_lingua])
