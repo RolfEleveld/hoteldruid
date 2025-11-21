@@ -73,7 +73,14 @@ $tableprenotacanc = $PHPR_TAB_PRE."prenotacanc".$anno;
 $tablecache = $PHPR_TAB_PRE."cache";
 
 
+
 $id_utente = controlla_login($numconnessione,$PHPR_TAB_PRE,$id_sessione,$nome_utente_phpr,$password_phpr,$anno);
+// Restore menu/header include for consistent navigation
+if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) {
+	include("./themes/".$tema[$id_utente]."/php/head.php");
+} else {
+	include("./includes/head.php");
+}
 if ($id_utente) {
 
 if ($id_utente != 1) {
@@ -129,42 +136,7 @@ for ($num2 = 0 ; $num2 < $num_utenti_gruppo ; $num2++) $utenti_gruppi[risul_quer
 else {
 $anno_utente_attivato = "SI";
 $modifica_pers = "SI";
-$priv_vedi_messaggi = "s";
-$priv_ins_messaggi = "s";
-$attiva_contratti_consentiti = "n";
-$attiva_costi_agg_consentiti = "n";
-$priv_ins_nuove_prenota = "s";
-$priv_mod_prenotazioni = "s";
-$priv_mod_prenota_iniziate = "s";
-$priv_mod_prenota_ore = "000";
-} # fine else if ($id_utente != 1)
 
-if ($anno_utente_attivato == "SI" and $priv_vedi_messaggi == "s") {
-
-
-if (@is_file(C_DATI_PATH."/dati_subordinazione.php")) {
-$installazione_subordinata = "SI";
-$inserimento_nuovi_clienti = "NO";
-$priv_ins_messaggi = "n";
-$priv_ins_nuove_prenota = "n";
-$priv_mod_prenotazioni = "n";
-$modifica_clienti = "NO";
-$priv_ins_nuove_prenota = "n";
-$priv_ins_spese = "n";
-$priv_ins_entrate = "n";
-$priv_ins_costi_agg = "n";
-} # fine if (@is_file(C_DATI_PATH."/dati_subordinazione.php"))
-
-
-$titolo = "HotelDruid: ".mex("Messaggi",$pag);
-if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
-else include("./includes/head.php");
-
-include_once("./includes/panel_feedback.php");
-$active_panel = '';
-$success_messages = array();
-$error_messages = array();
-$warning_messages = array();
 
 $Euro = nome_valuta();
 $stile_soldi = stile_soldi();
@@ -691,6 +663,22 @@ unlock_tabelle($tabelle_lock);
 
 
 
+// Defensive initialization to prevent undefined variable warnings
+if (!isset($attiva_contratti_consentiti)) {
+	$attiva_contratti_consentiti = "n";
+}
+if (!isset($t1border)) {
+	$t1border = 1; // Default table border thickness
+}
+if (!isset($t1cellspacing)) {
+	$t1cellspacing = 2; // Default table cell spacing
+}
+if (!isset($t1cellpadding)) {
+	$t1cellpadding = 2; // Default table cell padding
+}
+if (!isset($priv_ins_messaggi)) {
+	$priv_ins_messaggi = "n";
+}
 // Start Messages Panel
 echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
@@ -848,13 +836,15 @@ return $tasto_prenota;
 } # fine function crea_tasto_modifica_prenota
 
 echo "$stringa_pagine
-<div class=\"tab_cont\">
-<table class=\"me1 t1color\" style=\"margin-left: auto; margin-right: auto;\" border=\"$t1border\" cellspacing=\"$t1cellspacing\" cellpadding=\"$t1cellpadding\">
-<tr><td class=\"t1top\" align=\"center\">".mex("N°",$pag)."</td>
-<td class=\"t1top\" align=\"center\">".mex("Mittente",$pag)."</td>
-<td class=\"t1top\" align=\"center\">".mex("Testo",$pag)."</td>
-<td class=\"t1top\" align=\"center\">".mex("Data",$pag)."</td>
-<td class=\"t1top\" align=\"center\">".mex("Azioni",$pag)."</td></tr>";
+<div class=\"tab_cont\">";
+// ...existing code...
+echo '<div class="rcontent">';
+echo '<table class="me1 t1color" style="margin-left: auto; margin-right: auto;" border="$t1border" cellspacing="$t1cellspacing" cellpadding="$t1cellpadding">';
+echo '<tr><td class="t1top" align="center">'.mex("N°",$pag).'</td>';
+echo '<td class="t1top" align="center">'.mex("Mittente",$pag).'</td>';
+echo '<td class="t1top" align="center">'.mex("Testo",$pag).'</td>';
+echo '<td class="t1top" align="center">'.mex("Data",$pag).'</td>';
+echo '<td class="t1top" align="center">'.mex("Azioni",$pag).'</td></tr>';
 if ($stringa_pagine and $pagina_messaggi != 1) echo $stringa_puntini_tab;
 
 
@@ -1244,25 +1234,72 @@ $tasto_contr
 } # fine for $num1
 
 
+
 if ($stringa_pagine and $pagina_messaggi != $num_pagine) echo $stringa_puntini_tab;
-echo "</table></div>$stringa_pagine<br><div style=\"text-align: center\">
-<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=\"line-height:160%\">
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<input type=\"hidden\" name=\"cambia_qualcosa\" value=\"SI\">
-<input type=\"hidden\" name=\"elimina_tutti_mess\" value=\"SI\">
-<button class=\"canc\" type=\"submit\"><div>".mex("Elimina tutti i messaggi",$pag)."</div></button><br>
-".mex("arrivati",$pag)." <select name=\"prima_dopo\">
-<option value=\"prima\">".mex("prima del",$pag)."</option>
-<option value=\"dopo\">".mex("dopo il",$pag)."</option>
-</select> <select name=\"data_arrivo\">
-<option value=\"\" selected>---</option>
-$option_date</select>-<select name=\"anno_arrivo\">
-<option value=\"\" selected>---</option>
-<option value=\"$anno_corrente\">$anno_corrente</option>
-<option value=\"".($anno_corrente - 1)."\">".($anno_corrente - 1)."</option>
-</select>
-</div></form></div><br><br>";
+echo "</table></div>$stringa_pagine";
+
+
+
+// ...existing code...
+
+// After closing the main messages panel, render the Delete All Messages panel in its own rbox container
+echo '<div class="rbox">';
+echo '<div class="rheader"><h5>'.mex("Elimina tutti i messaggi",$pag).'</h5></div>';
+echo '<div class="rcontent">';
+echo '<form accept-charset="utf-8" method="post" action="'.$pag.'"><div style="line-height:160%">';
+echo '<input type="hidden" name="anno" value="'.$anno.'">';
+echo '<input type="hidden" name="id_sessione" value="'.$id_sessione.'">';
+echo '<input type="hidden" name="cambia_qualcosa" value="SI">';
+echo '<input type="hidden" name="elimina_tutti_mess" value="SI">';
+echo '<button class="canc" type="submit"><div>'.mex("Elimina tutti i messaggi",$pag).'</div></button><br>';
+echo mex("arrivati",$pag).' <select name="prima_dopo">';
+echo '<option value="prima">'.mex("prima del",$pag).'</option>';
+echo '<option value="dopo">'.mex("dopo il",$pag).'</option>';
+echo '</select> <select name="data_arrivo">';
+echo '<option value="" selected>---</option>';
+echo $option_date.'</select>-<select name="anno_arrivo">';
+echo '<option value="" selected>---</option>';
+echo '<option value="'.$anno_corrente.'">'.$anno_corrente.'</option>';
+echo '<option value="'.($anno_corrente - 1).'">'.($anno_corrente - 1).'</option>';
+echo '</select>';
+echo '</div></form>';
+echo '</div>';
+echo '</div><br>';
+
+// ...existing code...
+
+// New Message Panel (standard styling)
+if ($priv_ins_messaggi == "s") {
+	echo '<div class="rbox">';
+	echo '<div class="rheader"><h5>'.mex("Nuovo messaggio",$pag).'</h5></div>';
+	echo '<div class="rcontent">';
+	echo '<form accept-charset="utf-8" method="post" action="'.$pag.'"><div>';
+	echo '<input type="hidden" name="anno" value="'.$anno.'">';
+	echo '<input type="hidden" name="id_sessione" value="'.$id_sessione.'">';
+	echo '<input type="hidden" name="cambia_qualcosa" value="SI">';
+	echo '<input type="hidden" name="spedisci_messaggio" value="1">';
+	echo mex("Nuovo messaggio a",$pag)." <select name=\"destinatario\"><option value=\"tutti\" selected>".mex("tutti",$pag)."</option>".$option_select_utenti."</select> ".mex("da mostrare dopo le",$pag)." <select name=\"ora_visione\">";
+	for ($num1 = 0 ; $num1 < 24 ; $num1++) {
+		$val = (strlen($num1) == 1) ? "0".$num1 : $num1;
+		if ($num1 == $ora_corrente) echo "<option value=\"$val\" selected>$val</option>";
+		else echo "<option value=\"$val\">$val</option>";
+	}
+	echo "</select>:<select name=\"min_visione\">";
+	for ($num1 = 0 ; $num1 < 60 ; $num1 = $num1 + 15) {
+		$val = (strlen($num1) == 1) ? "0".$num1 : $num1;
+		if ($num1 <= $min_corrente and ($num1 + 15) > $min_corrente) echo "<option value=\"$val\" selected>$val</option>";
+		else echo "<option value=\"$val\">$val</option>";
+	}
+	echo "</select> ".mex("il",$pag)." <select name=\"data_visione\">";
+	echo str_replace("-".$data_corrente."\">","-".$data_corrente."\" selected>",$option_date);
+	echo "</select>-<select name=\"anno_visione\">";
+	echo "<option value=\"$anno_corrente\" selected>$anno_corrente</option>";
+	echo "<option value=\"".($anno_corrente + 1)."\">".($anno_corrente + 1)."</option>";
+	echo "</select><br>";
+	echo '<table><tr><td style="height: 3px;"></td></tr></table>'.mex("testo del messaggio",$pag).': <input class="widetxt" name="testo" size="55" type="text">&nbsp;&nbsp;&nbsp;<button class="send" type="submit"><div>'.mex("Spedisci",$pag).'</div></button>';
+	echo '</div></form>';
+	echo '</div></div><br>';
+}
 
 } # fine if ($num_messaggi > 0)
 
