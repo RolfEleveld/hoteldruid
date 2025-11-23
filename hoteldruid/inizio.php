@@ -222,6 +222,7 @@ HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copy
 This is free software, and you are welcome to redistribute it<br>
  under certain conditions; see the $file_copying for details.<br>
 </div><hr style=\"width: 95%\">
+<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Benvenuto a HOTELDRUID",$pag)."</div><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
 <br><br>
 ".mex("Scegli la lingua",$pag).": <select name=\"lingua\">";
@@ -688,7 +689,7 @@ echo " $anno_attuale ".mex("dalla",$pag)."
  <a href=\"./visualizza_tabelle.php?anno=$anno_attuale&amp;id_sessione=$id_sessione&amp;tipo_tabella=periodi#agg_per\">".mex("tabella con i periodi e le tariffe",$pag)."</a> ".mex("anche senza creare un nuovo anno",$pag).".<br>";
 } # fine if ($anno_attuale_esist and $anno > $anno_attuale)
 if ((!$anno_attuale_esist and $anno == $anno_attuale) or $anno < $anno_attuale or (defined('C_CREA_ANNO_MANUALMENTE') and (C_CREA_ANNO_MANUALMENTE == "SI") or (C_CREA_ANNO_MANUALMENTE == "NUOVO" and $anno == $anno_corrente))) {
-echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"creaanno.php\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Crea l'anno",$pag)." $anno</div><br><form accept-charset=\"utf-8\" method=\"post\" action=\"creaanno.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"nuovo_mess\" value=\"".htmlspecialchars(fixstr($nuovo_mess))."\">
@@ -793,18 +794,19 @@ if (@is_file(C_DATI_PATH."/selectperiodi$anno_prec.1.php")) {
 echo "<label><input type=\"checkbox\" name=\"importa_anno_prec\" value=\"SI\" checked>
 ".mex("Importa dall'anno precedente prenotazioni, tariffe (compresi costi aggiuntivi), privilegi degli utenti e regole d'assegnazione.",$pag)."</label>";
 } # fine if (@is_file(C_DATI_PATH."/selectperiodi$anno_prec.1.php"))
-echo "</div></form>";
+echo "</div></form></div></div>";
 } # fine ((!$anno_attuale_esist and $anno == $anno_attuale) or $anno < $anno_attuale or...
 
 } # fine else if (controlla_anno($anno) == "NO" or $id_utente != 1 or...
 if (!$anno_attuale_esist) $anno_attuale = "";
 echo "<br><hr style=\"width: 95%\"><br>
+<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Richiedi anno",$pag)."</div><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div>
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <br> ".mex("richiedi l'anno",$pag)."
 <input type=\"text\" name=\"anno\" size=\"4\" maxlength=\"4\" value=\"$anno_attuale\">
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("vai",$pag)."\"><br>
-</div></form>";
+</div></form></div></div>";
 if ($tema[$id_utente] != "base") include("./themes/".$tema[$id_utente]."/php/foot.php");
 else include("./includes/foot.php");
 
@@ -866,7 +868,7 @@ echo "<option value=\"$ini_lingua\"$sel>$nome_lingua</option>";
 closedir($lang_dir);
 echo "</select><br>
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("crea il database",$pag)."\"><br>
-</div></form>";
+</div></form></div></div>";
 include("./includes/foot.php");
 } # fine else if (@is_file(C_DATI_PATH."/dati_connessione.php") != true)
 

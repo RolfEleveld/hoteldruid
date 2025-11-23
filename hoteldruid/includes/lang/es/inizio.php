@@ -35,6 +35,7 @@ case "Inserisci o modifica i prezzi":  		$messaggio = "Ingresar o modificar los 
 case "Inserisci o modifica le regole di assegnazione":  $messaggio = "Ingresar o modificar las reglas de asignación"; break;
 case "Configura e personalizza":	$messaggio = "Configurar y personalizar"; break;
 case "richiedi l'anno":  			$messaggio = "Ir al año"; break;
+case "Richiedi anno":  			$messaggio = "Solicitar Año"; break;
 case "vai":  					$messaggio = "ir"; break;
 case "Non esiste l'anno ":  			$messaggio = "No existe el año "; break;
 case " nel database":  				$messaggio = " en la base de datos"; break;
@@ -137,6 +138,8 @@ case "Clienti":  		$messaggio = "Clientes"; break;
 case "Prenotazioni":  		$messaggio = "Reservas"; break;
 case "Calendario":  		$messaggio = "Calendario"; break;
 case "":  		$messaggio = ""; break;
+
+case "Report":  			$messaggio = "Informe"; break;
 
 } # fine switch ($messaggio)
 
