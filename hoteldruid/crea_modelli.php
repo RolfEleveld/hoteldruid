@@ -2201,9 +2201,10 @@ echo mex("Pagine importate",$pag).".<br>
 
 if ($mostra_form_creazione != "NO") {
 
-echo "<h4 id=\"h_webs\"><span>".mex("Crea pagine per il sito web",$pag).".</span></h4>";
-
-echo "<br><div style=\"text-align: center;\">".mex("Dati comuni",$pag)."</div><br>
+echo "<div class=\"rpanels\"><div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
+<div style=\"background: linear-gradient(135deg, #2196F3 0%, #42A5F5 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+".mex("Crea pagine per il sito web",$pag).".
+</div>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -2299,7 +2300,7 @@ echo "</select><br><br>";
 } # fine if ($num_perc_cart_mod_vett > 1)
 
 echo "<label><input type=\"checkbox\" name=\"cambia_frasi\" value=\"SI\">".mex("Modifica le frasi predefinite",$pag)."</label><br>
-<hr style=\"width: 85%\"><div style=\"text-align: center;\">
+<div style=\"text-align: center;\">
 <button class=\"chav\" type=\"submit\" name=\"form_modello_disponibilita\" value=\"1\"><div>".mex("Pagina per la disponibilità",$pag)."</div></button>
 </div>";
 
@@ -2320,7 +2321,7 @@ if ($messaggio == $template_name_show['ita']) $messaggio = "";
 if ($messaggio) $nome_modello_ext = $messaggio;
 else $nome_modello_ext = $template_name_show['en'];
 } # fine else if (!empty($template_name_show[$lingua_mex]))
-echo "<hr style=\"width: 85%\"><div style=\"text-align: center;\">
+echo "<div style=\"text-align: center;\">
 <button class=\"$template_class\" type=\"submit\" name=\"form_$template_name\" value=\"1\"><div>".$nome_modello_ext."</div></button>
 </div>";
 } # fine if (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")
@@ -2329,7 +2330,7 @@ echo "<hr style=\"width: 85%\"><div style=\"text-align: center;\">
 } # fine while ($file = readdir($lang_dig))
 closedir($templates_dir);
 
-echo "</div></form>";
+echo "</div></form></div>";
 
 
 $templates_dir = opendir("./includes/templates/");
@@ -2370,7 +2371,11 @@ closedir($lang_dir);
 } # fine foreach ($modelli as $modello_ext => $val_i)
 
 if ($num_cart > 1 and !empty($mod_presenti_vett)) {
-echo "<hr style=\"width: 95%\"><div style=\"text-align: center;\">
+echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
+<div style=\"background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+".mex("Importa le pagine dalla cartella",$pag).".
+</div>
+<div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -2389,11 +2394,15 @@ echo "<option value=\"".$perc_cart_mod_vett[$num_cart]."\">".$perc_cart_mod_vett
 } # fine for $num_cart
 echo "</select>
 <button class=\"xdoc\" type=\"submit\"><div>".mex("Importa",$pag)."</div></button>
-</div></form></div>";
+</div></form></div></div>";
 } # fine if ($num_cart > 1 and !empty($mod_presenti_vett))
 
 if (!empty($mod_presenti_vett)) {
-echo "<hr style=\"width: 95%\"><div style=\"text-align: center;\">
+echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #FF5722; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
+<div style=\"background: linear-gradient(135deg, #FF5722 0%, #FF7043 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+".mex("Cancella",$pag).".
+</div>
+<div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -2412,16 +2421,16 @@ echo "<option value=\"$percorso_opt\">$percorso_opt</option>";
 } # fine for $num_cart
 echo "</select>
 <button class=\"canc\" type=\"submit\"><div>".mex("Cancella",$pag)."</div></button>
-</div></form></div>";
+</div></form></div></div>";
 } # fine if (!empty($mod_presenti_vett))
 
 
-echo "<hr style=\"width: 95%\"><div style=\"text-align: center;\">
+echo "<div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"personalizza.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form><br></div>";
+</div></form><br></div></div>";
 
 } # fine if ($mostra_form_creazione != "NO")
 
