@@ -2438,7 +2438,7 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_or
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"n_cli_esist_passa\" value=\"$numrighe\">";
-if ($idcognome_cp) echo "<div class=\"rbox\" style=\"margin-left: auto; margin-right: auto; min-width: 50%\"><br><em><b>".mex("Usa il cliente della prenotazione originale",$pag)."</b></em>:<br><br>";
+if ($idcognome_cp) echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><br><em><b>".mex("Usa il cliente della prenotazione originale",$pag)."</b></em>:<br><br>";
 
 for ($num = 0; $num < $numrighe ; $num = $num + 1) {
 if ($idcognome_cp and $num == 1) {
@@ -2928,7 +2928,7 @@ if (class_exists('HotelDruidTemplate')) {
     $template->display('clienti/panel_dati_fiscali', get_defined_vars());
 } else {
     # Fallback to original inline rendering if template system not available
-    echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">";
+    echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3;\">";
     echo "<div style=\"background: linear-gradient(135deg, #007cba 0%, #005a8a 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">".mex("Dati personali",$pag)."</div>";
     echo "<span class=\"wsnw\">".mex("Cognome",$pag).": ";
     if ($id_utente == 1 and $id_utente_ins != 1) {

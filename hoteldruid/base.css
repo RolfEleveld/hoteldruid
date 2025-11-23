@@ -51,7 +51,37 @@ table.t1 a, table.me1 a, table.usrs a { display: inline-block; padding-top: 1px;
 
 
 hr { border: 1px solid #888888; }
-.rbox { display: table; border: 2px solid #888888; border-radius: 10px; margin: 3px 2px 3px 1px; padding: 3px 6px 2px 6px; }
+.rbox {
+	display: block;
+	border: 2px solid var(--rbox-color, #888888);
+	border-radius: 10px;
+	margin: 12px auto;
+	padding: 0;
+	background: var(--rbox-color, #f5f5f5);
+	box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+	min-width: 280px;
+	max-width: 700px;
+}
+/* Panel header for rbox */
+.rheader {
+	font-family: "Trebuchet MS", Arial, sans-serif;
+	font-size: 1.2em;
+	font-weight: bold;
+	background: rgba(255,255,255,0.7);
+	border-bottom: 1px solid #ddd;
+	border-radius: 10px 10px 0 0;
+	padding: 10px 18px 8px 18px;
+	color: #222;
+	letter-spacing: 0.5px;
+}
+
+/* Panel content for rbox */
+.rcontent {
+	padding: 16px 18px 18px 18px;
+	background: rgba(255,255,255,0.95);
+	border-radius: 0 0 10px 10px;
+	color: #222;
+}
 table.rbox td { border-radius: 10px; }
 
 textarea { border-color: #444444 }

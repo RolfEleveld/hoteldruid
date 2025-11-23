@@ -4271,12 +4271,13 @@ else include("./includes/interconnect/aggiorna_ic.php");
 else {
 
 # pagina iniziale
-if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo "<h4 id=\"h_conf\"><span>".mex("Configura e personalizza","inizio.php");
+echo "<div id=\"h_conf\" class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">";
+if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo mex("Configura e personalizza","inizio.php");
 else {
-echo "<h4 id=\"h_conf\"><span>".mex("Configura e personalizza HotelDruid",$pag);
+echo mex("Configura e personalizza HotelDruid",$pag);
 if ($id_utente == 1) echo " ".C_PHPR_VERSIONE_TXT;
 } # fine else if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI")
-echo "</span></h4><hr style=\"width: 65%\">";
+echo "</div><div class=\"rcontent\">";
 
 if ($id_utente == 1 or ($priv_mod_pass != "n" and $installazione_subordinata != "SI") or ($priv_crea_backup == "s" and $installazione_subordinata != "SI") or $priv_crea_pagineweb == "s" or ($priv_crea_interconnessioni == "s" and (!defined('C_CREA_SUBORDINAZIONI') or C_CREA_SUBORDINAZIONI != "NO"))) {
 echo "<table class=\"nomob\" style=\"margin-left: auto; margin-right: auto;\" width=\"70%\"><tr>";
@@ -6836,13 +6837,12 @@ echo "<table><tr><td valign=\"top\">".mex("Quadro indicativo disponibilità",$pa
  <label><input type=\"radio\" name=\"mostra_quadro_disp\" value=\"reg2\"$check_mqd_reg2> ".mex("raggruppa gli appartamenti con la regola di assegnazione 2",'unit.php')."</label><br>
  <label><input type=\"radio\" name=\"mostra_quadro_disp\" value=\"pers\"$check_mqd_pers> ".mex("raggruppa gli appartamenti per numero di persone",'unit.php')."</label>
 </td><td style=\"width: 5px;\"></td><td valign=\"middle\"><button class=\"edtm\" type=\"submit\" name=\"cambia_mostra_quadro_disp\" value=\"1\"><div>".mex("Cambia",$pag)."</div></button>
-</td></tr></table></div></form><hr style=\"width: 95%\">";
+</td></tr></table></div></form>";
 
 } # fine if ($modifica_pers != "NO")
 
 
-echo "<div style=\"text-align: center;\"><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"./inizio.php\"><div>
+echo "</div><br/><form accept-charset=\"utf-8\" method=\"post\" action=\"./inizio.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"bkmm\" type=\"submit\"><div>".mex("Torna al menù principale",$pag)."</div></button>

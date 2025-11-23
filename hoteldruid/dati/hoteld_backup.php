@@ -1,6 +1,6 @@
 <?php exit(); ?>
 
-<!--             2025-11-16 21:16:46             -->
+<!--             2025-11-23 17:30:56             -->
 
 <!--  **    SAVE THIS FILE AS hoteld_backup.php     **  -->
 
@@ -91,6 +91,11 @@ define('C_DIFF_ORE',0);
 define('C_MIN_SESSIONE',90);
 define('C_USA_COOKIES',0);
 ?></contenuto>
+</file>
+<file>
+<nomefile>./dati/abilita_login</nomefile>
+<contenuto>
+</contenuto>
 </file>
 <file>
 <nomefile>./dati/selectperiodi2025.1.php</nomefile>
@@ -1640,27 +1645,27 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>15</cmp><cmp>1</cmp><cmp>3</cmp><cmp></cmp><cmp>16</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>15</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>16</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>201</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>202</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>202</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>201,203</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>203</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>202,204</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>204</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>21,203</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>204</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>203</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>16</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>15,17</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>17</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>16,18</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>18</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>17,19</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>19</cmp><cmp>1</cmp><cmp>3</cmp><cmp></cmp><cmp>18,20</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>20</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>19,21</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>21</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>20,204</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>205</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>206</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>207</cmp><cmp>2</cmp><cmp>3</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
-<riga><cmp>208</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209b,209c</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>209</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209c,209d</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>210</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209d,209e</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>212</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>213</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209d</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>214</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209d,209e</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
-<riga><cmp>215</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>209e,209f</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>21</cmp><cmp>1</cmp><cmp>4</cmp><cmp></cmp><cmp>20,209</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>205</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>206</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>206</cmp><cmp>2</cmp><cmp>4</cmp><cmp></cmp><cmp>205,207</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>207</cmp><cmp>2</cmp><cmp>3</cmp><cmp></cmp><cmp>206,208</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>208</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>207,209</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>209</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>21,208</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>210</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>212</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>212</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>210,213</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>213</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>212,214</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>214</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>213,215</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
+<riga><cmp>215</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>214</cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -1918,7 +1923,7 @@ $dates_options_list = "
 </colonnetabella>
 <righetabella>
 <riga><cmp>1</cmp><cmp>3.07</cmp></riga>
-<riga><cmp>2</cmp><cmp>103</cmp></riga>
+<riga><cmp>2</cmp><cmp>123</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -1940,7 +1945,7 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>1</cmp><cmp>admin</cmp><cmp></cmp><cmp></cmp><cmp>n</cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>1</cmp><cmp>admin</cmp><cmp>632e213a6788ad7b860eef01c464b0f3</cmp><cmp>#cxn39zDLEwtC2AGs@Bv</cmp><cmp>5</cmp><cmp></cmp><cmp></cmp></riga>
 <riga><cmp>2</cmp><cmp>Tina</cmp><cmp></cmp><cmp></cmp><cmp>n</cmp><cmp>2025-11-16 20:27:25</cmp><cmp>127.0.0.1</cmp></riga>
 <riga><cmp>3</cmp><cmp>Rosario</cmp><cmp></cmp><cmp></cmp><cmp>n</cmp><cmp>2025-11-16 20:27:39</cmp><cmp>127.0.0.1</cmp></riga>
 </righetabella>
@@ -2022,6 +2027,7 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
+<riga><cmp>20251123153215njbiVJC7EtuomTAk123</cmp><cmp></cmp><cmp>1</cmp><cmp>127.0.0.1</cmp><cmp>HTTP</cmp><cmp>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0</cmp><cmp>2025-11-23 17:30:56</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -2087,8 +2093,6 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>20251116195122EKIM10cJ101</cmp><cmp></cmp><cmp></cmp><cmp>tab_p</cmp><cmp>2025</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>iddatainizio,idprenota</cmp><cmp></cmp><cmp>SI</cmp><cmp>part</cmp><cmp>2025-11-16</cmp><cmp>2025-11-17</cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp>correnti</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>2025-11-16 20:13:42</cmp></riga>
-<riga><cmp>20251116201203XuBQnVqu103</cmp><cmp></cmp><cmp></cmp><cmp>ins_p</cmp><cmp>2025</cmp><cmp></cmp><cmp>1</cmp><cmp>331</cmp><cmp>341</cmp><cmp>15</cmp><cmp>tariffa1</cmp><cmp>1</cmp><cmp>v</cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>,</cmp><cmp>1</cmp><cmp>0</cmp><cmp>a:1:{i:1;a:1:{i:1;a:1:{i:1;i:1;}}}</cmp><cmp>a:1:{i:1;a:1:{i:1;a:1:{i:1;s:1:"1";}}}</cmp><cmp>a:0:{}</cmp><cmp>a:0:{}</cmp><cmp>,,</cmp><cmp></cmp><cmp>a:2:{i:1;a:0:{}s:13:"numpersone_nr";a:1:{i:1;a:0:{}}}</cmp><cmp>a:3:{s:19:"num_app_reali_costo";a:0:{}s:19:"diff_aggiungi_letti";a:0:{}s:14:"posti_mancanti";a:1:{i:1;i:0;}}</cmp><cmp>2025-11-16 20:12:57</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -4454,7 +4458,7 @@ Receipt[c document_progressive_number!=""] n. [document_progressive_number][/c] 
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>1</cmp><cmp>sistema</cmp><cmp></cmp><cmp>,1,</cmp><cmp>,1,</cmp><cmp>2025-11-16 11:00:10</cmp><cmp>1</cmp><cmp><div style="max-width: 600px; line-height: 1.1;"><h4>Welcome to HotelDruid!</h4><br>These are some simple steps you can follow to set up the basic functionality of HotelDruid:<br>
+<riga><cmp>1</cmp><cmp>sistema</cmp><cmp></cmp><cmp>,1,</cmp><cmp>,</cmp><cmp>2025-11-16 11:00:10</cmp><cmp>1</cmp><cmp><div style="max-width: 600px; line-height: 1.1;"><h4>Welcome to HotelDruid!</h4><br>These are some simple steps you can follow to set up the basic functionality of HotelDruid:<br>
 <ul style="line-height: 1.2;">
 <li>Insert the information about the rooms from the
  <em><b><a href="./visualizza_tabelle.php?tipo_tabella=appartamenti&amp;<sessione>">rooms table</a></b></em>, 

@@ -499,6 +499,7 @@ if (!empty($agg_tar)) esegui_query("delete from $tablecache where numero = '12' 
 
 
 if ($mostra_form_iniziale == "NO") {
+
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"./inizio.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -649,8 +650,8 @@ if ($mostra_form_iniziale != "NO") {
 include("./includes/sett_gio.php");
 
 # Pagina iniziale
-echo "<h3 id=\"h_intc\"><span>".mex("Interconnessioni con sorgenti esterne di dati",$pag).".</span></h3>
-<hr style=\"width: 95%\">";
+
+echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">".mex("Interconnessioni con sorgenti esterne di dati",$pag)."</div><div class=\"rcontent\">";
 
 $id_utente_az = esegui_query("select idlocale from $tableinterconnessioni where tipoid = 'id_utente_az' ");
 if (numlin_query($id_utente_az) == 1) $id_utente_azione_ic = risul_query($id_utente_az,0,"idlocale");
@@ -736,13 +737,14 @@ foreach ($interconnessioni as $mod_ext => $val_i) {
 include("./includes/interconnect/$mod_ext/name.php");
 if (!empty($interconnection_name_show[$lingua_mex])) $titolo = $interconnection_name_show[$lingua_mex];
 else $titolo = $interconnection_name_show['en'];
-echo "<hr style=\"width: 95%\"><div id=\"h$interconnection_data_dir\" style=\"text-align: center;\"><b>$titolo</b></div><br>";
+echo '<div class="rbox" style="--rbox-color: #2196F3;">';
+echo '<div class="rheader"><h5>' . $titolo . '</h5></div>';
+echo '<hr style="width: 95%">';
+echo '</div>';
 $agg_tariffe_da_remoto = 0;
 include("./includes/interconnect/$mod_ext/form.php");
 } # fine foreach ($interconnessioni as $mod_ext => $val_i)
 closedir($interconn_dir);
-
-if (!empty($ic_present) and defined('C_URL_NUOVI_APP') and C_URL_NUOVI_APP) echo "<hr style=\"width: 95%\"><div style=\"text-align: center;\"><br>".mex("Se vuoi collegare altri account per una interconnessione già attiva inquesta pagina, allora",$pag)." <a href=\"".C_URL_NUOVI_APP."\" target=\"_blank\">".mex("aggiungi altre interconnessioni",$pag)."</a>.<br><br>";
 
 
 $templates_dir = opendir("./includes/templates/");
@@ -773,7 +775,10 @@ if ($messaggio == $template_name_show['ita']) $messaggio = "";
 if ($messaggio) $titolo = $messaggio;
 else $titolo = $template_name_show['en'];
 } # fine else if ($template_name_show[$lingua_mex])
-echo "<hr style=\"width: 95%\"><div id=\"h".$modello_ext."\" style=\"text-align: center;\"><b>$titolo</b></div><br>";
+echo '<div class="rbox" style="--rbox-color: #2196F3;">';
+echo '<div class="rheader"><h5>' . $titolo . '</h5></div>';
+echo '<hr style="width: 95%">';
+echo '</div>';
 $agg_tariffe_da_remoto = 0;
 					if (is_file("./includes/templates/$modello_ext/form.php")) include_once("./includes/templates/$modello_ext/form.php");
 } # fine if (fixset($template_name_show['tpl_type']) == "interconnection")
@@ -793,7 +798,7 @@ sel_memu[n1].querySelector('option[selected]').selected = true;
 }
 -->
 </script>
-<hr style=\"width: 95%\"><div style=\"text-align: center;\">
+<br/>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"./personalizza.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
