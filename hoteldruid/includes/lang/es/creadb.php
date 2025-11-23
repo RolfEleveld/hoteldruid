@@ -3,7 +3,7 @@
 switch ($messaggio) {
 
 case "Crea Database":				$messaggio = "Crear Base de Datos"; break;
-case "Inserimento dei dati permanenti":  	$messaggio = "Inserción de los datos permanentes."; break;
+case "Inserimento dei dati permanenti":  	$messaggio = "Configuración de los datos permanentes."; break;
 case "Inserisci questi dati per poi creare il database":	$messaggio = "Ingresar estos datos para crear la base de datos"; break;
 case "Nome del database da utilizzare":		$messaggio = "Nombre de la base de datos a utilizar"; break;
 case "Nome del computer a cui collegarsi":  	$messaggio = "Nombre del ordenador al que conectarse"; break;

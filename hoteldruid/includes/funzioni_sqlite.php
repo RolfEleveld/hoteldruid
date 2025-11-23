@@ -286,7 +286,7 @@ $tabelle_lock = null;
 function crea_indice ($tabella,$colonne,$nome) {
 global $numconnessione;
 
-$numconnessione->exec("create index $nome on $tabella ($colonne)");
+$numconnessione->exec("create index if not exists $nome on $tabella ($colonne)");
 
 } # fine function crea_indice
 

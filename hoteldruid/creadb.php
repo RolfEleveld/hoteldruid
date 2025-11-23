@@ -544,7 +544,7 @@ if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI" and defined('C_CART
 
 if (!defined('C_UTILIZZA_SEMPRE_DEFAULTS') or C_UTILIZZA_SEMPRE_DEFAULTS != "AUTO") {
 # seconda form di inserimento (appartamenti) - Enhanced Dynamic Interface
-echo "<br>".mex2("Inserisci ora i dati sugli appartamenti",'unit.php',$lingua)." (<b>".mex2("almeno il numero, diverso per ogni appartamento",'unit.php',$lingua)."</b>).<br>
+echo "<div class=\"rbox\"><div class=\"rheader\">".mex2("Inserisci ora i dati sugli appartamenti",'unit.php',$lingua)." (<b>".mex2("almeno il numero, diverso per ogni appartamento",'unit.php',$lingua)."</b>).</div><br>
 
 <style>
 .room-container {
@@ -756,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 echo "<div style=\"text-align: center;\">
 <input class=\"submit-btn\" type=\"submit\" name=\"insappartamenti\" value=\"".mex2("Salva configurazione stanze",'creadb.php',$lingua)."\">
-</div><br></div></form>";
+</div><br></div></form></div>";
 } # fine if (!defined('C_UTILIZZA_SEMPRE_DEFAULTS') or C_UTILIZZA_SEMPRE_DEFAULTS != "AUTO")
 else $insappartamenti = 1;
 
@@ -1070,7 +1070,7 @@ $fileaperto = @fopen(C_DATI_PATH."/ultimo_accesso","w+");
 if (!isset($mostra_form_iniziale) or $mostra_form_iniziale != "NO") {
 
 // prima form di inserimento
-echo "<h4>".mex2("Inserimento dei dati permanenti",$pag,$lingua)."</h4><br>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex2("Inserimento dei dati permanenti",$pag,$lingua)."</div><br>
 ".mex2("Inserisci questi dati per poi creare il database",$pag,$lingua).".<br>
 <br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
@@ -1136,7 +1136,7 @@ echo "".mex2("Nome del database a cui collegarsi temporaneamente",$pag,$lingua).
 <input type=\"text\" name=\"numletti\" value=\"0\" size=\"5\"><br>
 <div style=\"text-align: center;\"><input class=\"sbutton\" type=\"submit\" name=\"creabase\" value=\"".mex2("Crea il database",$pag,$lingua)."\"></div><br>
 <input type=\"hidden\" name=\"lingua\" value=\"$lingua\">
-</div></form>";
+</div></form></div></div>";
 
 } # fine if (!isset($mostra_form_iniziale) or $mostra_form_iniziale != "NO")
 
