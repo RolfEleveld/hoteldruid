@@ -3,7 +3,7 @@ windows
 phpdesktop
 logs
 hoteldruid/logs
-hoteldruid/dati/*
+hoteldruid/dati
 # Hotel druid software
 hoteldruid*.zip
 # Easy PHP runtime services

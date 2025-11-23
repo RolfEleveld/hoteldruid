@@ -1,6 +1,6 @@
 <?php exit(); ?>
 
-<!--             2025-11-23 17:30:56             -->
+<!--             2025-11-23 21:21:10             -->
 
 <!--  **    SAVE THIS FILE AS hoteld_backup.php     **  -->
 
@@ -1754,6 +1754,7 @@ $dates_options_list = "
 </colonnetabella>
 <righetabella>
 <riga><cmp>1</cmp><cmp>Johnson</cmp><cmp>John</cmp><cmp></cmp><cmp>m</cmp><cmp></cmp><cmp>ita</cmp><cmp></cmp><cmp>Palermo</cmp><cmp>Palermo</cmp><cmp>Italy</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>Italy</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp>,</cmp><cmp></cmp><cmp>2025-11-16 20:12:57</cmp><cmp>127.0.0.1</cmp><cmp>1</cmp></riga>
+<riga><cmp>2</cmp><cmp>Doe</cmp><cmp>Jane</cmp><cmp></cmp><cmp>f</cmp><cmp></cmp><cmp>en</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>United Arab Emirates</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp>,</cmp><cmp></cmp><cmp>2025-11-23 20:49:15</cmp><cmp>127.0.0.1</cmp><cmp>1</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -1923,7 +1924,7 @@ $dates_options_list = "
 </colonnetabella>
 <righetabella>
 <riga><cmp>1</cmp><cmp>3.07</cmp></riga>
-<riga><cmp>2</cmp><cmp>123</cmp></riga>
+<riga><cmp>2</cmp><cmp>128</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -2027,7 +2028,7 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>20251123153215njbiVJC7EtuomTAk123</cmp><cmp></cmp><cmp>1</cmp><cmp>127.0.0.1</cmp><cmp>HTTP</cmp><cmp>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0</cmp><cmp>2025-11-23 17:30:56</cmp></riga>
+<riga><cmp>20251123153215njbiVJC7EtuomTAk123</cmp><cmp></cmp><cmp>1</cmp><cmp>127.0.0.1</cmp><cmp>HTTP</cmp><cmp>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0</cmp><cmp>2025-11-23 21:21:10</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -2093,6 +2094,9 @@ $dates_options_list = "
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
+<riga><cmp>20251123183730qJiewSCy124</cmp><cmp></cmp><cmp>20251123153215njbiVJC7EtuomTAk123</cmp><cmp>tab_p</cmp><cmp>2025</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>iddatainizio,idprenota</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp>tutte</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>2025-11-23 20:53:53</cmp></riga>
+<riga><cmp>20251123204833S9ovnpvB127</cmp><cmp></cmp><cmp>20251123153215njbiVJC7EtuomTAk123</cmp><cmp>ins_p</cmp><cmp>2025</cmp><cmp></cmp><cmp>1</cmp><cmp>332</cmp><cmp>346</cmp><cmp>201</cmp><cmp>tariffa1</cmp><cmp>3</cmp><cmp>v</cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>,</cmp><cmp>2</cmp><cmp>0</cmp><cmp>a:1:{i:1;a:1:{i:1;a:1:{i:1;i:2;}}}</cmp><cmp>a:1:{i:1;a:1:{i:1;a:1:{i:1;s:1:"1";}}}</cmp><cmp>a:0:{}</cmp><cmp>a:0:{}</cmp><cmp>,,</cmp><cmp></cmp><cmp>a:2:{i:1;a:0:{}s:13:"numpersone_nr";a:1:{i:1;a:0:{}}}</cmp><cmp>a:3:{s:19:"num_app_reali_costo";a:0:{}s:19:"diff_aggiungi_letti";a:0:{}s:14:"posti_mancanti";a:1:{i:1;i:0;}}</cmp><cmp>2025-11-23 20:49:15</cmp></riga>
+<riga><cmp>20251123204921G5rUIs37128</cmp><cmp></cmp><cmp></cmp><cmp>rate_limit</cmp><cmp></cmp><cmp></cmp><cmp>login_attempts_f528764d624db129b32c21fbca0cb8d6</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>2025-11-23 20:49:21</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -4389,6 +4393,7 @@ Receipt[c document_progressive_number!=""] n. [document_progressive_number][/c] 
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
+<riga><cmp>2</cmp><cmp></cmp><cmp></cmp><cmp>id_utente_az</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -4548,6 +4553,7 @@ Receipt[c document_progressive_number!=""] n. [document_progressive_number][/c] 
 </colonnetabella>
 <righetabella>
 <riga><cmp>1</cmp><cmp>1</cmp><cmp>15</cmp><cmp>331</cmp><cmp>341</cmp><cmp>v</cmp><cmp></cmp><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp>Rack#@&715#@&p</cmp><cmp>65,65,65,65,65,65,65,65,65,65,65;15,15,15,15,15,15,15,15,15,15,15;15,15,15,15,15,15,15,15,15,15,15</cmp><cmp></cmp><cmp></cmp><cmp>715</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>shss</cmp><cmp></cmp><cmp></cmp><cmp>N</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>2025-11-16 20:12:57</cmp><cmp>127.0.0.1</cmp><cmp></cmp><cmp>1</cmp></riga>
+<riga><cmp>2</cmp><cmp>2</cmp><cmp>201</cmp><cmp>332</cmp><cmp>346</cmp><cmp>v</cmp><cmp></cmp><cmp>3</cmp><cmp></cmp><cmp></cmp><cmp>Rack#@&1425#@&p</cmp><cmp>95,95,95,95,95,95,95,95,95,95,95,95,95,95,95;45,45,45,45,45,45,45,45,45,45,45,45,45,45,45;15,15,15,15,15,15,15,15,15,15,15,15,15,15,15</cmp><cmp></cmp><cmp></cmp><cmp>1425</cmp><cmp>50</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>kwrv</cmp><cmp></cmp><cmp></cmp><cmp>S</cmp><cmp></cmp><cmp>2025-11-28 17:00:00</cmp><cmp></cmp><cmp>2025-11-23 20:49:15</cmp><cmp>127.0.0.1</cmp><cmp></cmp><cmp>1</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -4680,7 +4686,7 @@ Receipt[c document_progressive_number!=""] n. [document_progressive_number][/c] 
 <tipocolonna>unknown</tipocolonna>
 </colonnetabella>
 <righetabella>
-<riga><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>2</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
+<riga><cmp>1</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp>3</cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp><cmp></cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
@@ -4703,6 +4709,7 @@ Receipt[c document_progressive_number!=""] n. [document_progressive_number][/c] 
 </colonnetabella>
 <righetabella>
 <riga><cmp>1</cmp><cmp>1</cmp><cmp>1</cmp><cmp></cmp><cmp>2025-11-16 20:12:57</cmp><cmp>127.0.0.1</cmp><cmp>1</cmp></riga>
+<riga><cmp>2</cmp><cmp>2</cmp><cmp>1</cmp><cmp></cmp><cmp>2025-11-23 20:49:15</cmp><cmp>127.0.0.1</cmp><cmp>1</cmp></riga>
 </righetabella>
 </tabella>
 <tabella>
