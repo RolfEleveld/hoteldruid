@@ -324,7 +324,7 @@ $titolo = "HotelDruid: ".mex("Privilegi Utenti",$pag);
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 
-echo "<div class=\"rbox\" style=\"background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px auto; max-width: 1400px;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; padding: 15px 25px; border-radius: 8px 8px 0 0;\">
 <h5 style=\"margin: 0; font-size: 18px; font-weight: bold;\">".mex("Privilegi Utenti",$pag)."</h5>
 </div>

@@ -1720,7 +1720,7 @@ $class = "t1wc";
 
 if ($num_tab == 1) {
 // Main Prenotazioni wrapper panel
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>".mex("Prenotazioni",$pag)."</h5>
 </div>
@@ -1742,7 +1742,7 @@ echo "<div style=\"text-align: center;\">$freccia_sx $freccia_dx</div><br>";
 if (isset($stringa_pagine)) echo $stringa_pagine;
 
 // Table Display sub-panel with dynamic title from $frase_tab
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>";
 if (isset($frase_tab)) {
@@ -2598,9 +2598,13 @@ $lista_prenota_mod = substr($lista_prenota_mod,1);
 
 echo "</div></div><br>"; // Close Table Display panel
 
+if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO") {
+echo "</div></div>"; // Close main Prenotazioni wrapper (rcontent and rbox)
+} # fine if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO")
+
 if (!isset($show_bar) or $show_bar != "NO") {
 // Payment Actions sub-panel
-echo "<div class=\"rbox\" style=\"border-left-color: #27ae60;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%);\">
 <h5>".mex("Azioni Pagamento",$pag)."</h5>
 </div>
@@ -2626,7 +2630,7 @@ echo "<input type=\"hidden\" name=\"num_cambia_pren\" value=\"$num_cambia\">
 
 if (!isset($show_bar) or $show_bar != "NO") {
 // Group Modify sub-panel
-echo "<div class=\"rbox\" style=\"border-left-color: #e67e22;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);\">
 <h5>".mex("Modifica Gruppo",$pag)."</h5>
 </div>
@@ -2670,7 +2674,7 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine for $num_contratto
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
 // Document Selector sub-panel
-echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
 <h5>".mex("Visualizza Documento",$pag)."</h5>
 </div>
@@ -2696,10 +2700,6 @@ echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".me
 }
 echo "</div></div><br>"; // Close Document Selector panel
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
-
-if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO") {
-echo "</div></div>"; // Close main Prenotazioni wrapper (rcontent and rbox)
-} # fine if (!isset($mostra_tab_principale) or $mostra_tab_principale != "NO")
 
 } # fine if ($tipo_tabella == "prenotazioni" and $priv_vedi_tab_prenotazioni != "n")
 
@@ -3023,7 +3023,7 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine for $num_contratto
 
 
-echo "<div class=\"rbox\" style=\"border-left-color: #2ecc71;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);\">
 <h5>".mex("Costi",$pag)."</h5>
 </div>
@@ -3044,7 +3044,7 @@ $spese_valuta_TOT = array();
 
 
 echo "<a name=\"entr_cassa$id_cassa\"></a>
-<div class=\"rbox\" style=\"border-left-color: #27ae60; margin: 15px 0;\">
+<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 8px 15px;\">
 <h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Tutte le entrate del",$pag)." $anno ";
 if ($id_cassa == 1) echo mex("nella cassa principale",$pag);
@@ -3267,7 +3267,7 @@ echo "</table><div style=\"text-align: center;\">* ".mex("entrata presa dalle pr
 </div></div></div>"; // Close entrate panel
 
 echo "<a name=\"usci_cassa$id_cassa\"></a>
-<div class=\"rbox\" style=\"border-left-color: #c0392b; margin: 15px 0;\">
+<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #c0392b 0%, #a93226 100%); padding: 8px 15px;\">
 <h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Tutte le spese del",$pag)." $anno ";
 if ($id_cassa == 1) echo mex("nella cassa principale",$pag);
@@ -3487,7 +3487,7 @@ echo "</table>$stringa_pagine<br><br></div></div>"; // Close spese panel
 
 $cassa = $entrate_TOT - $spese_TOT;
 $cassa_p = punti_in_num($cassa,$stile_soldi);
-echo "<div class=\"rbox\" style=\"border-left-color: #27ae60; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 8px 15px;\">
 <h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Totale in cassa",$pag)."</h6>
 </div>
@@ -3547,7 +3547,7 @@ echo "<hr style=\"width: 95%\">"; // Separator between cash registers
 
 // Document selector sub-panel
 if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO")) {
-echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
 <h5>".mex("Visualizza Documento",$pag)."</h5>
 </div>
@@ -3566,7 +3566,7 @@ echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6; margin: 15px 0;\">
 
 // Cash register management sub-panel (admin only)
 if ($id_utente == 1) {
-echo "<div class=\"rbox\" style=\"border-left-color: #e67e22; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);\">
 <h5>".mex("Gestione Casse",$pag)."</h5>
 </div>
@@ -5052,7 +5052,7 @@ else $n_per_passa = (risul_query($periodi,0,'idperiodi') - 1);
 $num_periodi = numlin_query($periodi);
 $n_per_passa += $num_periodi;
 
-echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
 <h5>".mex("Periodi",$pag)."</h5>
 </div>
@@ -6101,7 +6101,7 @@ unlock_tabelle($tabelle_lock);
 
 if ($mostra_tab_clienti) {
 
-echo "<div class=\"rbox\" style=\"border-left-color: #e74c3c;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);\">
 <h5>".mex("Clienti",$pag)."</h5>
 </div>
@@ -6556,7 +6556,7 @@ else include("./includes/interconnect/aggiorna_ic.php");
 else {
 
 
-echo "<div class=\"rbox\" style=\"border-left-color: #f39c12;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);\">
 <h5>".mex("Regole",$pag)."</h5>
 </div>
@@ -6567,7 +6567,7 @@ HotelDruidTemplate::getInstance()->display('common/messages', get_defined_vars()
 }
 }
 
-echo "<div class=\"rbox\" style=\"border-left-color: #e67e22; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); padding: 8px 15px;\">
 <h6 id=\"hreg1\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 1 - ".mex("chiusure",'crearegole.php')."</h6>
 </div>
@@ -6684,7 +6684,7 @@ echo "</table></div>";
 
 echo "</div></div>"; // Close Regole 1 panel
 
-echo "<div class=\"rbox\" style=\"border-left-color: #d68910; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #d68910 0%, #b8790a 100%); padding: 8px 15px;\">
 <h6 id=\"hreg2\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 2 - ".mex("tipologie di appartamenti",'unit.php')."</h6>
 </div>
@@ -6785,7 +6785,7 @@ echo "</table></div>";
 
 echo "</div></div>"; // Close Regole 2 panel
 
-echo "<div class=\"rbox\" style=\"border-left-color: #ca6f1e; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #ca6f1e 0%, #a04000 100%); padding: 8px 15px;\">
 <h6 id=\"hreg3\" style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 3 - ".mex("numero di persone",'crearegole.php')."</h6>
 </div>
@@ -6844,7 +6844,7 @@ echo "</div></div>"; // Close Regole 3 panel
 
 if ($id_utente == 1) {
 
-echo "<div class=\"rbox\" style=\"border-left-color: #af601a; margin: 15px 0;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #af601a 0%, #873e03 100%); padding: 8px 15px;\">
 <h6 style=\"margin: 0; font-size: 0.95em;\">".mex("Regole di assegnazione",$pag)." 4 - ".mex("utente inserimento",'crearegole.php')."</h6>
 </div>
@@ -7132,7 +7132,7 @@ else {
 
 
 
-echo "<div class=\"rbox\" style=\"border-left-color: #1abc9c;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);\">
 <h5>".mex("Tabella con tutti gli appartamenti",'unit.php')."</h5>
 </div>
@@ -7894,7 +7894,7 @@ unlock_tabelle($tabelle_lock);
 if (!isset($mostra_form_inventario) or $mostra_form_inventario != "NO") {
 
 
-echo "<div class=\"rbox\" style=\"border-left-color: #95a5a6;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);\">
 <h5>".mex("Inventario",$pag)."</h5>
 </div>
@@ -8423,7 +8423,7 @@ else unlink("$dir_salva/$file_tmp");
 
 if (!isset($mostra_tab_doc_salvati) or $mostra_tab_doc_salvati != "NO") {
 
-echo "<div class=\"rbox\" style=\"border-left-color: #8B4513;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%);\">
 <h5>".mex("Documenti",$pag)."</h5>
 </div>
@@ -9348,7 +9348,7 @@ genera_statistiche($$entrate_ins_mese,$$num_prenota_ins_mese,$$entrate_prog_ins_
 } # fine for $num1
 
 
-echo "<div class=\"rbox\" style=\"border-left-color: #003366;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #003366 0%, #0066cc 100%);\">
 <h5>".mex("Statistiche",$pag)."</h5>
 </div>

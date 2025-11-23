@@ -816,7 +816,7 @@ if ($mese != 48 and $tipo_periodi != "g") $mese_fine_tab = $mese + 1;
 else $mese_fine_tab = $mese;
 
 // Main panel wrapper for tabella
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>".mex("Tabella prenotazioni del",$pag)." <span id=\"m_corr_su\">$mese_mostra-$anno_mostra</span>.</h5>
 </div>
@@ -1428,7 +1428,7 @@ $option_num_contr .= "<option value=\"$num_contratto\">$num_contratto_vedi</opti
 } # fine for $num_contratto
 if ($option_num_contr and $show_bar != "NO") {
 // Document selector panel
-echo "<div class=\"rbox\" style=\"border-left-color: #9b59b6;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);\">
 <h5>".ucfirst(mex("documento di tipo",$pag))."</h5>
 </div>

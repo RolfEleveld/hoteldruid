@@ -4271,7 +4271,7 @@ else include("./includes/interconnect/aggiorna_ic.php");
 else {
 
 # pagina iniziale
-echo "<div id=\"h_conf\" class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">";
+echo "<div id=\"h_conf\" class=\"rbox\"><div class=\"rheader\">";
 if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo mex("Configura e personalizza","inizio.php");
 else {
 echo mex("Configura e personalizza HotelDruid",$pag);

@@ -764,7 +764,7 @@ if (fixset($backup_contratti) == "SI") {
 if (@is_file(C_DATI_PATH."/hoteld_doc_backup.php")) $file_esistente = "SI";
 else $file_esistente = "NO";
 
-echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">".mex("New Backup",$pag)."</div><div class=\"rcontent\">";
+echo "<div class=\"rbox\"><div class=\"rheader\">".mex("New Backup",$pag)."</div><div class=\"rcontent\">";
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"./crea_backup.php\" style=\"margin-bottom:0\"><input type=\"hidden\" name=\"anno\" value=\"$anno\"><input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\"><input type=\"hidden\" name=\"backup_contratti\" value=\"SI\"><input type=\"hidden\" name=\"azione\" value=\"SI\"><button class=\"abkp\" type=\"submit\" name=\"crea_backup\" value=\"1\">";
 echo mex("Create a new backup file",$pag);
 echo "</button> <span style=\"margin-left:1em\">";
@@ -894,8 +894,8 @@ else {
 
 
 # Pagina iniziale di backup
-if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo "<div id=\"h_bkup\" class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">".mex("Sistema di backup","personalizza.php")."</div><div class=\"rcontent\">";
-else  echo "<div id=\"h_bkup\" class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">".mex("Sistema di backup per HotelDruid",$pag)."</div><div class=\"rcontent\">";
+if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo "<div id=\"h_bkup\" class=\"rbox\"><div class=\"rheader\">".mex("Sistema di backup","personalizza.php")."</div><div class=\"rcontent\">";
+else  echo "<div id=\"h_bkup\" class=\"rbox\"><div class=\"rheader\">".mex("Sistema di backup per HotelDruid",$pag)."</div><div class=\"rcontent\">";
 
 if (@is_file(C_DATI_PATH."/hoteld_backup.php")) $file_esistente = "SI";
 else $file_esistente = "NO";

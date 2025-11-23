@@ -1334,7 +1334,7 @@ if (isset($inizializza) and substr($inizializza,0,3) == "rar") {
 $num_arr_rip = substr($inizializza,3);
 $option_arr_rip = str_replace("\"a".$num_arr_rip."\"","\"a".$num_arr_rip."\" selected",$option_arr_rip);
 } # fine if (isset($inizializza) and substr($inizializza,0,3) == "rar")
-echo "<div class=\"rbox\" style=\"padding-top: 8px;\">
+echo "<div class=\"rbox\">
 <a name=\"modcond\"></a>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$pag#modcond\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">

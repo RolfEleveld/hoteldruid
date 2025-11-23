@@ -790,7 +790,7 @@ unlock_tabelle($tabelle_lock);
 if (!isset($mostra_tabella_iniziale) or $mostra_tabella_iniziale != "NO") {
 
 # Main panel wrapper
-echo "<div class=\"rbox\" style=\"background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 20px; overflow: hidden;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 15px 20px;\">
 <h5 style=\"margin: 0; color: white; font-size: 18px; font-weight: bold;\">";
 if (defined('C_NASCONDI_MARCA') and C_NASCONDI_MARCA == "SI") echo mex("Gestione degli utenti",$pag);

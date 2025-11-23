@@ -2600,7 +2600,7 @@ $cognome = htmlspecialchars($cognome,ENT_COMPAT);
 $nome = htmlspecialchars($nome,ENT_COMPAT);
 
 # Panel wrapper with title in header
-echo "<div class=\"rbox\" style=\"background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 20px; overflow: hidden;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 15px 20px;\">
 <h5 style=\"margin: 0; color: white; font-size: 18px; font-weight: bold;\">".mex("Inserisci una nuova prenotazione",$pag)."</h5>
 </div>
@@ -3305,7 +3305,7 @@ if ($origini_prenota) echo "</td></tr></table>";
 } # fine if ($priv_ins_caparra == "s")
 echo "</div>";
 if ($priv_ins_multiple != "n") {
-echo "<div class=\"rbox\" style=\"padding-right: 10px; padding-bottom: 3px;\">
+echo "<div class=\"rbox\">
 <table class=\"nomob\" style=\"font-size: 14px;\"><tr><td>".mex("Nº di prenotazioni di questa tipologia",$pag).":";
 if (!${"num_app_richiesti".$n_t} or controlla_num_pos(${"num_app_richiesti".$n_t}) != "SI") ${"num_app_richiesti".$n_t} = 1;
 echo "<input type=\"text\" name=\"num_app_richiesti$n_t\" size=\"2\" maxlength=\"3\" value =\"".${"num_app_richiesti".$n_t}."\">.";
@@ -3413,4 +3413,6 @@ else include("./includes/foot.php");
 
 
 ?>
+
+
 

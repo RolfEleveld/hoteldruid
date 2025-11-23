@@ -651,7 +651,7 @@ include("./includes/sett_gio.php");
 
 # Pagina iniziale
 
-echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3; margin-left: auto; margin-right: auto; min-width: 50%\"><div class=\"rheader\">".mex("Interconnessioni con sorgenti esterne di dati",$pag)."</div><div class=\"rcontent\">";
+echo "<div class=\"rbox\"><div class=\"rheader\">".mex("Interconnessioni con sorgenti esterne di dati",$pag)."</div><div class=\"rcontent\">";
 
 $id_utente_az = esegui_query("select idlocale from $tableinterconnessioni where tipoid = 'id_utente_az' ");
 if (numlin_query($id_utente_az) == 1) $id_utente_azione_ic = risul_query($id_utente_az,0,"idlocale");
@@ -737,12 +737,11 @@ foreach ($interconnessioni as $mod_ext => $val_i) {
 include("./includes/interconnect/$mod_ext/name.php");
 if (!empty($interconnection_name_show[$lingua_mex])) $titolo = $interconnection_name_show[$lingua_mex];
 else $titolo = $interconnection_name_show['en'];
-echo '<div class="rbox" style="--rbox-color: #2196F3;">';
+echo '<div class="rbox">';
 echo '<div class="rheader"><h5>' . $titolo . '</h5></div>';
-echo '<hr style="width: 95%">';
-echo '</div>';
-$agg_tariffe_da_remoto = 0;
+echo '<div class="rcontent">';
 include("./includes/interconnect/$mod_ext/form.php");
+echo '</div></div>';
 } # fine foreach ($interconnessioni as $mod_ext => $val_i)
 closedir($interconn_dir);
 
@@ -775,12 +774,11 @@ if ($messaggio == $template_name_show['ita']) $messaggio = "";
 if ($messaggio) $titolo = $messaggio;
 else $titolo = $template_name_show['en'];
 } # fine else if ($template_name_show[$lingua_mex])
-echo '<div class="rbox" style="--rbox-color: #2196F3;">';
+echo '<div class="rbox">';
 echo '<div class="rheader"><h5>' . $titolo . '</h5></div>';
-echo '<hr style="width: 95%">';
-echo '</div>';
-$agg_tariffe_da_remoto = 0;
+echo '<div class="rcontent">';
 					if (is_file("./includes/templates/$modello_ext/form.php")) include_once("./includes/templates/$modello_ext/form.php");
+echo '</div></div>';
 } # fine if (fixset($template_name_show['tpl_type']) == "interconnection")
 } # fine foreach ($modelli as $modello_ext => $val_i)
 closedir($templates_dir);

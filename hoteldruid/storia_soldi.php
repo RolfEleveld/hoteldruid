@@ -199,7 +199,7 @@ if (!isset($cerca_prenota)) $cerca_prenota = null;
 if ($priv_mod_prenota_iniziate != "s") $id_periodo_corrente = calcola_id_periodo_corrente($anno);
 
 if (!$cerca_prenota) {
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>".mex("Filtri e Azioni",$pag)."</h5>
 </div>
@@ -361,7 +361,7 @@ $metodo_selezionato_dec = html_decod($metodo_selezionato);
 $panel_subtitle .= " (".htmlspecialchars($metodo_selezionato_dec).")";
 }
 
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>$panel_subtitle</h5>
 </div>

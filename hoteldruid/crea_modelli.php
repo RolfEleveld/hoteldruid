@@ -2201,8 +2201,8 @@ echo mex("Pagine importate",$pag).".<br>
 
 if ($mostra_form_creazione != "NO") {
 
-echo "<div class=\"rpanels\"><div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #2196F3; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
-<div style=\"background: linear-gradient(135deg, #2196F3 0%, #42A5F5 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+echo "<div class=\"rpanels\"><div class=\"rbox\">
+<div class=\"rheader\">
 ".mex("Crea pagine per il sito web",$pag).".
 </div>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
@@ -2371,8 +2371,8 @@ closedir($lang_dir);
 } # fine foreach ($modelli as $modello_ext => $val_i)
 
 if ($num_cart > 1 and !empty($mod_presenti_vett)) {
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
-<div style=\"background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+echo "<div class=\"rbox\">
+<div class=\"rheader\">
 ".mex("Importa le pagine dalla cartella",$pag).".
 </div>
 <div style=\"text-align: center;\">
@@ -2398,8 +2398,8 @@ echo "</select>
 } # fine if ($num_cart > 1 and !empty($mod_presenti_vett))
 
 if (!empty($mod_presenti_vett)) {
-echo "<div class=\"rbox\" style=\"background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #FF5722; margin: 0 0 16px 0; flex: 1 1 420px; min-width: 320px;\">
-<div style=\"background: linear-gradient(135deg, #FF5722 0%, #FF7043 100%); color: white; padding: 10px 14px; border-radius: 6px; margin: -5px 0 12px 0; font-weight: 600;\">
+echo "<div class=\"rbox\">
+<div class=\"rheader\">
 ".mex("Cancella",$pag).".
 </div>
 <div style=\"text-align: center;\">

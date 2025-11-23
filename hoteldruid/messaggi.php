@@ -680,7 +680,7 @@ if (!isset($priv_ins_messaggi)) {
 	$priv_ins_messaggi = "n";
 }
 // Start Messages Panel
-echo "<div class=\"rbox\" style=\"border-left-color: #4a90e2;\">
+echo "<div class=\"rbox\">
 <div class=\"rheader\" style=\"background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);\">
 <h5>".mex("Messaggi",$pag)."</h5>
 </div>
