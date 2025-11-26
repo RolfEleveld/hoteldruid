@@ -40,6 +40,9 @@
     ],
     "router_script": "server.php"
   },
+  "hoteldruid": {
+    "data_path": "C:/Users/rolfe/OneDrive/Documents/HotelDruid"
+  },
   "chrome": {
     "command_line_switches": [
       "--disable-web-security",
@@ -47,4 +50,5 @@
     ]
   }
 }
+
 

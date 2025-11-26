@@ -61,3 +61,4 @@ if (file_exists($filePath) && is_file($filePath) && preg_match('#\.php$#', $file
 http_response_code(404);
 die('File not found');
 
+

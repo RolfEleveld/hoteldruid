@@ -182,3 +182,4 @@ After getting the basic setup working:
 2. Configure rooms, pricing, and other settings
 3. Set up user accounts and permissions
 4. Create backups of your SQLite database
+

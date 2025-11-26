@@ -94,12 +94,12 @@ else include("./includes/head.php");
 
 // Check if we were redirected here due to missing database
 if (isset($_GET['error']) && $_GET['error'] == 'database_not_found') {
-    echo "<div style=\"background-color: #fffbee; border: 2px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: center;\">
-        <h3 style=\"color: #d97706; margin-top: 0;\">⚠️ ".mex2("Database non trovato",'creadb.php',$lingua)."</h3>
-        <p style=\"color: #92400e; margin-bottom: 0;\">
+    echo "<div class=\"rbox\" style=\"--rbox-color: #FFC107;\">
+        <div class=\"rheader\">⚠️ ".mex2("Database non trovato",'creadb.php',$lingua)."</div>
+        <div class=\"rcontent\" style=\"text-align: center;\">
             ".mex2("Il database non esiste o non è accessibile",'creadb.php',$lingua)."<br>
             ".mex2("Utilizzare il modulo sottostante per creare un nuovo database",'creadb.php',$lingua).".
-        </p>
+        </div>
     </div>";
 }
 
@@ -221,7 +221,18 @@ $encoding = "";
 if ($tipo_db == "sqlite") {
 if ($carica_estensione == "SI") dl("sqlite.so");
 $database_phprdb = str_replace("..","",$database_phprdb);
-$numconnessione = new SQLite3(C_DATI_PATH."/db_".$database_phprdb);
+// Ensure the dati directory exists before creating SQLite database
+if (!is_dir(C_DATI_PATH)) {
+    if (!@mkdir(C_DATI_PATH, 0755, true)) {
+        echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+            <div class=\"rheader\">❌ ".mex2("Errore",$pag,$lingua)."</div>
+            <div class=\"rcontent\">".mex2("Non è stato possibile creare la directory dati",$pag,$lingua).": ".htmlspecialchars(C_DATI_PATH)."</div>
+        </div>";
+        $torna_indietro = "SI";
+    }
+}
+$db_file_path = C_DATI_PATH."/db_".$database_phprdb;
+$numconnessione = new SQLite3($db_file_path);
 $numconnessione->busyTimeout(60000);
 $database_esistente = "SI";
 } # fine if ($tipo_db == "sqlite")
@@ -274,6 +285,16 @@ if ($disp_err_orig) ini_set('display_errors',$disp_err_orig);
 } # fine if (numlin_query($character_set) == 1 and...
 } # fine if ($tipo_db == "mysql" or $tipo_db == "mysqli")
 if ($tipo_db == "sqlite") {
+// Ensure the dati directory exists before creating SQLite database
+if (!is_dir(C_DATI_PATH)) {
+    if (!@mkdir(C_DATI_PATH, 0755, true)) {
+        echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+            <div class=\"rheader\">❌ ".mex2("Errore",$pag,$lingua)."</div>
+            <div class=\"rcontent\">".mex2("Non è stato possibile creare la directory dati",$pag,$lingua).": ".htmlspecialchars(C_DATI_PATH)."</div>
+        </div>";
+        $torna_indietro = "SI";
+    }
+}
 $numconnessione = new SQLite3(C_DATI_PATH."/db_".$database_phprdb);
 $numconnessione->busyTimeout(60000);
 } # fine if ($tipo_db == "sqlite")
@@ -802,7 +823,10 @@ $numconnessione = mysqli_connect($host_phprdb, $user_phprdb, $password_phprdb, "
 } # fine if ($tipo_db == "mysql")
 esegui_query("drop database $database_phprdb");
 } # fine if ($database_esistente == "NO")
-echo "<br>".mex2("Non ho i permessi di scrittura sulla directory dati, cambiarli e reiniziare l'installazione",$pag,$lingua).".<br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+    <div class=\"rheader\">⚠️ ".mex2("Errore",$pag,$lingua)."</div>
+    <div class=\"rcontent\">".mex2("Non ho i permessi di scrittura sulla directory dati, cambiarli e reiniziare l'installazione",$pag,$lingua)."</div>
+</div>";
 $permessi_scrittura_controllati = "SI";
 $torna_indietro = "SI";
 } # fine else if ($fileaperto = @fopen(C_DATI_PATH."/dati_connessione.php","a+"))
@@ -811,25 +835,39 @@ if ($database_esistente != "NO" and $character_set_db_orig and ($character_set_d
 } # fine if ($query)
 
 else {
-echo mex2("Non è stato possibile creare il database, controllare i privilegi dell' utente, il nome del database o se esiste già un database chiamato",$pag,$lingua)." $database_phprdb.<br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+    <div class=\"rheader\">❌ ".mex2("Errore",$pag,$lingua)."</div>
+    <div class=\"rcontent\">".mex2("Non è stato possibile creare il database, controllare i privilegi dell' utente, il nome del database o se esiste già un database chiamato",$pag,$lingua)." $database_phprdb.</div>
+</div>";
 $torna_indietro = "SI";
 } # fine else if ($query)
 } # fine if ($numconnessione)
 else {
-echo "<br>".mex2("I dati inseriti per il collegamento al database non sono esatti o il database non è in ascolto",$pag,$lingua);
-if ($tipo_db == "postgresql") echo " (".mex2("se postgres assicurarsi che venga avviato con -i e di avere i permessi giusti in pg_hba.conf",$pag,$lingua).")";
-echo ".<br>";
+$error_msg = mex2("I dati inseriti per il collegamento al database non sono esatti o il database non è in ascolto",$pag,$lingua);
+if ($tipo_db == "postgresql") $error_msg .= " (".mex2("se postgres assicurarsi che venga avviato con -i e di avere i permessi giusti in pg_hba.conf",$pag,$lingua).")";
+$error_msg .= ".";
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+    <div class=\"rheader\">❌ ".mex2("Errore",$pag,$lingua)."</div>
+    <div class=\"rcontent\">$error_msg</div>
+</div>";
 $torna_indietro = "SI";
 } # fine else if ($numconnessione)
 } # fine if (!$prefisso_tab or preg_match('/^[_a-z][_0-9a-z]*$/',$prefisso_tab))
 else {
-echo "<br>".mex2("Il prefisso del nome delle tabelle è sbagliato (accettate solo lettere minuscole, numeri e _ , primo carattere lettera)",$pag,$lingua).".<br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #FFC107;\">
+    <div class=\"rheader\">⚠️ ".mex2("Avviso",$pag,$lingua)."</div>
+    <div class=\"rcontent\">".mex2("Il prefisso del nome delle tabelle è sbagliato (accettate solo lettere minuscole, numeri e _ , primo carattere lettera)",$pag,$lingua)."</div>
+</div>";
 $torna_indietro = "SI";
 } # fine else if (!$prefisso_tab or preg_match('/^[_a-z][_0-9a-z]*$/',$prefisso_tab))
 if ($permessi_scrittura_controllati != "SI") {
 $fileaperto = @fopen(C_DATI_PATH."/prova.tmp","a+");
-if (!$fileaperto) echo "<br>".mex2("Non ho i permessi di scrittura sulla directory dati, cambiarli e reiniziare l'installazione",$pag,$lingua).".<br>";
-else {
+if (!$fileaperto) {
+    echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+        <div class=\"rheader\">⚠️ ".mex2("Errore",$pag,$lingua)."</div>
+        <div class=\"rcontent\">".mex2("Non ho i permessi di scrittura sulla directory dati, cambiarli e reiniziare l'installazione",$pag,$lingua)."</div>
+    </div>";
+} else {
 fclose($fileaperto);
 unlink(C_DATI_PATH."/prova.tmp");
 } # fine else if (!$fileaperto)
@@ -1051,7 +1089,10 @@ $testo = aggslashdb($testo);
 $datainserimento = date("Y-m-d H:i:s",(time() + (C_DIFF_ORE * 3600)));
 esegui_query("insert into $tablemessaggi (idmessaggi,tipo_messaggio,idutenti,idutenti_visto,datavisione,mittente,testo,datainserimento) values ('1','sistema',',1,',',1,','$datainserimento','1','$testo','$datainserimento')");
 
-echo mex("Dati inseriti",$pag)."!<br>".mex("Tutti i dati permanenti sono stati inseriti",$pag).".<br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #4CAF50;\">
+    <div class=\"rheader\">✅ ".mex("Dati inseriti",$pag)."</div>
+    <div class=\"rcontent\">".mex("Tutti i dati permanenti sono stati inseriti",$pag)."</div>
+</div>";
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div>
 <input type=\"hidden\" name=\"nuovo_mess\" value=\"1\">
 <input class=\"sbutton\" type=\"submit\" value=\"OK\"><br>

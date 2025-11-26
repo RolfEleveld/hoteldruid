@@ -40,8 +40,19 @@ $MEDIUMTEXT = "text";
 function connetti_db ($database,$host,$port,$user,$password,$estensione) {
 
 if ($estensione == "SI") dl("sqlite3.so");
-if (defined("C_PERCORSO_A_DATI")) $numconnessione = new SQLite3(C_PERCORSO_A_DATI."db_".$database);
-else $numconnessione = new SQLite3(C_DATI_PATH."/db_".$database);
+// Determine the data path
+$dati_path = defined("C_PERCORSO_A_DATI") ? C_PERCORSO_A_DATI : C_DATI_PATH;
+// Ensure the directory exists before creating SQLite database
+if (!is_dir($dati_path)) {
+    @mkdir($dati_path, 0755, true);
+}
+// Construct database file path
+if (defined("C_PERCORSO_A_DATI")) {
+    $db_file_path = C_PERCORSO_A_DATI."db_".$database;
+} else {
+    $db_file_path = C_DATI_PATH."/db_".$database;
+}
+$numconnessione = new SQLite3($db_file_path);
 $numconnessione->busyTimeout(60000);
 return $numconnessione;
 

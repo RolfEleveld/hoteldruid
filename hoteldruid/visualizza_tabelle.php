@@ -2648,7 +2648,11 @@ echo "<div style=\"text-align: center;\">
 <button id=\"smt_prenota_mod\" class=\"mress smlscrfnt\" type=\"submit\"><div>".mex("Modifica come gruppo le prenotazioni mostrate in tabella",$pag)."</div></button>
 </div></form></div>";
 } else {
-echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione da modificare",$pag)."</em></div>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #607D8B;\">
+    <div class=\"rcontent\" style=\"text-align: center; padding: 20px;\">
+        <em>".mex("Nessuna prenotazione da modificare",$pag)."</em>
+    </div>
+</div>";
 }
 echo "</div></div><br>"; // Close Group Modify panel
 } # fine if (!isset($show_bar) or $show_bar != "NO")
@@ -2696,7 +2700,11 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
  <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
 </div></form></div>";
 } else {
-echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em></div>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #607D8B;\">
+    <div class=\"rcontent\" style=\"text-align: center; padding: 20px;\">
+        <em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em>
+    </div>
+</div>";
 }
 echo "</div></div><br>"; // Close Document Selector panel
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))
@@ -4949,7 +4957,12 @@ else include("./includes/interconnect/aggiorna_ic.php");
 
 if ($origine) $azione = controlla_pag_origine($origine);
 else $azione = "visualizza_tabelle.php";
-if ($casella_sbagliata == "SI") echo "".mex("<div style=\"display: inline; color: red;\">Non</div> è stato possibile inserire alcuni prezzi",$pag).".<br>";
+if ($casella_sbagliata == "SI") {
+    echo "<div class=\"rbox\" style=\"--rbox-color: #FFC107;\">
+        <div class=\"rheader\">⚠️ ".mex("Avviso",$pag)."</div>
+        <div class=\"rcontent\">".mex("Non è stato possibile inserire alcuni prezzi",$pag)."</div>
+    </div>";
+}
 echo "".mex("I prezzi sono stati aggiornati",$pag).".<br><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$azione\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -6428,7 +6441,11 @@ echo "".ucfirst(mex("documento di tipo",$pag))."
  <button class=\"vdoc\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
 </div></form></div>";
 } else {
-echo "<div style=\"text-align: center; padding: 20px; color: #7f8c8d;\"><em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em></div>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #607D8B;\">
+    <div class=\"rcontent\" style=\"text-align: center; padding: 20px;\">
+        <em>".mex("Nessuna prenotazione per generare documenti",$pag)."</em>
+    </div>
+</div>";
 }
 echo "</div></div><br>"; // Close Documents panel
 } # fine if ($option_num_contr and (!isset($show_bar) or $show_bar != "NO"))

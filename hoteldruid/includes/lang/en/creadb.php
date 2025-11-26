@@ -42,6 +42,7 @@ case "Torna indietro":  			$messaggio = "Go back"; break;
 case "Dati inseriti":  				$messaggio = "Data inserted"; break;
 case "Tutti i dati permanenti sono stati inseriti":	$messaggio = "All the permanent data has been inserted"; break;
 case "Non ho i permessi di scrittura sulla directory dati, cambiarli e reiniziare l'installazione":	$messaggio = "I don't have write permissions on dati folder, change them and begin again installation"; break;
+case "Non è stato possibile creare la directory dati":	$messaggio = "Unable to create data directory"; break;
 case "Tipo di database":			$messaggio = "Database type"; break;
 case "Database già esistente":			$messaggio = "Existing database"; break;
 case "Se già esistente e non vuoto usare un prefisso non presente nel database per il nome delle tabelle":	$messaggio = "If already existing and not empty use a prefix not present in the database for tables names"; break;
@@ -68,6 +69,8 @@ case "questo programma":			$messaggio = "this program"; break;
 case "Nome delle unità singole da gestire":	$messaggio = "Name of single units to be managed"; break;
 case "Numero di unità singole da gestire":	$messaggio = "Number of single units to be managed"; break;
 case "non incluse nelle unità normali":		$messaggio = "not included in normal units"; break;
+case "Errore":					$messaggio = "Error"; break;
+case "Avviso":					$messaggio = "Warning"; break;
 case "":			$messaggio = ""; break;
 case "":			$messaggio = ""; break;
 

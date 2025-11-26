@@ -22,7 +22,47 @@
 
 
 // Path to dati folder and database data file
-if (!defined('C_DATI_PATH')) define('C_DATI_PATH',"./dati");
+// Priority order:
+// 1. PHP Desktop settings (phpdesktop-settings.json) - for standalone executable
+// 2. External config file (hoteldruid-config.php) - for web server deployments
+// 3. Default (./dati) - fallback
+
+if (!defined('C_DATI_PATH')) {
+    $dati_path = null;
+    
+    // Check PHP Desktop settings first (if running in PHP Desktop)
+    $phpdesktop_config = __DIR__ . '/phpdesktop-settings.json';
+    if (file_exists($phpdesktop_config)) {
+        $config = @json_decode(file_get_contents($phpdesktop_config), true);
+        if ($config && isset($config['hoteldruid']['data_path']) && !empty($config['hoteldruid']['data_path'])) {
+            $dati_path = $config['hoteldruid']['data_path'];
+        }
+    }
+    
+    // Check external config file (hoteldruid-config.php)
+    if (!$dati_path && file_exists(__DIR__ . '/hoteldruid-config.php')) {
+        include(__DIR__ . '/hoteldruid-config.php');
+        if (defined('C_DATI_PATH_EXTERNAL') && C_DATI_PATH_EXTERNAL !== "" && C_DATI_PATH_EXTERNAL !== null) {
+            $dati_path = C_DATI_PATH_EXTERNAL;
+        }
+    }
+    
+    // Normalize and set the path
+    if ($dati_path) {
+        // Normalize the path (convert backslashes to forward slashes, remove trailing slashes)
+        $dati_path = rtrim(str_replace('\\', '/', $dati_path), '/');
+        // If it's a relative path, make it relative to the application directory
+        // Check for absolute paths: Windows drive letter (C:/), Unix root (/), or UNC (\\)
+        if (!preg_match('/^[A-Za-z]:\/|^\/|^\\\\/', $dati_path)) {
+            $dati_path = __DIR__ . '/' . $dati_path;
+        }
+        // Normalize again after potential concatenation
+        $dati_path = str_replace('\\', '/', $dati_path);
+        define('C_DATI_PATH', $dati_path);
+    } else {
+        define('C_DATI_PATH', "./dati");
+    }
+}
 // #define('C_EXT_DB_DATA_PATH',"");
 
 // #define('C_CARTELLA_CREA_MODELLI',"");

@@ -216,11 +216,16 @@ break;
 } # fine if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE']))
 if (@is_file("./COPYING")) $file_copying = "file <a href=\"COPYING\">COPYING</a>";
 else $file_copying = "<a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPLv3</a> License";
-echo "<div style=\"text-align: center;\"><h3>".mex("Benvenuto a HOTELDRUID",$pag).".</h3><br><br>
-HOTELDRUID version ".C_PHPR_VERSIONE_TXT.", Copyright (C) 2001-2024 Marco M. F. De Santis<br>
-HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copying.<br>
-This is free software, and you are welcome to redistribute it<br>
- under certain conditions; see the $file_copying for details.<br>
+echo "<div class=\"rpanels\">
+    <div class=\"rbox\">
+        <div class=\"rheader\">".mex("Benvenuto a HOTELDRUID",$pag)."</div>
+        <div class=\"rcontent\" style=\"text-align: center;\">
+            HOTELDRUID version ".C_PHPR_VERSIONE_TXT.", Copyright (C) 2001-2024 Marco M. F. De Santis<br>
+            HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copying.<br>
+            This is free software, and you are welcome to redistribute it<br>
+             under certain conditions; see the $file_copying for details.
+        </div>
+    </div>
 </div><hr style=\"width: 95%\">
 <div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Benvenuto a HOTELDRUID",$pag)."</div><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
@@ -680,14 +685,18 @@ if ($anno_attuale == $anno) $anno_attuale = "";
 } # fine if (controlla_anno($anno) == "NO" or $id_utente != 1 or (isset($installazione_subordinata) and...
 else {
 
-echo "<br> ".mex("Non esiste l'anno ",$pag).$anno.mex(" nel database",$pag).". <br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #FFC107;\">
+    <div class=\"rheader\">⚠️ ".mex("Avviso",$pag)."</div>
+    <div class=\"rcontent\">";
+echo mex("Non esiste l'anno ",$pag).$anno.mex(" nel database",$pag).".";
 if ($anno_attuale_esist and $anno > $anno_attuale) {
 $data_crea_anno = formatta_data(date("Y-m-d",mktime(0,0,0,1,(C_GIORNI_NUOVO_ANNO + 1),($anno_attuale + 1))));
 if (defined('C_CREA_ANNO_MANUALMENTE') and (C_CREA_ANNO_MANUALMENTE == "SI" or (C_CREA_ANNO_MANUALMENTE == "NUOVO" and $anno == $anno_corrente))) echo "<br>".mex("<span class=\"colred\">Avviso</span>: è consigliabile attendere fino al",$pag)." $data_crea_anno ".mex("per creare il nuovo anno, nel frattempo si possono aggiungere periodi oltre il",$pag);
 else echo "<br><span class=\"colinfo\">".mex("Nota",$pag)."</span>: ".mex("l'anno",$pag)." $anno_attuale ".mex("verrà archiviato automaticamente il",$pag)." $data_crea_anno, ".mex("nel frattempo si possono aggiungere periodi oltre il",$pag);
 echo " $anno_attuale ".mex("dalla",$pag)."
- <a href=\"./visualizza_tabelle.php?anno=$anno_attuale&amp;id_sessione=$id_sessione&amp;tipo_tabella=periodi#agg_per\">".mex("tabella con i periodi e le tariffe",$pag)."</a> ".mex("anche senza creare un nuovo anno",$pag).".<br>";
+ <a href=\"./visualizza_tabelle.php?anno=$anno_attuale&amp;id_sessione=$id_sessione&amp;tipo_tabella=periodi#agg_per\">".mex("tabella con i periodi e le tariffe",$pag)."</a> ".mex("anche senza creare un nuovo anno",$pag).".";
 } # fine if ($anno_attuale_esist and $anno > $anno_attuale)
+echo "</div></div>";
 if ((!$anno_attuale_esist and $anno == $anno_attuale) or $anno < $anno_attuale or (defined('C_CREA_ANNO_MANUALMENTE') and (C_CREA_ANNO_MANUALMENTE == "SI") or (C_CREA_ANNO_MANUALMENTE == "NUOVO" and $anno == $anno_corrente))) {
 echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Crea l'anno",$pag)." $anno</div><br><form accept-charset=\"utf-8\" method=\"post\" action=\"creaanno.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -843,11 +852,16 @@ break;
 } # fine if (@isset($_SERVER['HTTP_ACCEPT_LANGUAGE']))
 if (@is_file("./COPYING")) $file_copying = "file <a href=\"COPYING\">COPYING</a>";
 else $file_copying = "<a href=\"http://www.gnu.org/licenses/agpl-3.0.html\">AGPLv3</a> License";
-echo "<div style=\"text-align: center;\"><h3>".mex("Benvenuto a HOTELDRUID",$pag).".</h3><br><br>
-HOTELDRUID version ".C_PHPR_VERSIONE_TXT.", Copyright (C) 2001-2024 Marco M. F. De Santis<br>
-HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copying.<br>
-This is free software, and you are welcome to redistribute it<br>
- under certain conditions; see the $file_copying for details.<br>
+echo "<div class=\"rpanels\">
+    <div class=\"rbox\">
+        <div class=\"rheader\">".mex("Benvenuto a HOTELDRUID",$pag)."</div>
+        <div class=\"rcontent\" style=\"text-align: center;\">
+            HOTELDRUID version ".C_PHPR_VERSIONE_TXT.", Copyright (C) 2001-2024 Marco M. F. De Santis<br>
+            HotelDruid comes with ABSOLUTELY NO WARRANTY; <br>for details see the $file_copying.<br>
+            This is free software, and you are welcome to redistribute it<br>
+             under certain conditions; see the $file_copying for details.
+        </div>
+    </div>
 </div><hr style=\"width: 95%\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"creadb.php\"><div>
 <br><br>
