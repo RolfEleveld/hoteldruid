@@ -518,17 +518,17 @@ $num_tipologie = $num_tipologie + $num_tipologie_da_aggiungere;
 # Se si viene da clienti.php e si devono ancora inserire i dati del cliente
 if (isset($inserire_dati_cliente)) {
 if ($cognome == "") {
-echo mex("É necessario inserire il cognome del cliente",$pag).".<br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div>".mex("É necessario inserire il cognome del cliente",$pag).".<br></div></div>";
 $inserire = "NO";
 } # fine if ($cognome == "")
 if ($inserimento_nuovi_clienti == "NO") $inserire = "NO";
 
 if ($inserire == "NO") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$origine\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Torna indietro",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"$origine\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <br><input class=\"sbutton\" type=\"submit\" value=\"".mex("Torna indietro",$pag)."\">
-</div></form>";
+</div></form></div></div>";
 $mostra_form_inserisci_prenota = "NO";
 } # fine if ($inserire == "NO")
 else {
@@ -603,7 +603,7 @@ $dati_transazione = recupera_dati_transazione($id_transazione,$id_sessione,$anno
 if ($tipo_transazione != "ins_p") {
 $torna_invece_di_ok = "SI";
 $num_tipologie = 0;
-echo "<div style=\"display: inline; color: red;\">".mex("Transazione scaduta",$pag)."</div>.<br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><div style=\"display: inline; color: red;\">".mex("Transazione scaduta",$pag)."</div>.<br></div></div>";
 } # fine if ($tipo_transazione != "ins_p")
 else {
 $num_tipologie = risul_query($dati_transazione,0,'dati_transazione1');
@@ -987,7 +987,7 @@ $vett_idfine[$n_t][1] = $fineperiodo;
 
 if ($n_tronchi != 1) {
 $torna_invece_di_ok = "SI";
-echo "<br>".mex("Non si può inserire la prenozione senza utilizzare gli appartamenti della regola di assegnazione 1",'unit.php');
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Opzioni assegnazione appartamenti",$pag)."</div><br>".mex("Non si può inserire la prenozione senza utilizzare gli appartamenti della regola di assegnazione 1",'unit.php');
 if ($n_tronchi > 1) echo mex(" o spezzarla",$pag);
 echo ".<br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"prenota.php\"><div>
@@ -1000,7 +1000,7 @@ $manda_dati_assegnazione = "NO";
 include ("./includes/dati_form_prenotazione.php");
 echo "
 <button class=\"cont\" type=\"submit\"><div>".mex("Utilizza anche gli appartamenti della regola 1",'unit.php')."</div></button><br>
-</div></form><br>";
+</div></form><br></div></div>";
 if ($n_tronchi > 1) {
 $vet_appartamenti_u = "";
 $vett_idinizio_u = "";
@@ -1073,7 +1073,7 @@ if (!$risul_agg) $n_tronchi = -1;
 } # fine if ($n_tronchi != -1)
 
 if ($n_tronchi == -1) {
-echo "<br>".mex("Non é stato possibile dividere la prenotazione a causa del numero di persone",$pag).".<br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br>".mex("Non é stato possibile dividere la prenotazione a causa del numero di persone",$pag).".<br></div></div>";
 } # fine else if ($n_tronchi == -1)
 
 if ($n_tronchi == 1) {
@@ -1098,7 +1098,7 @@ $vett_idinizio_u = $vett_idinizio_u . "," . $vett_idinizio[$num1];
 $vett_idfine_u = $vett_idfine_u . "," . $vett_idfine[$num1];
 } # fine for $num1
 $lunghezza_periodo_u = $fineperiodo - $inizioperiodo + 1;
-echo "<br>".mex("Non è possibile inserire la prenotazione senza",$pag)." <div style=\"display: inline; color: red;\">".mex("dividerla",$pag)."</div> ".mex("in",$pag)." <b>$n_tronchi</b> ".mex("parti",$pag).".<br>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Spezzamento prenotazione",$pag)."</div><br>".mex("Non è possibile inserire la prenotazione senza",$pag)." <div style=\"display: inline; color: red;\">".mex("dividerla",$pag)."</div> ".mex("in",$pag)." <b>$n_tronchi</b> ".mex("parti",$pag).".<br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"prenota.php\"><div>
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
 <input type=\"hidden\" name=\"origine\" value=\"$origine\">
@@ -1109,7 +1109,7 @@ $manda_dati_assegnazione = "NO";
 include ("./includes/dati_form_prenotazione.php");
 echo "
 <button class=\"aroo\" type=\"submit\"><div>".mex("Spezza la prenotazione in",$pag)." $n_tronchi ".mex("parti",$pag)."</div></button><br>
-</div></form><br>";
+</div></form><br></div></div>";
 } # fine if ($n_tronchi > 1)
 } # fine if ($spezzetta == "occ_app_agenzia" or !$num_app_agenzia1)
 
@@ -1226,8 +1226,8 @@ esegui_query("delete from $tableprenota where idprenota = '".$id_prenota_temp[$n
 $prenota_gia_esistente = esegui_query("select * from $tableprenota where idappartamenti = '".aggslashdb($appartamento)."' and iddatainizio <= $fineperiodo and iddatafine >= $inizioperiodo");
 $prenota_gia_esistente = numlin_query($prenota_gia_esistente);
 if ($prenota_gia_esistente != 0) {
-echo "<br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire la prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
- ".mex("perchè il database è stato modificato nel frattempo",$pag).".</b></div><br><hr style=\"width: 95%\">";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire la prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
+ ".mex("perchè il database è stato modificato nel frattempo",$pag).".</b></div><br><hr style=\"width: 95%\"></div></div>";
 $continuare = "NO";
 } # fine if ($prenota_gia_esistente != 0)
 
@@ -1272,8 +1272,8 @@ if ($numpersone_cat_pers != $numpersone_corr or ($numpersone and !$osp_princ_tro
 
 $appartamento_esistente = esegui_query("select idappartamenti,maxoccupanti from $tableappartamenti where idappartamenti = '".aggslashdb($appartamento)."'");
 if (numlin_query($appartamento_esistente) != 1) {
-echo "<br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire la prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
- ".mex("perchè l'appartamento assegnato non esiste più",'unit.php').".</b></div><br><hr style=\"width: 95%\">";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire la prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
+ ".mex("perchè l'appartamento assegnato non esiste più",'unit.php').".</b></div><br><hr style=\"width: 95%\"></div></div></div>";
 $continuare = "NO";
 } # fine if (numlin_query($appartamento_esistente) != 1)
 else {
@@ -1498,8 +1498,8 @@ ${"arrotond_caparra".$n_t} = $dati_mess_valuta[27];
 
 
 if ($costi_aggiuntivi_sbagliati == "SI") {
-echo "<br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire un costo aggiuntivo della prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
- ".mex("perchè il database è stato modificato nel frattempo",$pag).".</b></div><br><hr style=\"width: 95%\">";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><div style=\"display: inline; color: red;\"><b>".mex("Non si è potuto inserire un costo aggiuntivo della prenotazione a nome di",$pag)." $cognome ".mex("dal",$pag)." ".$data_inizio_f[$n_t][$num1]." ".mex("al",$pag)." ".$data_fine_f[$n_t][$num1]."
+ ".mex("perchè il database è stato modificato nel frattempo",$pag).".</b></div><br><hr style=\"width: 95%\"></div></div></div>";
 $continuare = "NO";
 } # fine if ($costi_aggiuntivi_sbagliati == "SI")
 
@@ -1598,7 +1598,7 @@ if (!empty($dati_ca[$num_costo]['tipo_beniinv'])) ${"num_ripetizioni_costo".$num
 if (!empty($idmessaggi)) {
 $mess_esistente = esegui_query("select dati_messaggio2 from $tablemessaggi where tipo_messaggio = 'rprenota' and idutenti $LIKE '%,$id_utente,%' and idmessaggi = '".aggslashdb($idmessaggi)."' and dati_messaggio1 = 'da_inserire' ");
 if (numlin_query($mess_esistente) != 1) {
-echo "<br><div style=\"display: inline; color: red;\"><b>".mex("Le prenotazioni richieste nel messaggio sono già state inserite",$pag).".</b></div><br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><div style=\"display: inline; color: red;\"><b>".mex("Le prenotazioni richieste nel messaggio sono già state inserite",$pag).".</b></div><br></div></div></div>";
 $continuare = "NO";
 } # fine if (numlin_query($mess_esistente) != 1)
 else {
@@ -1608,7 +1608,7 @@ $dati_mess_calc = explode(",",$dati_mess_calc);
 } # fine if (!empty($idmessaggi))
 
 if ($continuare == "NO") {
-echo "<br>".mex("Nessuna nuova prenotazione è stata inserita",$pag).".<br><br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br>".mex("Nessuna nuova prenotazione è stata inserita",$pag).".<br><br></div></div></div>";
 $torna_invece_di_ok = "SI";
 } # fine if ($continuare == "NO")
 
@@ -1726,7 +1726,7 @@ else $frase_cat_persone .= "<em>$numpersone_corr_cp</em> ".$dati_cat_pers[$num2]
 if ($cat_persone_corr) $cat_persone_corr = $dati_cat_pers['arrotond'].$cat_persone_corr;
 } # fine if ($dati_cat_pers['num'] and ${"numpersone_orig".$n_t})
 
-echo mex("Prenotazione",$pag)." $idprenota ".mex("dal",$pag)." <b>".$data_inizio_f[$n_t][$num1]."</b> ".mex("al",$pag)." <b>".$data_fine_f[$n_t][$num1]."</b> ($lunghezza_periodo ".mex("$parola_settiman",$pag);
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Conferma prenotazione",$pag)."</div>".mex("Prenotazione",$pag)." $idprenota ".mex("dal",$pag)." <b>".$data_inizio_f[$n_t][$num1]."</b> ".mex("al",$pag)." <b>".$data_fine_f[$n_t][$num1]."</b> ($lunghezza_periodo ".mex("$parola_settiman",$pag);
 if ($lunghezza_periodo == 1) echo mex("$lettera_a",$pag);
 else echo mex("$lettera_e",$pag);
 echo ") ".mex("a nome di",$pag)." <b>$cognome</b> ";
@@ -2297,7 +2297,7 @@ echo "<br>".mex("Prenotazione",$pag)." $idprenota ".mex("inserita",$pag)."!<div 
 <input type=\"hidden\" name=\"origine\" value=\"inizio.php\">
 <button class=\"mres\" type=\"submit\"><div>".mex("Modifica la prenotazione",$pag)." $idprenota</div></button>
 </div></form></div>
-<hr style=\"width: 95%\">";
+<hr style=\"width: 95%\"></div></div>";
 
 $lista_idprenota .= ",$idprenota";
 $lista_idprenota_t[$n_t] .= ",$idprenota";
@@ -2357,8 +2357,8 @@ echo "<br><div style=\"text-align: center;\">
 } # fine if (str_replace(",","",$lista_idprenota) != $lista_idprenota)
 if (!empty($idmessaggi)) {
 esegui_query("update $tablemessaggi set stato = 'ins', dati_messaggio1 = '$lista_idprenota' where tipo_messaggio = 'rprenota' and idutenti $LIKE '%,$id_utente,%' and idmessaggi = '$idmessaggi' ");
-if (strcmp((string) $dati_mess_calc[0],"") and strcmp((string) $dati_mess_calc[0],$costo_tot_mess)) echo "<br><em><b>".mex("Attenzione",$pag)."</b></em>: ".mex("il prezzo totale delle prenotazioni inserite",$pag)." (<em>$costo_tot_mess</em> $Euro) ".mex("è diverso da quello contenuto nel messaggio di richiesta di prenotazione",$pag)." (<em>".$dati_mess_calc[0]."</em> $Euro).<br><hr style=\"width: 95%\">";
-if (strcmp((string) $dati_mess_calc[1],"") and strcmp((string) $dati_mess_calc[1],$caparra_mess)) echo "<br><em><b>".mex("Attenzione",$pag)."</b></em>: ".mex("il prezzo totale delle caparre inserite",$pag)." (<em>$caparra_mess</em> $Euro) ".mex("è diverso da quello contenuto nel messaggio di richiesta di prenotazione",$pag)." (<em>".$dati_mess_calc[1]."</em> $Euro).<br><hr style=\"width: 95%\">";
+if (strcmp((string) $dati_mess_calc[0],"") and strcmp((string) $dati_mess_calc[0],$costo_tot_mess)) echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><em><b>".mex("Attenzione",$pag)."</b></em>: ".mex("il prezzo totale delle prenotazioni inserite",$pag)." (<em>$costo_tot_mess</em> $Euro) ".mex("è diverso da quello contenuto nel messaggio di richiesta di prenotazione",$pag)." (<em>".$dati_mess_calc[0]."</em> $Euro).<br><hr style=\"width: 95%\"></div></div></div>";
+if (strcmp((string) $dati_mess_calc[1],"") and strcmp((string) $dati_mess_calc[1],$caparra_mess)) echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Messaggio",$pag)."</div><br><em><b>".mex("Attenzione",$pag)."</b></em>: ".mex("il prezzo totale delle caparre inserite",$pag)." (<em>$caparra_mess</em> $Euro) ".mex("è diverso da quello contenuto nel messaggio di richiesta di prenotazione",$pag)." (<em>".$dati_mess_calc[1]."</em> $Euro).<br><hr style=\"width: 95%\"></div></div></div>";
 } # fine if (!empty($idmessaggi))
 
 } # fine if ($continuare != "NO")
@@ -2374,17 +2374,17 @@ else include("./includes/interconnect/aggiorna_ic.php");
 
 } # fine if (empty($torna_invece_di_ok))
 
-echo "
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Opzioni dopo inserimento",$pag)."</div>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"prenota.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">";
 if (isset($torna_invece_di_ok) and $torna_invece_di_ok == "SI") {
-echo "<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button><br></form>";
+echo "<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button><br></div></div></form>";
 } # fine if (isset($torna_invece_di_ok) and $torna_invece_di_ok == "SI")
 else {
 echo "<br><div style=\"text-align: center;\">
 <button class=\"ires\" type=\"submit\"><div>".mex("Inserisci una nuova prenotazione",$pag)."</div></button></div>
-<br></div></form>
+<br></div></div></form>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"inizio.php\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">

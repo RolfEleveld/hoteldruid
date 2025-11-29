@@ -107,8 +107,9 @@ case "da":  					$messaggio = "from"; break;
 case "Si è dovuto diminuire il <b>numero di persone</b> per inserire la prenotazione":	$messaggio = "The <b>number of people</b> has been decreased in order to insert the reservation"; break;
 case "Prenotazione non inserita":  		$messaggio = "Reservation not inserted"; break;
 case "Prenotazione non modificata":  		$messaggio = "Reservation not modified"; break;
-case "":  		$messaggio = ""; break;
-case "":  		$messaggio = ""; break;
+case "Messaggio":  				$messaggio = "Message"; break;
+case "Opzioni dopo inserimento":  		$messaggio = "Options after insertion"; break;
+case "Conferma prenotazione":  			$messaggio = "Reservation Confirmation"; break;
 
 } # fine switch ($messaggio)
 
