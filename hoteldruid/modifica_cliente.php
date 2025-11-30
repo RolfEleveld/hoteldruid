@@ -334,7 +334,7 @@ if ($prenota_cliente_esistente == "SI") echo mex("Questo cliente non si può can
 else {
 if (!isset($continua) or $continua != "SI") {
 $cognome = risul_query($cliente_esistente,0,'cognome');
-echo "".mex("Si è sicuri di voler <div style=\"display: inline; color: red;\">cancellare</div> il cliente",$pag)." <b>$cognome</b>?<br>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Conferma cancellazione",$pag)."</div><div class=\"rcontent\">".mex("Si è sicuri di voler <div style=\"display: inline; color: red;\">cancellare</div> il cliente",$pag)." <b>$cognome</b>?<br>
 <table><tr><td height=2></td></tr><tr><td>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -353,7 +353,7 @@ echo "".mex("Si è sicuri di voler <div style=\"display: inline; color: red;\">c
 <input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars(fixstr($$origine))."\">
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
 <button class=\"gobk\" type=\"submit\"><div>".mex("NO",$pag)."</div></button>
-</div></form></td></tr></table>";
+</div></form></td></tr></table></div></div></div>";
 } # fine if (!isset($continua) or $continua != "SI")
 else {
 $clienti_compagni = substr(risul_query($cliente_esistente,0,'idclienti_compagni'),1,-1);
@@ -1084,7 +1084,7 @@ $id_transazione = crea_id_sessione("",$tableversioni,8);
 esegui_query("insert into $tabletransazioni (idtransazioni,idsessione,tipo_transazione,anno,dati_transazione1,dati_transazione2,ultimo_accesso) 
 values ('$id_transazione','$id_sessione','lo_cc','$anno','$idclienti','$id_utente','$ultimo_accesso')");
 unlock_tabelle($tabelle_lock);
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">Password carte di credito</div><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
@@ -1092,10 +1092,9 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars(fixstr($origine))."\">
 <input type=\"hidden\" name=\"vedi_cc\" value=\"SI\">
 <input type=\"hidden\" name=\"id_transazione\" value=\"$id_transazione\">
-".ucfirst(mex("password per la visualizzazione delle carte di credito",$pag)).":
  <input type=\"password\" name=\"pass_cc\" value=\"\">
  <button class=\"login\" type=\"submit\"><div>".ucfirst(mex("invia",$pag))."</div></button>
-</div></form>";
+</div></form></div></div></div>";
 } # fine if (!$pass_cc)
 elseif ($tipo_transazione == "lo_cc") {
 
@@ -1134,9 +1133,9 @@ $d_cognome = risul_query($cliente,0,'cognome');
 $d_nome = risul_query($cliente,0,'nome');
 } # fine if (numlin_query($cliente))
 
-echo "<h4 id=\"h_crc\"><span>".ucfirst(mex("carta di credito del cliente",$pag))." $idclienti ($d_cognome";
+echo "<div class=\"rheader\">".ucfirst(mex("carta di credito del cliente",$pag))." $idclienti ($d_cognome";
 if ($d_nome) echo " $d_nome";
-echo ")</span></h4><br>
+echo ")</div><br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -1193,8 +1192,7 @@ echo "</table>
 <button class=\"mcrc\" type=\"submit\"><div>".ucfirst(mex("modifica i dati della carta di credito",$pag))."</div></button>
 </div></div></form>";
 if (numlin_query($dati_carta)) {
-echo "<br><br>
-<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=\"text-align: center;\">
+echo "<br><br><div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">Cancella carta di credito</div><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div style=\"text-align: center;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
@@ -1204,15 +1202,15 @@ echo "<br><br>
 <input type=\"hidden\" name=\"id_transazione\" value=\"$id_transazione\">
 <input type=\"hidden\" name=\"cancella_cc\" value=\"SI\">
 <button class=\"canc\" type=\"submit\"><div>".ucfirst(mex("cancella questa carta di credito",$pag))."</div></button>
-</div></form>";
+</div></form></div></div></div>";
 } # fine if (numlin_query($dati_carta))
 } # fine if ($val_decrypt == 'prova')
-else echo "".ucfirst(mex("password errata",$pag)).".<br>";
+else echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">Errore</div><div class=\"rcontent\" style=\"--rbox-color: #F44336;\">".ucfirst(mex("password errata",$pag)).".</div></div></div><br>";
 } # fine elseif ($tipo_transazione == "lo_cc")
 
 } # fine if (numlin_query($err_transazioni) < 7 and numlin_query($err_transazioni2) < 12)
 else {
-echo "<br>".mex("Login temporaneamente bloccato",$pag).".<br><br>";
+echo "<br><div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">Errore</div><div class=\"rcontent\" style=\"--rbox-color: #F44336;\">".mex("Login temporaneamente bloccato",$pag).".</div></div></div><br><br>";
 unlock_tabelle($tabelle_lock);
 } # fine else if (numlin_query($err_transazioni) < 7 and numlin_query($err_transazioni2) < 12)
 } # fine else if ($tipo_transazione == "mo_cc")
@@ -1230,7 +1228,7 @@ echo "<br><br><div style=\"text-align: center;\">
 </div></div></form>";
 } # fine if (numlin_query($cert_cc))
 } # fine if ($_SERVER["HTTPS"] == "on" or $_SERVER["SERVER_PORT"] == "443" or...
-else echo "<span class=\"colred\">".mex("I dati della carta di credito possono essere visti solo su una connessione sicura",$pag)."</span>.<br><br>";
+else echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">Errore</div><div class=\"rcontent\" style=\"--rbox-color: #F44336;\">".mex("I dati della carta di credito possono essere visti solo su una connessione sicura",$pag)."</div></div></div>.<br><br>";
 } # fine if (function_exists('openssl_pkey_new'))
 } # fine if (!empty($vedi_cc))
 
@@ -1241,8 +1239,9 @@ else echo "<span class=\"colred\">".mex("I dati della carta di credito possono e
 if (!isset($mostra_form_modifica_cliente) or $mostra_form_modifica_cliente != "NO") {
 
 # Form per modificare il cliente.
-echo "<h3 id=\"h_mcli\"><span>".mex("Modifica i dati del cliente",$pag)." $idclienti</span></h3><br>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Modifica i dati del cliente",$pag)." $idclienti</div>
 <hr style=\"width: 95%;\">";
+
 
 $cliente = esegui_query("select * from $tableclienti where idclienti = '$idclienti'");
 if (numlin_query($cliente) != 0) {
@@ -1725,11 +1724,11 @@ echo "<input type=\"hidden\" name=\"d_campo_pers$num1\" value=\"".$d_campi_pers[
 
 echo "<input type=\"hidden\" name=\"modifica_cliente\" value=\"1\">
 <button class=\"mcli\" id=\"modi\" type=\"submit\"><div>".mex("Modifica i dati del cliente",$pag)."</div></button>
-</div></div></form>";
+</div></div></form></div></div></div>";
 
 if (!empty($origine_vecchia)) $origine = $origine_vecchia;
 if (!empty($tipo_tabella)) $origine = "visualizza_tabelle.php";
-echo "<div style=\"text-align: center;\"><hr style=\"width: 95%\">
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Visualizza documento",$pag)."</div><div style=\"text-align: center;\"><hr style=\"width: 95%\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_contratto.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\"><input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
@@ -1798,7 +1797,7 @@ echo "<option value=\"$num_contratto\">$num_contratto_vedi</option>";
 echo "</select>
  <button class=\"vdoc\" id=\"tcon\" type=\"submit\"><div>".ucfirst(mex("visualizza",$pag))."</div></button>
 <input type=\"hidden\" id=\"hcon\" value=\"".ucfirst(mex("visualizza il documento",$pag))."\"><br>
-</div></form><hr style=\"width: 95%\">";
+</div></form></div></div></div>";
 
 
 
@@ -1987,7 +1986,7 @@ echo "</table></div><br>";
 } # fine for $num1
 
 if ($prenota_cliente_esistente != "SI") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Cancella cliente",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
@@ -1995,7 +1994,7 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <input type=\"hidden\" name=\"idclienti\" value=\"$idclienti\">
 <input type=\"hidden\" name=\"cancella_cliente\" value=\"SI\">
 <button class=\"ccli\" id=\"canc\" type=\"submit\"><div>".mex("Cancella il cliente",$pag)." $idclienti</div></button>
-</div></form>";
+</div></form></div></div></div>";
 } # fine if ($prenota_cliente_esistente != "SI")
 
 
@@ -2007,12 +2006,12 @@ if (!empty($tipo_tabella)) $origine = "visualizza_tabelle.php";
 echo "<b>".mex("Cliente cancellato",$pag)."!</b><br><div style=\"text-align: center;\">";
 } # fine else if (numlin_query($cliente) != 0)
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_origine($origine)."\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Torna indietro",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_origine($origine)."\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
 <button class=\"gobk\" id=\"indi\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form></div>
+</div></form></div></div></div>
 <table><tr><td style=\"height: 20px;\"></td></tr></table>";
 
 

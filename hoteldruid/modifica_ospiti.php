@@ -505,8 +505,10 @@ echo " ".mex("sono stati modificati",$pag).".<br><br>
 if (!isset($form_modifica_ospiti) or $form_modifica_ospiti != "NO") {
 
 # Form per modificare gli ospiti.
-if ($num_id_prenota == 1) echo "<h3 id=\"h_mgst\"><span>".mex("Modifica gli ospiti della prenotazione",$pag)." $id_prenota</span></h3><br>";
-else echo "<h3 id=\"h_mgst\"><span>".mex("Modifica gli ospiti delle prenotazioni",$pag)." ".str_replace(",",", ",$id_prenota_int).".</span></h3><br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">";
+if ($num_id_prenota == 1) echo mex("Modifica gli ospiti della prenotazione",$pag)." $id_prenota";
+else echo mex("Modifica gli ospiti delle prenotazioni",$pag)." ".str_replace(",",", ",$id_prenota_int).".";
+echo "</div>";
 
 
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_ospiti.php\"><div>
@@ -756,16 +758,16 @@ elem_cli.innerHTML = testo;
 
 echo "<br><div style=\"text-align: center;\">
 <button class=\"gsts\" id=\"modi\" type=\"submit\"><div>".mex("Modifica gli ospiti",$pag)."</div></button>
-</div></div></form>";
+</div></div></form></div></div></div>";
 
 
-echo "<hr style=\"width: 95%\"><br><div style=\"text-align: center;\">
+echo "<hr style=\"width: 95%\"><br><div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Torna indietro",$pag)."</div><div style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_origine($origine)."\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"tipo_tabella\" value=\"$tipo_tabella\">
 <button class=\"gobk\" id=\"indi\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form></div><br>";
+</div></form></div></div></div></div><br>";
 
 } # fine if (!isset($form_modifica_ospiti) or $form_modifica_ospiti != "NO")
 
