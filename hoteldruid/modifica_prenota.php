@@ -591,7 +591,7 @@ $dati_prenota = esegui_query("select idclienti from $tableprenota where idprenot
 $cognome_cliente = risul_query($dati_prenota,0,'idclienti');
 $cognome_cliente = esegui_query("select cognome from $tableclienti where idclienti = '$cognome_cliente' ");
 $cognome_cliente = risul_query($cognome_cliente,0,'cognome');
-echo mex("Si è sicuri di voler <b>cancellare</b> la prenotazione",$pag)." $id_prenota ".mex("a nome di",$pag)." <b>$cognome_cliente</b>?<br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Conferma cancellazione",$pag)."</div>".mex("Si è sicuri di voler <b>cancellare</b> la prenotazione",$pag)." $id_prenota ".mex("a nome di",$pag)." <b>$cognome_cliente</b>?<br>";
 } # fine if ($num_id_prenota == 1)
 else echo mex("Si è sicuri di voler <b>cancellare</b> le prenotazioni",$pag)." $id_prenota_int?<br>";
 echo "<input type=\"hidden\" name=\"cancella_c\" value=\"SI\">
@@ -677,7 +677,7 @@ document.getElementById('div_ep').innerHTML = '';
 } # fine if (($d_pagato != 0 or...
 echo "</td></tr></table><br>
 <button class=\"gobk\" type=\"submit\" value=\"".mex("NO",$pag)."\"><div>".mex("NO",$pag)."</div></button>
-</div></form>";
+</div></div></div></form>";
 } # fine if (!isset($cancella_c) or $cancella_c != "SI")
 else {
 
@@ -815,7 +815,7 @@ $dati_prenota = esegui_query("select * from $tableprenota where idprenota = '$id
 $cognome_cliente = risul_query($dati_prenota,0,'idclienti');
 $cognome_cliente = esegui_query("select cognome from $tableclienti where idclienti = '$cognome_cliente' ");
 $cognome_cliente = risul_query($cognome_cliente,0,'cognome');
-echo mex("Si è sicuri di voler provare a <b>ripristinare</b> la prenotazione",$pag)." $id_prenota ".mex("a nome di",$pag)." <b>$cognome_cliente</b>?<br>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Conferma ripristino",$pag)."</div>".mex("Si è sicuri di voler provare a <b>ripristinare</b> la prenotazione",$pag)." $id_prenota ".mex("a nome di",$pag)." <b>$cognome_cliente</b>?<br>";
 } # fine if ($num_id_prenota == 1)
 else echo mex("Si è sicuri di voler provare a <b>ripristinare</b> le prenotazioni",$pag)." $id_prenota_int?<br>";
 echo "<input type=\"hidden\" name=\"ripristina_c\" value=\"SI\">
@@ -823,7 +823,7 @@ echo "<input type=\"hidden\" name=\"ripristina_c\" value=\"SI\">
 <button class=\"cres\" type=\"submit\" name=\"ripristina\" value=\"".mex("SI",$pag)."\"><div>".mex("SI",$pag)."</div></button>
 </td></tr></table><br>
 <button class=\"gobk\" type=\"submit\" value=\"".mex("NO",$pag)."\"><div>".mex("NO",$pag)."</div></button>
-</div></form>";
+</div></form></div></div></div>";
 } # fine if (!isset($ripristina_c) or $ripristina_c != "SI")
 else {
 
@@ -840,7 +840,7 @@ $id_prenota_int_c = substr(str_replace(",$id_prenota,",",",",$id_prenota_int_c,"
 } # fine if ($stato_canc_corr['canc'] != "NO")
 } # fine for $num_idpr
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>";
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Continua modifica prenotazione",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>";
 if ($id_prenota_int_c) {
 echo "<input type=\"hidden\" name=\"id_prenota\" value=\"$id_prenota_int_c\">
 <input type=\"hidden\" name=\"pcanc\" value=\"1\">";
@@ -850,7 +850,7 @@ echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"mese\" value=\"$mese\">
 <button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button>
-<br></div></form>";
+<br></div></form></div></div></div>";
 
 } # fine else if (!isset($ripristina_c) or $ripristina_c != "SI")
 } # fine else if (!$inserire)
@@ -901,7 +901,7 @@ $dati_osp
 </select>";
 } # fine if ($dati_osp)
 else $select_osp = mex("cliente numero",$pag);
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Nuovo titolare della prenotazione",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"mese\" value=\"$mese\">
@@ -910,10 +910,10 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.p
 <input type=\"hidden\" name=\"idprenota_origine\" value=\"$idprenota_origine\">
 <input type=\"hidden\" name=\"id_prenota\" value=\"$id_prenota_int\">
 <input type=\"hidden\" name=\"cambia_cliente\" value=\"SI\">
-".mex("Nuovo titolare della prenotazione",$pag).": $select_osp
+$select_osp
 <input type=\"text\" name=\"id_nuovo_cliente\" size=\"5\">
 <button class=\"xcli\" type=\"submit\"><div>".mex("Cambia cliente",$pag)."</div></button>
-</div></form>";
+</div></form></div></div>";
 } # fine if (empty($id_nuovo_cliente))
 
 else {
@@ -954,7 +954,7 @@ if ($pagamenti['num'][$id_prenota]) $pagamenti['e'] = 1;
 if ($errore != "SI") {
 
 if (!isset($continua) or $continua != "SI") {
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Conferma cambio cliente",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"mese\" value=\"$mese\">
@@ -985,7 +985,7 @@ if ($pagamenti['e']) {
 echo "<label><input type=\"checkbox\" name=\"cambia_pagamenti\" value=\"1\" checked>".mex("Cambia il cliente anche nei pagamenti effettuati",$pag).".</label><br><br>";
 } # fine if ($pagamenti['e'])
 echo "<button class=\"xcli\" type=\"submit\"><div>".mex("Cambia cliente",$pag)."</div></button>
-</div></form>";
+</div></form></div></div></div>";
 } # fine if (!isset($continua) or $continua != "SI")
 
 else {
@@ -2694,7 +2694,7 @@ if (isset($form_continua_iniziata) and $form_continua_iniziata == "SI") echo "</
 $form_continua_iniziata = "";
 if ($n_inizioperiodo) $n_data_corrente_f = $n_inizioperiodo_f;
 else $n_data_corrente_f = $d_data_inizio_f;
-echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Prova di nuovo",$pag)."</div><br><form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"id_per_corr_finto\" value=\"".($inizioperiodo_min - 1)."\">
@@ -2709,7 +2709,7 @@ echo "$dati_form_modifica
 ".mex("Normalmente le prenotazioni già iniziate e quelle che hanno registrato l'orario di entrata non vengono spostate",$pag).".<br>
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Prova di nuovo",$pag)."\">
 ".mex("muovendo anche le prenotazioni iniziate dopo il",$pag)." $n_data_corrente_f ".mex("considerate fisse perchè <div style=\"display: inline; color: red;\">ad oggi già iniziate</div>",$pag).".<br>
-</div></form><br>";
+</div></div></div></form><br>";
 } # fine if ($prenota_iniziata == "SI" and $id_per_corr_finto == "" and $priv_ins_periodi_passati == "s")
 } # fine if ($inserire == "NO")
 
@@ -4352,7 +4352,7 @@ $n_nometipotariffa = "";
 
 if ($mostra_form_modifica_prenota != "SI") {
 if ($cancellata == "SI") echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"".str_replace("\"","",str_replace(">","",str_replace("<","",$origine)))."\"><div>";
-else echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>";
+else echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("OK",$pag)."</div><form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php\"><div>";
 echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"mese\" value=\"$mese\">
@@ -5285,7 +5285,8 @@ echo "<input type=\"hidden\" name=\"anno\" value=\"".($anno - 1)."\">
 echo "</div></form><br><br>";
 } # fine if ($id_prenota_prec)
 
-echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php#costi_agg\"><div>
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Modifica la prenotazione",$pag)." $id_prenota</div>
+<form accept-charset=\"utf-8\" method=\"post\" action=\"modifica_prenota.php#costi_agg\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input type=\"hidden\" name=\"mese\" value=\"$mese\">
@@ -7027,7 +7028,7 @@ echo "<br><div class=\"doc_ec\">(".mex("con costo agg.",$pag)."
 $select_costo_stampa
 </select>)</div>";
 } # fine if ($dati_cap['num'] > 0 and $num_id_prenota == 1)
-echo "</div></form>
+echo "</div></form></div></div></div>
 <table><tr><td style=\"height: 6px;\"></td></tr></table>
 <hr style=\"width: 95%;\">";
 

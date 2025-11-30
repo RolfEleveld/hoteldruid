@@ -63,6 +63,7 @@ define('C_DATI_PATH_EXTERNAL', "../hoteldruid-data");
 ## Configuration Priority
 
 HotelDruid checks for the data path in this order:
+
 1. **PHP Desktop settings** (`phpdesktop-settings.json` - for standalone executable)
 2. **External config file** (`hoteldruid-config.php` - for web server deployments)
 3. **Default** (`./dati` - relative to the application directory)

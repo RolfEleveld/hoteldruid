@@ -17,7 +17,7 @@
 //   Relative path: "../hoteldruid-data" (relative to the application directory)
 //
 // If this is empty or not set, the default "./dati" (relative to application) will be used
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/Documents/HotelDruid");
+define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/Projects/HotelDruid");
 
 // Optional: You can also set other paths here if needed
 // define('C_CARTELLA_DOC', "");
