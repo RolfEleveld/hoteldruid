@@ -284,7 +284,12 @@ echo mex("Nuova variabile personalizzata inserita",$pag).".<br>";
 } # fine if ($continua == "SI")
 unlock_tabelle($tabelle_lock);
 } # fine if ($continua == "SI")
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($aggiungi_var_pers))
 
 
@@ -305,7 +310,12 @@ echo mex("Variabile personalizzata eliminata",$pag).".<br>";
 } # fine if (numlin_query($n_var_pers_el) == 1)
 unlock_tabelle($tabelle_lock);
 } # fine if ($continua == "SI")
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($elimina_var_pers))
 
 
@@ -392,7 +402,12 @@ echo mex("Nuovo array personalizzato inserito",$pag).".<br>";
 } # fine if ($continua == "SI")
 unlock_tabelle($tabelle_lock);
 } # fine if ($continua == "SI")
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($aggiungi_arr_pers))
 
 
@@ -402,7 +417,12 @@ $tabelle_lock = array($tablecontratti);
 $tabelle_lock = lock_tabelle($tabelle_lock);
 $continua = elimina_array_pers($arr_pers_elimina,"",$tablecontratti);
 unlock_tabelle($tabelle_lock);
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($elimina_arr_pers))
 
 
@@ -637,7 +657,12 @@ else echo ucfirst(mex("condizione modificata",$pag)).".<br>";
 } # fine if ($continua == "SI")
 unlock_tabelle($tabelle_lock);
 } # fine if ($continua == "SI")
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($aggiungi_cond))
 
 
@@ -652,7 +677,12 @@ esegui_query("delete from $tablecontratti where numero = '$num_cond' and tipo = 
 echo mex("Condizione eliminata",$pag).".<br>";
 unlock_tabelle($tabelle_lock);
 } # fine if ($continua == "SI")
-if ($continua != "SI") echo mex("I dati inseriti sono <div style=\"display: inline; color: red;\">errati</div>",$pag).".<br>";
+if ($continua != "SI") {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("I dati inseriti sono errati",$pag)."</div>
+</div>";
+}
 } # fine if (!empty($elimina_cond))
 
 
@@ -727,7 +757,9 @@ unlock_tabelle($tabelle_lock);
 if (!isset($mostra_form_iniziale) or $mostra_form_iniziale != "NO") {
 
 
-echo "<h3>".mex("Variabili personalizzate dei documenti",$pag)."</h3><br><br>";
+echo "<div class=\"rbox\">
+<div class=\"rheader\">".mex("Variabili personalizzate dei documenti",$pag)."</div>
+<div class=\"rcontent\">";
 
 $variabili_pers = esegui_query("select * from $tablecontratti where tipo = 'var' or tipo = 'var$contr_cond' order by tipo, numero");
 $num_variabili_pers = numlin_query($variabili_pers);
@@ -857,7 +889,9 @@ echo "<br><form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
 <select name=\"contr_cond\">
 $opt_contr</select>
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Modifica",$pag)."\">
-</div></form>";
+</div></form>
+</div>
+</div><br>";
 
 if ($option_var_pers) {
 
@@ -925,8 +959,9 @@ if ($num_cond_rip_d < $num_cond_rip_u) $num_cond_rip_d = $num_cond_rip_u;
 if ($num_cond_rip_a[1] < $num_cond_rip_d) $num_cond_rip_a[1] = $num_cond_rip_d;
 for ($num1 = 1 ; $num1 < $num_rip_a ; $num1++) if ($num_cond_rip_a[($num1 + 1)] < $num_cond_rip_a[$num1]) $num_cond_rip_a[($num1 + 1)] = $num_cond_rip_a[$num1];
 if (!empty($num_cond) and $num_cond_passa < 20) echo "<a name=\"condizioni\"></a>";
-echo "<div class=\"rbox\">".mex("<b>Condizioni</b> applicate",$pag)." $frase_cond_contr:<br>
-<table><tr><td style=\"height: 5px;\"></td></tr></table>";
+echo "<div class=\"rbox\">
+<div class=\"rheader\">".mex("Condizioni applicate",$pag)." $frase_cond_contr</div>
+<div class=\"rcontent\">";
 
 if ($num_condizioni > 0) {
 echo "<table>";
@@ -1237,7 +1272,8 @@ $input_cond_contr
 echo "</table>";
 } # fine if ($num_condizioni > 0)
 else echo "<br>";
-echo "</div><br>";
+echo "</div>
+</div><br>";
 
 $azione = $azione_orig;
 if (!$num_cond_mod_vedi) $num_cond_mod = "";
@@ -1335,6 +1371,11 @@ $num_arr_rip = substr($inizializza,3);
 $option_arr_rip = str_replace("\"a".$num_arr_rip."\"","\"a".$num_arr_rip."\" selected",$option_arr_rip);
 } # fine if (isset($inizializza) and substr($inizializza,0,3) == "rar")
 echo "<div class=\"rbox\">
+<div class=\"rheader\">";
+if (!$num_cond_mod) echo ucfirst(mex("nuova condizione",$pag));
+else echo ucfirst(mex("modifica la condizione",$pag))." $num_cond_mod_vedi";
+echo "</div>
+<div class=\"rcontent\">
 <a name=\"modcond\"></a>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"$pag#modcond\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
@@ -1345,8 +1386,7 @@ $input_cond_contr
 <input type=\"hidden\" name=\"num_se\" value=\"$num_se\">
 <input type=\"hidden\" name=\"and_or\" value=\"".htmlspecialchars(fixstr($and_or))."\">
 <input type=\"hidden\" name=\"num_cond_mod\" value=\"$num_cond_mod\">";
-if (!$num_cond_mod) echo "<b>".ucfirst(mex("nuova condizione",$pag))."</b> ".mex("da applicare",$pag);
-else echo "".ucfirst(mex("modifica la condizione",$pag))." <b>$num_cond_mod_vedi</b> ".mex("da applicare",$pag);
+echo "".mex("da applicare",$pag);
 echo " <select name=\"inizializza\">
 <option value=\"rpt\"$sel_rip>".mex("in tutte le ripetizioni delle prenotazioni",$pag)."</option>
 <option value=\"inr\"$sel_inirip>".mex("solo all'inizio delle ripetizioni delle prenotazioni",$pag)."</option>
@@ -1789,7 +1829,9 @@ echo "<table onclick=\"document.getElementById('az_cont').checked='1'\"><tr><td>
 <input class=\"sbutton\" type=\"submit\" value=\"";
 if (!$num_cond_mod) echo ucfirst(mex("aggiungi la nuova condizione",$pag));
 else echo ucfirst(mex("modifica la condizione",$pag))." $num_cond_mod_vedi";
-echo "\"></div></div></form><br>";
+echo "\"></div></div></form>
+</div>
+</div><br>";
 
 if ($num_cond_mod) {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>

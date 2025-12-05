@@ -49,6 +49,7 @@ case "una lista di valori predefiniti":  	$messaggio = "a list of predefined val
 case "separati da virgole":  			$messaggio = "comma separated"; break;
 case "nelle ripetizioni vengono considerate solo le prenotazioni nella data valutata":	$messaggio = "in repetitions only reservations in evaluated date are considered"; break;
 case "<b>Condizioni</b> applicate":  		$messaggio = "<b>Conditions</b> applied"; break;
+case "Condizioni applicate":  			$messaggio = "Conditions applied"; break;
 case "a tutti i documenti":  			$messaggio = "to all documents"; break;
 case "al documento":  				$messaggio = "to document"; break;
 case "Modifica le condizioni applicate":  	$messaggio = "Modify conditions applied"; break;

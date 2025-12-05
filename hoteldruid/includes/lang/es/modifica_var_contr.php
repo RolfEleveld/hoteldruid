@@ -49,6 +49,7 @@ case "una lista di valori predefiniti":  	$messaggio = "una lista de valores pre
 case "separati da virgole":  			$messaggio = "separados por comas"; break;
 case "nelle ripetizioni vengono considerate solo le prenotazioni nella data valutata":	$messaggio = "en las repeticiones son consideradas solo las reservas en la fecha evaluada"; break;
 case "<b>Condizioni</b> applicate":  		$messaggio = "<b>Condiciones</b> aplicadas"; break;
+case "Condizioni applicate":  			$messaggio = "Condiciones aplicadas"; break;
 case "a tutti i documenti":  			$messaggio = "a todos los documentos"; break;
 case "al documento":  				$messaggio = "al documento"; break;
 case "Modifica le condizioni applicate":  	$messaggio = "Modificar la condiciones aplicadas"; break;

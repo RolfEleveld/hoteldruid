@@ -1389,7 +1389,9 @@ for ($num1 = 0 ; $num1 < $fine_for_utenti ; $num1++) {
 $id_utente = risul_query($tutti_utenti,$num1,"idutenti");
 $nome_utente_id[$id_utente] = risul_query($tutti_utenti,$num1,"nome_utente");
 } # fine for $num1
-echo "<h4>".mex("Log delle query di modifica effettuate dagli utenti negli ultimi",$pag)." 30 ".mex("giorni",$pag).".</h4>
+echo "<div class=\"rbox\">
+<div class=\"rheader\">".mex("Log delle query di modifica",$pag)." (".mex("ultimi",$pag)." 30 ".mex("giorni",$pag).")</div>
+<div class=\"rcontent\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"./$pag\"><div style=\"text-align: right;\">
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
@@ -1430,7 +1432,9 @@ $ultima_data = $linea[1];
 } # fine if (isset($linea[2]))
 } # fine for $num1
 } # fine if (@is_file($file_log))
-echo "</table>";
+echo "</table>
+</div>
+</div><br>";
 } # fine if (!empty($vedi_log))
 
 if (!empty($cambia_minuti_durata_sessione)) {
@@ -1509,7 +1513,10 @@ $percorso_cartella_modello[$num1] = $c_cartella_crea_mod."/".$percorso_cartella_
 $percorso_cartella_modello[$num1] = preg_replace("|//+|","/",$percorso_cartella_modello[$num1]);
 if (substr($percorso_cartella_modello[$num1],-1) == "/") $percorso_cartella_modello[$num1] = substr($percorso_cartella_modello[$num1],0,-1);
 if (!@is_dir($percorso_cartella_modello[$num1])) {
-echo mex("La cartella inserita <div style=\"display: inline; color: red;\">non esiste</div>",$pag).".<br>";
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("La cartella inserita non esiste",$pag)."</div>
+</div>";
 $cont = 0;
 break;
 } # fine if (!@is_dir($percorso_cartella_modello[$num1]))
@@ -1531,10 +1538,20 @@ $percorso_cart_esist['test_file'][$num1] = 1;
 else $percorso_cart_esist = array();
 for ($num1 = 0 ; $num1 < count($percorso_cartella_modello_vett) ; $num1++) @unlink($percorso_cartella_modello[$num1]."/hd_test_dir.tmp");
 for ($num1 = 0 ; $num1 < count($percorso_cartella_modello_vett) ; $num1++) {
-if (@is_file($percorso_cartella_modello[$num1]."/hd_test_dir.tmp")) echo mex("La cartella",$pag)." <div style=\"display: inline; color: red;\">".$percorso_cartella_modello[$num1]."/</div> ".mex("è un duplicato",$pag).".<br>";
+if (@is_file($percorso_cartella_modello[$num1]."/hd_test_dir.tmp")) {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("La cartella",$pag)." <b>".htmlspecialchars($percorso_cartella_modello[$num1])."/</b> ".mex("è un duplicato",$pag)."</div>
+</div>";
+}
 else {
 $fileaperto = @fopen($percorso_cartella_modello[$num1]."/hd_test_dir.tmp","a+");
-if (!$fileaperto) echo mex("Non ho i permessi di scrittura sulla cartella",$pag)." <div style=\"display: inline; color: red;\">".$percorso_cartella_modello[$num1]."/</div>.<br>";
+if (!$fileaperto) {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore permessi",$pag)."</div>
+  <div class=\"rcontent\">".mex("Non ho i permessi di scrittura sulla cartella",$pag)." <b>".htmlspecialchars($percorso_cartella_modello[$num1])."/</b></div>
+</div>";
+}
 else {
 fclose($fileaperto);
 $percorso_cartella_modello['test_file'][$num1] = 1;
@@ -1668,7 +1685,12 @@ if (!empty($percorso_phpmailer)) {
 if (substr($percorso_phpmailer,-12) == "autoload.php")  $percorso_phpmailer = substr($percorso_phpmailer,0,-12);
 if (substr($percorso_phpmailer,-1) != "/") $percorso_phpmailer .= "/";
 $percorso_phpmailer .= "autoload.php";
-if (!is_file($percorso_phpmailer)) echo mex("La cartella inserita <div style=\"display: inline; color: red;\">non esiste</div>",$pag)." (<b>".htmlspecialchars($percorso_phpmailer)."</b>).<br>";
+if (!is_file($percorso_phpmailer)) {
+echo "<div class=\"rbox\" style=\"--rbox-color: #F44336;\">
+  <div class=\"rheader\">❌ ".mex("Errore",$pag)."</div>
+  <div class=\"rcontent\">".mex("La cartella inserita non esiste",$pag)." (<b>".htmlspecialchars($percorso_phpmailer)."</b>)</div>
+</div>";
+}
 else {
 @include($percorso_phpmailer);
 if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) echo mex("Il file inserito <span class=\"colred\">non carica phpmailer</span> correttamente",$pag).".<br>";
@@ -2143,7 +2165,9 @@ for ($num1 = 0 ; $num1 < $num_nomi_contratti ; $num1++) {
 $dati_nome_contratto = explode("#?&",$nomi_contratti[$num1]);
 $nome_contratto[$dati_nome_contratto[0]] = $dati_nome_contratto[1];
 } # fine for $num1
-echo "".mex("Cambia l'ordine dei documenti",$pag).":<br><div class=\"bspacer\"></div>
+echo "<div class=\"rbox\">
+<div class=\"rheader\">".mex("Cambia l'ordine dei documenti",$pag)."</div>
+<div class=\"rcontent\">
 <table>";
 function rowbgcolor () {
 global $rowbgcolor,$t2row1color,$t2row2color;
@@ -2203,7 +2227,9 @@ echo "</table>
 <input type=\"hidden\" name=\"lista_contr\" value=\"$lista_contr_ser\">
 <input type=\"hidden\" name=\"applica_nuovi_num\" value=\"SI\">
 <button class=\"cont\" type=\"submit\"><div>".mex("Applica i cambiamenti",$pag)."</div></button>
-</div></form><br><br>";
+</div></form>
+</div>
+</div><br><br>";
 } # fine if (empty($applica_nuovi_num))
 else {
 function cambia_num_contr ($vecchio_num,$nuovo_num,$max_contr,$tablecontratti,$tableprivilegi,$tablepersonalizza) {
