@@ -1847,7 +1847,11 @@ echo "</div><br>";
 } # fine if ($option_var_pers and !$contr_importa_vc)
 
 
-echo "<br><hr style=\"width: 95%\"><br><div style=\"text-align: center;\">";
+echo "<br><hr style=\"width: 95%\"><br>";
+
+echo "<div class=\"rpanels\"><div class=\"rbox\">
+<div class=\"rheader\">".mex("Navigazione",$pag)."</div>
+<div class=\"rcontent\" style=\"text-align: center;\">";
 
 if ($contr_cond) {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"./modifica_contratto.php\"><div>
@@ -1862,7 +1866,9 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"personalizza.php#c
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("Torna indietro",$pag)."\">
-</div></form><br></div>";
+</div></form><br></div>
+</div>
+</div>";
 
 
 } # fine if (!isset($mostra_form_iniziale) or $mostra_form_iniziale != "NO")

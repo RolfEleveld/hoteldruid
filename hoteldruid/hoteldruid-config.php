@@ -24,5 +24,3 @@ define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/Projects/HotelDruid");
 // define('C_CARTELLA_FILES_REALI', "");
 // define('C_CARTELLA_UPLOAD_IMG', "");
 
-?>
-

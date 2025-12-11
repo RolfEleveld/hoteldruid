@@ -573,10 +573,12 @@ echo "<form id=\"fcrmod\" accept-charset=\"utf-8\" method=\"post\" action=\"crea
 <input type=\"hidden\" name=\"lingua_modello\" value=\"$lingua_modello\">
 <input type=\"hidden\" name=\"perc_cart_mod_sel\" value=\"".htmlspecialchars(fixstr($perc_cart_mod_sel))."\">
 
-<div style=\"height: 4px;\"></div>
-<h5 id=\"h_chav\"><span>".mex("Pagina per controllare la disponibilità",$pag)."</span></h5><br><br>
-<table><tr><td valign=\"top\">
-".mex("Date nei menù a tendina",$pag).":</td><td>";
+<div class=\"rpanels\">
+
+<div class=\"rbox\">
+<div class=\"rheader\">".mex("Date nei menù a tendina",$pag)."</div>
+<div class=\"rcontent\">
+<table><tr><td valign=\"top\">";
 if (empty($num_periodi_date) or controlla_num_pos($num_periodi_date) == "NO") $num_periodi_date = 1;
 #$numero_date_menu = fixset($n_dates_menu);
 $numero_data = 0;
@@ -599,18 +601,20 @@ if ($num_periodi_date > 1) echo "<input class=\"sbutton\" type=\"submit\" name=\
 echo "<input class=\"sbutton\" type=\"submit\" name=\"aggiungidatemenu\" value=\"".mex("+",$pag)."\">
 <input type=\"hidden\" name=\"num_periodi_date\" value=\"$num_periodi_date\">
 <input type=\"hidden\" name=\"nome_form_modello_passa\" value=\"form_modello_disponibilita\">
-</td></tr></table>
+</td></tr></table><br>
 ".mex("Estendere l'ultima data fino a quella massima disponibile nel database?",$pag)."
 <select name=\"estendi_ultima_data\">
 <option value=\"SI\"$sel_SI>".mex("SI",$pag)."</option>
 <option value=\"NO\"$sel_NO>".mex("NO",$pag)."</option>
-</select><br>";
+</select><br><br>";
 
 if (isset($periodi_no_richieste) and (string) $periodi_no_richieste != "") $val = $periodi_no_richieste;
 else $val = 0;
 echo "".mex("Accetta solo richieste che cominciano almeno dopo",$pag)."
 <input type=\"text\" name=\"sett_no_prenota\" size=\"3\" value=\"$val\">
-".mex("$parola_settimane",$pag).".<br><br>";
+".mex("$parola_settimane",$pag).".
+</div>
+</div>";
 
 if (empty($stile_soldi)) {
 $stile_soldi = esegui_query("select * from $tablepersonalizza where idpersonalizza = 'stile_soldi' and idutente = '$id_utente'");
@@ -1943,13 +1947,22 @@ for ($num_fr = 0 ; $num_fr < $num_frasi ; $num_fr++) echo "<input type=\"hidden\
 echo "<br><div style=\"text-align: center;\"><input type=\"hidden\" name=\"modello_disponibilita\" value=\"SI\">
 <input type=\"hidden\" name=\"form_ricaricata\" value=\"SI\">
 <button class=\"chav\" id=\"modi\" type=\"submit\"><div>".mex("Crea la pagina per la disponibilità",$pag)."</div></button>
-</div></div></form><br>
-<hr style=\"width: 95%\"><br><div style=\"text-align: center;\">
+</div></div>
+</div></form>
+</div>
+</div><br>
+<hr style=\"width: 95%\"><br>";
+
+echo "<div class=\"rpanels\"><div class=\"rbox\">
+<div class=\"rheader\">".mex("Navigazione",$pag)."</div>
+<div class=\"rcontent\" style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"gobk\" id=\"indi\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form><br></div>";
+</div></form><br></div>
+</div>
+</div>";
 } # fine if (!empty($form_modello_disponibilita))
 
 
@@ -1962,6 +1975,7 @@ if (file_exists("./includes/templates/$modello_ext/name.php")) {
 					if (is_file("./includes/templates/$modello_ext/name.php")) include_once("./includes/templates/$modello_ext/name.php");
 if (!empty(${"form_".$template_name}) and (!isset($template_name_show['tpl_type']) or $template_name_show['tpl_type'] != "interconnection")) {
 $mostra_form_creazione = "NO";
+						if (is_file("./includes/templates/$modello_ext/phrases.php")) include_once("./includes/templates/$modello_ext/phrases.php");
 						if (is_file("./includes/templates/$modello_ext/form.php")) include_once("./includes/templates/$modello_ext/form.php");
 break;
 } # fine if (${"form_".$template_name} and (!isset($template_name_show['tpl_type']) or...
@@ -2019,6 +2033,7 @@ closedir($templates_dir);
 if ($mod_presente == "SI") {
 $mostra_form_creazione = "NO";
 if (empty($continua)) {
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Cancella pagine",$pag)."</div><div class=\"rcontent\">";
 echo "".mex("Si è sicuri di voler <b style=\"color: red;\">cancellare</b>",$pag)." ";
 if ($perc_mod_elimina) echo mex("la pagina",$pag)." \"$perc_mod_elimina\"";
 else {
@@ -2039,7 +2054,8 @@ echo "?<br>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"gobk\" type=\"submit\"><div>".mex("NO",$pag)."</div></button>
-</div></form></td></tr></table>";
+</div></form></td></tr></table>
+</div></div></div>";
 } # fine if (empty($continua))
 else {
 for ($num_cart = 0 ; $num_cart < $num_perc_cart_mod_vett ; $num_cart++) {
@@ -2089,13 +2105,15 @@ closedir($lang_dir);
 closedir($templates_dir);
 } # fine for $num_cart
 if (!$perc_mod_elimina) esegui_query("delete from $tablepersonalizza where idpersonalizza = 'ultime_sel_crea_modelli' and idutente = '$id_utente'");
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Pagine cancellate",$pag)."</div><div class=\"rcontent\">";
 if ($perc_mod_elimina) echo mex("Pagina cancellata",$pag).".<br>";
 else echo mex("Cancellate tutte le pagine",$pag).".<br>";
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button>
-</div></form>";
+</div></form>
+</div></div></div>";
 } # fine else if (empty($continua))
 } # fine if ($mod_presente == "SI")
 } # fine if (isset($cancella_modelli) and $cancella_modelli == "SI" and $mostra_form_creazione != "NO")
@@ -2121,6 +2139,7 @@ if ($cart_da_trovata != "SI" or $cart_a_trovata != "SI") $errore = "SI";
 if ($errore != "SI") {
 $mostra_form_creazione = "NO";
 if (empty($continua)) {
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Importa pagine",$pag)."</div><div class=\"rcontent\">";
 echo "".mex("Si è sicuri di voler importare le pagine dalla cartella",$pag)." \"<b>$cartella_da</b>\" ".mex("alla cartella",$pag)." \"<b>$cartella_a</b>\"?<br>
 (".mex("eventuali pagine già presenti nella cartella",$pag)." \"<b>$cartella_a</b>\" ".mex("verranno <b style=\"font-weight: normal; color: red;\">sovrascritte</b>",$pag).")<br>
 <table><tr><td style=\"height: 2px;\"></td></tr><tr><td>
@@ -2137,7 +2156,8 @@ echo "".mex("Si è sicuri di voler importare le pagine dalla cartella",$pag)." \
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <input class=\"sbutton\" type=\"submit\" value=\"".mex("NO",$pag)."\">
-</div></form></td></tr></table>";
+</div></form></td></tr></table>
+</div></div></div>";
 } # fine if (empty($continua))
 else {
 $percorso_cartella_modello = $cartella_da;
@@ -2186,12 +2206,14 @@ closedir($lang_dir);
 } # fine if ($modello_ext != "." and $modello_ext != ".." and...
 } # fine while ($file = readdir($lang_dig))
 closedir($templates_dir);
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">".mex("Pagine importate",$pag)."</div><div class=\"rcontent\">";
 echo mex("Pagine importate",$pag).".<br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"crea_modelli.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"cont\" type=\"submit\"><div>".mex("OK",$pag)."</div></button>
-</div></form>";
+</div></form>
+</div></div></div>";
 } # fine else if (empty($continua))
 } # fine if ($errore != "SI")
 } # fine if (isset($importa_modelli) and $importa_modelli == "SI" and $mostra_form_creazione != "NO")
@@ -2425,12 +2447,15 @@ echo "</select>
 } # fine if (!empty($mod_presenti_vett))
 
 
-echo "<div style=\"text-align: center;\">
+echo "<div class=\"rbox\">
+<div class=\"rheader\">".mex("Navigazione",$pag)."</div>
+<div class=\"rcontent\" style=\"text-align: center;\">
 <form accept-charset=\"utf-8\" method=\"post\" action=\"personalizza.php\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
 <input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
 <button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
-</div></form><br></div></div>";
+</div></form><br></div>
+</div></div>";
 
 } # fine if ($mostra_form_creazione != "NO")
 

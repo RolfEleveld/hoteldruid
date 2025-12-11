@@ -4,6 +4,7 @@ switch ($messaggio) {
 case "Dati personali":                       $messaggio = "Datos personales"; break;
 case "Contatti":                             $messaggio = "Contactos"; break;
 case "Dati fiscali":                         $messaggio = "Datos de Facturación"; break;
+case "Titolo":                               $messaggio = "Título"; break;
 
 case "Clienti":  				$messaggio = "Clientes"; break;
 case "Le date sono sbagliate":  		$messaggio = "Las fechas son incorrectas"; break;

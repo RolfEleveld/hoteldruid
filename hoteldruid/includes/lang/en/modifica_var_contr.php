@@ -4,6 +4,7 @@ switch ($messaggio) {
 
 case "Modifica Variabili Documenti":  		$messaggio = "Modify Documents Variables"; break;
 case "Torna indietro":  			$messaggio = "Go back"; break;
+case "Navigazione":  				$messaggio = "Navigation"; break;
 case "Variabili personalizzate dei documenti":  $messaggio = "Documents custom variables"; break;
 case "Variabili personalizzate":  		$messaggio = "Custom variables"; break;
 case "Elimina":  				$messaggio = "Delete"; break;

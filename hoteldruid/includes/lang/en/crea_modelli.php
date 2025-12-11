@@ -8,6 +8,7 @@ case "SI":  					$messaggio = "YES"; break;
 case "NO":  					$messaggio = "NO"; break;
 case "Crea Pagine Web":  			$messaggio = "Create Web Pages"; break;
 case "Torna indietro":  			$messaggio = "Go back"; break;
+case "Navigazione":  				$messaggio = "Navigation"; break;
 case "Crea pagine per il sito web":  		$messaggio = "Create website pages"; break;
 case "Dati comuni":  				$messaggio = "Common data"; break;
 case "Utilizza i dati attuali per la connessione al database":	$messaggio = "Use current data to connect to the database"; break;
@@ -335,6 +336,9 @@ case "notte":  					$messaggio = "night"; break;
 case "notti":  					$messaggio = "nights"; break;
 case "cambia date":  				$messaggio = "change dates"; break;
 case "Per questa tariffa si deve inserire un minimo di":	$messaggio = "For this rate you have to insert at least"; break;
+case "Cancella pagine":				$messaggio = "Delete pages"; break;
+case "Pagine cancellate":			$messaggio = "Pages deleted"; break;
+case "Importa pagine":				$messaggio = "Import pages"; break;
 case "":  		$messaggio = ""; break;
 case "":  		$messaggio = ""; break;
 

@@ -2819,22 +2819,21 @@ echo "<style>
 .rpanels .rbox .ctl input[type=text], .rpanels .rbox .ctl select{flex:1 1 auto;min-width:0}
 .rpanels .rbox .cpbutton{margin-left:0}
 </style>";
-// Start panels container
-echo "<div class=\"rpanels\">";
- 
+// Prepare title select options before rendering panels
 $titoli_cliente = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'titoli_cliente' and idutente = '$id_utente'");
 if (numlin_query($titoli_cliente) == 1) $titoli_cliente = risul_query($titoli_cliente,0,"valpersonalizza");
 else $titoli_cliente = "";
+$titolo_cli_html = "";
 if ($titoli_cliente) {
-echo "<select name=\"titolo_cli\">
-<option value=\"\">--</option>";
-$titoli_cliente = explode(">",$titoli_cliente);
-for ($num1 = 0 ; $num1 < count($titoli_cliente) ; $num1++) {
-$opt = explode("<",$titoli_cliente[$num1]);
-echo "<option value=\"".$opt[0]."\">".$opt[0]."</option>";
-} # fine for $num1
-echo "</select> ";
+    $titolo_cli_html = "<select name=\"titolo_cli\">\n<option value=\"\">--</option>\n";
+    $titoli_cliente_arr = explode(">",$titoli_cliente);
+    for ($num1 = 0 ; $num1 < count($titoli_cliente_arr) ; $num1++) {
+        $opt = explode("<",$titoli_cliente_arr[$num1]);
+        $titolo_cli_html .= "<option value=\"".$opt[0]."\">".$opt[0]."</option>\n";
+    } # fine for $num1
+    $titolo_cli_html .= "</select> ";
 } # fine if ($titoli_cliente)
+
 if (!empty($datiprenota)) {
 $cognome_mostra = str_replace("&amp;","&",$cognome);
 $nome_mostra = str_replace("&amp;","&",$nome);
@@ -2843,6 +2842,10 @@ else {
 $cognome_mostra = $cognome;
 $nome_mostra = $nome;
 } # fine else if (!empty($datiprenota))
+
+// Start panels container
+echo "<div class=\"rpanels\">";
+
 # Use template system for panel rendering if available
 if (class_exists('HotelDruidTemplate')) {
     $template = HotelDruidTemplate::getInstance();

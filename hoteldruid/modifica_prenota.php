@@ -4744,13 +4744,9 @@ if (!isset($mostra_form_modifica_prenota) or $mostra_form_modifica_prenota != "N
 
 # Inizio della pagina.
 if ($pcanc) {
-if ($num_id_prenota == 1) echo "<h3 class=\"h_mres\"><span>".mex("Prenotazione cancellata",$pag)." $id_prenota.</span></h3>";
-else echo "<h3 class=\"h_mress\"><span>".mex("Prenotazioni cancellate",$pag)." ".str_replace(",",", ",$id_prenota_int).".</span></h3>";
 $stilebarrato = " style=\"text-decoration: line-through\"";
 } # fine if ($pcanc)
 else {
-if ($num_id_prenota == 1) echo "<h3 class=\"h_mres\"><span>".mex("Modifica o cancella la prenotazione",$pag)." $id_prenota.</span></h3>";
-else echo "<h3 class=\"h_mress\"><span>".mex("Modifica o cancella le prenotazioni",$pag)." ".str_replace(",",", ",$id_prenota_int).".</span></h3>";
 $stilebarrato = "";
 } # fine else if ($pcanc)
 if (empty($origine)) $origine = "tabella.php";

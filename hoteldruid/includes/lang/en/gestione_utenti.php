@@ -70,6 +70,14 @@ case "Nuova password dell'utente non inserita correttamente":
 	$messaggio = "User's new password was not set correctly"; break;
 case "Non è stato effettuato nessun cambiamento":
 	$messaggio = "No changes were applied"; break;
+case "Nessuna modifica rilevata":
+	$messaggio = "No changes detected"; break;
+case "Torna alla tabella degli utenti per modificare i nomi o i tipi di login":
+	$messaggio = "Go back to the users table to modify names or login types"; break;
+case "Cambiamenti":
+	$messaggio = "Changes"; break;
+case "effettuati con successo":
+	$messaggio = "successfully applied"; break;
 
 } # fine switch ($messaggio)
 

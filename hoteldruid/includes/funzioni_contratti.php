@@ -4794,12 +4794,18 @@ global $lingua_mex,$titolo,$anno_corrente,$numconnessione,$LIKE,$show_bar;
 if ($tema[$id_utente] and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/head.php");
 else include("./includes/head.php");
 } # fine if ($mostra_headers == "NO")
+echo "<div class=\"rpanels\"><div class=\"rbox\"><div class=\"rheader\">";
+if ($num_contr_esist) {
+if ($num_ripeti > 1) echo mex("Documenti già esistenti riguardanti queste prenotazioni",$pag);
+else echo mex("Documenti già esistenti riguardanti questa prenotazione",$pag);
+} # fine if ($num_contr_esist)
+else {
+if ($num_file_salva > 1) echo mex("Documenti salvati",$pag);
+else echo mex("Documento salvato",$pag);
+}
+echo "</div><div class=\"rcontent\">";
 if ($num_contr_esist and $num_file_salva_orig == 1) echo "<div style=\"line-height: 180%\"><br>";
 else echo "<div style=\"line-height: 130%\"><br>";
-if ($num_contr_esist) {
-if ($num_ripeti > 1) echo mex("Documenti già esistenti riguardanti queste prenotazioni",$pag).":<br>";
-else echo mex("Documenti già esistenti riguardanti questa prenotazione",$pag).":<br>";
-} # fine if ($num_contr_esist)
 for ($num1 = 1 ; $num1 <= $num_file_salva ; $num1++) {
 if ($num_contr_esist and $num_file_salva_orig == 1) {
 echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"$pag\"><div>
@@ -4841,6 +4847,7 @@ if ($num_file_salva_orig == 1) echo "&nbsp;".bottone_submit_contr(mex("Salva un 
 else echo bottone_submit_contr(mex("Salva dei nuovi documenti",$pag),"","","adoc");
 echo "</div></form><br>";
 } # fine else if (!$num_contr_esist)
+echo "</div></div></div>";
 
 } # fine function crea_messaggio_contr_salva
 

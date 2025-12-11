@@ -3792,8 +3792,6 @@ if (isset($_SESSION['creaprezzi_tariffa'])) {
     unset($_SESSION['creaprezzi_tariffa']);
 }
 
-echo "<h4 id=\"h_ipri\"><span>".mex("Inserisci i prezzi per l'anno",$pag)." $anno</span></h4>";
-
 $dati_tariffe = dati_tariffe($tablenometariffe,"",$tablepersonalizza,$tableregole);
 
 // Add CSS for panels

@@ -2,6 +2,7 @@
 
 switch ($messaggio) {
 
+case "Titolo":                               $messaggio = "Title"; break;
 case "Clienti":  				$messaggio = "Clients"; break;
 case "Le date sono sbagliate":  		$messaggio = "The dates are wrong"; break;
 case "Si deve inserire il tipo di tariffa":  	$messaggio = "You must insert the rate type"; break;

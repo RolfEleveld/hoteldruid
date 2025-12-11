@@ -9,6 +9,12 @@
         <?php echo mex("Dati personali", $pag); ?>
     </div>
     
+    <?php if (!empty($titolo_cli_html)): ?>
+    <span class="wsnw"><?php echo mex("Titolo", $pag); ?>: 
+        <?php echo $titolo_cli_html; ?>
+    </span>
+    <?php endif; ?>
+    
     <span class="wsnw"><?php echo mex("Cognome", $pag); ?>: 
         <?php if ($attiva_prefisso_clienti == "p") echo $prefisso_clienti; ?>
         <input type="text" id="cognome" name="cognome" value="<?php echo htmlspecialchars($cognome_mostra); ?>">

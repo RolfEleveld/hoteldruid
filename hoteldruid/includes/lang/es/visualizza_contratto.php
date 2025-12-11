@@ -21,6 +21,8 @@ case "Il documento":  			$messaggio = "El documento"; break;
 case "è stato <b style=\"font-weight: normal; color: blue;\">cancellato</b>":	$messaggio = "ha sido <b style=\"font-weight: normal; color: blue;\">borrado</b>"; break;
 case "Transazione <font color=\"red\">scaduta</font>":	$messaggio = "Transacción <font color=\"red\">caducada</font>"; break;
 case "Sovrascrivi":  			$messaggio = " Sobreescribir"; break;
+case "Documento salvato":  		$messaggio = "Documento salvado"; break;
+case "Documenti salvati":  		$messaggio = "Documentos salvados"; break;
 case "Documenti già esistenti riguardanti questa prenotazione":	$messaggio = "Documentos ya existentes de esta reserva"; break;
 case "Documenti già esistenti riguardanti queste prenotazioni":	$messaggio = "Documentos ya existentes de estas reservas"; break;
 case "Salva dei nuovi documenti":  	$messaggio = "Salvar nuevos documentos"; break;
