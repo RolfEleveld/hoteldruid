@@ -354,15 +354,17 @@ function Sanitize-PhpDesktopSettings {
         }
     }
 
-    # Normalize web_server document root key: prefer 'document_root' over 'www_directory'
+    # Normalize web_server root key: ensure 'www_directory' is present (phpdesktop expects this)
     if ($Settings.web_server) {
         $ws = $Settings.web_server
         $hasDocRoot = $null -ne $ws.PSObject.Properties['document_root'] -and -not [string]::IsNullOrWhiteSpace($ws.document_root)
         $hasWwwDir  = $null -ne $ws.PSObject.Properties['www_directory'] -and -not [string]::IsNullOrWhiteSpace($ws.www_directory)
-        if (-not $hasDocRoot -and $hasWwwDir) {
-            $ws | Add-Member -NotePropertyName 'document_root' -NotePropertyValue $ws.www_directory -Force
-            # Remove deprecated/alternate key to avoid parser confusion
-            try { $ws.PSObject.Properties.Remove('www_directory') } catch { }
+        if (-not $hasWwwDir -and $hasDocRoot) {
+            $ws | Add-Member -NotePropertyName 'www_directory' -NotePropertyValue $ws.document_root -Force
+        }
+        # Do NOT remove www_directory; if both exist, prefer www_directory and drop document_root
+        if ($hasDocRoot -and $hasWwwDir) {
+            try { $ws.PSObject.Properties.Remove('document_root') } catch { }
         }
     }
 
@@ -436,19 +438,21 @@ function Update-PhpDesktopSettings {
             Write-Host "[DEBUG] No custom settings file found" -ForegroundColor Yellow
         }
 
-        # Enforce absolute document_root pointing to installed hoteldruid
+        # Enforce web root pointing to installed hoteldruid
         try {
             $absHotelDruid = Convert-Path (Join-Path $InstallDir 'hoteldruid') -ErrorAction Stop
             if (-not $existingSettings.web_server) {
                 $existingSettings | Add-Member -NotePropertyName 'web_server' -NotePropertyValue ([pscustomobject]@{}) -Force
             }
-            if (-not $existingSettings.web_server.PSObject.Properties['document_root']) {
-                $existingSettings.web_server | Add-Member -NotePropertyName 'document_root' -NotePropertyValue $absHotelDruid -Force
+            # Prefer standard key 'www_directory' (relative path is safest)
+            $wwwRelative = '..\hoteldruid'
+            if (-not $existingSettings.web_server.PSObject.Properties['www_directory']) {
+                $existingSettings.web_server | Add-Member -NotePropertyName 'www_directory' -NotePropertyValue $wwwRelative -Force
             } else {
-                $existingSettings.web_server.document_root = $absHotelDruid
+                $existingSettings.web_server.www_directory = $wwwRelative
             }
-            # Remove www_directory to avoid parser conflicts
-            try { $existingSettings.web_server.PSObject.Properties.Remove('www_directory') } catch { }
+            # Remove non-standard 'document_root' to avoid schema issues
+            try { $existingSettings.web_server.PSObject.Properties.Remove('document_root') } catch { }
 
             # Ensure index_files includes inizio.php first
             $existingSettings.web_server | Add-Member -NotePropertyName 'index_files' -NotePropertyValue @('inizio.php','index.html','index.php') -Force
