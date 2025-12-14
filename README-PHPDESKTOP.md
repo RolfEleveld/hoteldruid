@@ -85,7 +85,7 @@ Settings are stored in `phpdesktop/settings.json`. Key settings:
 
 HotelDruid will use SQLite by default. The database file will be stored in:
 
-```
+```text
 hoteldruid/dati/db_hoteldruid
 ```
 
@@ -143,7 +143,7 @@ If the automated setup doesn't work:
    - Extract to `phpdesktop/` directory
 
 2. **Configure settings.json**:
-   - Copy `hoteldruid/phpdesktop-settings.json` to `phpdesktop/settings.json`
+   - Use `hoteldruid-config.php` for data path configuration.
    - Adjust paths if needed
 
 3. **Verify server.php exists**:

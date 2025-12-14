@@ -267,44 +267,7 @@ define('C_DATI_PATH_EXTERNAL', "$phpDataPath");
     $configContent | Set-Content $OutputPath -Encoding UTF8
 }
 
-function Update-PhpDesktopSettings {
-    <#
-    .SYNOPSIS
-        Update phpdesktop-settings.json with detected data path (if file exists)
-    #>
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$DataPath,
-        
-        [Parameter(Mandatory=$true)]
-        [string]$SettingsPath
-    )
-    
-    if (-not (Test-Path $SettingsPath)) {
-        return  # File doesn't exist, skip
-    }
-    
-    try {
-        # Convert to forward slashes for JSON
-        $jsonDataPath = $DataPath -replace '\\', '/'
-        
-        # Read existing settings
-        $settings = Get-Content $SettingsPath -Encoding UTF8 | ConvertFrom-Json
-        
-        # Ensure hoteldruid section exists
-        if (-not ($settings | Get-Member -Name 'hoteldruid')) {
-            $settings | Add-Member -NotePropertyName 'hoteldruid' -NotePropertyValue @{}
-        }
-        
-        # Set data_path
-        $settings.hoteldruid.data_path = $jsonDataPath
-        
-        # Write back to file
-        $settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding UTF8
-    } catch {
-        Write-Warning "Failed to update phpdesktop-settings.json: $_"
-    }
-}
+
 
 function Show-SettingsSummary {
     <#
@@ -414,9 +377,7 @@ if (-not (Test-Path $DataFolder)) {
 $configFile = Join-Path $InstallDir 'hoteldruid' 'hoteldruid-config.php'
 New-ConfigFile -DataPath $DataFolder -OutputPath $configFile
 
-# Update phpdesktop settings if file exists
-$phpDesktopSettings = Join-Path $InstallDir 'phpdesktop' 'settings.json'
-Update-PhpDesktopSettings -DataPath $DataFolder -SettingsPath $phpDesktopSettings
+# Note: phpdesktop runtime settings are no longer modified here.
 
 # Save settings
 Save-DeploymentSettings -InstallDirectory $InstallDir -DataDirectory $DataFolder -OneDrivePath $selectedOneDrive

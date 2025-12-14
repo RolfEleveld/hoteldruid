@@ -38,6 +38,9 @@
 
 2. **Deep dive:** [DEPLOYMENT_CONFIG_GUIDE.md](DEPLOYMENT_CONFIG_GUIDE.md) - Architecture section
 
+3. **hoteldruid app docs:**
+   - [hoteldruid/CONFIGURATION.md](hoteldruid/CONFIGURATION.md) — configuration
+
 ---
 
 ## 📁 Files Created/Modified

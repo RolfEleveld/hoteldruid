@@ -2,7 +2,15 @@
 
 Complete Docker containerization setup for the HotelDruid hotel management system with a modern LAMP stack.
 
-## 🎯 Quick Start Guide
+## 🎯 Quick Start Guide phpDesktop
+
+- Get clone of this repository
+- Run ```./build_deployment_package.ps1```  
+- On target machine unzip the package from ```./out/``` folder
+- On target machine in the unzipped folder run ```./install_release.ps1 -Language en```
+- Run the PHPDesktop to run HotelDruid
+
+## 🎯 Quick Start Guide Docker
 
 ### 1. Prerequisites
 
@@ -27,6 +35,16 @@ docker-compose up -d
 - **Database**: localhost:3306
 
 ## 📋 What's Included
+
+### 📚 Documentation Index
+
+For consolidated documentation and navigation, see [INDEX.md](INDEX.md).
+
+- Purpose: A single entry point to setup, configuration, workflows, and developer notes
+- Quick links for developers:
+  - [hoteldruid/SETUP.md](hoteldruid/SETUP.md) — setup
+  - [hoteldruid/CONFIGURATION.md](hoteldruid/CONFIGURATION.md) — configuration
+  - [hoteldruid/DEVELOPER.md](hoteldruid/DEVELOPER.md) — developer notes
 
 ### 🐳 Docker Services
 
@@ -87,7 +105,6 @@ setup-phpdesktop.ps1
 start-hoteldruid-desktop.ps1
 package-release.ps1
 ```
-
 
 ## 📁 Project Structure
 

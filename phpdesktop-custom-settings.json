@@ -1,0 +1,22 @@
+{
+    "debugging":  {
+        "show_console":  false,
+        "subprocess_show_console":  false
+    },
+    "main_window": {
+        "title": "Villa Annuziata Hotel Management",
+        "icon": "../hoteldruid/img/logo48x48.png",
+        "default_size": [1920, 1080],
+        "minimum_size": [640, 480],
+        "center_on_screen":  true
+    },
+    "web_server": {
+        "listen_on":  ["127.0.0.1",8080],
+        "www_directory": "../hoteldruid",
+        "index_files": ["inizio.php", "index.html", "index.php"],
+        "404_handler": "/pretty-urls.php"
+    },
+    "chrome": {
+        "runtime_style": "alloy"
+    }
+}

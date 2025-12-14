@@ -1,4 +1,4 @@
-# build_customer_package.md
+# build_deployment_package.md
 
 This document describes how to build and test the customer-ready **Windows Desktop** package (phpdesktop + PHP + HotelDruid), and how the customer installs it.
 
@@ -14,7 +14,7 @@ This document describes how to build and test the customer-ready **Windows Deskt
 From the repo root:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\build_customer_package.ps1
+pwsh -ExecutionPolicy Bypass -File .\build_deployment_package.ps1
 ```
 
 Output:
@@ -26,25 +26,25 @@ Output:
 - Keep all Chromium locales (bigger package):
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\build_customer_package.ps1 -KeepAllLocales
+pwsh -ExecutionPolicy Bypass -File .\build_deployment_package.ps1 -KeepAllLocales
 ```
 
 - Keep only specific locales (default list is already set to `en-US`, `en-GB`, `it`, `es`, `es-419`). You can override it:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\build_customer_package.ps1 -KeepLocales @('it','en-US','es')
+pwsh -ExecutionPolicy Bypass -File .\build_deployment_package.ps1 -KeepLocales @('it','en-US','es')
 ```
 
 - Skip download and use a local phpdesktop ZIP (useful for repeatable builds / offline builds):
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\build_customer_package.ps1 -SkipDownload -PhpDesktopZipPath C:\path\to\phpdesktop.zip
+pwsh -ExecutionPolicy Bypass -File .\build_deployment_package.ps1 -SkipDownload -PhpDesktopZipPath C:\path\to\phpdesktop.zip
 ```
 
 - Disable pruning entirely (largest output; best for debugging):
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\build_customer_package.ps1 -NoPrune
+pwsh -ExecutionPolicy Bypass -File .\build_deployment_package.ps1 -NoPrune
 ```
 
 ## What goes into the ZIP

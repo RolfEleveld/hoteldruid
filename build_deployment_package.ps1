@@ -11,8 +11,8 @@ This approach:
   - Data is preserved on updates/redeploys
 
 Usage:
-  .\build_customer_package.ps1
-  .\build_customer_package.ps1 -OutputZip .\out\HotelDruid-slim.zip
+  .\build_deployment_package.ps1
+  .\build_deployment_package.ps1 -OutputZip .\out\HotelDruid-slim.zip
 #>
 
 [CmdletBinding()]
@@ -63,6 +63,13 @@ New-Item -Path $tempStaging -ItemType Directory -Force | Out-Null
 Write-Host "Adding installer and launcher scripts..." -ForegroundColor Cyan
 Copy-Item -LiteralPath $repoInstaller -Destination (Join-Path $tempStaging 'install_release.ps1') -Force
 Copy-Item -LiteralPath $repoLauncher -Destination (Join-Path $tempStaging 'start-hoteldruid-desktop.ps1') -Force
+
+# Copy phpdesktop custom settings file if it exists
+$customSettingsFile = Join-Path $RepoRoot 'phpdesktop-custom-settings.json'
+if (Test-Path -LiteralPath $customSettingsFile) {
+	Write-Host "Adding custom phpdesktop settings..." -ForegroundColor Cyan
+	Copy-Item -LiteralPath $customSettingsFile -Destination (Join-Path $tempStaging 'phpdesktop-custom-settings.json') -Force
+}
 
 # Create comprehensive README
 $readmePath = Join-Path $tempStaging 'README.md'

@@ -21,7 +21,7 @@ $ErrorActionPreference = 'Stop'
 New-Item -Path $SandboxRoot -ItemType Directory -Force | Out-Null
 
 Write-Host "Building customer package..." -ForegroundColor Cyan
-$zipPath = & (Join-Path $PSScriptRoot 'build_customer_package.ps1')
+$zipPath = & (Join-Path $PSScriptRoot 'build_deployment_package.ps1')
 if (-not $zipPath -or -not (Test-Path -LiteralPath $zipPath)) {
 		throw "Build did not produce a zip path."
 }

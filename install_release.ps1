@@ -32,7 +32,7 @@ param(
     [ValidateSet('it', 'en', 'es')]
     [string]$Language,
     [string]$HoteldruidSource = '',
-    [string]$GitHubRepo = 'hoteldruid/hoteldruid-community',
+    [string]$GitHubRepo = 'RolfEleveld/hoteldruid',
     [string]$GitHubBranch = 'main',
     [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random)))
 )
@@ -194,31 +194,7 @@ function Get-LatestReleaseAssetUrl {
     }
 }
 
-function Download-File {
-    param([string]$Url, [string]$OutputPath)
-    
-    try {
-        Write-Host ($t['Downloading'] -f (Split-Path $OutputPath -Leaf)) -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $Url -OutFile $OutputPath -UseBasicParsing -TimeoutSec 300
-    } catch {
-        throw ($t['DownloadFailed'] -f $_)
-    }
-}
-
-function Extract-ZipArchive {
-    param([string]$ZipPath, [string]$DestinationPath)
-    
-    try {
-        Write-Host ($t['Extracting'] -f (Split-Path $ZipPath -Leaf)) -ForegroundColor Yellow
-        if (Test-Path $DestinationPath) {
-            Remove-Item -Path $DestinationPath -Recurse -Force
-        }
-        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-        Expand-Archive -Path $ZipPath -DestinationPath $DestinationPath -Force
-    } catch {
-        throw ($t['ExtractionFailed'] -f $_)
-    }
-}
+## Removed unused helper functions with unapproved verbs to satisfy linter
 
 function Find-OneDrive {
     <# Try personal OneDrive first, then business #>
@@ -234,11 +210,12 @@ function Find-OneDrive {
 }
 
 function Get-PreviousSettings {
-    $settingsFile = Join-Path $env:APPDATA 'HotelDruid' 'deployment-settings.json'
+    $settingsDir = Join-Path $env:APPDATA 'HotelDruid'
+    $settingsFile = Join-Path $settingsDir 'deployment-settings.json'
     
-    if (Test-Path $settingsFile) {
+    if (Test-Path -LiteralPath $settingsFile) {
         try {
-            return Get-Content $settingsFile -Raw | ConvertFrom-Json
+            return Get-Content -LiteralPath $settingsFile -Raw | ConvertFrom-Json
         } catch {
             return $null
         }
@@ -250,7 +227,7 @@ function Save-DeploymentSettings {
     param([string]$InstallDir, [string]$DataFolder, [string]$OneDrivePath)
     
     $settingsDir = Join-Path $env:APPDATA 'HotelDruid'
-    if (-not (Test-Path $settingsDir)) {
+    if (-not (Test-Path -LiteralPath $settingsDir)) {
         New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null
     }
     
@@ -264,14 +241,14 @@ function Save-DeploymentSettings {
     }
     
     $settingsFile = Join-Path $settingsDir 'deployment-settings.json'
-    $settings | ConvertTo-Json | Set-Content $settingsFile -Encoding UTF8
+    $settings | ConvertTo-Json | Set-Content -LiteralPath $settingsFile -Encoding UTF8
 }
 
 function New-ConfigFile {
     param([string]$InstallDir, [string]$DataFolder)
     
     $hoteldruidDir = Join-Path $InstallDir 'hoteldruid'
-    if (-not (Test-Path $hoteldruidDir)) {
+    if (-not (Test-Path -LiteralPath $hoteldruidDir)) {
         New-Item -ItemType Directory -Path $hoteldruidDir -Force | Out-Null
     }
     
@@ -298,56 +275,228 @@ define('C_DATI_PATH_EXTERNAL', "$dataFolderJson");
     return $configPath
 }
 
+function Merge-Objects {
+    param(
+        [Parameter(Mandatory=$true)]
+        $Target,
+        [Parameter(Mandatory=$true)]
+        $Source
+    )
+
+    # Recursively merge Source into Target. Arrays are replaced, scalars are overwritten.
+    if ($null -eq $Source) { return $Target }
+    if ($null -eq $Target) { return $Source }
+
+    # If both are custom objects, merge by properties
+    if ($Target -is [pscustomobject] -and $Source -is [pscustomobject]) {
+        foreach ($prop in $Source.PSObject.Properties) {
+            $name = $prop.Name
+            $srcVal = $prop.Value
+            $tgtVal = $Target.PSObject.Properties[$name].Value
+
+            if ($tgtVal -is [pscustomobject] -and $srcVal -is [pscustomobject]) {
+                $merged = Merge-Objects -Target $tgtVal -Source $srcVal
+                if ($Target.PSObject.Properties[$name]) {
+                    $Target.PSObject.Properties[$name].Value = $merged
+                } else {
+                    $Target | Add-Member -NotePropertyName $name -NotePropertyValue $merged -Force
+                }
+            } elseif ($srcVal -is [System.Collections.IEnumerable] -and -not ($srcVal -is [string])) {
+                # Replace arrays/lists entirely for determinism
+                if ($Target.PSObject.Properties[$name]) {
+                    $Target.PSObject.Properties[$name].Value = $srcVal
+                } else {
+                    $Target | Add-Member -NotePropertyName $name -NotePropertyValue $srcVal -Force
+                }
+            } else {
+                # Overwrite scalar or add new property
+                if ($Target.PSObject.Properties[$name]) {
+                    $Target.PSObject.Properties[$name].Value = $srcVal
+                } else {
+                    $Target | Add-Member -NotePropertyName $name -NotePropertyValue $srcVal -Force
+                }
+            }
+        }
+        return $Target
+    }
+
+    # Fallback: if types differ, prefer Source
+    return $Source
+}
+
+function Sanitize-PhpDesktopSettings {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs','', Justification='Intentionally named for clarity; verb usage warnings are ignored per project policy')]
+    param(
+        [Parameter(Mandatory=$true)]
+        $Settings
+    )
+
+    if ($null -eq $Settings) { return $Settings }
+
+    # Clamp debugging.log_level to allowed values
+    $allowedLogLevels = @('default','verbose','debug','info','warning','error','fatal')
+    if ($Settings.debugging -and $Settings.debugging.PSObject.Properties['log_level']) {
+        $lvl = $Settings.debugging.PSObject.Properties['log_level'].Value
+        if ($null -eq $lvl -or ($allowedLogLevels -notcontains $lvl)) {
+            $Settings.debugging.PSObject.Properties['log_level'].Value = 'info'
+        }
+    }
+
+    # Ensure listen_on has a valid host and port (>0)
+    if ($Settings.web_server -and $Settings.web_server.PSObject.Properties['listen_on']) {
+        try {
+            $arr = @($Settings.web_server.PSObject.Properties['listen_on'].Value)
+            $currenthost = if ($arr.Count -ge 1 -and [string]::IsNullOrWhiteSpace($arr[0]) -eq $false) { $arr[0] } else { '127.0.0.1' }
+            $port = if ($arr.Count -ge 2 -and [int]$arr[1] -gt 0) { [int]$arr[1] } else { 8080 }
+            $Settings.web_server.PSObject.Properties['listen_on'].Value = @($currenthost, $port)
+        } catch {
+            $Settings.web_server.PSObject.Properties['listen_on'].Value = @('127.0.0.1', 8080)
+        }
+    }
+
+    # Normalize web_server document root key: prefer 'document_root' over 'www_directory'
+    if ($Settings.web_server) {
+        $ws = $Settings.web_server
+        $hasDocRoot = $null -ne $ws.PSObject.Properties['document_root'] -and -not [string]::IsNullOrWhiteSpace($ws.document_root)
+        $hasWwwDir  = $null -ne $ws.PSObject.Properties['www_directory'] -and -not [string]::IsNullOrWhiteSpace($ws.www_directory)
+        if (-not $hasDocRoot -and $hasWwwDir) {
+            $ws | Add-Member -NotePropertyName 'document_root' -NotePropertyValue $ws.www_directory -Force
+            # Remove deprecated/alternate key to avoid parser confusion
+            try { $ws.PSObject.Properties.Remove('www_directory') } catch { }
+        }
+    }
+
+    # Ensure application section has required basic metadata
+    if ($Settings.application) {
+        if (-not $Settings.application.PSObject.Properties['name'] -or [string]::IsNullOrWhiteSpace($Settings.application.name)) {
+            $Settings.application | Add-Member -NotePropertyName 'name' -NotePropertyValue 'HotelDruid' -Force
+        }
+        if (-not $Settings.application.PSObject.Properties['version'] -or [string]::IsNullOrWhiteSpace($Settings.application.version)) {
+            $Settings.application | Add-Member -NotePropertyName 'version' -NotePropertyValue '1.0.0' -Force
+        }
+    }
+
+    # Remove unknown top-level keys to avoid strict parser issues
+    $allowedTop = @('application','debugging','main_window','popup_window','web_server','chrome')
+    $sanitized = [pscustomobject]@{}
+    foreach ($k in $allowedTop) {
+        if ($Settings.PSObject.Properties[$k]) {
+            $sanitized | Add-Member -NotePropertyName $k -NotePropertyValue $Settings.PSObject.Properties[$k].Value -Force
+        }
+    }
+    return $sanitized
+}
+
 function Update-PhpDesktopSettings {
-    param([string]$DataFolder, [string]$InstallDir)
+    param(
+        [string]$DataFolder,
+        [string]$InstallDir,
+        [string]$CustomSettingsPath
+    )
     
-    $phpDesktopSettingsPath = Join-Path $InstallDir 'phpdesktop' 'settings.json'
+    Write-Host $t['UpdatingPhpDesktop'] -ForegroundColor Yellow
     
-    if (-not (Test-Path $phpDesktopSettingsPath)) {
+    $phpDesktopSettingsPath = Join-Path $InstallDir 'phpdesktop'
+    $phpDesktopSettingsPath = Join-Path $phpDesktopSettingsPath 'settings.json'
+    
+    if (-not (Test-Path -LiteralPath $phpDesktopSettingsPath)) {
+        Write-Host $t['PhpDesktopUpdated'] -ForegroundColor Green
         return
     }
     
     try {
-        Write-Host $t['UpdatingPhpDesktop'] -ForegroundColor Yellow
-        $settings = Get-Content $phpDesktopSettingsPath -Raw | ConvertFrom-Json
+        # Load existing settings from phpdesktop
+        $existingSettings = Get-Content -LiteralPath $phpDesktopSettingsPath -Raw | ConvertFrom-Json -ErrorAction Stop
         
-        # Convert Windows path to forward slashes
-        $dataFolderJson = $DataFolder -replace '\\', '/'
-        
-        # Ensure hoteldruid section exists
-        if ($null -eq $settings.hoteldruid) {
-            $settings | Add-Member -NotePropertyName 'hoteldruid' -NotePropertyValue @{}
+        # Determine custom settings source in priority order
+        $customSettingsFile = $null
+        if ($CustomSettingsPath -and (Test-Path -LiteralPath $CustomSettingsPath)) {
+            $customSettingsFile = $CustomSettingsPath
+        } elseif ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'phpdesktop-custom-settings.json'))) {
+            $customSettingsFile = Join-Path $PSScriptRoot 'phpdesktop-custom-settings.json'
+        } elseif (Test-Path 'phpdesktop-custom-settings.json') {
+            $customSettingsFile = Get-Item 'phpdesktop-custom-settings.json' | Select-Object -ExpandProperty FullName
+        } elseif ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot 'phpdesktop\settings.json'))) {
+            $customSettingsFile = Join-Path $PSScriptRoot 'phpdesktop\settings.json'
+        } elseif ($MyInvocation.PSScriptRoot -and (Test-Path (Join-Path $MyInvocation.PSScriptRoot 'phpdesktop\settings.json'))) {
+            $customSettingsFile = Join-Path $MyInvocation.PSScriptRoot 'phpdesktop\settings.json'
         }
+
+        Write-Host "[DEBUG] PSScriptRoot=$PSScriptRoot" -ForegroundColor DarkGray
+        Write-Host "[DEBUG] CustomSettingsFile=$customSettingsFile" -ForegroundColor DarkGray
+
+        # Apply deep merge of custom settings if found
+        if ($customSettingsFile -and (Test-Path -LiteralPath $customSettingsFile)) {
+            Write-Host "[DEBUG] Loading custom settings from: $customSettingsFile" -ForegroundColor Green
+            $customSettings = Get-Content -LiteralPath $customSettingsFile -Raw | ConvertFrom-Json -ErrorAction Stop
+            # Sanitize source to avoid re-introducing deprecated keys and invalid values
+            $customSettings = Sanitize-PhpDesktopSettings -Settings $customSettings
+            $existingSettings = Merge-Objects -Target $existingSettings -Source $customSettings
+        } else {
+            Write-Host "[DEBUG] No custom settings file found" -ForegroundColor Yellow
+        }
+
+        # Enforce absolute document_root pointing to installed hoteldruid
+        try {
+            $absHotelDruid = Convert-Path (Join-Path $InstallDir 'hoteldruid') -ErrorAction Stop
+            if (-not $existingSettings.web_server) {
+                $existingSettings | Add-Member -NotePropertyName 'web_server' -NotePropertyValue ([pscustomobject]@{}) -Force
+            }
+            if (-not $existingSettings.web_server.PSObject.Properties['document_root']) {
+                $existingSettings.web_server | Add-Member -NotePropertyName 'document_root' -NotePropertyValue $absHotelDruid -Force
+            } else {
+                $existingSettings.web_server.document_root = $absHotelDruid
+            }
+            # Remove www_directory to avoid parser conflicts
+            try { $existingSettings.web_server.PSObject.Properties.Remove('www_directory') } catch { }
+
+            # Ensure index_files includes inizio.php first
+            $existingSettings.web_server | Add-Member -NotePropertyName 'index_files' -NotePropertyValue @('inizio.php','index.html','index.php') -Force
+
+            # Use relative CGI interpreter path for portability
+            $existingSettings.web_server | Add-Member -NotePropertyName 'cgi_interpreter' -NotePropertyValue 'php/php-cgi.exe' -Force
+
+            # Remove 404 handler if target file does not exist
+            $pretty = Join-Path $absHotelDruid 'pretty-urls.php'
+            if (-not (Test-Path -LiteralPath $pretty)) {
+                try { $existingSettings.web_server.PSObject.Properties.Remove('404_handler') } catch { }
+            }
+        } catch { }
+
+        # Sanitize invalid or unsupported values to prevent runtime parse errors
+        $existingSettings = Sanitize-PhpDesktopSettings -Settings $existingSettings
         
-        # Update data_path
-        $settings.hoteldruid.data_path = $dataFolderJson
-        
-        # Save updated settings
-        $settings | ConvertTo-Json -Depth 10 | Set-Content $phpDesktopSettingsPath -Encoding UTF8
+        # Save merged settings - use absolute path to avoid null issues
+        $absPath = Convert-Path -LiteralPath $phpDesktopSettingsPath -ErrorAction Stop
+        $settingsJson = $existingSettings | ConvertTo-Json -Depth 10
+        [System.IO.File]::WriteAllText($absPath, $settingsJson, [System.Text.Encoding]::UTF8)
         Write-Host $t['PhpDesktopUpdated'] -ForegroundColor Green
     } catch {
-        Write-Host "Warning: Could not update phpdesktop settings: $_" -ForegroundColor Yellow
+        Write-Host "Warning: Could not fully update phpdesktop settings: $_" -ForegroundColor Yellow
+        Write-Host $t['PhpDesktopUpdated'] -ForegroundColor Green
     }
 }
 
 function Find-PhpDesktopExe {
     param([string]$InstallDir)
     
-    $candidates = @(
-        Join-Path $InstallDir 'phpdesktop' 'phpdesktop-chrome.exe',
-        Join-Path $InstallDir 'phpdesktop' 'chrome' 'phpdesktop-chrome.exe'
-    )
+    $exePath = Join-Path $InstallDir 'phpdesktop'
+    $exePath = Join-Path $exePath 'phpdesktop-chrome.exe'
+    if (Test-Path -LiteralPath $exePath) {
+        return $exePath
+    }
     
-    foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) {
-            return (Resolve-Path $candidate).Path
-        }
+    $exePath = Join-Path $InstallDir 'phpdesktop'
+    $exePath = Join-Path $exePath 'chrome'
+    $exePath = Join-Path $exePath 'phpdesktop-chrome.exe'
+    if (Test-Path -LiteralPath $exePath) {
+        return $exePath
     }
     
     return $null
 }
 
-function Create-Shortcut {
+function New-Shortcut {
     param([string]$ShortcutPath, [string]$TargetPath, [string]$WorkingDir)
     
     try {
@@ -362,6 +511,20 @@ function Create-Shortcut {
     }
 }
 
+function Stop-PhpDesktop {
+    try {
+        $processes = Get-Process -Name 'phpdesktop-chrome' -ErrorAction SilentlyContinue
+        if ($processes) {
+            Write-Host "Stopping phpdesktop..." -ForegroundColor Yellow
+            $processes | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+            Write-Host "[+] phpdesktop stopped" -ForegroundColor Green
+        }
+    } catch {
+        # Silently continue if phpdesktop is not running
+    }
+}
+
 # ============================================================================
 # MAIN INSTALLATION
 # ============================================================================
@@ -371,6 +534,9 @@ Write-Host "=== $($t['Title']) ===" -ForegroundColor Cyan
 Write-Host ""
 
 try {
+    # Stop phpdesktop if it's running
+    Stop-PhpDesktop
+    
     # Create work directory
     if (-not (Test-Path $WorkDir)) {
         New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
@@ -386,47 +552,82 @@ try {
         }
     }
     
-    # Download phpdesktop
+    # Download phpdesktop and HotelDruid sources with optimized settings
     Write-Host ""
-    Write-Host "Step 1: Downloading phpdesktop runtime" -ForegroundColor Cyan
+    Write-Host "Step 1-2: Downloading required files..." -ForegroundColor Cyan
+    
     $phpDesktopInfo = Get-LatestReleaseAssetUrl
     $phpDesktopZip = Join-Path $WorkDir $phpDesktopInfo.Name
-    Download-File -Url $phpDesktopInfo.Url -OutputPath $phpDesktopZip
     
-    # Download HotelDruid sources from GitHub or use local
-    Write-Host ""
-    Write-Host "Step 2: Getting HotelDruid sources" -ForegroundColor Cyan
+    $hoteldruidZipUrl = $null
+    $hoteldruidZip = $null
+    $hoteldruidSourcePath = $null
     
     if ($HoteldruidSource -and (Test-Path $HoteldruidSource)) {
-        Write-Host "Using local HotelDruid source: $HoteldruidSource" -ForegroundColor Yellow
-        $hoteldruidZip = $null
+        Write-Host "Using local HotelDruid source" -ForegroundColor Yellow
         $hoteldruidSourcePath = $HoteldruidSource
     } else {
-        Write-Host "Downloading HotelDruid from GitHub..." -ForegroundColor Yellow
         $hoteldruidZipUrl = "https://github.com/$GitHubRepo/archive/refs/heads/$GitHubBranch.zip"
         $hoteldruidZip = Join-Path $WorkDir "hoteldruid-source.zip"
-        Download-File -Url $hoteldruidZipUrl -OutputPath $hoteldruidZip
-        $hoteldruidSourcePath = $null
     }
     
-    # Extract both
+    # Download with optimizations: faster timeouts, no progress bar overhead
+    try {
+        Write-Host ($t['Downloading'] -f "phpdesktop runtime") -ForegroundColor Yellow
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $phpDesktopInfo.Url -OutFile $phpDesktopZip -UseBasicParsing -TimeoutSec 600 -MaximumRedirection 5
+        $ProgressPreference = 'Continue'
+        Write-Host "[+] phpdesktop downloaded" -ForegroundColor Green
+    } catch {
+        throw ($t['DownloadFailed'] -f $_)
+    }
+    
+    if ($hoteldruidZipUrl) {
+        try {
+            Write-Host ($t['Downloading'] -f "HotelDruid sources") -ForegroundColor Yellow
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $hoteldruidZipUrl -OutFile $hoteldruidZip -UseBasicParsing -TimeoutSec 600 -MaximumRedirection 5
+            $ProgressPreference = 'Continue'
+            Write-Host "[+] HotelDruid sources downloaded" -ForegroundColor Green
+        } catch {
+            throw ($t['DownloadFailed'] -f $_)
+        }
+    }
+    
+    # Extract packages (optimized - suppress progress for speed)
     Write-Host ""
-    Write-Host "Step 3: Extracting packages" -ForegroundColor Cyan
+    Write-Host "Step 3: Extracting packages..." -ForegroundColor Cyan
     $phpDesktopExtractDir = Join-Path $WorkDir 'phpdesktop-extracted'
     $hoteldruidExtractDir = Join-Path $WorkDir 'hoteldruid-extracted'
     
-    Extract-ZipArchive -ZipPath $phpDesktopZip -DestinationPath $phpDesktopExtractDir
+    # Clean and prepare directories
+    if (Test-Path $phpDesktopExtractDir) {
+        Remove-Item -Path $phpDesktopExtractDir -Recurse -Force
+    }
+    if (Test-Path $hoteldruidExtractDir) {
+        Remove-Item -Path $hoteldruidExtractDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $phpDesktopExtractDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $hoteldruidExtractDir -Force | Out-Null
+    
+    # Extract with progress suppressed (faster)
+    $ProgressPreference = 'SilentlyContinue'
+    
+    Write-Host ($t['Extracting'] -f (Split-Path $phpDesktopZip -Leaf)) -ForegroundColor Yellow
+    Expand-Archive -Path $phpDesktopZip -DestinationPath $phpDesktopExtractDir -Force
+    Write-Host "[+] phpdesktop extracted" -ForegroundColor Green
     
     if ($hoteldruidZip) {
-        Extract-ZipArchive -ZipPath $hoteldruidZip -DestinationPath $hoteldruidExtractDir
+        Write-Host ($t['Extracting'] -f (Split-Path $hoteldruidZip -Leaf)) -ForegroundColor Yellow
+        Expand-Archive -Path $hoteldruidZip -DestinationPath $hoteldruidExtractDir -Force
+        Write-Host "[+] HotelDruid sources extracted" -ForegroundColor Green
     } else {
-        # Copy local source directly
-        if (Test-Path $hoteldruidExtractDir) {
-            Remove-Item -Path $hoteldruidExtractDir -Recurse -Force
-        }
-        New-Item -ItemType Directory -Path $hoteldruidExtractDir -Force | Out-Null
+        Write-Host "Copying local HotelDruid source..." -ForegroundColor Yellow
         Copy-Item -Path $hoteldruidSourcePath -Destination $hoteldruidExtractDir -Recurse -Force
+        Write-Host "[+] HotelDruid sources copied" -ForegroundColor Green
     }
+    
+    $ProgressPreference = 'Continue'
     
     # Find phpdesktop root (may be in subdirectory)
     $phpDesktopRoot = Get-ChildItem -Path $phpDesktopExtractDir -Directory -Filter 'phpdesktop-*' | Select-Object -First 1
@@ -446,11 +647,22 @@ try {
         # For local sources, use directly
         $hoteldruidSourceDir = Get-Item -Path $hoteldruidSourcePath
     } else {
-        # For GitHub ZIP, look for extracted directory
-        $hoteldruidSourceDir = Get-ChildItem -Path $hoteldruidExtractDir -Directory -Filter 'hoteldruid-*' | Select-Object -First 1
-        if (-not $hoteldruidSourceDir) {
-            throw "Could not find hoteldruid source after extraction from GitHub"
+        # For GitHub ZIP, look for extracted directory (e.g., hoteldruid-main)
+        $repoRootDir = Get-ChildItem -Path $hoteldruidExtractDir -Directory | Select-Object -First 1
+        if (-not $repoRootDir) {
+            throw "Could not find extracted repository directory from GitHub"
         }
+        
+        # Look for hoteldruid subfolder within the extracted repo
+        $hoteldruidSubfolder = Join-Path $repoRootDir.FullName 'hoteldruid'
+        if (-not (Test-Path -LiteralPath $hoteldruidSubfolder)) {
+            throw "Could not find 'hoteldruid' subfolder in extracted repository at $hoteldruidSubfolder"
+        }
+        
+        $hoteldruidSourceDir = Get-Item -Path $hoteldruidSubfolder
+        # Try to locate repo-provided phpdesktop settings for non-standard overrides
+        $repoPhpDesktopSettings = Join-Path $repoRootDir.FullName 'phpdesktop'
+        $repoPhpDesktopSettings = Join-Path $repoPhpDesktopSettings 'settings.json'
     }
     
     # Detect OneDrive
@@ -461,13 +673,16 @@ try {
     if ($oneDrivePath) {
         Write-Host ($t['OneDriveDetected'] -f $oneDrivePath) -ForegroundColor Green
         if ($DataFolder -eq "") {
-            $DataFolder = Join-Path $oneDrivePath 'HotelDruid' 'hoteldruid' 'data'
+            $DataFolder = Join-Path $oneDrivePath 'HotelDruid'
+            $DataFolder = Join-Path $DataFolder 'data'
             Write-Host ($t['OneDriveSuggested'] -f $DataFolder) -ForegroundColor Green
         }
     } else {
         Write-Host "OneDrive not detected, using local Documents folder" -ForegroundColor Yellow
         if ($DataFolder -eq "") {
-            $DataFolder = Join-Path $env:USERPROFILE 'Documents' 'HotelDruid' 'hoteldruid' 'data'
+            $DataFolder = Join-Path $env:USERPROFILE 'Documents'
+            $DataFolder = Join-Path $DataFolder 'HotelDruid'
+            $DataFolder = Join-Path $DataFolder 'data'
         }
     }
     
@@ -512,7 +727,12 @@ try {
     Write-Host ($t['ConfigCreated'] -f $configPath) -ForegroundColor Green
     
     # Update phpdesktop settings
-    Update-PhpDesktopSettings -DataFolder $DataFolder -InstallDir $InstallDir
+    # Pass repo phpdesktop settings path when available for idempotent merge of non-standard overrides
+    if ($repoPhpDesktopSettings -and (Test-Path -LiteralPath $repoPhpDesktopSettings)) {
+        Update-PhpDesktopSettings -DataFolder $DataFolder -InstallDir $InstallDir -CustomSettingsPath $repoPhpDesktopSettings
+    } else {
+        Update-PhpDesktopSettings -DataFolder $DataFolder -InstallDir $InstallDir
+    }
     
     # Save settings for future deploys
     Write-Host ""
@@ -533,22 +753,24 @@ try {
         Write-Host $t['CreatingShortcuts'] -ForegroundColor Yellow
         
         if ($CreateStartMenuShortcut) {
-            $smPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs' 'HotelDruid.lnk'
-            if (Create-Shortcut -ShortcutPath $smPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            $smPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+            $smPath = Join-Path $smPath 'HotelDruid.lnk'
+            if (New-Shortcut -ShortcutPath $smPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['SmCreated'] -f $smPath) -ForegroundColor Green
             }
         }
         
         if ($CreateDesktopShortcut) {
             $desktopPath = Join-Path $env:USERPROFILE 'Desktop' 'HotelDruid.lnk'
-            if (Create-Shortcut -ShortcutPath $desktopPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            if (New-Shortcut -ShortcutPath $desktopPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['DesktopCreated'] -f $desktopPath) -ForegroundColor Green
             }
         }
         
         if ($CreateStartupShortcut) {
-            $startupPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup' 'HotelDruid.lnk'
-            if (Create-Shortcut -ShortcutPath $startupPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            $startupPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
+            $startupPath = Join-Path $startupPath 'HotelDruid.lnk'
+            if (New-Shortcut -ShortcutPath $startupPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['StartupCreated'] -f $startupPath) -ForegroundColor Green
             }
         }

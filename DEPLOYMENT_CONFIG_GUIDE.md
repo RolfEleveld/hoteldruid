@@ -92,7 +92,11 @@ This command will:
 .\install_release.ps1 -UseDeploymentConfig -Language 'it'
 ```
 
-## Configuration File
+## Configuration Files
+
+### App Configuration (hoteldruid-config.php)
+
+Hoteldruid uses a single app-specific configuration file updated during deployment. phpdesktop runtime settings are generated separately and should not be embedded inside the app.
 
 ### Generated Location
 
@@ -102,7 +106,7 @@ During installation, the script creates:
 <InstallDir>\hoteldruid\hoteldruid-config.php
 ```
 
-### Configuration Example
+### Configuration Example (App)
 
 ```php
 <?php
@@ -115,6 +119,23 @@ define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/HotelDruid/hoteldruid/da
 - **Windows paths:** Use forward slashes `/` or double backslashes `\\`
 - **Relative paths:** Supported (relative to application directory)
 - **Default:** If empty, uses `./dati` relative to application
+
+## Runtime Settings (phpdesktop)
+
+The phpdesktop runtime reads its own `settings.json` located under the installed phpdesktop directory. Configure via `hoteldruid-config.php` for data directory selection.
+
+Generated at:
+
+```text
+<InstallDir>\phpdesktop\settings.json
+```
+
+Key fields set by the installer:
+
+- document_root: absolute path to `<InstallDir>\hoteldruid`
+- index_files: includes `inizio.php`
+- cgi_interpreter: `php/php-cgi.exe`
+- listen_on: `["127.0.0.1", 8080]`
 
 ## Settings Persistence
 
