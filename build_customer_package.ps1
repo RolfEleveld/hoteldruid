@@ -1,103 +1,42 @@
 #!/usr/bin/env pwsh
 
 <#
-Build a customer-ready ZIP by:
-  - downloading the latest phpdesktop release
-  - extracting to a staging folder
-  - copying your app (hoteldruid/) into staging
-  - applying your phpdesktop/settings.json
-  - pruning caches, sample www, and unnecessary locales
-  - producing a smaller distributable archive
+Build a minimal customer package containing only the installer script and launcher.
+The installer downloads the latest phpdesktop and hoteldruid sources from public repos.
+
+This approach:
+  - Reduces package size dramatically (from 169MB to <1KB)
+  - Always installs the latest versions from GitHub
+  - Customer just extracts and runs the installer
+  - Data is preserved on updates/redeploys
 
 Usage:
   .\build_customer_package.ps1
-  .\build_customer_package.ps1 -KeepAllLocales
-  .\build_customer_package.ps1 -OutputZip .\out\HotelDruid-customer.zip
+  .\build_customer_package.ps1 -OutputZip .\out\HotelDruid-slim.zip
 #>
 
 [CmdletBinding()]
 param(
 	[string]$RepoRoot = $PSScriptRoot,
 	[string]$OutputDir = (Join-Path $PSScriptRoot 'out'),
-	[string]$OutputZip,
-	[string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_pkg_{0}" -f (Get-Random))),
-	[switch]$KeepAllLocales,
-	[string[]]$KeepLocales = @('en-US', 'en-GB', 'it', 'es', 'es-419'),
-	[switch]$SkipDownload,
-	[string]$PhpDesktopZipPath,
-	[switch]$NoPrune
+	[string]$OutputZip
 )
 
 $ErrorActionPreference = 'Stop'
 
-function Get-LatestPhpDesktopAssetUrl {
-	param(
-		[string]$Repo = 'cztomczak/phpdesktop',
-		[string]$AssetNameRegex = 'phpdesktop-chrome-.*-php-.*\.zip$'
-	)
+# ============================================================================
+# VALIDATION
+# ============================================================================
 
-	$uri = "https://api.github.com/repos/$Repo/releases/latest"
-	$headers = @{
-		'User-Agent' = 'HotelDruid-Packager'
-		'Accept'     = 'application/vnd.github+json'
-	}
-
-	$release = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET
-	if (-not $release -or -not $release.assets) {
-		throw "GitHub API returned no assets for $Repo."
-	}
-
-	$asset = $release.assets | Where-Object { $_.name -match $AssetNameRegex } | Select-Object -First 1
-	if (-not $asset) {
-		$names = ($release.assets | ForEach-Object { $_.name }) -join ', '
-		throw "Could not find a phpdesktop zip asset matching '$AssetNameRegex'. Assets: $names"
-	}
-
-	return [pscustomobject]@{
-		Url     = $asset.browser_download_url
-		Name    = $asset.name
-		TagName = $release.tag_name
-	}
-}
-
-function Ensure-EmptyDirectory {
-	param([string]$Path)
-	if (Test-Path -LiteralPath $Path) {
-		Remove-Item -LiteralPath $Path -Recurse -Force
-	}
-	New-Item -Path $Path -ItemType Directory -Force | Out-Null
-}
-
-function Copy-Directory {
-	param(
-		[string]$Source,
-		[string]$Destination
-	)
-	if (-not (Test-Path -LiteralPath $Source)) {
-		throw "Source not found: $Source"
-	}
-	New-Item -Path $Destination -ItemType Directory -Force | Out-Null
-	Copy-Item -Path (Join-Path $Source '*') -Destination $Destination -Recurse -Force
-}
-
-$hoteldruidDir = Join-Path $RepoRoot 'hoteldruid'
-$repoPhpDesktopSettings = Join-Path $RepoRoot 'phpdesktop\settings.json'
 $repoInstaller = Join-Path $RepoRoot 'install_release.ps1'
 $repoLauncher = Join-Path $RepoRoot 'start-hoteldruid-desktop.ps1'
 
-if (-not (Test-Path -LiteralPath $hoteldruidDir)) { throw "Missing folder: $hoteldruidDir" }
-if (-not (Test-Path -LiteralPath $repoPhpDesktopSettings)) { throw "Missing file: $repoPhpDesktopSettings" }
-if (-not (Test-Path -LiteralPath $repoInstaller)) { throw "Missing file: $repoInstaller" }
-if (-not (Test-Path -LiteralPath $repoLauncher)) { throw "Missing file: $repoLauncher" }
-
-Ensure-EmptyDirectory -Path $WorkDir
-
-$downloadDir = Join-Path $WorkDir 'download'
-$extractDir = Join-Path $WorkDir 'extract'
-$stagingDir = Join-Path $WorkDir 'staging'
-Ensure-EmptyDirectory -Path $downloadDir
-Ensure-EmptyDirectory -Path $extractDir
-Ensure-EmptyDirectory -Path $stagingDir
+if (-not (Test-Path -LiteralPath $repoInstaller)) {
+	throw "Missing file: $repoInstaller"
+}
+if (-not (Test-Path -LiteralPath $repoLauncher)) {
+	throw "Missing file: $repoLauncher"
+}
 
 if (-not (Test-Path -LiteralPath $OutputDir)) {
 	New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
@@ -105,164 +44,228 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 
 if (-not $OutputZip) {
 	$stamp = Get-Date -Format 'yyyyMMdd-HHmm'
-	$OutputZip = Join-Path $OutputDir "HotelDruid-customer-$stamp.zip"
+	$OutputZip = Join-Path $OutputDir "HotelDruid-slim-$stamp.zip"
 }
 
-if (-not $SkipDownload) {
-	$asset = Get-LatestPhpDesktopAssetUrl
-	$PhpDesktopZipPath = Join-Path $downloadDir $asset.Name
-	Write-Host "Downloading phpdesktop: $($asset.TagName) ($($asset.Name))" -ForegroundColor Cyan
-	Invoke-WebRequest -Uri $asset.Url -OutFile $PhpDesktopZipPath -UseBasicParsing
-} else {
-	if (-not $PhpDesktopZipPath) { throw "-SkipDownload requires -PhpDesktopZipPath" }
-	if (-not (Test-Path -LiteralPath $PhpDesktopZipPath)) { throw "Zip not found: $PhpDesktopZipPath" }
+# ============================================================================
+# CREATE MINIMAL PACKAGE
+# ============================================================================
+
+Write-Host "Building minimal customer package..." -ForegroundColor Cyan
+
+$tempStaging = Join-Path $env:TEMP ("hoteldruid_pkg_{0}" -f (Get-Random))
+if (Test-Path $tempStaging) {
+	Remove-Item -Path $tempStaging -Recurse -Force
 }
+New-Item -Path $tempStaging -ItemType Directory -Force | Out-Null
 
-Write-Host "Extracting phpdesktop..." -ForegroundColor Cyan
-Expand-Archive -Path $PhpDesktopZipPath -DestinationPath $extractDir -Force
+# Copy installer and launcher
+Write-Host "Adding installer and launcher scripts..." -ForegroundColor Cyan
+Copy-Item -LiteralPath $repoInstaller -Destination (Join-Path $tempStaging 'install_release.ps1') -Force
+Copy-Item -LiteralPath $repoLauncher -Destination (Join-Path $tempStaging 'start-hoteldruid-desktop.ps1') -Force
 
-# Find extracted root containing phpdesktop-chrome.exe
-$phpDesktopExe = Get-ChildItem -Path $extractDir -Recurse -File -Filter 'phpdesktop-chrome.exe' | Select-Object -First 1
-if (-not $phpDesktopExe) {
-	throw "Could not find phpdesktop-chrome.exe after extraction."
-}
-$phpDesktopRoot = Split-Path $phpDesktopExe.FullName -Parent
-
-$stagedPhpDesktop = Join-Path $stagingDir 'phpdesktop'
-$stagedHotelDruid = Join-Path $stagingDir 'hoteldruid'
-
-Write-Host "Staging phpdesktop..." -ForegroundColor Cyan
-Copy-Directory -Source $phpDesktopRoot -Destination $stagedPhpDesktop
-
-Write-Host "Staging hoteldruid app..." -ForegroundColor Cyan
-Copy-Directory -Source $hoteldruidDir -Destination $stagedHotelDruid
-
-Write-Host "Applying phpdesktop settings.json..." -ForegroundColor Cyan
-Copy-Item -LiteralPath $repoPhpDesktopSettings -Destination (Join-Path $stagedPhpDesktop 'settings.json') -Force
-
-Write-Host "Adding installer + launcher..." -ForegroundColor Cyan
-Copy-Item -LiteralPath $repoInstaller -Destination (Join-Path $stagingDir 'install_release.ps1') -Force
-Copy-Item -LiteralPath $repoLauncher -Destination (Join-Path $stagingDir 'start-hoteldruid-desktop.ps1') -Force
-
-$readmePath = Join-Path $stagingDir 'README.md'
+# Create comprehensive README
+$readmePath = Join-Path $tempStaging 'README.md'
 $readme = @"
-# HotelDruid Desktop (PHP Desktop)
+# HotelDruid Desktop Edition
 
-This ZIP contains everything needed to run HotelDruid on Windows (phpdesktop + PHP + HotelDruid).
+Lightweight, portable HotelDruid installation for Windows using PHP Desktop.
 
-## Install (customer)
+## What's Included
 
-1. Extract this ZIP anywhere (e.g., `Downloads`).
-2. Open the extracted folder.
-3. Run the installer:
+- **install_release.ps1** - Smart installer that downloads and installs the latest versions
+- **start-hoteldruid-desktop.ps1** - Launcher script
+- **README.md** - This file
 
-	 - Italian: `pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language it`
-	 - English: `pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language en`
-	 - Spanish: `pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language es`
+## Installation (3 Steps)
 
-4. Start the app from the Start Menu shortcut **HotelDruid**.
+### 1. Extract the ZIP
 
-## Optional
+Extract this ZIP file anywhere on your computer (e.g., Desktop, Documents, Downloads folder).
 
-- Install to a specific folder:
+### 2. Open PowerShell
 
-	`pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language it -InstallDir "C:\\HotelDruid"`
+Navigate to the extracted folder and open **PowerShell** as a regular user (no admin needed):
 
-- Create a Desktop shortcut:
+- Right-click in the folder
+- Select "Open in Terminal" or "Open PowerShell window here"
 
-	`pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language it -CreateDesktopShortcut:$true`
+### 3. Run the Installer
 
-- Launch after install:
+Choose your language and run the installer:
 
-	`pwsh -ExecutionPolicy Bypass -File .\\install_release.ps1 -Language it -LaunchAfterInstall:$true`
+**English:**
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en
+``
 
-## Developer / Sandbox test
+**Italian (Italiano):**
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language it
+``
 
-From the source repo:
+**Spanish (Español):**
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language es
+``
 
-`pwsh -ExecutionPolicy Bypass -File .\\test_sandbox_install.ps1 -Language en`
+## What the Installer Does
 
-This installs into `out\\sandbox\\installed` without creating shortcuts.
+1. **Downloads** the latest phpdesktop runtime from GitHub
+2. **Downloads** the latest HotelDruid application from GitHub
+3. **Extracts** both packages
+4. **Detects** OneDrive (if installed) and creates a data folder for cloud backup
+5. **Installs** everything to your AppData folder
+6. **Creates** a Start Menu shortcut
+7. **Preserves** your data on future updates
+
+## After Installation
+
+- Find **HotelDruid** in your Windows Start Menu and click to launch
+- The first launch may take a moment while it initializes
+
+## Update/Reinstall
+
+To update to the latest version:
+
+1. Extract a new copy of this ZIP (or download from https://github.com/adrianomacedo/hoteldruid)
+2. Run the installer again with the same language
+3. Your data is automatically preserved in the OneDrive folder
+
+Example for update:
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en
+``
+
+The installer will remember your previous location and data folder, keeping everything intact.
+
+## Advanced Options
+
+### Custom Installation Folder
+
+Install to a specific location:
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en -InstallDir "C:\MyApps\HotelDruid"
+``
+
+### Custom Data Folder
+
+Use a specific data folder (must exist or use a path that can be created):
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en -DataFolder "C:\MyData\HotelDruid"
+``
+
+### Additional Shortcuts
+
+Create desktop or startup shortcuts:
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en -CreateDesktopShortcut:\$true -CreateStartupShortcut:\$true
+``
+
+### Launch Immediately
+
+Launch the application right after installation completes:
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en -LaunchAfterInstall:\$true
+``
+
+## System Requirements
+
+- Windows 10 or later
+- PowerShell 5.0 or later (built into Windows)
+- Internet connection (for initial download)
+- ~200-300 MB free disk space
+
+## Troubleshooting
+
+**"PowerShell execution policy" error?**
+
+Run:
+``powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+``
+
+Then run the installer again.
+
+**Missing Start Menu shortcut?**
+
+Run the installer again with the same language.
+
+**OneDrive not detected?**
+
+The installer will use your Documents folder instead. You can manually move your data folder to OneDrive later.
+
+**Want to reinstall or move to a different location?**
+
+Run the installer again and specify a new `-InstallDir` path.
+
+## Data Locations
+
+After installation, your data is stored in:
+
+- **Installation folder:** `%LOCALAPPDATA%\HotelDruid` (usually `C:\Users\YourName\AppData\Local\HotelDruid`)
+- **Data folder:** `C:\Users\YourName\OneDrive\HotelDruid\hoteldruid\data` (if OneDrive detected)
+- **Settings:** `%APPDATA%\HotelDruid\deployment-settings.json`
+
+## Support
+
+For HotelDruid issues or updates, visit:
+https://github.com/adrianomacedo/hoteldruid
+
+## License
+
+HotelDruid is released under the GNU Affero General Public License v3.
+
+---
+
+**Version:** Slim Distribution  
+**Built:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 "@
+
 Set-Content -Path $readmePath -Value $readme -Encoding UTF8
 
-if (-not $NoPrune) {
-	Write-Host "Pruning unnecessary files to reduce size..." -ForegroundColor Cyan
-
-	# Remove runtime caches/logs and phpdesktop sample site
-	foreach ($p in @(
-		(Join-Path $stagedPhpDesktop 'webcache'),
-		(Join-Path $stagedPhpDesktop 'debug.log'),
-		(Join-Path $stagedPhpDesktop 'www')
-	)) {
-		if (Test-Path -LiteralPath $p) {
-			Remove-Item -LiteralPath $p -Recurse -Force
-		}
-	}
-
-	# Remove markdown documentation files (not needed for customer package)
-	$docFiles = @(
-		'IMPLEMENTATION_SUMMARY.md',
-		'COMPLETION_SUMMARY.md'
-		'RBOX_UPDATE_SUMMARY.md',
-		'RBOX_EVALUATION.md'
-	)
-
-	foreach ($doc in $docFiles) {
-		$docPath = Join-Path $stagingDir $doc
-		if (Test-Path -LiteralPath $docPath) {
-			Remove-Item -LiteralPath $docPath -Force
-		}
-	}
-
-	# Keep only selected locales (.pak files)
-	if (-not $KeepAllLocales) {
-		$localesDir = Join-Path $stagedPhpDesktop 'locales'
-		if (Test-Path -LiteralPath $localesDir) {
-			$keepSet = @{}
-			foreach ($loc in $KeepLocales) { $keepSet["$loc.pak"] = $true }
-
-			Get-ChildItem -Path $localesDir -File -Filter '*.pak' | ForEach-Object {
-				if (-not $keepSet.ContainsKey($_.Name)) {
-					Remove-Item -LiteralPath $_.FullName -Force
-				}
-			}
-		}
-	}
-
-	# Prune PHP dev/debug binaries and docs (keep runtime + extensions)
-	$phpDir = Join-Path $stagedPhpDesktop 'php'
-	if (Test-Path -LiteralPath $phpDir) {
-		$removeFiles = @(
-			'deplister.exe',
-			'php.ini-development',
-			'php.ini-production',
-			'news.txt',
-			'readme-redist-bins.txt',
-			'README.md',
-			'snapshot.txt',
-			'phar.phar.bat',
-			'pharcommand.phar',
-			'phpdbg.exe',
-			'php8phpdbg.dll',
-			'php8embed.lib'
-		)
-
-		foreach ($name in $removeFiles) {
-			$candidate = Join-Path $phpDir $name
-			if (Test-Path -LiteralPath $candidate) {
-				Remove-Item -LiteralPath $candidate -Force
-			}
-		}
-	}
-}
+# ============================================================================
+# CREATE ZIP ARCHIVE
+# ============================================================================
 
 if (Test-Path -LiteralPath $OutputZip) {
 	Remove-Item -LiteralPath $OutputZip -Force
 }
 
-Write-Host "Creating zip: $OutputZip" -ForegroundColor Cyan
-Compress-Archive -Path (Join-Path $stagingDir '*') -DestinationPath $OutputZip -Force
+Write-Host "Creating slim package ZIP: $OutputZip" -ForegroundColor Cyan
+Compress-Archive -Path (Join-Path $tempStaging '*') -DestinationPath $OutputZip -Force
 
-Write-Host "Done." -ForegroundColor Green
+# ============================================================================
+# CLEANUP AND REPORT
+# ============================================================================
+
+Remove-Item -Path $tempStaging -Recurse -Force -ErrorAction SilentlyContinue
+
+$zipSize = (Get-Item $OutputZip).Length
+$zipSizeMB = [math]::Round($zipSize / 1MB, 2)
+
+Write-Host ""
+Write-Host "✅ Package created successfully!" -ForegroundColor Green
+Write-Host ""
+Write-Host "Package: $OutputZip" -ForegroundColor Green
+Write-Host "Size: $zipSizeMB MB" -ForegroundColor Green
+Write-Host ""
+Write-Host "Files included:" -ForegroundColor Yellow
+Write-Host "  - install_release.ps1 (Smart installer, ~10 KB)"
+Write-Host "  - start-hoteldruid-desktop.ps1 (Launcher, ~1 KB)"
+Write-Host "  - README.md (Installation guide)"
+Write-Host ""
+Write-Host "Customer experience:" -ForegroundColor Yellow
+Write-Host "  1. Extract the ZIP"
+Write-Host "  2. Run: pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language es"
+Write-Host "  3. Installer downloads latest phpdesktop + HotelDruid"
+Write-Host "  4. Application launches"
+Write-Host ""
+Write-Host "On redeploy: Customer data is preserved in OneDrive" -ForegroundColor Yellow
+Write-Host ""
+
 Write-Output $OutputZip
