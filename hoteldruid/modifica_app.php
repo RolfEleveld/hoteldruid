@@ -729,7 +729,8 @@ esegui_query("update $tableappartamenti set numpiano = '".aggslashdb($n_numpiano
 } # fine if ($n_numpiano != $comp_numpiano)
 if ($n_maxoccupanti != $comp_maxoccupanti) {
 $letto = esegui_query("select idappartamenti from $tableappartamenti where idappartamenti = '".aggslashdb($idappartamenti)."' and letto = '1' ");
-if (!numlin_query($letto)) {
+// Allow admins to override capacity for units flagged as 'letto'
+if (!numlin_query($letto) || $id_utente == 1) {
 $modificato = "SI";
 $n_maxoccupanti = (string) $n_maxoccupanti;
 if ($n_maxoccupanti == "") $n_maxoccupanti = "NULL";

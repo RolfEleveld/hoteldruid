@@ -5387,6 +5387,56 @@ echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"./visualizza_tabel
 } # fine if ((defined('C_CANCELLA_ANNO_ATTUALE') and C_CANCELLA_ANNO_ATTUALE == "SI") or $anno != $anno_attuale)
 } # fine if ($id_utente == 1)
 echo "</div>";
+
+// Admin capacity editor: allow editing maxoccupanti for all rooms, regardless of creation method
+if ($id_utente == 1 and $tipo_tabella == 'appartamenti' and empty($form_tabella)) {
+    // Handle updates
+    if (!empty($update_maxoccupanti) and $update_maxoccupanti == "1") {
+        $tabelle_lock = array($tableappartamenti);
+        $tabelle_lock = lock_tabelle($tabelle_lock);
+        $app_all = esegui_query("select idappartamenti from $tableappartamenti order by idappartamenti");
+        $num_all = numlin_query($app_all);
+        for ($i = 0; $i < $num_all; $i++) {
+            $rid = risul_query($app_all,$i,'idappartamenti');
+            $field = "maxoccupanti_".$rid;
+            if (isset(${$field})) {
+                $val = (int) fixset(${$field});
+                if ($val >= 0) {
+                    esegui_query("update $tableappartamenti set maxoccupanti = '".aggslashdb($val)."' where idappartamenti = '".aggslashdb($rid)."' ");
+                }
+            }
+        }
+        unlock_tabelle($tabelle_lock);
+        // Refresh data
+        $appartamenti = esegui_query("select * from $tableappartamenti order by idappartamenti");
+        $num_appartamenti = numlin_query($appartamenti);
+        echo "<div style=\"color: #155724; background: #d4edda; border: 1px solid #c3e6cb; padding: 8px; border-radius: 4px; margin: 10px auto; max-width: 700px;\">".mex("Capacità aggiornate",$pag)."</div>";
+    }
+
+    // Render editor
+    echo "<div class=\"modern-room-creation\" style=\"background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px auto; max-width: 700px;\">";
+    echo "<h3 style=\"margin-top: 0; color: #333; text-align: center;\">".mex("Modifica capacità camere",$pag)."</h3>";
+    echo "<form accept-charset=\"utf-8\" method=\"post\" action=\"visualizza_tabelle.php\" style=\"display: flex; flex-direction: column; gap: 10px;\"><div>";
+    echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">";
+    echo "<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">";
+    echo "<input type=\"hidden\" name=\"tipo_tabella\" value=\"appartamenti\">";
+    echo "<input type=\"hidden\" name=\"update_maxoccupanti\" value=\"1\">";
+
+    // Fetch rooms
+    $app_for_edit = esegui_query("select idappartamenti,maxoccupanti from $tableappartamenti order by idappartamenti");
+    $n_edit = numlin_query($app_for_edit);
+    echo "<table class=\"m1 t1color\" style=\"margin-left:auto;margin-right:auto; width:100%; max-width:640px;\" cellspacing=\"0\" cellpadding=\"6\">";
+    echo "<tr style=\"background:#eee;\"><th style=\"text-align:left;\">".mex("Camera",$pag)."</th><th style=\"text-align:right;\">".mex("Capacità massima",$pag)."</th></tr>";
+    for ($i = 0; $i < $n_edit; $i++) {
+        $rid = risul_query($app_for_edit,$i,'idappartamenti');
+        $cap = risul_query($app_for_edit,$i,'maxoccupanti');
+        if ($cap === NULL or $cap === "") $cap = 0;
+        echo "<tr><td style=\"text-align:left;\">$rid</td><td style=\"text-align:right;\"><input type=\"number\" min=\"0\" max=\"99\" name=\"maxoccupanti_$rid\" value=\"$cap\" style=\"width:80px; padding:6px; border:1px solid #ccc; border-radius:4px; text-align:right;\"></td></tr>";
+    }
+    echo "</table>";
+    echo "<div style=\"text-align:center; margin-top:12px;\"><button class=\"cont\" type=\"submit\" style=\"padding: 10px 20px; background:#007cba; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;\"><div>".mex("Salva capacità",$pag)."</div></button></div>";
+    echo "</div></form></div>";
+}
 } # fine if (!$form_tabella)
 else {
 echo "<input type=\"hidden\" name=\"lista_periodi\" value=\"".substr($lista_periodi,0,-1)."\">
@@ -7385,8 +7435,13 @@ echo "<td rowspan=\"".$num_letti_app[$nome_app_l]."\"><input type=\"text\" name=
 } # fine if ($primo_letto_app[$nome_app_l] == $idappartamenti)
 } # fine else if ($tutti_letti or !strcmp((string) $nome_app_letto_id[$idappartamenti],"") or $num_letti_app[$nome_app_letto_id[$idappartamenti] < 2])
 echo "<td>";
-if (!$letto) echo "<input type=\"text\" name=\"n_maxoccupanti$num1\" value=\"$maxoccupanti\" size=\"8\">";
-else echo "<input type=\"hidden\" name=\"n_maxoccupanti$num1\" value=\"$maxoccupanti\">$maxoccupanti";
+// Allow admin to edit capacity even for units flagged as 'letto' (bulk-created beds)
+if ($id_utente == 1) {
+    echo "<input type=\"text\" name=\"n_maxoccupanti$num1\" value=\"$maxoccupanti\" size=\"8\">";
+} else {
+    if (!$letto) echo "<input type=\"text\" name=\"n_maxoccupanti$num1\" value=\"$maxoccupanti\" size=\"8\">";
+    else echo "<input type=\"hidden\" name=\"n_maxoccupanti$num1\" value=\"$maxoccupanti\">$maxoccupanti";
+}
 echo "</td>
 <td><input type=\"text\" name=\"n_priorita$num1\" value=\"$priorita\" size=\"8\">
 <input type=\"hidden\" name=\"idappartamenti$num1\" value=\"$idappartamenti\">
