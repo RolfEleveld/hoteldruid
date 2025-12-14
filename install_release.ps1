@@ -38,6 +38,117 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# ============================================================================
+# VC++ REDISTRIBUTABLE (2015–2022 x64) HANDLING
+# ============================================================================
+
+function Test-VCRedistPresent {
+    try {
+        $sys = "$env:WINDIR\System32"
+        $needed = @('vcruntime140.dll','vcruntime140_1.dll','msvcp140.dll')
+        $dllsPresent = $true
+        foreach ($dll in $needed) { if (-not (Test-Path (Join-Path $sys $dll))) { $dllsPresent = $false } }
+        # Also check SysWOW64 for 32-bit scenarios, though we expect x64
+        if (-not $dllsPresent) {
+            $syswow = "$env:WINDIR\SysWOW64"
+            $dllsPresent = $true
+            foreach ($dll in $needed) { if (-not (Test-Path (Join-Path $syswow $dll))) { $dllsPresent = $false } }
+        }
+
+        $regPaths = @(
+            'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
+            'HKLM:\SOFTWARE\Microsoft\VisualStudio\15.0\VC\Runtimes\x64',
+            'HKLM:\SOFTWARE\Microsoft\VisualStudio\16.0\VC\Runtimes\x64',
+            'HKLM:\SOFTWARE\Microsoft\VisualStudio\17.0\VC\Runtimes\x64'
+        )
+        $regInstalled = $false
+        foreach ($rp in $regPaths) {
+            try {
+                $v = Get-ItemProperty -Path $rp -ErrorAction Stop
+                if ($null -ne $v -and $v.Installed -eq 1) { $regInstalled = $true; break }
+            } catch {}
+        }
+
+        if ($dllsPresent -or $regInstalled) { return $true }
+        return $false
+    } catch { return $false }
+}
+
+function Get-VCRedistLocalPath {
+    # Search repo root for VC++ installer
+    $candidates = @(
+        (Join-Path $PSScriptRoot 'vcredist_x64.exe'),
+        (Join-Path $PSScriptRoot 'VC_redist.x64.exe'),
+        'vcredist_x64.exe','VC_redist.x64.exe'
+    )
+    foreach ($c in $candidates) { if ($c -and (Test-Path -LiteralPath $c)) { return (Resolve-Path $c).Path } }
+    return $null
+}
+
+function Download-VCRedist {
+    param([string]$Destination)
+    try {
+        # Official Microsoft download URL (evergreen) often redirects to latest
+        $url = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
+        Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing -TimeoutSec 300
+        return $Destination
+    } catch {
+        throw "Failed to download VC++ Redistributable: $_"
+    }
+}
+
+function Ensure-VCRedistInstalled {
+    if (Test-VCRedistPresent) { return }
+    Write-Host "VC++ Redistributable not detected. Installing..." -ForegroundColor Yellow
+    $installer = Get-VCRedistLocalPath
+    if (-not $installer) {
+        $installer = Join-Path $env:TEMP "vc_redist.x64.exe"
+        $installer = Download-VCRedist -Destination $installer
+    }
+    try {
+        Write-Host "Running VC++ installer: $installer" -ForegroundColor Yellow
+        # Elevate if not running as admin
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $args = '/install /quiet /norestart'
+        if ($isAdmin) {
+            $proc = Start-Process -FilePath $installer -ArgumentList $args -Wait -PassThru -ErrorAction Stop
+        } else {
+            $proc = Start-Process -FilePath $installer -ArgumentList $args -Verb RunAs -Wait -PassThru -ErrorAction Stop
+        }
+        Write-Host "VC++ installer exit code: $($proc.ExitCode)" -ForegroundColor DarkGray
+        Start-Sleep -Seconds 2
+    } catch {
+        throw "VC++ installation failed: $_"
+    }
+    if (-not (Test-VCRedistPresent)) {
+        Write-Host "Primary install did not detect runtime; attempting repair..." -ForegroundColor Yellow
+        try {
+            $args2 = '/repair /quiet /norestart'
+            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if ($isAdmin) {
+                $proc2 = Start-Process -FilePath $installer -ArgumentList $args2 -Wait -PassThru -ErrorAction Stop
+            } else {
+                $proc2 = Start-Process -FilePath $installer -ArgumentList $args2 -Verb RunAs -Wait -PassThru -ErrorAction Stop
+            }
+            Write-Host "VC++ repair exit code: $($proc2.ExitCode)" -ForegroundColor DarkGray
+            Start-Sleep -Seconds 2
+        } catch {}
+    }
+    if (-not (Test-VCRedistPresent)) {
+        # Check for pending reboot condition that may delay DLL registration
+        try {
+            $pending = (Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager').PendingFileRenameOperations
+            if ($pending) {
+                Write-Host "VC++ installation may require a system restart to finalize." -ForegroundColor Yellow
+            }
+        } catch {}
+        Write-Host "Warning: VC++ Redistributable still not detected after install." -ForegroundColor Yellow
+        Write-Host "You may need to reboot the sandbox or run the installer manually: https://aka.ms/vs/17/release/vc_redist.x64.exe" -ForegroundColor Yellow
+        # Proceed with rest of installation; PHP CGI may fail until runtime is present.
+        return
+    }
+    Write-Host "VC++ Redistributable installed." -ForegroundColor Green
+}
 
 # ============================================================================
 # LANGUAGE STRINGS
@@ -444,8 +555,8 @@ function Update-PhpDesktopSettings {
             if (-not $existingSettings.web_server) {
                 $existingSettings | Add-Member -NotePropertyName 'web_server' -NotePropertyValue ([pscustomobject]@{}) -Force
             }
-            # Prefer standard key 'www_directory' (relative path is safest)
-            $wwwRelative = '..\hoteldruid'
+            # Prefer standard key 'www_directory' (relative path with forward slashes)
+            $wwwRelative = '../hoteldruid'
             if (-not $existingSettings.web_server.PSObject.Properties['www_directory']) {
                 $existingSettings.web_server | Add-Member -NotePropertyName 'www_directory' -NotePropertyValue $wwwRelative -Force
             } else {
@@ -473,11 +584,64 @@ function Update-PhpDesktopSettings {
         # Save merged settings - use absolute path to avoid null issues
         $absPath = Convert-Path -LiteralPath $phpDesktopSettingsPath -ErrorAction Stop
         $settingsJson = $existingSettings | ConvertTo-Json -Depth 10
-        [System.IO.File]::WriteAllText($absPath, $settingsJson, [System.Text.Encoding]::UTF8)
+        # Write as UTF-8 without BOM to avoid phpdesktop parser error
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($absPath, $settingsJson, $utf8NoBom)
         Write-Host $t['PhpDesktopUpdated'] -ForegroundColor Green
     } catch {
         Write-Host "Warning: Could not fully update phpdesktop settings: $_" -ForegroundColor Yellow
         Write-Host $t['PhpDesktopUpdated'] -ForegroundColor Green
+    }
+}
+
+function Test-InstallConfiguration {
+    param(
+        [string]$InstallDir,
+        [string]$DataFolder
+    )
+
+    $errors = @()
+
+    # Validate phpdesktop settings.json
+    $settingsPath = Join-Path (Join-Path $InstallDir 'phpdesktop') 'settings.json'
+    if (-not (Test-Path -LiteralPath $settingsPath)) {
+        $errors += "Missing phpdesktop settings.json at $settingsPath"
+    } else {
+        try {
+            $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json -ErrorAction Stop
+            if (-not $settings.web_server -or -not $settings.web_server.www_directory) {
+                $errors += "phpdesktop settings missing web_server.www_directory"
+            }
+        } catch {
+            $errors += "phpdesktop settings.json is invalid JSON: $_"
+        }
+    }
+
+    # Validate hoteldruid entry file exists
+    $wwwDir = Join-Path $InstallDir 'hoteldruid'
+    $inizio = Join-Path $wwwDir 'inizio.php'
+    if (-not (Test-Path -LiteralPath $inizio)) {
+        $errors += "Missing inizio.php at $inizio"
+    }
+
+    # Validate external data folder exists and is writable
+    if (-not (Test-Path -LiteralPath $DataFolder)) {
+        $errors += "Data folder does not exist: $DataFolder"
+    } else {
+        $testFile = Join-Path $DataFolder ".__write_test__.tmp"
+        try { "ok" | Set-Content -LiteralPath $testFile -ErrorAction Stop; Remove-Item -LiteralPath $testFile -Force -ErrorAction SilentlyContinue }
+        catch { $errors += "Data folder is not writable: $DataFolder ($_ )" }
+    }
+
+    if ($errors.Count) {
+        $report = ($errors -join "`n - ")
+        Write-Host "Configuration validation failed:" -ForegroundColor Red
+        Write-Host (" - {0}" -f $report) -ForegroundColor Red
+        $logPath = Join-Path (Join-Path $env:APPDATA 'HotelDruid') 'install-validation.log'
+        "Validation errors:`n$report" | Set-Content -LiteralPath $logPath -Encoding UTF8
+        throw "Invalid configuration detected. See $logPath for details."
+    } else {
+        Write-Host "Configuration validation passed" -ForegroundColor Green
     }
 }
 
@@ -538,6 +702,8 @@ Write-Host "=== $($t['Title']) ===" -ForegroundColor Cyan
 Write-Host ""
 
 try {
+    # Ensure VC++ runtime is present for php-cgi
+    Ensure-VCRedistInstalled
     # Stop phpdesktop if it's running
     Stop-PhpDesktop
     
@@ -677,8 +843,9 @@ try {
     if ($oneDrivePath) {
         Write-Host ($t['OneDriveDetected'] -f $oneDrivePath) -ForegroundColor Green
         if ($DataFolder -eq "") {
+            # Align with application expectations: use hoteldruid/dati directory name
             $DataFolder = Join-Path $oneDrivePath 'HotelDruid'
-            $DataFolder = Join-Path $DataFolder 'data'
+            $DataFolder = Join-Path $DataFolder 'dati'
             Write-Host ($t['OneDriveSuggested'] -f $DataFolder) -ForegroundColor Green
         }
     } else {
@@ -686,7 +853,7 @@ try {
         if ($DataFolder -eq "") {
             $DataFolder = Join-Path $env:USERPROFILE 'Documents'
             $DataFolder = Join-Path $DataFolder 'HotelDruid'
-            $DataFolder = Join-Path $DataFolder 'data'
+            $DataFolder = Join-Path $DataFolder 'dati'
         }
     }
     
@@ -713,6 +880,25 @@ try {
         Remove-Item -Path $destPhpDesktop -Recurse -Force
     }
     Copy-Item -Path $phpDesktopRoot.FullName -Destination $destPhpDesktop -Recurse -Force
+
+    # If package contains VC++ runtime DLLs, place them next to php-cgi.exe to allow PHP to start without system runtime
+    try {
+        $dllStage = Join-Path $WorkDir 'vc_runtime_dlls'
+        # In minimal package, DLLs may be at root next to installer
+        $dllStageAlt = Join-Path (Split-Path $PSCommandPath -Parent) 'vc_runtime_dlls'
+        $dllSourceDir = $null
+        if (Test-Path -LiteralPath $dllStage) { $dllSourceDir = $dllStage }
+        elseif (Test-Path -LiteralPath $dllStageAlt) { $dllSourceDir = $dllStageAlt }
+        if ($dllSourceDir) {
+            $phpDir = Join-Path $destPhpDesktop 'php'
+            Get-ChildItem -Path $dllSourceDir -Filter '*.dll' -File | ForEach-Object {
+                Copy-Item -LiteralPath $_.FullName -Destination $phpDir -Force
+            }
+            Write-Host "Placed VC++ runtime DLLs next to php-cgi.exe" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Warning: failed to place VC++ DLLs: $_" -ForegroundColor Yellow
+    }
     
     # Copy hoteldruid
     $destHotelDruid = Join-Path $InstallDir 'hoteldruid'
@@ -727,7 +913,7 @@ try {
     Write-Host ""
     Write-Host "Step 6: Creating configuration" -ForegroundColor Cyan
     Write-Host $t['CreatingConfig'] -ForegroundColor Yellow
-    $configPath = New-ConfigFile -InstallDir $InstallDir -DataFolder $DataFolder
+    $configPath = New-ConfigFile -InstallDir $InstallDir -DataFolder $DataFolder.Replace('\','/')
     Write-Host ($t['ConfigCreated'] -f $configPath) -ForegroundColor Green
     
     # Update phpdesktop settings
@@ -793,6 +979,9 @@ try {
     Write-Host $t['Finished'] -ForegroundColor Green
     Write-Host ""
     
+    # Post-install validation
+    try { Test-InstallConfiguration -InstallDir $InstallDir -DataFolder $DataFolder } catch { Write-Host ($t['Error'] -f $_) -ForegroundColor Red; exit 1 }
+
     if ($LaunchAfterInstall -and $exePath) {
         Write-Host $t['Launching'] -ForegroundColor Yellow
         & $exePath

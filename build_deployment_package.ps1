@@ -71,6 +71,38 @@ if (Test-Path -LiteralPath $customSettingsFile) {
 	Copy-Item -LiteralPath $customSettingsFile -Destination (Join-Path $tempStaging 'phpdesktop-custom-settings.json') -Force
 }
 
+	# Include VC++ Redistributable installer if present in repo (for offline installs)
+	$vcLocal = @(
+		(Join-Path $RepoRoot 'vcredist_x64.exe'),
+		(Join-Path $RepoRoot 'VC_redist.x64.exe')
+	) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+	if ($vcLocal) {
+		Write-Host "Adding VC++ Redistributable installer to package..." -ForegroundColor Cyan
+		Copy-Item -LiteralPath $vcLocal -Destination (Join-Path $tempStaging (Split-Path $vcLocal -Leaf)) -Force
+	}
+
+# Try bundling VC++ runtime DLLs next to php-cgi.exe after install (for sandbox use)
+try {
+	$dllNames = @('vcruntime140.dll','vcruntime140_1.dll','msvcp140.dll')
+	$sys32 = Join-Path $env:WINDIR 'System32'
+	$dllSrc = @()
+	foreach ($dn in $dllNames) {
+		$p = Join-Path $sys32 $dn
+		if (Test-Path -LiteralPath $p) { $dllSrc += $p }
+	}
+	if ($dllSrc.Count -gt 0) {
+		# Stage DLLs in a folder; installer will place them next to php-cgi.exe
+		$dllStage = Join-Path $tempStaging 'vc_runtime_dlls'
+		New-Item -Path $dllStage -ItemType Directory -Force | Out-Null
+		foreach ($s in $dllSrc) { Copy-Item -Path $s -Destination $dllStage -Force }
+		Write-Host "Bundled VC++ DLLs: $($dllSrc | ForEach-Object { Split-Path $_ -Leaf } | Sort-Object -Unique -join ', ')" -ForegroundColor Green
+	} else {
+		Write-Host "VC++ DLLs not found locally; package will rely on installer/system runtime." -ForegroundColor Yellow
+	}
+} catch {
+	Write-Host "Warning: Unable to bundle VC++ DLLs: $_" -ForegroundColor Yellow
+}
+
 # Create comprehensive README
 $readmePath = Join-Path $tempStaging 'README.md'
 $readme = @"
@@ -186,6 +218,7 @@ pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language en -LaunchAft
 - PowerShell 5.0 or later (built into Windows)
 - Internet connection (for initial download)
 - ~200-300 MB free disk space
+- Microsoft Visual C++ Redistributable (2015–2022 x64). The installer auto-installs this if missing.
 
 ## Troubleshooting
 
@@ -214,9 +247,9 @@ Run the installer again and specify a new `-InstallDir` path.
 
 After installation, your data is stored in:
 
-- **Installation folder:** `%LOCALAPPDATA%\HotelDruid` (usually `C:\Users\YourName\AppData\Local\HotelDruid`)
-- **Data folder:** `C:\Users\YourName\OneDrive\HotelDruid\hoteldruid\data` (if OneDrive detected)
-- **Settings:** `%APPDATA%\HotelDruid\deployment-settings.json`
+- **Installation folder:** `%LOCALAPPDATA%/HotelDruid` (usually `C:/Users/YourName/AppData/Local/HotelDruid`)
+- **Data folder (external):** `C:/Users/YourName/OneDrive/HotelDruid/dati` (if OneDrive detected)
+- **Settings:** `%APPDATA%/HotelDruid/deployment-settings.json`
 
 ## Support
 
