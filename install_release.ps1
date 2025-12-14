@@ -1,16 +1,21 @@
 <#
 Installer script to run on the target machine after copying the release zip.
-It extracts the zip to a chosen install folder and creates a Start Menu shortcut and optional Startup shortcut.
+It extracts the zip to a chosen install folder, detects OneDrive for optimal data storage,
+creates a configuration file, and creates Start Menu/other shortcuts.
+
 Usage (run as user):
   .\install_release.ps1 -ZipPath .\hoteldruid-release.zip -InstallDir 'C:\Program Files\HotelDruid'
+  .\install_release.ps1 -UseDeploymentConfig  # Use detected OneDrive + previous settings
 #>
 param(
     [string]$ZipPath = (Join-Path (Get-Location) 'hoteldruid-release.zip'),
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA 'HotelDruid'),
+    [string]$DataFolder = "",
     [bool]$CreateStartMenuShortcut = $true,
     [bool]$CreateStartupShortcut = $false,
     [bool]$CreateDesktopShortcut = $false,
     [bool]$LaunchAfterInstall = $false,
+    [switch]$UseDeploymentConfig,
     [ValidateSet('it', 'en', 'es')]
     [string]$Language
 )
@@ -78,6 +83,42 @@ $strings = @{
 
 $t = $strings[$lang]
 
+# ============================================================================
+# DEPLOYMENT CONFIGURATION STAGE
+# ============================================================================
+
+if ($UseDeploymentConfig) {
+    Write-Host ""
+    Write-Host "=== Deployment Configuration Helper ===" -ForegroundColor Cyan
+    Write-Host "Detecting OneDrive and previous settings..." -ForegroundColor Yellow
+    
+    $deployScriptPath = Join-Path (Split-Path $PSCommandPath -Parent) 'deploy-hoteldruid-config.ps1'
+    
+    if (Test-Path $deployScriptPath) {
+        try {
+            # Run deployment config helper
+            $deploymentSettings = & $deployScriptPath
+            
+            if ($deploymentSettings) {
+                $InstallDir = $deploymentSettings.InstallDirectory
+                $DataFolder = $deploymentSettings.DataDirectory
+                Write-Host ""
+                Write-Host "Configuration prepared. Proceeding with installation..." -ForegroundColor Green
+                Write-Host ""
+            }
+        } catch {
+            Write-Warning "Deployment config helper failed: $_"
+            Write-Host "Continuing with default settings..." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Warning "Deployment config helper script not found at: $deployScriptPath"
+    }
+}
+
+# ============================================================================
+# INSTALLATION STAGE
+# ============================================================================
+
 if (-not (Test-Path -Path $ZipPath)) {
     Write-Error ($t.ZipNotFound -f $ZipPath)
     exit 2
@@ -92,6 +133,70 @@ if (-not (Test-Path -Path $InstallDir)) {
 
 # Expand
 Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+
+# ============================================================================
+# CONFIGURATION FILE GENERATION
+# ============================================================================
+
+# If DataFolder is still empty, use default or OneDrive path
+if (-not $DataFolder) {
+    $oneDrivePath = Join-Path $env:USERPROFILE 'OneDrive'
+    if (Test-Path $oneDrivePath) {
+        $DataFolder = Join-Path $oneDrivePath 'HotelDruid' 'hoteldruid' 'data'
+    } else {
+        $DataFolder = Join-Path $InstallDir 'hoteldruid' 'dati'
+    }
+}
+
+# Create data folder if it doesn't exist
+if (-not (Test-Path $DataFolder)) {
+    New-Item -Path $DataFolder -ItemType Directory -Force | Out-Null
+}
+
+# Generate configuration file
+$configPath = Join-Path $InstallDir 'hoteldruid' 'hoteldruid-config.php'
+$phpDataPath = $DataFolder -replace '\\', '/'
+
+$configContent = @"
+<?php
+
+##################################################################################
+#    HOTELDRUID CONFIGURATION FILE
+#    This file allows you to configure HotelDruid settings, including
+#    the location of the dati folder (where all persistent data is stored).
+#
+#    IMPORTANT: Keep this file safe and do not delete it. Your data location
+#    is configured here.
+#
+#    Generated: $(Get-Date)
+#    Computer: $env:COMPUTERNAME
+#    User: $env:USERNAME
+##################################################################################
+
+// Path to dati folder - change this to your desired location
+// Use forward slashes (/) or double backslashes (\\) for Windows paths
+// Examples:
+//   Windows: "C:/Users/rolfe/Documents/HotelDruid" or "C:\\Users\\rolfe\\Documents\\HotelDruid"
+//   Linux/Mac: "/home/username/hoteldruid-data"
+//   Relative path: "../hoteldruid-data" (relative to the application directory)
+//
+// If this is empty or not set, the default "./dati" (relative to application) will be used
+define('C_DATI_PATH_EXTERNAL', "$phpDataPath");
+
+// Optional: You can also set other paths here if needed
+// define('C_CARTELLA_DOC', "");
+// define('C_CARTELLA_FILES_REALI', "");
+// define('C_CARTELLA_UPLOAD_IMG', "");
+
+?>
+"@
+
+$configContent | Set-Content $configPath -Encoding UTF8
+Write-Host "Configuration file created: $configPath" -ForegroundColor Green
+
+# ============================================================================
+# SHORTCUTS CREATION
+# ============================================================================
 
 # Try to detect executable: prefer phpdesktop\phpdesktop-chrome.exe
 $preferredExe = Join-Path $InstallDir 'phpdesktop\phpdesktop-chrome.exe'

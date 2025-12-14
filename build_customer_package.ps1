@@ -200,6 +200,21 @@ if (-not $NoPrune) {
 		}
 	}
 
+	# Remove markdown documentation files (not needed for customer package)
+	$docFiles = @(
+		'IMPLEMENTATION_SUMMARY.md',
+		'COMPLETION_SUMMARY.md'
+		'RBOX_UPDATE_SUMMARY.md',
+		'RBOX_EVALUATION.md'
+	)
+
+	foreach ($doc in $docFiles) {
+		$docPath = Join-Path $stagingDir $doc
+		if (Test-Path -LiteralPath $docPath) {
+			Remove-Item -LiteralPath $docPath -Force
+		}
+	}
+
 	# Keep only selected locales (.pak files)
 	if (-not $KeepAllLocales) {
 		$localesDir = Join-Path $stagedPhpDesktop 'locales'
