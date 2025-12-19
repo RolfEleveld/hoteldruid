@@ -1,0 +1,22 @@
+# Generated export packages
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Temporary files
+temp_*
+*_tmp
+
+# Log files
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
