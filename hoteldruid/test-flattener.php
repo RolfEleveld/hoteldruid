@@ -120,8 +120,16 @@ if (!isset($id_utente)) {
     }
 }
 
-// Clear output buffer
-ob_end_clean();
+// Clear any existing output buffers and enable real-time flushing
+while (ob_get_level() > 0) {
+    @ob_end_flush();
+}
+ob_implicit_flush(true);
+// Allow long-running operations during export
+@set_time_limit(0);
+@ignore_user_abort(true);
+// Ensure we send HTML progressively
+header('Content-Type: text/html; charset=utf-8');
 
 // Now check if we have what we need
 // PHPR_TAB_PRE can be empty string, which is valid - it just means no prefix
@@ -488,12 +496,43 @@ require_once('./export-import/lib/DataFlattener.php');
     echo '</div>';
     
     // Now create the flattener instance and process the data
-    try {
-        $flattener = new DataFlattener($numconnessione, $PHPR_TAB_PRE ?? '', $PHPR_DB_TYPE);
-    
+        try {
+            // Provide a lightweight logger that echoes progress, flushes output, and writes to a logfile
+            $logfile = (defined('C_DATI_PATH') ? C_DATI_PATH : sys_get_temp_dir()) . '/hoteldruid_flatten.log';
+            // Clear previous logfile for this run
+            @file_put_contents($logfile, "--- Flatten run: " . date('c') . " ---\n");
+
+            $logger = new class($logfile) {
+                private $file;
+                public function __construct($file) {
+                    $this->file = $file;
+                }
+                private function writeLog($level, $msg) {
+                    $line = '[' . date('Y-m-d H:i:s') . '] ' . $level . ': ' . $msg . PHP_EOL;
+                    @file_put_contents($this->file, $line, FILE_APPEND | LOCK_EX);
+                }
+                public function info($msg) {
+                    echo '<div class="info-box">Progress: ' . htmlspecialchars($msg) . '</div>';
+                    $this->writeLog('INFO', $msg);
+                    if (ob_get_length()) { @ob_flush(); }
+                    @flush();
+                }
+                public function error($msg) {
+                    echo '<div class="error-box">Error: ' . htmlspecialchars($msg) . '</div>';
+                    $this->writeLog('ERROR', $msg);
+                    if (ob_get_length()) { @ob_flush(); }
+                    @flush();
+                }
+            };
+            // Expose logfile path to the page for convenience
+            echo '<div class="info-box">Log file: <code>' . htmlspecialchars($logfile) . '</code></div>';
+            if (ob_get_length()) { @ob_flush(); }
+            @flush();
+
+            $flattener = new DataFlattener($numconnessione, $PHPR_TAB_PRE ?? '', $PHPR_DB_TYPE, $logger);
+
     ?>
-    
-        
+
             <div class="info-box" id="db-config">
             <strong>Database Configuration:</strong><br>
             Database Type (PHPR_DB_TYPE): <code><?php echo (defined('PHPR_DB_TYPE') ? htmlspecialchars(PHPR_DB_TYPE) : 'NOT DEFINED'); ?></code><br>
@@ -504,24 +543,46 @@ require_once('./export-import/lib/DataFlattener.php');
             </div>
         
         <?php
-            // Start flattening process
+            // Start flattening process (single run)
+            // First, list discovered tables so the user sees a checklist immediately
+            $tables_to_process = $flattener->getAllTables();
+            echo '<h2>Tables to Process (' . count($tables_to_process) . ')</h2>';
+            echo '<ul class="table-list" id="tables-checklist">';
+            foreach ($tables_to_process as $tname) {
+                echo '<li><label><input type="checkbox" disabled> <code>' . htmlspecialchars($tname) . '</code></label></li>';
+            }
+            echo '</ul>';
+            if (ob_get_length()) { @ob_flush(); }
+            @flush();
+
             echo '<h2>Flattening Database...</h2>';
             echo '<div class="info-box">Processing all tables to JSON format. This may take a moment...</div>';
-            
+            if (ob_get_length()) { @ob_flush(); }
+            @flush();
+
+            // Temporary: enable error display and convert errors to exceptions to capture fatal issues
+            ini_set('display_errors', 1);
+            set_error_handler(function($errno, $errstr, $errfile, $errline) {
+                throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
+            });
+            register_shutdown_function(function() {
+                $err = error_get_last();
+                if ($err) {
+                    echo '<div class="error-box"><strong>Shutdown Error:</strong> ' . htmlspecialchars($err['message']) . ' in ' . htmlspecialchars($err['file']) . ' on line ' . htmlspecialchars($err['line']) . '</div>';
+                    if (ob_get_length()) { @ob_flush(); }
+                    @flush();
+                }
+            });
+
+            echo '<div class="info-box">About to call flattenDatabase()</div>';
+            if (ob_get_length()) { @ob_flush(); }
+            @flush();
+
             $flattened_data = $flattener->flattenDatabase();
-            echo '<strong>Database Configuration:</strong><br>';
-            echo 'Database Type (PHPR_DB_TYPE): <code>' . (defined('PHPR_DB_TYPE') ? htmlspecialchars(PHPR_DB_TYPE) : 'NOT DEFINED') . '</code><br>';
-            echo 'Table Prefix (PHPR_TAB_PRE): <code>' . (defined('PHPR_TAB_PRE') ? htmlspecialchars(PHPR_TAB_PRE) : (isset($PHPR_TAB_PRE) ? htmlspecialchars($PHPR_TAB_PRE) : 'NOT SET')) . '</code><br>';
-            echo 'Database Name (PHPR_DB_NAME): <code>' . (defined('PHPR_DB_NAME') ? htmlspecialchars(PHPR_DB_NAME) : 'NOT DEFINED') . '</code><br>';
-            echo 'Data Path (C_DATI_PATH): <code>' . (defined('C_DATI_PATH') ? htmlspecialchars(C_DATI_PATH) : 'NOT DEFINED') . '</code><br>';
-            echo 'Connection Status: <strong>' . (isset($numconnessione) && $numconnessione ? 'Connected' : 'NOT CONNECTED') . '</strong>';
-            echo '</div>';
-        
-        // Start flattening process
-        echo '<h2>Flattening Database...</h2>';
-        echo '<div class="info-box">Processing all tables to JSON format. This may take a moment...</div>';
-        
-        $flattened_data = $flattener->flattenDatabase();
+
+            echo '<div class="info-box">flattenDatabase() returned</div>';
+            if (ob_get_length()) { @ob_flush(); }
+            @flush();
         
         if (empty($flattened_data)) {
             echo '<div class="error-box"><strong>Error:</strong> No data was flattened. Check that tables exist in the database.</div>';

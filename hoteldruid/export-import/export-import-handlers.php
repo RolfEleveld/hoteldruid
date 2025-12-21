@@ -10,9 +10,32 @@ if (!isset($_REQUEST['export_import']) || $_REQUEST['export_import'] != '1') {
     return;
 }
 
-include_once('./export-import/lib/Exporter.php');
-include_once('./export-import/lib/Importer.php');
-include_once('./export-import/lib/ExportImportUI.php');
+// Use __DIR__ to require libs relative to this handlers file
+include_once(__DIR__ . '/lib/Exporter.php');
+include_once(__DIR__ . '/lib/Importer.php');
+include_once(__DIR__ . '/lib/ExportImportUI.php');
+
+// Basic sanity checks so we fail with a helpful message instead of PHP notices
+$precheck_errors = array();
+if (empty($numconnessione)) $precheck_errors[] = 'Database connection is not initialized (numconnessione is empty).';
+if (empty($PHPR_TAB_PRE)) $precheck_errors[] = 'Table prefix (PHPR_TAB_PRE) is not set.';
+if (empty($PHPR_DB_TYPE)) $precheck_errors[] = 'Database type (PHPR_DB_TYPE) is not set.';
+
+if (!empty($precheck_errors)) {
+    echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
+    echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Export Failed', $pag) . '</div>';
+    echo '<div class="rcontent">';
+    echo '<p>' . mex('The export cannot start because required configuration is missing.', $pag) . '</p>';
+    echo '<ul>';
+    foreach ($precheck_errors as $err) echo '<li>' . htmlspecialchars($err) . '</li>';
+    echo '</ul>';
+    if (isset($export_import_db_config_used) && $export_import_db_config_used) {
+        echo '<p><strong>' . mex('Config loaded from', $pag) . ':</strong> ' . htmlspecialchars($export_import_db_config_used) . '</p>';
+    }
+    echo '<p>' . mex('Please ensure C_DATI_PATH points to your data folder and dati_connessione.php is reachable.', $pag) . '</p>';
+    echo '</div></div>';
+    return;
+}
 
 // Initialize UI
 $export_import_ui = new ExportImportUI($id_utente, $anno, $id_sessione);
@@ -22,6 +45,8 @@ if (!empty($_REQUEST['create_export'])) {
     if ($id_utente == 1) { // Only admin can export
         try {
             $export_dir = C_DATI_PATH . '/../export-import/packages';
+            // Write exports alongside data directory to keep everything under configured storage
+            $export_dir = C_DATI_PATH . '/export-import/packages';
             if (!@is_dir($export_dir)) {
                 @mkdir($export_dir, 0755, true);
             }
@@ -42,13 +67,40 @@ if (!empty($_REQUEST['create_export'])) {
                 echo '<div class="rheader" style="background-color: #4CAF50; color: white;">✓ ' . mex('Export Successfully Created', $pag) . '</div>';
                 echo '<div class="rcontent">';
                 echo '<p>' . mex('Package file', $pag) . ': <strong>' . basename($package_file) . '</strong></p>';
+                if (method_exists($exporter, 'getLastStats')) {
+                    $stats = $exporter->getLastStats();
+                    if ($stats) {
+                        echo '<p>' . mex('Tables exported', $pag) . ': ' . intval($stats['tables_exported'] ?? 0);
+                        echo ' — ' . mex('Schemas exported', $pag) . ': ' . intval($stats['schemas_exported'] ?? 0);
+                        echo '</p>';
+                        if (!empty($stats['tables_list'])) {
+                            $preview = array_slice($stats['tables_list'], 0, 6);
+                            echo '<p><small>' . mex('Tables detected', $pag) . ': ' . htmlspecialchars(implode(', ', $preview));
+                            if (count($stats['tables_list']) > count($preview)) echo ' …';
+                            echo '</small></p>';
+                        }
+                        if (!empty($stats['failed']) || !empty($stats['schemas_failed'])) {
+                            echo '<p><small style="color:#c00;">' . mex('Tables skipped', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['failed'] ?? array()));
+                            if (!empty($stats['schemas_failed'])) {
+                                echo '<br>' . mex('Schemas skipped', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['schemas_failed']));
+                            }
+                            echo '</small></p>';
+                        }
+                    }
+                }
                 echo '<p><a href="' . str_replace(dirname(__FILE__), '', $package_file) . '" download style="button">';
                 echo mex('Download Package', $pag) . '</a></p>';
                 echo '</div></div>';
             } else {
                 echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
                 echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Export Failed', $pag) . '</div>';
-                echo '<div class="rcontent">' . mex('Could not create export package', $pag) . '</div></div>';
+                echo '<div class="rcontent">';
+                echo mex('Could not create export package', $pag);
+                $detail = method_exists($exporter, 'getLastError') ? $exporter->getLastError() : '';
+                if ($detail) {
+                    echo '<br><small>' . htmlspecialchars($detail) . '</small>';
+                }
+                echo '</div></div>';
             }
         } catch (Exception $e) {
             echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';

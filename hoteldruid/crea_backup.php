@@ -1023,11 +1023,19 @@ echo "<hr style=\"width: 95%\">
 
 
 
+// Quick link to Export UI (posts export_import=1 so handlers render the section)
+echo "<br/>
+<form accept-charset=\"utf-8\" method=\"get\" action=\"./export-import/index.php\"><div>
+<input type=\"hidden\" name=\"anno\" value=\"$anno\">
+<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
+<button class=\"gobk\" type=\"submit\"><div>".mex("Export",$pag)."</div></button>
+</div></form><br/>";
+
 $action = "personalizza.php";
 if ($backup_contratti == "SI") $action .= "#contratti";
 echo "<br/><form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
+<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\"> 
 <button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
 </div></form><br></div>";
 

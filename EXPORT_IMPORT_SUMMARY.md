@@ -124,6 +124,15 @@ hoteldruid/export-import/
 - [x] Unique package naming
 - [x] ZIP integrity via CRC32
 
+### ✅ Single-run Marker Mechanism
+- **Marker file**: `export.marker` stored under the resolved `dati` path (next to `export-runs`).
+- **Format**: a single line `yyyy.mm.dd|/absolute/path/to/export-run` (date stamp + export folder path).
+- **Behavior**:
+   - If the marker date equals today's date, triggers report `export_in_progress` and provide the run `state.json` if present.
+   - If the marker is older than a day, the trigger will attempt to clean up the previous run folder (only when it is inside `export-runs`), remove the marker and start a fresh export.
+   - When creating a new export, the trigger writes the marker atomically so there is at most one active export recorded by the system.
+- **Purpose**: Prevents concurrent exports (and accidental massive folder creation), enables safe resumption and simple recovery when the trigger is reloaded.
+
 ### ✅ User Interface
 - [x] Export button with options
 - [x] Import upload field

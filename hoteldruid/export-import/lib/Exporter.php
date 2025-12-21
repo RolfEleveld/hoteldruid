@@ -13,22 +13,37 @@ class Exporter {
     private $logger;
     private $export_id;
     private $export_timestamp;
+    private $last_error;
+    private $last_stats;
 
     public function __construct($numconnessione, $phpr_tab_pre, $db_type, $export_base_path, $logger = null) {
         $this->numconnessione = $numconnessione;
         $this->phpr_tab_pre = $phpr_tab_pre;
         $this->db_type = $db_type;
-        $this->export_dir = $export_base_path;
+        // Normalize export base directory and ensure we have a writable location
+        $normalized_base = rtrim(str_replace('\\', '/', $export_base_path), '/');
+        $this->export_dir = $normalized_base;
         $this->logger = $logger;
         $this->export_id = $this->generateUUID();
         $this->export_timestamp = date('Y-m-d\TH:i:s\Z');
+        $this->last_error = null;
+        $this->last_stats = null;
     }
 
     /**
      * Create complete export package
      */
     public function createExportPackage($options = array()) {
+        $this->last_error = null;
         $this->log("Starting export package creation");
+
+        // Ensure export directory exists
+        if (!@is_dir($this->export_dir)) {
+            if (!@mkdir($this->export_dir, 0755, true)) {
+                $this->setError("Cannot create export directory at {$this->export_dir}. Check write permissions.");
+                return false;
+            }
+        }
 
         // Default options
         $options = array_merge(array(
@@ -42,7 +57,7 @@ class Exporter {
         // Create temp working directory
         $temp_dir = $this->export_dir . '/temp_export_' . uniqid();
         if (!@mkdir($temp_dir, 0755, true)) {
-            $this->log("ERROR: Could not create temp directory", true);
+            $this->setError("Could not create temp directory at $temp_dir (check permissions and path)");
             return false;
         }
 
@@ -58,9 +73,15 @@ class Exporter {
             file_put_contents($temp_dir . '/metadata/export_metadata.json', json_encode($metadata, JSON_PRETTY_PRINT));
             $this->log("Created export_metadata.json");
 
-            // Export data
+            // Export data (tables list fetched once for reuse in schema export)
             @mkdir($temp_dir . '/data/tables', 0755, true);
-            $this->exportDatabaseTables($temp_dir . '/data');
+            $tables = $this->getAllTableNames();
+            if (empty($tables)) {
+                $this->setError("No tables discovered for export (db_type={$this->db_type}, prefix={$this->phpr_tab_pre}). Check connection, permissions, and prefix.");
+                $this->deleteDirectory($temp_dir);
+                return false;
+            }
+                $table_stats = $this->exportDatabaseTables($temp_dir . '/data', $tables);
             $this->log("Exported database tables");
 
             // Export entity mapping
@@ -82,8 +103,9 @@ class Exporter {
                 $this->log("Exported templates");
             }
 
-            // Create schemas directory
+            // Create schemas directory and export table schemas
             @mkdir($temp_dir . '/schemas/tables', 0755, true);
+            $schema_stats = $this->exportTableSchemas($temp_dir . '/schemas/tables', $tables);
 
             // Create documentation
             @mkdir($temp_dir . '/docs', 0755, true);
@@ -96,15 +118,26 @@ class Exporter {
                 $this->log("Successfully created export package: $package_filename");
                 // Cleanup temp directory
                 $this->deleteDirectory($temp_dir);
+                $this->last_stats = array(
+                    'tables_exported' => $table_stats['exported'] ?? 0,
+                    'tables_skipped' => $table_stats['skipped'] ?? 0,
+                    'schemas_exported' => $schema_stats['exported'] ?? 0,
+                    'tables_list' => $table_stats['tables'] ?? array(),
+                    'schemas_list' => $schema_stats['tables'] ?? array(),
+                    'failed' => $table_stats['failed'] ?? array(),
+                    'schemas_failed' => $schema_stats['failed'] ?? array()
+                );
                 return $package_filename;
             } else {
-                $this->log("ERROR: Failed to create zip package", true);
+                if (!$this->last_error) {
+                    $this->setError("Failed to create zip package in {$this->export_dir}");
+                }
                 $this->deleteDirectory($temp_dir);
                 return false;
             }
 
         } catch (Exception $e) {
-            $this->log("ERROR: " . $e->getMessage(), true);
+            $this->setError($e->getMessage());
             $this->deleteDirectory($temp_dir);
             return false;
         }
@@ -228,20 +261,86 @@ class Exporter {
     /**
      * Export all database tables
      */
-    private function exportDatabaseTables($data_dir) {
+    private function exportDatabaseTables($data_dir, $tables = null) {
         include_once(__DIR__ . '/DataFlattener.php');
 
         $flattener = new DataFlattener($this->numconnessione, $this->phpr_tab_pre, $this->db_type, $this->logger);
-        $all_tables = $this->getAllTableNames();
+        $all_tables = $tables ?: $this->getAllTableNames();
+
+        $exported = 0;
+        $skipped = 0;
+        $table_list = array();
+        $fail_list = array();
 
         foreach ($all_tables as $table_name) {
+            $table_list[] = $table_name;
             $table_data = $flattener->flattenTable($table_name);
             if ($table_data) {
                 $filename = $data_dir . '/tables/' . $table_name . '.json';
                 file_put_contents($filename, json_encode($table_data, JSON_PRETTY_PRINT));
                 $this->log("Exported table: $table_name");
+                $exported++;
+            } else {
+                $reason = $flattener->getLastError();
+                $this->log("Skipping table: $table_name. Reason: " . ($reason ?: 'no data/columns'), true);
+                if ($reason) {
+                    $fail_list[] = "$table_name: $reason";
+                } else {
+                    $fail_list[] = $table_name;
+                }
+                $skipped++;
             }
         }
+
+        return array('exported' => $exported, 'skipped' => $skipped, 'tables' => $table_list, 'failed' => $fail_list);
+    }
+
+    private function exportTableSchemas($schema_dir, $tables = null) {
+        include_once(__DIR__ . '/DataFlattener.php');
+        $flattener = new DataFlattener($this->numconnessione, $this->phpr_tab_pre, $this->db_type, $this->logger);
+        $all_tables = $tables ?: $this->getAllTableNames();
+
+        $exported = 0;
+        $table_list = array();
+        $fail_list = array();
+
+        foreach ($all_tables as $table_name) {
+            $table_list[] = $table_name;
+            $columns = $flattener->describeTable($table_name);
+            if ($columns) {
+                $schema = array(
+                    'table_name' => $table_name,
+                    'columns' => $columns,
+                    'generated_at' => $this->export_timestamp,
+                    'db_type' => $this->db_type
+                );
+                $filename = $schema_dir . '/' . $table_name . '.json';
+                file_put_contents($filename, json_encode($schema, JSON_PRETTY_PRINT));
+                $this->log("Exported schema: $table_name");
+                $exported++;
+            }
+            else {
+                $reason = $flattener->getLastError();
+                if ($reason) {
+                    $fail_list[] = "$table_name: $reason";
+                } else {
+                    $fail_list[] = $table_name;
+                }
+            }
+        }
+
+        return array('exported' => $exported, 'tables' => $table_list, 'failed' => $fail_list);
+    }
+
+    /**
+     * Expose table discovery for diagnostics
+     */
+    public function debugTableDiscovery() {
+        return array(
+            'db_type' => $this->db_type,
+            'prefix' => $this->phpr_tab_pre,
+            'tables' => $this->getAllTableNames()
+        );
     }
 
     /**
@@ -336,20 +435,37 @@ class Exporter {
         // Create zip using system zip command or PHP ZipArchive
         if (class_exists('ZipArchive')) {
             $zip = new ZipArchive();
-            if ($zip->open($package_path, ZipArchive::CREATE) === true) {
+            $open_res = $zip->open($package_path, ZipArchive::CREATE);
+            if ($open_res === true) {
                 $this->addDirToZip($source_dir, $zip, '');
                 $zip->close();
                 @chmod($package_path, 0644);
                 return $package_path;
+            } else {
+                $this->setError("ZipArchive could not create package at $package_path (code: $open_res). Ensure the php_zip/ZipArchive extension is enabled and the target directory is writable.");
             }
         } else {
-            // Fallback to system zip command
-            $cwd = getcwd();
-            chdir(dirname($source_dir));
-            system("zip -r '" . basename($source_dir) . "' '" . basename($source_dir) . "'");
-            chdir($cwd);
+            $this->setError("ZipArchive extension not available; attempting system zip fallback");
         }
 
+        // Fallback to system zip command
+        $cwd = getcwd();
+        chdir(dirname($source_dir));
+        $zip_cmd = "zip -r \"" . basename($package_path) . "\" \"" . basename($source_dir) . "\"";
+        $exit_code = 0;
+        @system($zip_cmd, $exit_code);
+        chdir($cwd);
+
+        if (is_file($package_path) && filesize($package_path) > 0) {
+            return $package_path;
+        }
+
+        // On Windows the zip CLI is often missing; recommend enabling ZipArchive
+        if (stripos(PHP_OS, 'WIN') === 0) {
+            $this->setError("System zip command is not available on Windows. Enable the ZipArchive extension (php_zip) or install a zip utility.");
+        } else {
+            $this->setError("System zip command failed (exit $exit_code) creating $package_path");
+        }
         return false;
     }
 
@@ -380,13 +496,14 @@ class Exporter {
         include_once(__DIR__ . '/../../includes/funzioni.php');
 
         $tables = array();
-
         if ($this->db_type == 'postgresql') {
             $query = "SELECT table_name FROM information_schema.tables 
                      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
         } elseif ($this->db_type == 'mysql' || $this->db_type == 'mysqli') {
             $query = "SELECT TABLE_NAME as table_name FROM information_schema.TABLES 
                      WHERE TABLE_SCHEMA = DATABASE()";
+        } elseif ($this->db_type == 'sqlite' || $this->db_type == 'sqlite3') {
+            $query = "SELECT name as table_name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'";
         } else {
             return array();
         }
@@ -395,15 +512,83 @@ class Exporter {
         if ($result) {
             $num_rows = numlin_query($result);
             for ($i = 0; $i < $num_rows; $i++) {
-                $row = risul_query($result, $i);
-                $table_name = $row['table_name'];
+                // risul_query in Hoteldruid expects the field name as third param
+                $table_name = risul_query($result, $i, 'table_name');
+                if ($table_name === null || $table_name === '') {
+                    // Fallback for drivers returning associative row
+                    $row = risul_query($result, $i);
+                    if (is_array($row) && isset($row['table_name'])) {
+                        $table_name = $row['table_name'];
+                    }
+                }
+                if ($table_name === null || $table_name === '') continue;
                 // Remove prefix
-                if (strpos($table_name, $this->phpr_tab_pre) === 0) {
+                if ($this->phpr_tab_pre && strpos($table_name, $this->phpr_tab_pre) === 0) {
                     $table_name = substr($table_name, strlen($this->phpr_tab_pre));
                 }
                 $tables[] = $table_name;
             }
             chiudi_query($result);
+        }
+
+        // Fallback for MySQL/MariaDB if information_schema is blocked or empty
+        if (($this->db_type == 'mysql' || $this->db_type == 'mysqli') && empty($tables)) {
+            $fallback_query = "SHOW TABLES LIKE '" . $this->phpr_tab_pre . "%'";
+            $result = @esegui_query($fallback_query);
+            if ($result) {
+                $num_rows = numlin_query($result);
+                for ($i = 0; $i < $num_rows; $i++) {
+                    $row = risul_query($result, $i);
+                    $row_values = array_values($row);
+                    $table_name = $row_values[0] ?? '';
+                    if (strpos($table_name, $this->phpr_tab_pre) === 0) {
+                        $table_name = substr($table_name, strlen($this->phpr_tab_pre));
+                    }
+                    if ($table_name !== '') $tables[] = $table_name;
+                }
+                chiudi_query($result);
+            }
+        }
+
+        // Final fallback for MySQL/MariaDB: take all tables from current DB and then strip/filter prefix
+        if (($this->db_type == 'mysql' || $this->db_type == 'mysqli') && empty($tables)) {
+            $fallback_query_all = "SHOW TABLES";
+            $result = @esegui_query($fallback_query_all);
+            if ($result) {
+                $num_rows = numlin_query($result);
+                for ($i = 0; $i < $num_rows; $i++) {
+                    $row = risul_query($result, $i);
+                    $row_values = array_values($row);
+                    $table_name = $row_values[0] ?? '';
+                    if ($table_name === '') continue;
+                    if ($this->phpr_tab_pre && strpos($table_name, $this->phpr_tab_pre) === 0) {
+                        $table_name = substr($table_name, strlen($this->phpr_tab_pre));
+                        $tables[] = $table_name;
+                    } elseif (!$this->phpr_tab_pre) {
+                        $tables[] = $table_name;
+                    }
+                }
+                chiudi_query($result);
+            }
+        }
+
+        // Fallback for SQLite: ensure tables list if initial query failed
+        if (($this->db_type == 'sqlite' || $this->db_type == 'sqlite3') && empty($tables)) {
+            $fallback_query_sqlite = "SELECT name as table_name FROM sqlite_master WHERE type='table'";
+            $result = @esegui_query($fallback_query_sqlite);
+            if ($result) {
+                $num_rows = numlin_query($result);
+                for ($i = 0; $i < $num_rows; $i++) {
+                    $row = risul_query($result, $i);
+                    $table_name = $row['table_name'];
+                    if ($table_name === '' || strpos($table_name, 'sqlite_') === 0) continue;
+                    if ($this->phpr_tab_pre && strpos($table_name, $this->phpr_tab_pre) === 0) {
+                        $table_name = substr($table_name, strlen($this->phpr_tab_pre));
+                    }
+                    $tables[] = $table_name;
+                }
+                chiudi_query($result);
+            }
         }
 
         return $tables;
@@ -485,6 +670,25 @@ class Exporter {
                 $this->logger->info($message);
             }
         }
+    }
+
+    /**
+     * Expose last error for UI messages
+     */
+    public function getLastError() {
+        return $this->last_error;
+    }
+
+    /**
+     * Expose last export stats (tables/schemas counts)
+     */
+    public function getLastStats() {
+        return $this->last_stats;
+    }
+
+    private function setError($message) {
+        $this->last_error = $message;
+        $this->log("ERROR: " . $message, true);
     }
 }
 ?>

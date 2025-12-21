@@ -475,6 +475,65 @@ All documents created in this session:
 
 ---
 
+## Background Export Workflow (Stateful, resumable export)
+
+Purpose: define a robust, resumable export flow that runs as a background process, reports progress, and produces a packaged export identical to a backup.
+
+Goals:
+- Avoid long-running single-request operations in the browser.
+- Provide a visible checklist of tables and per-table completion state.
+- Produce per-table JSON files and templates into a local export folder under the data environment.
+- Create a final ZIP export and mark the export state as complete for download.
+
+High-level design:
+
+- Trigger: Admin UI starts an export (button). The request creates a new export run directory and a state file (JSON) with:
+   - run_id (timestamp-based), status (pending/running/completed/failed), tables: [{name, status}], current_table, progress counters, logfile path, output_folder.
+
+- Worker: A background worker (CLI script or asynchronous PHP process) picks up the run and performs work in the background. It reads the state file and processes tables in order, updating the state file after each table and periodically during large-table exports.
+
+- Per-table output: For each table the worker writes a JSON file named <run_id>/tables/<table_name>.json and writes accompanying metadata files (schema.json, README.txt) into the run folder.
+
+- Atomic progress markers: After successfully writing a table file, update the table's `status` to `done` and set `exported_count` & `row_count` in the state JSON. This allows the UI to re-read the state file and display which tables finished.
+
+- Finalization: When all tables are done, the worker generates a manifest and zips the run folder into <run_id>.zip, updates state `status` to `completed` and sets `package_path`.
+
+- Download: The UI shows a download link when `status == completed` and `package_path` exists.
+
+- Failure & retry: On error, worker updates `status` to `failed` and writes an error message and stack trace to the run logfile. Admin can retry the run or resume from the last done table.
+
+- Location & permissions: Place run folders inside `C_DATI_PATH/export-runs/<run_id>` (or fallback to `data/export-runs`). Ensure PHP process user has write permission.
+
+- Security: Only administrator users can start runs or download packages. Run IDs should be non-guessable (include timestamp + random suffix) if exposed.
+
+- Cleanup: Add a scheduled cleanup policy (e.g., keep last 7 runs or X days) and an admin UI to delete runs.
+
+API/Implementation notes:
+
+- Minimal worker: create `export-import/bin/flatten-worker.php` (CLI) that accepts `--run-id` and processes that run's state file.
+
+- Launcher: a non-blocking web endpoint (`test-flattener.php` or `export-import/trigger.php`) creates the run state and spawns `php export-import/bin/flatten-worker.php --run-id=...` using `proc_open`/`pclose` or `shell_exec` depending on environment. Alternatively, use a cron job that picks pending runs.
+
+- State file format: store `state.json` with simple structure; use atomic writes (write to temp file then rename).
+
+- Logging: append to `<run_folder>/run.log`. Also persist per-table errors as `<run_folder>/errors/<table>.log`.
+
+- UI: `test-flattener.php` becomes a dashboard that reads `state.json` and displays table checklist, current table, per-table record counts, and download link.
+
+Acceptance criteria:
+
+- Admin can start an export and immediately see the list of tables to process.
+- The export runs without blocking the web request; the UI reflects per-table progress and final downloadable ZIP.
+- Failures are recorded in `run.log` and do not leave partial state ambiguous; resuming is possible.
+
+Next doc updates required:
+
+- Add `EXPORT_IMPORT_IMPLEMENTATION.md` (Session 2) with the worker script spec and example state JSON.
+- Update `EXPORT_IMPORT_QUICKREF.md` with developer quick-start to run a worker locally.
+- Add `EXPORT_IMPORT_MASTER_INDEX.md` entry for `export-runs` folder and CLI worker.
+
+---
+
 **Inventory Status:** ✅ COMPLETE  
 **Total Project Documents:** 11  
 **Total Lines:** ~4,500  

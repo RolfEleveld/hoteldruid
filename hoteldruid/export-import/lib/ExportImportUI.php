@@ -41,7 +41,7 @@ class ExportImportUI {
 
         $html .= '<p>' . mex('Export your HotelDroid data to a portable JSON-based package', $this->pag) . '</p>';
 
-        $html .= '<form accept-charset="utf-8" method="post" action="./crea_backup.php"><div>';
+        $html .= '<form accept-charset="utf-8" method="post" action="./index.php"><div>';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
         $html .= '<input type="hidden" name="azione" value="SI">';
@@ -65,8 +65,143 @@ class ExportImportUI {
         $html .= '</div>';
 
         $html .= '</div></form></div></div>';
+        // Recent exports (discover, prune, and list)
+        $recent = $this->discoverAndPruneRecentPackages(5);
+        $html .= '<div style="margin-top:18px;">';
+        $html .= '<h4>' . mex('Recent Exports', $this->pag) . '</h4>';
+        if (empty($recent)) {
+            $html .= '<p>' . mex('No export packages found', $this->pag) . '</p>';
+        } else {
+            $html .= '<table style="width:100%; border-collapse:collapse;">';
+            $html .= '<tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('File', $this->pag) . '</th>';
+            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Date', $this->pag) . '</th>';
+            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Size', $this->pag) . '</th></tr>';
+            foreach ($recent as $p) {
+                $fname = htmlspecialchars(basename($p['path']));
+                $date = date('Y-m-d H:i:s', $p['mtime']);
+                $size = $this->humanFilesize($p['size']);
+                if (!empty($p['web_url'])) {
+                    $fileHtml = '<a href="' . htmlspecialchars($p['web_url']) . '" download>' . $fname . '</a>';
+                } else {
+                    // Provide a file:// link using forward slashes for files outside web root
+                    $realPathForUrl = str_replace('\\', '/', $p['path']);
+                    // Encode spaces and other unsafe characters but keep slashes
+                    $realPathForUrl = str_replace(' ', '%20', $realPathForUrl);
+                    $fileUrl = 'file://' . $realPathForUrl;
+                    $fileHtml = '<a href="' . htmlspecialchars($fileUrl) . '">' . $fname . '</a>';
+                    $fileHtml .= ' <small>(' . htmlspecialchars($realPathForUrl) . ')</small>';
+                }
+                $html .= '<tr><td style="padding:6px;">' . $fileHtml . '</td><td style="padding:6px;">' . $date . '</td><td style="padding:6px;">' . $size . '</td></tr>';
+            }
+            $html .= '</table>';
+        }
+        $html .= '</div>';
 
         return $html;
+    }
+
+    /**
+     * Discover recent package files from known locations and prune older ones.
+     * Returns an array of up-to-$limit packages with keys: path, mtime, size, web_url|null
+     */
+    private function discoverAndPruneRecentPackages($limit = 5) {
+        // Determine hoteldruid root (two levels up from this file)
+        $hoteldruidRoot = realpath(__DIR__ . '/../../');
+
+        // Candidate locations
+        $packagesDir = null;
+        $runBase = null;
+        if (defined('C_DATI_PATH') && C_DATI_PATH) {
+            $packagesDir = realpath(rtrim(C_DATI_PATH, '\\/') . '/export-import/packages') ?: (rtrim(C_DATI_PATH, '\\/') . '/export-import/packages');
+            $runBase = realpath(rtrim(C_DATI_PATH, '\\/') . '/export-runs') ?: (rtrim(C_DATI_PATH, '\\/') . '/export-runs');
+        } else {
+            // fall back to paths under hoteldruid
+            $packagesDir = realpath($hoteldruidRoot . '/export-import/packages') ?: ($hoteldruidRoot . '/export-import/packages');
+            $runBase = realpath($hoteldruidRoot . '/dati/export-runs') ?: ($hoteldruidRoot . '/dati/export-runs');
+        }
+
+        $candidates = [];
+
+        // Collect zips from packagesDir
+        if ($packagesDir && is_dir($packagesDir)) {
+            $files = scandir($packagesDir);
+            foreach ($files as $f) {
+                if (stripos($f, '.zip') === false) continue;
+                $path = $packagesDir . '/' . $f;
+                if (is_file($path)) {
+                    $candidates[] = ['path' => $path, 'mtime' => filemtime($path), 'size' => filesize($path), 'source' => 'packages'];
+                }
+            }
+        }
+
+        // Collect zips created by worker under runBase (one level deep)
+        if ($runBase && is_dir($runBase)) {
+            $runs = scandir($runBase);
+            foreach ($runs as $r) {
+                if ($r === '.' || $r === '..') continue;
+                $rf = $runBase . '/' . $r;
+                if (is_dir($rf)) {
+                    // find any zip file inside
+                    $files = glob($rf . '/*.zip');
+                    foreach ($files as $path) {
+                        if (is_file($path)) {
+                            $candidates[] = ['path' => $path, 'mtime' => filemtime($path), 'size' => filesize($path), 'source' => 'runs', 'run_folder' => $rf];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort by mtime desc
+        usort($candidates, function($a, $b){ return $b['mtime'] <=> $a['mtime']; });
+
+        // Build result list and prune older than $limit
+        $result = [];
+        foreach ($candidates as $i => $c) {
+            if ($i < $limit) {
+                // compute web_url if file is under hoteldruid root
+                $realHot = $hoteldruidRoot ? $hoteldruidRoot : '';
+                $realPath = realpath($c['path']) ?: $c['path'];
+                $webUrl = null;
+                if ($realHot && strpos($realPath, $realHot) === 0) {
+                    $rel = substr($realPath, strlen($realHot));
+                    $rel = str_replace('\\', '/', $rel);
+                    $webUrl = '.' . $rel;
+                }
+                $result[] = ['path'=>$realPath,'mtime'=>$c['mtime'],'size'=>$c['size'],'web_url'=>$webUrl];
+            } else {
+                // Prune older: if source is 'runs' remove entire run folder, else remove file
+                if (!empty($c['source']) && $c['source'] === 'runs' && !empty($c['run_folder'])) {
+                    $this->recursiveDelete($c['run_folder']);
+                } else {
+                    @unlink($c['path']);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function recursiveDelete($dir) {
+        if (!is_dir($dir)) return;
+        $objs = scandir($dir);
+        foreach ($objs as $obj) {
+            if ($obj === '.' || $obj === '..') continue;
+            $path = $dir . '/' . $obj;
+            if (is_dir($path)) {
+                $this->recursiveDelete($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
+    }
+
+    private function humanFilesize($bytes, $decimals = 1) {
+        $sz = array('B','KB','MB','GB','TB');
+        $factor = floor((strlen($bytes) - 1) / 3);
+        if ($factor == 0) return $bytes . ' ' . $sz[$factor];
+        return sprintf("%.{$decimals}f %s", $bytes / pow(1024, $factor), $sz[$factor]);
     }
 
     /**
@@ -79,7 +214,7 @@ class ExportImportUI {
 
         $html .= '<p>' . mex('Import data from a previously exported package', $this->pag) . '</p>';
 
-        $html .= '<form accept-charset="utf-8" enctype="multipart/form-data" method="post" action="./crea_backup.php"><div>';
+        $html .= '<form accept-charset="utf-8" enctype="multipart/form-data" method="post" action="./index.php"><div>';
         $html .= '<input type="hidden" name="MAX_FILE_SIZE" value="500000000">';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
@@ -160,7 +295,7 @@ class ExportImportUI {
      * Render field mapping UI
      */
     private function renderFieldMappingUI($preview_data, $mapping_suggestions) {
-        $html = '<form accept-charset="utf-8" method="post" action="./crea_backup.php">';
+        $html = '<form accept-charset="utf-8" method="post" action="./index.php">';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
         $html .= '<input type="hidden" name="azione" value="SI">';
