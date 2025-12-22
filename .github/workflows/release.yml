@@ -117,6 +117,24 @@ ManifestType: version
           path: manifests/h/HotelDruid/PHPDesktop/${{ steps.build.outputs.version }}
           if-no-files-found: error
 
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
+          path: ${{ steps.build.outputs.zip }}
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.build.outputs.version }}
+          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
+          files: ${{ steps.build.outputs.zip }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   submit-winget-pr:
     needs: build-and-release
     if: github.event_name == 'push'
@@ -183,20 +201,3 @@ ManifestType: version
             --title "Add HotelDruid.PHPDesktop $VERSION" \
             --body "Automated submission for HotelDruid.PHPDesktop $VERSION"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
-          path: ${{ steps.build.outputs.zip }}
-          if-no-files-found: error
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.build.outputs.version }}
-          name: hoteldruid-PHPDesktop-3.0.7.${{ github.run_number }}
-          files: ${{ steps.build.outputs.zip }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
