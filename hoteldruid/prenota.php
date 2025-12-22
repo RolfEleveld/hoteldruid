@@ -432,7 +432,7 @@ varbeniinv(text)		X;			numero di ripetizioni del costo
 				idbene,x;idbene,x;...	idbene del bene da eliminare e numero da eliminare
 varappincomapibili(text)	idapp,idapp,...		NULL o vuoto se nessun appartamento incompatibile
 vartariffeassociate(varchar10)	s-r-p			1 associare a tariffa: sempre - sempre in periodi permessi - se possibile
-				s-<x->x-=x-|x<y		2- NULL o vuoto se costo non associato alla tariffa, altrimenti: per qualsiasi numero di settimane - meno di x - più di x - per x settimane - compreso tra x e y settimane
+				s-<x->x-=x - |x<y		2- NULL o vuoto se costo non associato alla tariffa, altrimenti: per qualsiasi numero di settimane - meno di x - più di x - per x settimane - compreso tra x e y settimane
 vartariffeincomp(text)	X,X,...				NULL o vuoto se costo compatibile con tutte le tariffe, antrimenti lista coi numeri delle tariffe incompatibili
 
 */

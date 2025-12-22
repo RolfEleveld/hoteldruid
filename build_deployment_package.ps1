@@ -12,7 +12,7 @@ This approach:
 
 Usage:
   .\build_deployment_package.ps1
-  .\build_deployment_package.ps1 -OutputZip .\out\HotelDruid-slim.zip
+  .\build_deployment_package.ps1 -OutputZip .\out\HotelDruid-PHPDesktop.zip
 #>
 
 [CmdletBinding()]
@@ -44,7 +44,7 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 
 if (-not $OutputZip) {
 	$stamp = Get-Date -Format 'yyyyMMdd-HHmm'
-	$OutputZip = Join-Path $OutputDir "HotelDruid-slim-$stamp.zip"
+	$OutputZip = Join-Path $OutputDir "HotelDruid-PHPDesktop-$stamp.zip"
 }
 
 # ============================================================================
@@ -59,9 +59,12 @@ if (Test-Path $tempStaging) {
 }
 New-Item -Path $tempStaging -ItemType Directory -Force | Out-Null
 
-# Copy installer and launcher
-Write-Host "Adding installer and launcher scripts..." -ForegroundColor Cyan
+# Copy installer, uninstaller, and launcher
+Write-Host "Adding installer, uninstaller, and launcher scripts..." -ForegroundColor Cyan
 Copy-Item -LiteralPath $repoInstaller -Destination (Join-Path $tempStaging 'install_release.ps1') -Force
+$repoUninstaller = Join-Path $RepoRoot 'uninstall_release.ps1'
+if (-not (Test-Path -LiteralPath $repoUninstaller)) { throw "Missing file: $repoUninstaller" }
+Copy-Item -LiteralPath $repoUninstaller -Destination (Join-Path $tempStaging 'uninstall_release.ps1') -Force
 Copy-Item -LiteralPath $repoLauncher -Destination (Join-Path $tempStaging 'start-hoteldruid-desktop.ps1') -Force
 
 # Copy phpdesktop custom settings file if it exists
@@ -113,6 +116,7 @@ Lightweight, portable HotelDruid installation for Windows using PHP Desktop.
 ## What's Included
 
 - **install_release.ps1** - Smart installer that downloads and installs the latest versions
+- **uninstall_release.ps1** - Removes the app and shortcuts; keeps settings/data unless removal flags are used
 - **start-hoteldruid-desktop.ps1** - Launcher script
 - **README.md** - This file
 
@@ -146,6 +150,26 @@ pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language it
 **Spanish (Español):**
 ``powershell
 pwsh -ExecutionPolicy Bypass -File .\install_release.ps1 -Language es
+``
+
+## Uninstall
+
+Remove the app and shortcuts (data is preserved by default):
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\uninstall_release.ps1
+``
+
+Remove everything including data:
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\uninstall_release.ps1 -RemoveDataFolder -RemoveSettings -Force
+```
+
+Silent uninstall (for winget / scripted):
+
+``powershell
+pwsh -ExecutionPolicy Bypass -File .\uninstall_release.ps1 -Silent
 ``
 
 ## What the Installer Does
@@ -262,7 +286,7 @@ HotelDruid is released under the GNU Affero General Public License v3.
 
 ---
 
-**Version:** Slim Distribution  
+**Version:** PHP Desktop Distribution  
 **Built:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 "@
 
@@ -276,7 +300,7 @@ if (Test-Path -LiteralPath $OutputZip) {
 	Remove-Item -LiteralPath $OutputZip -Force
 }
 
-Write-Host "Creating slim package ZIP: $OutputZip" -ForegroundColor Cyan
+Write-Host "Creating phpdesktop package ZIP: $OutputZip" -ForegroundColor Cyan
 Compress-Archive -Path (Join-Path $tempStaging '*') -DestinationPath $OutputZip -Force
 
 # ============================================================================
@@ -296,6 +320,7 @@ Write-Host "Size: $zipSizeMB MB" -ForegroundColor Green
 Write-Host ""
 Write-Host "Files included:" -ForegroundColor Yellow
 Write-Host "  - install_release.ps1 (Smart installer, ~10 KB)"
+Write-Host "  - uninstall_release.ps1 (Uninstaller, ~5 KB; supports silent and data/settings removal flags)"
 Write-Host "  - start-hoteldruid-desktop.ps1 (Launcher, ~1 KB)"
 Write-Host "  - README.md (Installation guide)"
 Write-Host ""

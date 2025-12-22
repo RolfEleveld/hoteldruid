@@ -12,13 +12,13 @@
 // Path to dati folder - change this to your desired location
 // Use forward slashes (/) or double backslashes (\\) for Windows paths
 // Examples:
-//   Windows: "C:/Users/rolfe/Documents/HotelDruid" or "C:\\Users\\rolfe\\Documents\\HotelDruid"
+//   Windows: "/Documents/HotelDruid" or "\\Documents\\HotelDruid"
 //   Linux/Mac: "/home/username/hoteldruid-data"
 //   Relative path: "../hoteldruid-data" (relative to the application directory)
 //
 // If this is empty or not set, the default "./dati" (relative to application) will be used
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/Documents/HotelDruid");
-//define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/Projects/HotelDruid");
+define('C_DATI_PATH_EXTERNAL', "/OneDrive/Documents/HotelDruid");
+//define('C_DATI_PATH_EXTERNAL', "/OneDrive/Projects/HotelDruid");
 
 // Optional: You can also set other paths here if needed
 // define('C_CARTELLA_DOC', "");

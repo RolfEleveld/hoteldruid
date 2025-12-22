@@ -4,13 +4,13 @@ Downloads latest sources from GitHub and phpdesktop runtime
 Extracts, configures, and deploys to target location
 Supports cloud storage with data preservation on redeploys
 
-Usage (interactive with language detection):
-  .\install_release.ps1
+Usage (interactive with auto language detection from OS culture):
+    .\install_release.ps1
 
-Usage (with specific language):
-  .\install_release.ps1 -Language es
-  .\install_release.ps1 -Language en
-  .\install_release.ps1 -Language it
+Usage (override language if needed):
+    .\install_release.ps1 -Language es
+    .\install_release.ps1 -Language en
+    .\install_release.ps1 -Language it
 
 Usage (with custom install directory):
   .\install_release.ps1 -Language es -InstallDir 'C:\HotelDruid'

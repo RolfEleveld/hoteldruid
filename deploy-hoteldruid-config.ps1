@@ -245,7 +245,7 @@ function New-ConfigFile {
 // Path to dati folder - change this to your desired location
 // Use forward slashes (/) or double backslashes (\\) for Windows paths
 // Examples:
-//   Windows: "C:/Users/rolfe/Documents/HotelDruid" or "C:\\Users\\rolfe\\Documents\\HotelDruid"
+//   Windows: "/Documents/HotelDruid" or "\\Documents\\HotelDruid"
 //   Linux/Mac: "/home/username/hoteldruid-data"
 //   Relative path: "../hoteldruid-data" (relative to the application directory)
 //

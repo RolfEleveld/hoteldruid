@@ -49,7 +49,7 @@ For consolidated documentation and navigation, see [INDEX.md](INDEX.md).
 ### 🐳 Docker Services
 
 | Service | Container | Purpose | Port |
-|---------|-----------|---------|------|
+| - | - | - | - |
 | `hoteldruid-web` | Apache + PHP 8.1 | Main application | 8080 |
 | `hoteldruid-db` | MySQL 8.0 | Database server | 3306 |
 | `phpmyadmin` | phpMyAdmin | Database management | 8081 |

@@ -16,13 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build slim package
+      - name: Build phpdesktop package
         id: build
         shell: pwsh
         run: |
           $version = "3.0.7.${{ github.run_number }}"
           $outDir = Join-Path $PWD 'out'
-          $zipPath = Join-Path $outDir "hoteldruid-$version.zip"
+          $zipPath = Join-Path $outDir "hoteldruid-PHPDesktop-$version.zip"
           ./build_deployment_package.ps1 -RepoRoot $PWD -OutputDir $outDir -OutputZip $zipPath
           $resolved = (Resolve-Path $zipPath).Path
           "version=$version" >> $env:GITHUB_OUTPUT
@@ -31,7 +31,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hoteldruid-${{ steps.build.outputs.version }}
+          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
           path: ${{ steps.build.outputs.zip }}
           if-no-files-found: error
 
@@ -39,7 +39,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.build.outputs.version }}
-          name: hoteldruid 3.0.7.${{ github.run_number }}
+          name: hoteldruid-PHPDesktop-3.0.7.${{ github.run_number }}
           files: ${{ steps.build.outputs.zip }}
           draft: false
           prerelease: false

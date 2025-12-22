@@ -50,4 +50,3 @@ Or double-click: `phpdesktop\phpdesktop-chrome.exe`
 ## Next Steps
 
 See `README-PHPDESKTOP.md` for detailed documentation.
-

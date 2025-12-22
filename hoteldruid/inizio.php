@@ -501,7 +501,7 @@ if (!isset($nome_utente[$id_utente]) || empty($nome_utente[$id_utente])) {
 }
 
 // Get hotel name from database or use default
-$nome_hotel = 'Villa Annunziata'; // Default fallback
+$nome_hotel = 'Hoteldruid'; // Default fallback
 if ($numconnessione) {
     // Try to get hotel name from personalizza table
     $query_nome_hotel = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'nome_hotel' and idutente = '1'");
@@ -512,7 +512,7 @@ if ($numconnessione) {
         }
     }
     // If not found, try dati_struttura field 
-    if ($nome_hotel == 'Villa Annunziata') {
+    if ($nome_hotel == 'Hoteldruid') {
         $query_dati_struttura = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'dati_struttura' and idutente = '1'");
         if (numlin_query($query_dati_struttura) > 0) {
             $dati_struttura = risul_query($query_dati_struttura, 0, 'valpersonalizza');

@@ -248,7 +248,7 @@ export_hoteldruid_20251216_143000_v1.zip
 ## Key Differences from Existing Backup
 
 | Feature | Old Backup | Export/Import |
-|---------|-----------|---------------|
+| - | - | - |
 | **Format** | XML | JSON/XML |
 | **Human-Readable** | ❌ | ✅ |
 | **Language Support** | PHP only | Any language |

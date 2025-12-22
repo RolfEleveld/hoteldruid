@@ -204,7 +204,7 @@ $lung_resto = (int) $lung_prima_data + strlen($prima_data);
 $prima_data_corr = preg_split("|[, -/]+|",$prima_data);
 # Se le date sono nel formato 19-26 Agosto 2017 o simili
 $prima_parte = str_replace("\n","",str_replace("\r","",$prima_data_vett[0]));
-$prima_parte_no_data = preg_replace("= [0-9]{1,2} *(-|$al|/) *$=i"," ",$prima_parte);
+$prima_parte_no_data = preg_replace("= [0-9]{1,2} *( - |$al|/) *$=i"," ",$prima_parte);
 if ($prima_parte != $prima_parte_no_data) {
 $lung_prima_data = strlen($prima_parte_no_data);
 $nuova_data = substr($prima_parte,$lung_prima_data);
@@ -214,7 +214,7 @@ $lung_resto = strlen($prima_data_vett[0]);
 } # fine if ($prima_parte != $prima_parte_no_data)
 else {
 # Se le date sono nel formato 26 Agosto - 2 Settempre 2017 o simili
-$prima_parte_no_data = preg_replace("= [0-9]{1,2} *($mesi_alternativi) *(-|$al|/) *$=i"," ",$prima_parte);
+$prima_parte_no_data = preg_replace("= [0-9]{1,2} *($mesi_alternativi) *( - |$al|/) *$=i"," ",$prima_parte);
 if ($prima_parte != $prima_parte_no_data) {
 $lung_prima_data = strlen($prima_parte_no_data);
 $nuova_data = substr($prima_parte,$lung_prima_data);

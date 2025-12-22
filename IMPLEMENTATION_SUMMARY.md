@@ -19,7 +19,7 @@ A comprehensive deployment enhancement system has been created to automatically 
 - Saves settings for future redeploys
 - Supports 3 languages (English, Italian, Spanish)
 
-**Location:** `c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\deploy-hoteldruid-config.ps1`
+**Location:** `\hotelDroid\deploy-hoteldruid-config.ps1`
 
 **Key Features:**
 
@@ -63,7 +63,7 @@ A comprehensive deployment enhancement system has been created to automatically 
 .\install_release.ps1 -UseDeploymentConfig -Language 'it'
 ```
 
-**Location:** `c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\install_release.ps1`
+**Location:** `\hotelDroid\install_release.ps1`
 
 ---
 
@@ -95,7 +95,7 @@ A comprehensive deployment enhancement system has been created to automatically 
 .\hoteldruid-settings-manager.ps1 -Action Reset
 ```
 
-**Location:** `c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\hoteldruid-settings-manager.ps1`
+**Location:** `\hotelDroid\hoteldruid-settings-manager.ps1`
 
 ---
 
@@ -110,11 +110,11 @@ A comprehensive deployment enhancement system has been created to automatically 
 ```json
 {
   "Timestamp": "2025-12-14 15:30:45",
-  "InstallDirectory": "C:\\Users\\rolfe\\AppData\\Local\\HotelDruid",
-  "DataDirectory": "C:\\Users\\rolfe\\OneDrive\\HotelDruid\\hoteldruid\\data",
-  "OneDrivePath": "C:\\Users\\rolfe\\OneDrive",
+  "InstallDirectory": "\\AppData\\Local\\HotelDruid",
+  "DataDirectory": "\\OneDrive\\HotelDruid\\hoteldruid\\data",
+  "OneDrivePath": "\\OneDrive",
   "Hostname": "DESKTOP-ABC123",
-  "Username": "rolfe"
+  "Username": "usera"
 }
 ```
 
@@ -136,7 +136,7 @@ Access:
 ```php
 <?php
 // Auto-generated with detected paths
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/HotelDruid/hoteldruid/data");
+define('C_DATI_PATH_EXTERNAL', "/OneDrive/HotelDruid/hoteldruid/data");
 ?>
 ```
 
@@ -166,7 +166,7 @@ define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/HotelDruid/hoteldruid/da
 - Multi-device setup
 - Scripted deployments
 
-**Location:** `c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\DEPLOYMENT_CONFIG_GUIDE.md`
+**Location:** `\hotelDroid\DEPLOYMENT_CONFIG_GUIDE.md`
 
 ---
 
@@ -183,7 +183,7 @@ define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/OneDrive/HotelDruid/hoteldruid/da
 - Troubleshooting checklist
 - Pro tips
 
-**Location:** `c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\DEPLOYMENT_QUICK_REFERENCE.md`
+**Location:** `\hotelDroid\DEPLOYMENT_QUICK_REFERENCE.md`
 
 ---
 
@@ -376,7 +376,7 @@ Update Complete - Data Intact!
 ## Files Modified/Created
 
 | File | Type | Purpose |
-|------|------|---------|
+| - | - | - |
 | `deploy-hoteldruid-config.ps1` | Created | Config detection & generation |
 | `install_release.ps1` | Enhanced | Integrated config management |
 | `hoteldruid-settings-manager.ps1` | Created | Settings utility |

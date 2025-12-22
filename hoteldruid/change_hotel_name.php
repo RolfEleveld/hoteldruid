@@ -11,7 +11,7 @@ $tablepersonalizza = $PHPR_TAB_PRE."personalizza";
 
 // Get current hotel name
 $query_nome_hotel = esegui_query("select valpersonalizza from $tablepersonalizza where idpersonalizza = 'nome_hotel' and idutente = '1'");
-$nome_hotel_attuale = 'Villa Annunziata'; // Default
+$nome_hotel_attuale = 'Hoteldruid'; // Default
 if (numlin_query($query_nome_hotel) > 0) {
     $nome_dal_db = trim(risul_query($query_nome_hotel, 0, 'valpersonalizza'));
     if (!empty($nome_dal_db)) {
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['nuovo_nome_hotel']))
         
         <div style="margin-top: 30px; padding: 15px; background: #fff8dc; border-radius: 4px; font-size: 14px;">
             <strong>Nota:</strong> Il nome del hotel verrà mostrato nella dashboard principale e in altri punti dell'applicazione.
-            Questo sostituisce il nome "Villa Annunziata" che era precedentemente codificato nel sistema.
+            Questo sostituisce il nome "Hoteldruid" che era precedentemente codificato nel sistema.
         </div>
     </div>
 </body>

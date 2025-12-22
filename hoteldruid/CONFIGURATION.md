@@ -17,14 +17,14 @@ Primary application configuration is via `hoteldruid-config.php`.
 Set `C_DATI_PATH_EXTERNAL` to your desired location:
 
 ```php
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/Documents/HotelDruid");
+define('C_DATI_PATH_EXTERNAL', "/Documents/HotelDruid");
 ```
 
 Path format guidelines:
 
 - Windows: Use forward slashes (`/`) or double backslashes (`\\`)
-  - `C:/Users/rolfe/Documents/HotelDruid`
-  - `C\\:\\Users\\rolfe\\Documents\\HotelDruid`
+  - `/Documents/HotelDruid`
+  - `\\Documents\\HotelDruid`
 - Linux/Mac: Use forward slashes
   - `/home/username/hoteldruid-data`
 - Relative paths: Relative to the application directory
@@ -59,10 +59,10 @@ Path format guidelines:
 
 ```php
 // Installation 1
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/Documents/HotelDruid-Production");
+define('C_DATI_PATH_EXTERNAL', "/Documents/HotelDruid-Production");
 
 // Installation 2
-define('C_DATI_PATH_EXTERNAL', "C:/Users/rolfe/Documents/HotelDruid-Testing");
+define('C_DATI_PATH_EXTERNAL', "/Documents/HotelDruid-Testing");
 ```
 
 Reference:

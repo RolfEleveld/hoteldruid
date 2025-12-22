@@ -617,7 +617,7 @@ numlimite_ca(integer)		numero			NULL o vuoto o zero se non ci sono limiti al num
 regoleassegna_ca(varchar30)	->x-<x;			se non vuoto associa il costo (se possibile) se la prenotazione: inizia dopo x giorni o più - inizia prima di x giorni o meno
 				x			se non vuoto associa il costo (se possibile) se si inseriscono x o più prenotazioni contemporaneamente
 tariffe(text)			s-r-p-i			1 NULL o vuoto se costo non associato alla tariffa e non incompatibile, altrimenti: associare sempre - sempre in periodi permessi - solo se possibile - incompatibile
-				s-<x->x-=x-|x<y		per qualsiasi numero di settimane - meno di x - più di x - per x settimane - compreso tra x e y settimane
+				s-<x->x-=x - |x<y		per qualsiasi numero di settimane - meno di x - più di x - per x settimane - compreso tra x e y settimane
 tasseperc_ca(float)		x|-1			percentuale tasse - il costo è una tassa
 */
 

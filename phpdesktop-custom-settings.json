@@ -4,7 +4,7 @@
         "subprocess_show_console":  false
     },
     "main_window": {
-        "title": "Villa Annuziata Hotel Management",
+        "title": "Hoteldruid PHP Desktop - Hotel Management System",
         "icon": "../hoteldruid/img/logo48x48.png",
         "default_size": [1920, 1080],
         "minimum_size": [640, 480],
