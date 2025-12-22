@@ -285,7 +285,7 @@ class ExportImportUI {
     /**
      * Render import preview
      */
-    public function renderImportPreview($preview_data, $mapping_suggestions) {
+    public function renderImportPreview($preview_data, $mapping_suggestions, $temp_path = null) {
         $html = '';
         $html .= '<div class="rbox"><div class="rheader">';
         $html .= mex('Anteprima importazione', $this->pag);
@@ -319,7 +319,7 @@ class ExportImportUI {
         $html .= '</table>';
 
         $html .= '<h4 style="margin-top: 20px;">' . mex('Mappatura campi', $this->pag) . '</h4>';
-        $html .= $this->renderFieldMappingUI($preview_data, $mapping_suggestions);
+        $html .= $this->renderFieldMappingUI($preview_data, $mapping_suggestions, $temp_path);
 
         return $html;
     }
@@ -327,7 +327,7 @@ class ExportImportUI {
     /**
      * Render field mapping UI
      */
-    private function renderFieldMappingUI($preview_data, $mapping_suggestions) {
+    private function renderFieldMappingUI($preview_data, $mapping_suggestions, $temp_path = null) {
         // Post back to the hosting page (crea_backup.php or export-import/index.php), keeping query params (e.g., debug_export_import)
         $action = $this->currentAction();
         $html = '<form accept-charset="utf-8" method="post" action="' . $action . '">';
@@ -336,6 +336,7 @@ class ExportImportUI {
         $html .= '<input type="hidden" name="azione" value="SI">';
         $html .= '<input type="hidden" name="export_import" value="1">';
         $html .= '<input type="hidden" name="confirm_import" value="1">';
+        if ($temp_path) $html .= '<input type="hidden" name="import_package_temp" value="' . htmlspecialchars($temp_path) . '">';
         if ($this->debugFlag) $html .= '<input type="hidden" name="debug_export_import" value="1">';
 
         $html .= '<p>' . mex('Controlla e adatta le mappature dei campi se necessario', $this->pag) . ':</p>';

@@ -165,9 +165,7 @@ if (!empty($_REQUEST['start_import'])) {
                         $import_mode = isset($_REQUEST['import_mode']) ? $_REQUEST['import_mode'] : 'preview';
 
                         if ($import_mode == 'preview') {
-                            echo $export_import_ui->renderImportPreview($preview, $mapping_suggestions);
-                            // Store temp file path for next step
-                            echo '<input type="hidden" name="import_package_temp" value="' . htmlspecialchars($temp_upload) . '">';
+                            echo $export_import_ui->renderImportPreview($preview, $mapping_suggestions, $temp_upload);
                         } else {
                             // Direct import
                             $import_configs = isset($_REQUEST['import_configs']) ? true : false;
