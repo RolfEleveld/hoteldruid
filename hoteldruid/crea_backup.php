@@ -48,7 +48,18 @@ $var_pag[19] = 'cancella_backup';
 $var_pag[20] = 'utente_backup';
 $var_pag[21] = 'lista_anni_passa';
 $var_pag[22] = 'pass_demo_admin';
-$n_var_pag = 23;
+$var_pag[23] = 'export_import';
+$var_pag[24] = 'create_export';
+$var_pag[25] = 'start_import';
+$var_pag[26] = 'confirm_import';
+$var_pag[27] = 'export_include_configs';
+$var_pag[28] = 'export_include_templates';
+$var_pag[29] = 'export_include_documents';
+$var_pag[30] = 'import_mode';
+$var_pag[31] = 'import_configs';
+$var_pag[32] = 'import_package';
+$var_pag[33] = 'import_package_temp';
+$n_var_pag = 34;
 if (isset($_REQUEST['lista_anni_passa'])) $num2 = $_REQUEST['lista_anni_passa'];
 else $num2 = 0;
 if ($num2) {
@@ -120,6 +131,11 @@ if ($privilegi_globali_utente) chiudi_query($privilegi_globali_utente);
 
 
 if (fixset($azione) == "SI") {
+
+// Route export/import form posts to the export-import handlers even when azione=SI
+if (!empty($_REQUEST['export_import'])) {
+include_once('./export-import/export-import-handlers.php');
+}
 
 
 
@@ -751,8 +767,7 @@ echo "<button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."
 
 } # fine if (fixset($azione) == "SI")
 
-
-elseif ($anno_utente_attivato == "SI") {
+else if ($anno_utente_attivato == "SI") {
 
 $stile_data = stile_data();
 
@@ -997,6 +1012,11 @@ echo "</td></tr></table></div></form><table><tr><td style=\"height: 1px;\"></td>
 } # fine if ($file_esistente == "SI")
 } # fine if ($id_utente == 1)
 
+echo "<hr style=\"width: 95%\">";
+
+// Include export/import functionality for main backup
+include_once('./export-import/export-import-handlers.php');
+
 echo "<hr style=\"width: 95%\">
 <br>
 <form accept-charset=\"utf-8\" method=\"post\" action=\"./crea_backup.php\"><div>
@@ -1008,28 +1028,20 @@ echo "<hr style=\"width: 95%\">
 
 } # fine else if ($backup_contratti == "SI")
 
-
-
 $action = "personalizza.php";
 if ($backup_contratti == "SI") $action .= "#contratti";
 echo "<br/><form accept-charset=\"utf-8\" method=\"post\" action=\"$action\"><div>
 <input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
+<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\"> 
 <button class=\"gobk\" type=\"submit\"><div>".mex("Torna indietro",$pag)."</div></button>
 </div></form><br></div>";
 
-
-
-} # fine elseif ($anno_utente_attivato == "SI")
-
-
-
+} # fine else
 
 if ($mostra_header != "NO") {
 if (!empty($tema[$id_utente]) and $tema[$id_utente] != "base" and @is_dir("./themes/".$tema[$id_utente]."/php")) include("./themes/".$tema[$id_utente]."/php/foot.php");
 else include("./includes/foot.php");
 } # fine if ($mostra_header != "NO")
-
 
 } # fine if ($priv_crea_backup == "s")
 } # fine if ($id_utente)

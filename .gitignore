@@ -2,6 +2,7 @@
 windows
 phpdesktop
 logs
+dati
 hoteldruid/logs
 hoteldruid/dati
 # Hotel druid software
@@ -12,3 +13,26 @@ phpdesktop*.zip
 vcredist_x64.exe
 vcredist_x86.exe
 out
+
+# Generated export packages
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Temporary files
+temp_*
+*_tmp
+
+# Log files
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
