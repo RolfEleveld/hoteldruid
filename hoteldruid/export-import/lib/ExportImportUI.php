@@ -8,12 +8,19 @@ class ExportImportUI {
     private $id_utente;
     private $anno;
     private $id_sessione;
-    private $pag = 'crea_backup.php';
+    private $pag = 'export-import/index.php';
+    private $debugFlag;
 
     public function __construct($id_utente, $anno, $id_sessione) {
         $this->id_utente = $id_utente;
         $this->anno = $anno;
         $this->id_sessione = $id_sessione;
+        $this->debugFlag = isset($_REQUEST['debug_export_import']) && $_REQUEST['debug_export_import'] == '1';
+    }
+
+    private function currentAction() {
+        if (!empty($_SERVER['REQUEST_URI'])) return htmlspecialchars($_SERVER['REQUEST_URI']);
+        return htmlspecialchars($_SERVER['PHP_SELF'] ?? '');
     }
 
     /**
@@ -35,32 +42,37 @@ class ExportImportUI {
      * Render export UI
      */
     private function renderExportUI() {
+        // Post back to the hosting page (crea_backup.php or export-import/index.php), keeping query params (e.g., debug_export_import)
+        $action = $this->currentAction();
         $html = '<div class="rbox" style="margin-top: 20px;"><div class="rheader">';
-        $html .= '📤 ' . mex('Export Data', $this->pag);
+        $html .= '📤 ' . mex('Esporta dati', $this->pag);
         $html .= '</div><div class="rcontent">';
 
-        $html .= '<p>' . mex('Export your HotelDroid data to a portable JSON-based package', $this->pag) . '</p>';
+        $html .= '<p>' . mex('Esporta i dati di HotelDroid in un pacchetto JSON portabile', $this->pag) . '</p>';
 
-        $html .= '<form accept-charset="utf-8" method="post" action="./index.php"><div>';
+        // Post back to the hosting page (crea_backup.php or index) so the handlers on that page receive the submit
+        // Post back to the hosting page (crea_backup.php or index) so the handlers on that page receive the submit
+        $html .= '<form accept-charset="utf-8" method="post" action="' . $action . '"><div>';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
         $html .= '<input type="hidden" name="azione" value="SI">';
         $html .= '<input type="hidden" name="export_import" value="1">';
+        if ($this->debugFlag) $html .= '<input type="hidden" name="debug_export_import" value="1">';
 
         $html .= '<table style="width: 100%;">';
         $html .= '<tr><td style="width: 30px;"></td><td>';
         $html .= '<label><input type="checkbox" name="export_include_configs" value="1" checked> ';
-        $html .= mex('Include configurations', $this->pag) . '</label><br>';
+        $html .= mex('Includi configurazioni', $this->pag) . '</label><br>';
         $html .= '<label><input type="checkbox" name="export_include_templates" value="1" checked> ';
-        $html .= mex('Include templates', $this->pag) . '</label><br>';
+        $html .= mex('Includi modelli', $this->pag) . '</label><br>';
         $html .= '<label><input type="checkbox" name="export_include_documents" value="1" checked> ';
-        $html .= mex('Include documents', $this->pag) . '</label>';
+        $html .= mex('Includi documenti', $this->pag) . '</label>';
         $html .= '</td></tr>';
         $html .= '</table>';
 
         $html .= '<div style="text-align: center; margin-top: 15px;">';
         $html .= '<button class="abkp" type="submit" name="create_export" value="1">';
-        $html .= '<div>' . mex('Create Export Package', $this->pag) . '</div>';
+        $html .= '<div>' . mex('Crea pacchetto di esportazione', $this->pag) . '</div>';
         $html .= '</button>';
         $html .= '</div>';
 
@@ -68,14 +80,14 @@ class ExportImportUI {
         // Recent exports (discover, prune, and list)
         $recent = $this->discoverAndPruneRecentPackages(5);
         $html .= '<div style="margin-top:18px;">';
-        $html .= '<h4>' . mex('Recent Exports', $this->pag) . '</h4>';
+        $html .= '<h4>' . mex('Esportazioni recenti', $this->pag) . '</h4>';
         if (empty($recent)) {
-            $html .= '<p>' . mex('No export packages found', $this->pag) . '</p>';
+            $html .= '<p>' . mex('Nessun pacchetto di esportazione trovato', $this->pag) . '</p>';
         } else {
             $html .= '<table style="width:100%; border-collapse:collapse;">';
             $html .= '<tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('File', $this->pag) . '</th>';
-            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Date', $this->pag) . '</th>';
-            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Size', $this->pag) . '</th></tr>';
+            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Data', $this->pag) . '</th>';
+            $html .= '<th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">' . mex('Dimensione', $this->pag) . '</th></tr>';
             foreach ($recent as $p) {
                 $fname = htmlspecialchars(basename($p['path']));
                 $date = date('Y-m-d H:i:s', $p['mtime']);
@@ -88,7 +100,8 @@ class ExportImportUI {
                     // Encode spaces and other unsafe characters but keep slashes
                     $realPathForUrl = str_replace(' ', '%20', $realPathForUrl);
                     $fileUrl = 'file://' . $realPathForUrl;
-                    $fileHtml = '<a href="' . htmlspecialchars($fileUrl) . '">' . $fname . '</a>';
+                    // Use download attr so browsers trigger save dialog for file:// links too
+                    $fileHtml = '<a href="' . htmlspecialchars($fileUrl) . '" download>' . $fname . '</a>';
                     $fileHtml .= ' <small>(' . htmlspecialchars($realPathForUrl) . ')</small>';
                 }
                 $html .= '<tr><td style="padding:6px;">' . $fileHtml . '</td><td style="padding:6px;">' . $date . '</td><td style="padding:6px;">' . $size . '</td></tr>';
@@ -168,6 +181,11 @@ class ExportImportUI {
                     $rel = str_replace('\\', '/', $rel);
                     $webUrl = '.' . $rel;
                 }
+                // Default to download endpoint when file is outside web root
+                if (!$webUrl && $realPath) {
+                    $webUrl = $this->buildDownloadUrl($realPath);
+                }
+
                 $result[] = ['path'=>$realPath,'mtime'=>$c['mtime'],'size'=>$c['size'],'web_url'=>$webUrl];
             } else {
                 // Prune older: if source is 'runs' remove entire run folder, else remove file
@@ -205,43 +223,57 @@ class ExportImportUI {
     }
 
     /**
+     * Build download endpoint URL for non-webroot files
+     */
+    private function buildDownloadUrl($realPath) {
+        if (!$realPath) return null;
+        $encoded = rtrim(strtr(base64_encode($realPath), '+/', '-_'), '=');
+        return './export-import/download-package.php?p=' . $encoded;
+    }
+
+    /**
      * Render import UI
      */
     private function renderImportUI() {
+        // Post back to the hosting page (crea_backup.php or export-import/index.php), keeping query params (e.g., debug_export_import)
+        $action = $this->currentAction();
         $html = '<div class="rbox" style="margin-top: 20px;"><div class="rheader">';
-        $html .= '📥 ' . mex('Import Data', $this->pag);
+        $html .= '📥 ' . mex('Importa dati', $this->pag);
         $html .= '</div><div class="rcontent">';
 
-        $html .= '<p>' . mex('Import data from a previously exported package', $this->pag) . '</p>';
+        $html .= '<p>' . mex('Importa dati da un pacchetto esportato in precedenza', $this->pag) . '</p>';
 
-        $html .= '<form accept-charset="utf-8" enctype="multipart/form-data" method="post" action="./index.php"><div>';
+        // Post back to the hosting page (crea_backup.php or index) so the handlers on that page receive the submit
+        // Post back to the hosting page (crea_backup.php or index) so the handlers on that page receive the submit
+        $html .= '<form accept-charset="utf-8" enctype="multipart/form-data" method="post" action="' . $action . '"><div>';
         $html .= '<input type="hidden" name="MAX_FILE_SIZE" value="500000000">';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
         $html .= '<input type="hidden" name="azione" value="SI">';
         $html .= '<input type="hidden" name="export_import" value="1">';
+        if ($this->debugFlag) $html .= '<input type="hidden" name="debug_export_import" value="1">';
 
         $html .= '<table style="width: 100%;">';
         $html .= '<tr><td style="width: 30px;"></td><td>';
         $html .= '<label><input type="radio" name="import_mode" value="preview" checked> ';
-        $html .= mex('Preview before importing', $this->pag) . '</label><br>';
+        $html .= mex('Anteprima prima di importare', $this->pag) . '</label><br>';
         $html .= '<label><input type="radio" name="import_mode" value="direct"> ';
-        $html .= mex('Import directly', $this->pag) . '</label>';
+        $html .= mex('Importa direttamente', $this->pag) . '</label>';
         $html .= '</td></tr>';
         $html .= '<tr><td style="width: 30px;"></td><td>';
         $html .= '<label><input type="checkbox" name="import_configs" value="1" checked> ';
-        $html .= mex('Import configurations', $this->pag) . '</label>';
+        $html .= mex('Importa configurazioni', $this->pag) . '</label>';
         $html .= '</td></tr>';
         $html .= '</table>';
 
         $html .= '<div style="margin-top: 15px;">';
-        $html .= mex('Select package file', $this->pag) . ': ';
+        $html .= mex('Seleziona il file pacchetto', $this->pag) . ': ';
         $html .= '<input name="import_package" type="file" accept=".zip">';
         $html .= '</div>';
 
         $html .= '<div style="text-align: center; margin-top: 15px;">';
         $html .= '<button class="ubkp" type="submit" name="start_import" value="1">';
-        $html .= '<div>' . mex('Continue', $this->pag) . '</div>';
+        $html .= '<div>' . mex('Continua', $this->pag) . '</div>';
         $html .= '</button>';
         $html .= '</div>';
 
@@ -254,18 +286,19 @@ class ExportImportUI {
      * Render import preview
      */
     public function renderImportPreview($preview_data, $mapping_suggestions) {
-        $html = '<div class="rbox"><div class="rheader">';
-        $html .= mex('Import Preview', $this->pag);
+        $html = '';
+        $html .= '<div class="rbox"><div class="rheader">';
+        $html .= mex('Anteprima importazione', $this->pag);
         $html .= '</div><div class="rcontent">';
 
-        $html .= '<h4>' . mex('Data to be imported:', $this->pag) . '</h4>';
+        $html .= '<h4>' . mex('Dati da importare:', $this->pag) . '</h4>';
         $html .= '<table style="width: 100%; border-collapse: collapse;">';
         $html .= '<tr><th style="border-bottom: 1px solid #ccc; padding: 8px; text-align: left;">';
-        $html .= mex('Table', $this->pag) . '</th>';
+        $html .= mex('Tabella', $this->pag) . '</th>';
         $html .= '<th style="border-bottom: 1px solid #ccc; padding: 8px; text-align: left;">';
-        $html .= mex('Rows', $this->pag) . '</th>';
+        $html .= mex('Righe', $this->pag) . '</th>';
         $html .= '<th style="border-bottom: 1px solid #ccc; padding: 8px; text-align: left;">';
-        $html .= mex('Columns', $this->pag) . '</th></tr>';
+        $html .= mex('Colonne', $this->pag) . '</th></tr>';
 
         foreach ($preview_data as $table_name => $table_info) {
             $mapped_table = $table_name;
@@ -285,7 +318,7 @@ class ExportImportUI {
 
         $html .= '</table>';
 
-        $html .= '<h4 style="margin-top: 20px;">' . mex('Field Mapping', $this->pag) . '</h4>';
+        $html .= '<h4 style="margin-top: 20px;">' . mex('Mappatura campi', $this->pag) . '</h4>';
         $html .= $this->renderFieldMappingUI($preview_data, $mapping_suggestions);
 
         return $html;
@@ -295,14 +328,17 @@ class ExportImportUI {
      * Render field mapping UI
      */
     private function renderFieldMappingUI($preview_data, $mapping_suggestions) {
-        $html = '<form accept-charset="utf-8" method="post" action="./index.php">';
+        // Post back to the hosting page (crea_backup.php or export-import/index.php), keeping query params (e.g., debug_export_import)
+        $action = $this->currentAction();
+        $html = '<form accept-charset="utf-8" method="post" action="' . $action . '">';
         $html .= '<input type="hidden" name="anno" value="' . $this->anno . '">';
         $html .= '<input type="hidden" name="id_sessione" value="' . $this->id_sessione . '">';
         $html .= '<input type="hidden" name="azione" value="SI">';
         $html .= '<input type="hidden" name="export_import" value="1">';
         $html .= '<input type="hidden" name="confirm_import" value="1">';
+        if ($this->debugFlag) $html .= '<input type="hidden" name="debug_export_import" value="1">';
 
-        $html .= '<p>' . mex('Review and adjust field mappings if needed', $this->pag) . ':</p>';
+        $html .= '<p>' . mex('Controlla e adatta le mappature dei campi se necessario', $this->pag) . ':</p>';
 
         foreach ($preview_data as $table_name => $table_info) {
             $html .= '<fieldset style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">';
@@ -331,7 +367,7 @@ class ExportImportUI {
 
         $html .= '<div style="text-align: center; margin-top: 20px;">';
         $html .= '<button class="gbk" type="submit">';
-        $html .= '<div>' . mex('Confirm Import', $this->pag) . '</div>';
+        $html .= '<div>' . mex('Conferma importazione', $this->pag) . '</div>';
         $html .= '</button>';
         $html .= '</div>';
 
@@ -346,15 +382,15 @@ class ExportImportUI {
     public function renderImportResult($import_stats) {
         $html = '<div class="rbox" style="border-left: 4px solid #4CAF50;">';
         $html .= '<div class="rheader" style="background-color: #4CAF50; color: white;">';
-        $html .= '✓ ' . mex('Import Completed', $this->pag);
+        $html .= '✓ ' . mex('Importazione completata', $this->pag);
         $html .= '</div><div class="rcontent">';
 
-        $html .= '<p><strong>' . mex('Import Summary', $this->pag) . ':</strong></p>';
+        $html .= '<p><strong>' . mex('Riepilogo importazione', $this->pag) . ':</strong></p>';
         $html .= '<ul>';
-        $html .= '<li>' . mex('Tables processed', $this->pag) . ': ' . $import_stats['tables_processed'] . '</li>';
-        $html .= '<li>' . mex('Rows imported', $this->pag) . ': ' . $import_stats['rows_imported'] . '</li>';
+        $html .= '<li>' . mex('Tabelle elaborate', $this->pag) . ': ' . $import_stats['tables_processed'] . '</li>';
+        $html .= '<li>' . mex('Righe importate', $this->pag) . ': ' . $import_stats['rows_imported'] . '</li>';
         if (!empty($import_stats['errors'])) {
-            $html .= '<li style="color: red;">' . mex('Errors', $this->pag) . ': ';
+            $html .= '<li style="color: red;">' . mex('Errori', $this->pag) . ': ';
             $html .= '<ul>';
             foreach ($import_stats['errors'] as $error) {
                 $html .= '<li>' . htmlspecialchars($error) . '</li>';

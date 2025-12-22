@@ -13,6 +13,7 @@ class Importer {
     private $manifest;
     private $entity_mapping;
     private $field_mapping = array(); // User-defined field mappings
+    private $canonical_mapper;
 
     public function __construct($numconnessione, $phpr_tab_pre, $db_type, $package_path, $logger = null) {
         $this->numconnessione = $numconnessione;
@@ -20,6 +21,7 @@ class Importer {
         $this->db_type = $db_type;
         $this->package_path = $package_path;
         $this->logger = $logger;
+        include_once(__DIR__ . '/CanonicalMapper.php');
     }
 
     /**
@@ -60,6 +62,15 @@ class Importer {
             if (file_exists($mapping_file)) {
                 $this->entity_mapping = json_decode(file_get_contents($mapping_file), true);
             }
+
+            $canonical_map_file = $temp_dir . '/metadata/canonical_mapping.json';
+            $canonical_map_data = null;
+            if (file_exists($canonical_map_file)) {
+                $canonical_map_data = json_decode(file_get_contents($canonical_map_file), true);
+            }
+            // Fallback to bundled mapping if package mapping missing
+            $mapping_path = dirname(__DIR__) . '/canonical_mapping.json';
+            $this->canonical_mapper = new CanonicalMapper($this->phpr_tab_pre, $mapping_path, $canonical_map_data);
 
             // Check required directories
             $required_dirs = array('data/tables', 'metadata');
@@ -157,6 +168,15 @@ class Importer {
         $zip->extractTo($temp_dir);
         $zip->close();
 
+        // Initialize canonical mapper from package mapping (if present)
+        $canonical_map_file = $temp_dir . '/metadata/canonical_mapping.json';
+        $canonical_map_data = null;
+        if (file_exists($canonical_map_file)) {
+            $canonical_map_data = json_decode(file_get_contents($canonical_map_file), true);
+        }
+        $mapping_path = dirname(__DIR__) . '/canonical_mapping.json';
+        $this->canonical_mapper = new CanonicalMapper($this->phpr_tab_pre, $mapping_path, $canonical_map_data);
+
         $import_stats = array(
             'tables_processed' => 0,
             'rows_imported' => 0,
@@ -215,12 +235,13 @@ class Importer {
     private function importTable($table_data, $dry_run = false) {
         include_once(__DIR__ . '/../../includes/funzioni.php');
 
-        $source_table = $table_data['table_name'];
+        $canonical_table = $table_data['table_name'];
+        $source_table = $this->canonical_mapper->getSourceTable($canonical_table);
         $target_table = $this->phpr_tab_pre . $source_table;
 
         // Check if mapping exists
-        if (isset($this->field_mapping[$source_table])) {
-            $mapping = $this->field_mapping[$source_table];
+        if (isset($this->field_mapping[$canonical_table])) {
+            $mapping = $this->field_mapping[$canonical_table];
             $target_table = $this->phpr_tab_pre . $mapping['target_table'];
             $field_map = $mapping['field_mapping'];
         } else {
@@ -231,7 +252,10 @@ class Importer {
 
         try {
             foreach ($table_data['rows'] as $row) {
-                // Transform row according to field mapping
+                // First, translate canonical fields back to source fields
+                $row = $this->canonical_mapper->canonicalRowToSource($canonical_table, $row);
+
+                // Then apply any user-defined field remapping
                 if (!empty($field_map)) {
                     $mapped_row = array();
                     foreach ($field_map as $source_field => $target_field) {

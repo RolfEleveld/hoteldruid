@@ -132,6 +132,11 @@ if ($privilegi_globali_utente) chiudi_query($privilegi_globali_utente);
 
 if (fixset($azione) == "SI") {
 
+// Route export/import form posts to the export-import handlers even when azione=SI
+if (!empty($_REQUEST['export_import'])) {
+include_once('./export-import/export-import-handlers.php');
+}
+
 
 
 if (!empty($crea_backup)) {
@@ -1007,6 +1012,8 @@ echo "</td></tr></table></div></form><table><tr><td style=\"height: 1px;\"></td>
 } # fine if ($file_esistente == "SI")
 } # fine if ($id_utente == 1)
 
+echo "<hr style=\"width: 95%\">";
+
 // Include export/import functionality for main backup
 include_once('./export-import/export-import-handlers.php');
 
@@ -1020,16 +1027,6 @@ echo "<hr style=\"width: 95%\">
 </div></form><br>";
 
 } # fine else if ($backup_contratti == "SI")
-
-
-
-// Quick link to Export UI (posts export_import=1 so handlers render the section)
-echo "<br/>
-<form accept-charset=\"utf-8\" method=\"get\" action=\"./export-import/index.php\"><div>
-<input type=\"hidden\" name=\"anno\" value=\"$anno\">
-<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">
-<button class=\"gobk\" type=\"submit\"><div>".mex("Export",$pag)."</div></button>
-</div></form><br/>";
 
 $action = "personalizza.php";
 if ($backup_contratti == "SI") $action .= "#contratti";

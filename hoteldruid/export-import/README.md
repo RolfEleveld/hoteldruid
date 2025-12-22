@@ -5,6 +5,7 @@
 The Export/Import system provides a modern, language-agnostic way to export and import HotelDroid data. It operates independently from the existing backup/restore mechanism and creates portable JSON-based packages in ZIP format.
 
 **Key Features:**
+
 - ✅ **JSON-Based**: Human-readable, portable data format
 - ✅ **Field Mapping**: Intelligent mapping of database fields during import
 - ✅ **Entity Translation**: Support for importing to systems with different naming conventions
@@ -15,7 +16,7 @@ The Export/Import system provides a modern, language-agnostic way to export and 
 
 ## Architecture
 
-```
+```text
 export-import/
 ├── lib/
 │   ├── DataFlattener.php         # Converts DB tables to JSON
@@ -44,7 +45,8 @@ export-import/
 5. Download the generated ZIP file
 
 **Package Filename Format:**
-```
+
+```text
 export_hoteldruid_20251216_143000_prod_v1.zip
 ```
 
@@ -60,6 +62,7 @@ export_hoteldruid_20251216_143000_prod_v1.zip
 6. Click **"Continue"**
 
 #### Preview Mode
+
 - Review all tables that will be imported
 - See row counts and column names
 - Adjust field mappings if needed
@@ -68,11 +71,13 @@ export_hoteldruid_20251216_143000_prod_v1.zip
 ### Field Mapping
 
 The system automatically suggests mappings based on:
+
 - **Entity Mapping**: International table/field names
 - **Field Names**: Matching source and target field names
 - **Data Types**: Automatic type conversion
 
 To manually adjust mappings in preview:
+
 1. Source field name appears on the left
 2. Suggested target field name in the input field
 3. Modify if needed for your system
@@ -81,7 +86,9 @@ To manually adjust mappings in preview:
 ## Package Contents
 
 ### manifest.json
+
 Top-level file documenting the export source:
+
 ```json
 {
   "export_format_version": "1.0.0",
@@ -102,18 +109,22 @@ Top-level file documenting the export source:
 ```
 
 ### metadata/
+
 - **export_metadata.json**: Details about what was exported
 - **entity_mapping.json**: Table/field translation mapping
 - **schema_versions.json**: Schema version tracking
 
 ### data/tables/
+
 JSON files for each table:
+
 - `clienti.json`
 - `contratti.json`
 - `prenota2025.json`
 - etc.
 
 Each table file contains:
+
 ```json
 {
   "table_name": "clienti",
@@ -125,14 +136,17 @@ Each table file contains:
 ```
 
 ### configs/
+
 - **configurations.json**: All PHP configuration files in JSON format
 - **templates/**: Document templates (.rtf, .docx files)
 
 ### schemas/
+
 - **relationships.json**: Foreign key definitions
 - **tables/**: Per-table schema definitions
 
 ### docs/
+
 - **EXPORT_INFO.txt**: Human-readable export summary
 - **IMPORT_GUIDE.txt**: How to use this package
 - **SCHEMA_REFERENCE.txt**: Table definitions
@@ -221,17 +235,20 @@ if ($validation['valid']) {
 ## Security Considerations
 
 ### Access Control
+
 - ✅ **Admin Only**: Only users with ID=1 can export/import
 - ✅ **Authentication**: Full HotelDroid login required
 - ✅ **Permission Checking**: Integrated with existing privilege system
 
 ### File Handling
+
 - ✅ **Temp Directory**: Uses system temp with unique names
 - ✅ **Cleanup**: Temporary files automatically deleted
 - ✅ **Safe Paths**: No path traversal vulnerabilities
 - ✅ **Validation**: ZIP structure validated before extraction
 
 ### Data Protection
+
 - ✅ **No Passwords**: Database credentials not exported
 - ✅ **No Sensitive Data**: User passwords excluded
 - ✅ **Audit Trail**: Export source and timestamp recorded
@@ -244,12 +261,14 @@ The system supports importing to implementations with different naming conventio
 ### Example: Italian HotelDroid → English-Named System
 
 **Export (Italian):**
-```
+
+```text
 Table: clienti
 Fields: cognome, nome, email
 ```
 
 **Entity Mapping:**
+
 ```json
 {
   "table_translations": {
@@ -266,7 +285,8 @@ Fields: cognome, nome, email
 ```
 
 **Import (English System):**
-```
+
+```text
 Target Table: guests
 Target Fields: last_name, first_name, email_address
 ```
@@ -274,22 +294,26 @@ Target Fields: last_name, first_name, email_address
 ## Troubleshooting
 
 ### Export Fails
+
 1. Check admin privileges (ID=1)
 2. Verify `/export-import/packages` directory is writable
 3. Check database connectivity
 4. Review PHP error logs
 
 ### Import Package Invalid
+
 1. Ensure ZIP file wasn't corrupted during download
 2. Verify manifest.json exists in package
 3. Check that package was created with this system
 
 ### Import Preview Shows No Data
+
 1. Check that data/tables directory exists in package
 2. Verify .json files in data/tables are readable
 3. Review import validation errors
 
 ### Field Mapping Errors
+
 1. Check column names match exactly
 2. Verify target table exists in database
 3. Review entity_mapping.json for suggestions
@@ -352,6 +376,7 @@ $importer->setFieldMapping('clienti', 'customers', [
 ## Support
 
 For issues or questions:
+
 1. Check the logs in `/dati/export-import.log` (if logging enabled)
 2. Review this README
 3. Check the error messages in the UI

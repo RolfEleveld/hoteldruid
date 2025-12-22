@@ -1,0 +1,234 @@
+{
+  "tables": {
+    "source_to_canonical": {
+      "anni": "years",
+      "appartamenti": "properties",
+      "clienti": "guests",
+      "relclienti": "guest_relations",
+      "personalizza": "preferences",
+      "versioni": "versions",
+      "utenti": "users",
+      "gruppi": "groups",
+      "privilegi": "permissions",
+      "sessioni": "sessions",
+      "transazioni": "transactions",
+      "transazioniweb": "web_transactions",
+      "descrizioni": "descriptions",
+      "nazioni": "countries",
+      "regioni": "regions",
+      "citta": "cities",
+      "documentiid": "document_types",
+      "parentele": "relationships",
+      "relutenti": "user_relations",
+      "relgruppi": "group_relations",
+      "beniinventario": "inventory_items",
+      "magazzini": "warehouses",
+      "relinventario": "inventory_links",
+      "casse": "cash_registers",
+      "contratti": "contracts",
+      "cache": "cache",
+      "interconnessioni": "interconnections",
+      "messaggi": "messages",
+      "prenota2025": "bookings2025",
+      "prenotacanc2025": "booking_cancels2025",
+      "costiprenota2025": "booking_costs2025",
+      "rclientiprenota2025": "booking_clients2025",
+      "periodi2025": "seasons2025",
+      "ntariffe2025": "rateplans2025",
+      "regole2025": "rules2025",
+      "soldi2025": "payments2025",
+      "costi2025": "expenses2025"
+    },
+    "canonical_to_source": {
+      "years": "anni",
+      "properties": "appartamenti",
+      "guests": "clienti",
+      "guest_relations": "relclienti",
+      "preferences": "personalizza",
+      "versions": "versioni",
+      "users": "utenti",
+      "groups": "gruppi",
+      "permissions": "privilegi",
+      "sessions": "sessioni",
+      "transactions": "transazioni",
+      "web_transactions": "transazioniweb",
+      "descriptions": "descrizioni",
+      "countries": "nazioni",
+      "regions": "regioni",
+      "cities": "citta",
+      "document_types": "documentiid",
+      "relationships": "parentele",
+      "user_relations": "relutenti",
+      "group_relations": "relgruppi",
+      "inventory_items": "beniinventario",
+      "warehouses": "magazzini",
+      "inventory_links": "relinventario",
+      "cash_registers": "casse",
+      "contracts": "contratti",
+      "cache": "cache",
+      "interconnections": "interconnessioni",
+      "messages": "messaggi",
+      "bookings2025": "prenota2025",
+      "booking_cancels2025": "prenotacanc2025",
+      "booking_costs2025": "costiprenota2025",
+      "booking_clients2025": "rclientiprenota2025",
+      "seasons2025": "periodi2025",
+      "rateplans2025": "ntariffe2025",
+      "rules2025": "regole2025",
+      "payments2025": "soldi2025",
+      "expenses2025": "costi2025"
+    }
+  },
+  "columns": {
+    "clienti": {
+      "source_to_canonical": {
+        "idclienti": "id",
+        "cognome": "last_name",
+        "nome": "first_name",
+        "soprannome": "nickname",
+        "sesso": "gender",
+        "titolo": "title",
+        "lingua": "language",
+        "datanascita": "birth_date",
+        "cittanascita": "birth_city",
+        "nazionenascita": "birth_country",
+        "documento": "document_number",
+        "scadenzadoc": "document_expiry",
+        "tipodoc": "document_type",
+        "telefono": "phone",
+        "telefono2": "phone_alt",
+        "email": "email",
+        "email2": "email_alt",
+        "cod_fiscale": "tax_id",
+        "partita_iva": "vat_id",
+        "commento": "notes",
+        "datainserimento": "created_at",
+        "hostinserimento": "created_host",
+        "utente_inserimento": "created_by"
+      },
+      "canonical_to_source": {
+        "id": "idclienti",
+        "last_name": "cognome",
+        "first_name": "nome",
+        "nickname": "soprannome",
+        "gender": "sesso",
+        "title": "titolo",
+        "language": "lingua",
+        "birth_date": "datanascita",
+        "birth_city": "cittanascita",
+        "birth_country": "nazionenascita",
+        "document_number": "documento",
+        "document_expiry": "scadenzadoc",
+        "document_type": "tipodoc",
+        "phone": "telefono",
+        "phone_alt": "telefono2",
+        "email": "email",
+        "email_alt": "email2",
+        "tax_id": "cod_fiscale",
+        "vat_id": "partita_iva",
+        "notes": "commento",
+        "created_at": "datainserimento",
+        "created_host": "hostinserimento",
+        "created_by": "utente_inserimento"
+      }
+    },
+    "appartamenti": {
+      "source_to_canonical": {
+        "idappartamenti": "unit_id",
+        "numpiano": "floor",
+        "maxoccupanti": "max_occupancy",
+        "numcasa": "unit_number",
+        "commento": "notes"
+      },
+      "canonical_to_source": {
+        "unit_id": "idappartamenti",
+        "floor": "numpiano",
+        "max_occupancy": "maxoccupanti",
+        "unit_number": "numcasa",
+        "notes": "commento"
+      }
+    },
+    "utenti": {
+      "source_to_canonical": {
+        "idutenti": "user_id",
+        "nome_utente": "username",
+        "password": "password_hash",
+        "salt": "password_salt",
+        "tipo_pass": "password_type",
+        "datainserimento": "created_at",
+        "hostinserimento": "created_host"
+      },
+      "canonical_to_source": {
+        "user_id": "idutenti",
+        "username": "nome_utente",
+        "password_hash": "password",
+        "password_salt": "salt",
+        "password_type": "tipo_pass",
+        "created_at": "datainserimento",
+        "created_host": "hostinserimento"
+      }
+    },
+    "prenota2025": {
+      "source_to_canonical": {
+        "idprenota": "booking_id",
+        "idclienti": "guest_id",
+        "idappartamenti": "unit_id",
+        "iddatainizio": "start_date_id",
+        "iddatafine": "end_date_id",
+        "num_persone": "guest_count",
+        "tariffa_tot": "total_rate",
+        "caparra": "deposit",
+        "pagato": "paid_amount",
+        "valuta": "currency",
+        "metodo_pagamento": "payment_method",
+        "datainserimento": "created_at",
+        "hostinserimento": "created_host",
+        "utente_inserimento": "created_by"
+      },
+      "canonical_to_source": {
+        "booking_id": "idprenota",
+        "guest_id": "idclienti",
+        "unit_id": "idappartamenti",
+        "start_date_id": "iddatainizio",
+        "end_date_id": "iddatafine",
+        "guest_count": "num_persone",
+        "total_rate": "tariffa_tot",
+        "deposit": "caparra",
+        "paid_amount": "pagato",
+        "currency": "valuta",
+        "payment_method": "metodo_pagamento",
+        "created_at": "datainserimento",
+        "created_host": "hostinserimento",
+        "created_by": "utente_inserimento"
+      }
+    },
+    "periodi2025": {
+      "source_to_canonical": {
+        "idperiodi": "season_id",
+        "datainizio": "start_date",
+        "datafine": "end_date"
+      },
+      "canonical_to_source": {
+        "season_id": "idperiodi",
+        "start_date": "datainizio",
+        "end_date": "datafine"
+      }
+    },
+    "costi2025": {
+      "source_to_canonical": {
+        "idcosti": "expense_id",
+        "nome_costo": "expense_name",
+        "val_costo": "amount",
+        "valuta": "currency",
+        "data_transazione": "transaction_date"
+      },
+      "canonical_to_source": {
+        "expense_id": "idcosti",
+        "expense_name": "nome_costo",
+        "amount": "val_costo",
+        "currency": "valuta",
+        "transaction_date": "data_transazione"
+      }
+    }
+  }
+}

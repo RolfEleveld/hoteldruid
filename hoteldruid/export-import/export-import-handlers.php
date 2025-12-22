@@ -5,9 +5,23 @@
  * Include this file in crea_backup.php to add export/import features
  */
 
-// Only process if export_import flag is set
+// Only process if export_import flag is set; default to enabled when this file is included directly
 if (!isset($_REQUEST['export_import']) || $_REQUEST['export_import'] != '1') {
-    return;
+    $_REQUEST['export_import'] = '1';
+}
+
+// Optional debug output to help diagnose blank page issues
+$export_import_debug = isset($_REQUEST['debug_export_import']) && $_REQUEST['debug_export_import'] == '1';
+if ($export_import_debug) {
+    echo '<div style="font-family: monospace; color: #555; padding: 6px; border: 1px dashed #ccc; margin-bottom: 8px;">';
+    echo '[debug handlers:start] export_import=' . htmlspecialchars($_REQUEST['export_import']);
+    echo ' | azione=' . htmlspecialchars(isset($azione) ? $azione : '(unset)');
+    echo ' | id_utente=' . htmlspecialchars(isset($id_utente) ? $id_utente : '(unset)');
+    echo ' | lingua_mex=' . htmlspecialchars(isset($lingua_mex) ? $lingua_mex : '(unset)');
+    echo ' | numconnessione=' . (isset($numconnessione) && $numconnessione ? 'set' : 'empty');
+    echo ' | PHPR_TAB_PRE=' . htmlspecialchars(isset($PHPR_TAB_PRE) ? $PHPR_TAB_PRE : '(unset)');
+    echo ' | PHPR_DB_TYPE=' . htmlspecialchars(isset($PHPR_DB_TYPE) ? $PHPR_DB_TYPE : '(unset)');
+    echo '</div>';
 }
 
 // Use __DIR__ to require libs relative to this handlers file
@@ -15,24 +29,31 @@ include_once(__DIR__ . '/lib/Exporter.php');
 include_once(__DIR__ . '/lib/Importer.php');
 include_once(__DIR__ . '/lib/ExportImportUI.php');
 
+// Fallback: pull DB settings from constants if variables are empty
+if (empty($PHPR_DB_TYPE) && defined('C_PHPR_DB_TYPE')) $PHPR_DB_TYPE = C_PHPR_DB_TYPE;
+if (empty($PHPR_TAB_PRE) && defined('C_PHPR_TAB_PRE')) $PHPR_TAB_PRE = C_PHPR_TAB_PRE;
+if (empty($PHPR_DB_TYPE) && isset($PHPR_DB_TYPE_FILE)) $PHPR_DB_TYPE = $PHPR_DB_TYPE_FILE;
+if (empty($PHPR_TAB_PRE) && isset($PHPR_TAB_PRE_FILE)) $PHPR_TAB_PRE = $PHPR_TAB_PRE_FILE;
+if (empty($PHPR_TAB_PRE)) $PHPR_TAB_PRE = 'phpr_';
+
 // Basic sanity checks so we fail with a helpful message instead of PHP notices
 $precheck_errors = array();
-if (empty($numconnessione)) $precheck_errors[] = 'Database connection is not initialized (numconnessione is empty).';
-if (empty($PHPR_TAB_PRE)) $precheck_errors[] = 'Table prefix (PHPR_TAB_PRE) is not set.';
-if (empty($PHPR_DB_TYPE)) $precheck_errors[] = 'Database type (PHPR_DB_TYPE) is not set.';
+if (empty($numconnessione)) $precheck_errors[] = mex('Connessione al database non inizializzata (numconnessione è vuoto).', $pag);
+if (empty($PHPR_TAB_PRE)) $precheck_errors[] = mex('Prefisso delle tabelle (PHPR_TAB_PRE) non impostato.', $pag);
+if (empty($PHPR_DB_TYPE)) $precheck_errors[] = mex('Tipo di database (PHPR_DB_TYPE) non impostato.', $pag);
 
 if (!empty($precheck_errors)) {
     echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-    echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Export Failed', $pag) . '</div>';
+    echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Esportazione non riuscita', $pag) . '</div>';
     echo '<div class="rcontent">';
-    echo '<p>' . mex('The export cannot start because required configuration is missing.', $pag) . '</p>';
+    echo '<p>' . mex('Impossibile avviare l\'esportazione: configurazione mancante.', $pag) . '</p>';
     echo '<ul>';
     foreach ($precheck_errors as $err) echo '<li>' . htmlspecialchars($err) . '</li>';
     echo '</ul>';
     if (isset($export_import_db_config_used) && $export_import_db_config_used) {
-        echo '<p><strong>' . mex('Config loaded from', $pag) . ':</strong> ' . htmlspecialchars($export_import_db_config_used) . '</p>';
+        echo '<p><strong>' . mex('Configurazione caricata da', $pag) . ':</strong> ' . htmlspecialchars($export_import_db_config_used) . '</p>';
     }
-    echo '<p>' . mex('Please ensure C_DATI_PATH points to your data folder and dati_connessione.php is reachable.', $pag) . '</p>';
+    echo '<p>' . mex('Assicurati che C_DATI_PATH punti alla cartella dati e che dati_connessione.php sia raggiungibile.', $pag) . '</p>';
     echo '</div></div>';
     return;
 }
@@ -42,6 +63,14 @@ $export_import_ui = new ExportImportUI($id_utente, $anno, $id_sessione);
 
 // Handle export
 if (!empty($_REQUEST['create_export'])) {
+    if ($export_import_debug) {
+        echo '<div style="font-family: monospace; color: #555; padding: 6px; border: 1px dashed #ccc; margin-bottom: 8px;">';
+        echo '[debug handlers:export] create_export=1';
+        echo ' | id_utente=' . htmlspecialchars(isset($id_utente) ? $id_utente : '(unset)');
+        echo ' | PHPR_TAB_PRE=' . htmlspecialchars(isset($PHPR_TAB_PRE) ? $PHPR_TAB_PRE : '(unset)');
+        echo ' | PHPR_DB_TYPE=' . htmlspecialchars(isset($PHPR_DB_TYPE) ? $PHPR_DB_TYPE : '(unset)');
+        echo '</div>';
+    }
     if ($id_utente == 1) { // Only admin can export
         try {
             $export_dir = C_DATI_PATH . '/../export-import/packages';
@@ -64,38 +93,38 @@ if (!empty($_REQUEST['create_export'])) {
 
             if ($package_file) {
                 echo '<div class="rbox" style="border-left: 4px solid #4CAF50;">';
-                echo '<div class="rheader" style="background-color: #4CAF50; color: white;">✓ ' . mex('Export Successfully Created', $pag) . '</div>';
+                echo '<div class="rheader" style="background-color: #4CAF50; color: white;">✓ ' . mex('Esportazione creata con successo', $pag) . '</div>';
                 echo '<div class="rcontent">';
-                echo '<p>' . mex('Package file', $pag) . ': <strong>' . basename($package_file) . '</strong></p>';
+                echo '<p>' . mex('File pacchetto', $pag) . ': <strong>' . basename($package_file) . '</strong></p>';
                 if (method_exists($exporter, 'getLastStats')) {
                     $stats = $exporter->getLastStats();
                     if ($stats) {
-                        echo '<p>' . mex('Tables exported', $pag) . ': ' . intval($stats['tables_exported'] ?? 0);
-                        echo ' — ' . mex('Schemas exported', $pag) . ': ' . intval($stats['schemas_exported'] ?? 0);
+                        echo '<p>' . mex('Tabelle esportate', $pag) . ': ' . intval($stats['tables_exported'] ?? 0);
+                        echo ' — ' . mex('Schemi esportati', $pag) . ': ' . intval($stats['schemas_exported'] ?? 0);
                         echo '</p>';
                         if (!empty($stats['tables_list'])) {
                             $preview = array_slice($stats['tables_list'], 0, 6);
-                            echo '<p><small>' . mex('Tables detected', $pag) . ': ' . htmlspecialchars(implode(', ', $preview));
+                            echo '<p><small>' . mex('Tabelle rilevate', $pag) . ': ' . htmlspecialchars(implode(', ', $preview));
                             if (count($stats['tables_list']) > count($preview)) echo ' …';
                             echo '</small></p>';
                         }
                         if (!empty($stats['failed']) || !empty($stats['schemas_failed'])) {
-                            echo '<p><small style="color:#c00;">' . mex('Tables skipped', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['failed'] ?? array()));
+                            echo '<p><small style="color:#c00;">' . mex('Tabelle saltate', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['failed'] ?? array()));
                             if (!empty($stats['schemas_failed'])) {
-                                echo '<br>' . mex('Schemas skipped', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['schemas_failed']));
+                                echo '<br>' . mex('Schemi saltati', $pag) . ': ' . htmlspecialchars(implode(', ', $stats['schemas_failed']));
                             }
                             echo '</small></p>';
                         }
                     }
                 }
                 echo '<p><a href="' . str_replace(dirname(__FILE__), '', $package_file) . '" download style="button">';
-                echo mex('Download Package', $pag) . '</a></p>';
+                echo mex('Scarica pacchetto', $pag) . '</a></p>';
                 echo '</div></div>';
             } else {
                 echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Export Failed', $pag) . '</div>';
+                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Esportazione non riuscita', $pag) . '</div>';
                 echo '<div class="rcontent">';
-                echo mex('Could not create export package', $pag);
+                echo mex('Impossibile creare il pacchetto di esportazione', $pag);
                 $detail = method_exists($exporter, 'getLastError') ? $exporter->getLastError() : '';
                 if ($detail) {
                     echo '<br><small>' . htmlspecialchars($detail) . '</small>';
@@ -104,9 +133,13 @@ if (!empty($_REQUEST['create_export'])) {
             }
         } catch (Exception $e) {
             echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Export Error', $pag) . '</div>';
+            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Errore di esportazione', $pag) . '</div>';
             echo '<div class="rcontent">' . htmlspecialchars($e->getMessage()) . '</div></div>';
         }
+    } else {
+        echo '<div class="rbox" style="border-left: 4px solid #FFB74D;">';
+        echo '<div class="rheader" style="background-color: #FFB74D; color: #000;">⚠ ' . mex('Esportazione non disponibile', $pag) . '</div>';
+        echo '<div class="rcontent">' . mex('Solo l\'amministratore (id 1) può creare un pacchetto di esportazione.', $pag) . '</div></div>';
     }
 }
 
@@ -144,7 +177,7 @@ if (!empty($_REQUEST['start_import'])) {
                         }
                     } else {
                         echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-                        echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Invalid Package', $pag) . '</div>';
+                        echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Pacchetto non valido', $pag) . '</div>';
                         echo '<div class="rcontent">';
                         echo '<ul>';
                         foreach ($validation['errors'] as $error) {
@@ -156,18 +189,18 @@ if (!empty($_REQUEST['start_import'])) {
                     }
                 } else {
                     echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-                    echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Upload Failed', $pag) . '</div>';
-                    echo '<div class="rcontent">' . mex('Could not upload package file', $pag) . '</div></div>';
+                    echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Caricamento non riuscito', $pag) . '</div>';
+                    echo '<div class="rcontent">' . mex('Impossibile caricare il file pacchetto', $pag) . '</div></div>';
                 }
             } catch (Exception $e) {
                 echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Import Error', $pag) . '</div>';
+                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Errore di importazione', $pag) . '</div>';
                 echo '<div class="rcontent">' . htmlspecialchars($e->getMessage()) . '</div></div>';
             }
         } else {
             echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('No File Selected', $pag) . '</div>';
-            echo '<div class="rcontent">' . mex('Please select a package file to import', $pag) . '</div></div>';
+            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Nessun file selezionato', $pag) . '</div>';
+            echo '<div class="rcontent">' . mex('Seleziona un file pacchetto da importare', $pag) . '</div></div>';
         }
     }
 }
@@ -211,21 +244,24 @@ if (!empty($_REQUEST['confirm_import'])) {
                 @unlink($temp_file);
             } else {
                 echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('File Not Found', $pag) . '</div>';
-                echo '<div class="rcontent">' . mex('Package file not found or expired', $pag) . '</div></div>';
+                echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('File non trovato', $pag) . '</div>';
+                echo '<div class="rcontent">' . mex('File pacchetto non trovato o scaduto', $pag) . '</div></div>';
             }
         } catch (Exception $e) {
             echo '<div class="rbox" style="border-left: 4px solid #FF6B6B;">';
-            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Import Error', $pag) . '</div>';
+            echo '<div class="rheader" style="background-color: #FF6B6B; color: white;">✗ ' . mex('Errore di importazione', $pag) . '</div>';
             echo '<div class="rcontent">' . htmlspecialchars($e->getMessage()) . '</div></div>';
         }
     }
 }
 
-// Show export/import UI if not processing
+// Ensure default action and always render UI for admin when idle
+if (!isset($azione) || $azione === '') $azione = 'SI';
+
 if (empty($_REQUEST['create_export']) && empty($_REQUEST['start_import']) && empty($_REQUEST['confirm_import'])) {
-    if (fixset($azione) == "SI" && $id_utente == 1) {
+    if ($id_utente == 1) {
         echo $export_import_ui->renderExportImportSection();
     }
 }
+
 ?>

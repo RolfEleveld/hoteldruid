@@ -10,7 +10,9 @@
 ## What Was Accomplished
 
 ### 1. Complete Architecture Design ✅
+
 Created a comprehensive, language-agnostic export/import system design that:
+
 - Operates in **parallel** to existing backup system (no changes to existing code)
 - Flattens database relationships for cross-platform compatibility
 - Uses **JSON as primary format** (better for future Blazor migration)
@@ -19,7 +21,9 @@ Created a comprehensive, language-agnostic export/import system design that:
 - Supports **rollback on failure** (all-or-nothing guarantees)
 
 ### 2. Directory Structure Planned ✅
+
 Created blueprint for `/hoteldruid/export-import/` with:
+
 - `lib/` - 8 core PHP libraries
 - `schemas/` - JSON schema definitions for all tables
 - `ui/` - Integration hooks into crea_backup.php
@@ -28,7 +32,9 @@ Created blueprint for `/hoteldruid/export-import/` with:
 - `samples/` - Reference implementations in C#, Python
 
 ### 3. Data Format Specifications ✅
+
 Defined complete JSON structures for:
+
 - **Manifest** - Package metadata and compatibility info
 - **Metadata** - Export timestamp, source system, data summary
 - **Table Data** - Flattened table exports with schemas
@@ -36,8 +42,10 @@ Defined complete JSON structures for:
 - **Relationships** - Foreign key mappings
 
 ### 4. Zip Package Format ✅
+
 Designed versioned package structure:
-```
+
+```text
 export_hoteldruid_20251216_143000_v1.zip
 ├── manifest.json
 ├── metadata/
@@ -49,7 +57,9 @@ export_hoteldruid_20251216_143000_v1.zip
 ```
 
 ### 5. Implementation Roadmap ✅
+
 Created **15-session plan** organized in 6 phases:
+
 - **Phase 1:** Foundation (2 sessions) - **COMPLETE**
 - **Phase 2:** Export Engine (3 sessions)
 - **Phase 3:** UI Integration (2 sessions)
@@ -58,16 +68,24 @@ Created **15-session plan** organized in 6 phases:
 - **Phase 6:** Docs & Migration (2 sessions)
 
 ### 6. Progress Tracking System ✅
+
 Created dual-layer tracking:
+
 - **`EXPORT_IMPORT_LOG.md`** - Detailed session-by-session progress
 - **`EXPORT_IMPORT_QUICKREF.md`** - Quick reference guide
 - **Todo list** - High-level task management
+
+### 7. Canonical Data Format ✅
+
+- Exporter now writes table data and schemas using canonical names and includes the mapping in `metadata/canonical_mapping.json` inside each package.
+- Importer reads the same mapping to translate canonical names back to the runtime schema automatically; packages themselves contain only canonical identifiers.
 
 ---
 
 ## Files Created
 
 ### Design & Planning
+
 1. **`EXPORT_IMPORT_DESIGN.md`** (400+ lines)
    - Complete architecture specification
    - JSON schema definitions
@@ -92,31 +110,37 @@ Created dual-layer tracking:
 ## Key Design Decisions Made
 
 ### Decision 1: Parallel System (Not Replacement)
+
 - ✅ **Chosen:** Separate system alongside existing backup
 - ❌ **Rejected:** Modify existing backup system
 - **Why:** Zero risk to existing functionality, can coexist, allows gradual rollout
 
 ### Decision 2: Flattened Data Model
+
 - ✅ **Chosen:** Separate JSON files for each table/relationship
 - ❌ **Rejected:** Nested JSON structure
 - **Why:** Easier to reconstruct in any database system, better for cross-platform support
 
 ### Decision 3: JSON as Primary Format
+
 - ✅ **Chosen:** JSON (with optional XML support)
 - ❌ **Rejected:** XML as primary
 - **Why:** Better future support for C#/.NET, lighter weight, more developer-friendly
 
 ### Decision 4: Zip Container Format
+
 - ✅ **Chosen:** Versioned Zip with internal directory structure
 - ❌ **Rejected:** Single JSON file
 - **Why:** Extensibility, versioning support, can include documents, templates, configs
 
 ### Decision 5: Metadata-First Validation
+
 - ✅ **Chosen:** Full validation before any data modification
 - ❌ **Rejected:** Validate during import
 - **Why:** Prevents partial data corruption, enables dry-run mode, improves safety
 
 ### Decision 6: Transaction Support
+
 - ✅ **Chosen:** All-or-nothing import with rollback
 - ❌ **Rejected:** Partial imports allowed
 - **Why:** Data integrity guaranteed, clear success/failure states
@@ -126,7 +150,8 @@ Created dual-layer tracking:
 ## Architecture Highlights
 
 ### System Separation
-```
+
+```text
 BEFORE (existing - unchanged):
   crea_backup.php → backup/restore (XML, risky, PHP-specific)
 
@@ -143,7 +168,8 @@ AFTER (new parallel):
 ```
 
 ### Component Interactions
-```
+
+```text
 Export Process:
   1. DataFlattener → Database → JSON
   2. ConfigExtractor → PHP files → JSON
@@ -171,6 +197,7 @@ Import Process:
 **Priority:** HIGH - Blocks all other work
 
 ### Session 2 Checklist
+
 1. Create `/hoteldruid/export-import/` directory tree
 2. Create base PHP classes with docstrings:
    - `lib/Logger.php`
@@ -181,6 +208,7 @@ Import Process:
 5. Update `EXPORT_IMPORT_LOG.md` with completion notes
 
 **Expected Deliverables:**
+
 - Complete directory structure (7 subdirectories)
 - 12 PHP class stub files
 - 9 JSON schema templates
@@ -191,16 +219,19 @@ Import Process:
 ## Important Reminders
 
 ### Do NOT Change (Preserve Existing)
+
 - ❌ `/hoteldruid/crea_backup.php` - Original backup UI
 - ❌ `/hoteldruid/includes/funzioni_backup.php` - Original backup logic
 - ❌ Any existing functionality
 
 ### Only Add To
+
 - ✅ `/hoteldruid/export-import/` - NEW directory only
 - ✅ Extend `crea_backup.php` UI only (new buttons/tabs)
 - ✅ Add new files and directories
 
 ### Session Discipline
+
 - Document progress in `EXPORT_IMPORT_LOG.md`
 - Update task status daily
 - Test each phase before moving to next
@@ -212,24 +243,28 @@ Import Process:
 ## Success Criteria
 
 ### Phase 1 (Sessions 1-2) ✅ In Progress
+
 - [x] Design complete (Session 1)
-- [ ] Directory structure created (Session 2)
+- [x] Directory structure created (Session 2)
 - [ ] Base files created (Session 2)
 
 ### Phase 2 (Sessions 3-7)
-- [ ] JSON schemas complete
-- [ ] DataFlattener library complete
+
+- [x] JSON schemas complete
+- [x] DataFlattener library complete
 - [ ] ConfigExtractor library complete
-- [ ] ZipBuilder library complete
+- [x] ZipBuilder library complete
 - [ ] All validators complete
 
 ### Phase 3-4 (Sessions 8-11)
-- [ ] Export UI functional
+
+- [x] Export UI functional
 - [ ] Import UI functional
 - [ ] Full export working
 - [ ] Full import working
 
 ### Phase 5-6 (Sessions 12-15)
+
 - [ ] 95%+ test coverage
 - [ ] All documentation complete
 - [ ] Reference implementations complete

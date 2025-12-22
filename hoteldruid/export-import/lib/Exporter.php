@@ -15,6 +15,7 @@ class Exporter {
     private $export_timestamp;
     private $last_error;
     private $last_stats;
+    private $canonical_mapper;
 
     public function __construct($numconnessione, $phpr_tab_pre, $db_type, $export_base_path, $logger = null) {
         $this->numconnessione = $numconnessione;
@@ -28,6 +29,18 @@ class Exporter {
         $this->export_timestamp = date('Y-m-d\TH:i:s\Z');
         $this->last_error = null;
         $this->last_stats = null;
+
+        include_once(__DIR__ . '/CanonicalMapper.php');
+        // Prefer deployment override under C_DATI_PATH/export-import, fallback to bundled file under hoteldruid/export-import
+        $mapping_path = null;
+        if (defined('C_DATI_PATH')) {
+            $candidate = rtrim(C_DATI_PATH, '/\\') . '/export-import/canonical_mapping.json';
+            if (@is_file($candidate)) $mapping_path = $candidate;
+        }
+        if (!$mapping_path) {
+            $mapping_path = dirname(__DIR__) . '/canonical_mapping.json';
+        }
+        $this->canonical_mapper = new CanonicalMapper($phpr_tab_pre, $mapping_path);
     }
 
     /**
@@ -67,7 +80,7 @@ class Exporter {
             file_put_contents($temp_dir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             $this->log("Created manifest.json");
 
-            // Create metadata directory and files
+            // Create metadata directory and files (exclude mapping files from canonical export package)
             @mkdir($temp_dir . '/metadata', 0755, true);
             $metadata = $this->createMetadata($options);
             file_put_contents($temp_dir . '/metadata/export_metadata.json', json_encode($metadata, JSON_PRETTY_PRINT));
@@ -83,11 +96,6 @@ class Exporter {
             }
                 $table_stats = $this->exportDatabaseTables($temp_dir . '/data', $tables);
             $this->log("Exported database tables");
-
-            // Export entity mapping
-            $entity_mapping = $this->createEntityMapping();
-            file_put_contents($temp_dir . '/metadata/entity_mapping.json', json_encode($entity_mapping, JSON_PRETTY_PRINT));
-            $this->log("Created entity_mapping.json");
 
             // Export configurations if requested
             if ($options['include_configs']) {
@@ -273,20 +281,21 @@ class Exporter {
         $fail_list = array();
 
         foreach ($all_tables as $table_name) {
-            $table_list[] = $table_name;
+            $table_list[] = $this->canonical_mapper->getCanonicalTable($table_name);
             $table_data = $flattener->flattenTable($table_name);
             if ($table_data) {
-                $filename = $data_dir . '/tables/' . $table_name . '.json';
-                file_put_contents($filename, json_encode($table_data, JSON_PRETTY_PRINT));
-                $this->log("Exported table: $table_name");
+                $canonical_data = $this->canonical_mapper->toCanonicalTableData($table_data);
+                $filename = $data_dir . '/tables/' . $canonical_data['table_name'] . '.json';
+                file_put_contents($filename, json_encode($canonical_data, JSON_PRETTY_PRINT));
+                $this->log("Exported table: $table_name as {$canonical_data['table_name']}");
                 $exported++;
             } else {
                 $reason = $flattener->getLastError();
                 $this->log("Skipping table: $table_name. Reason: " . ($reason ?: 'no data/columns'), true);
                 if ($reason) {
-                    $fail_list[] = "$table_name: $reason";
+                    $fail_list[] = $this->canonical_mapper->getCanonicalTable($table_name) . ": $reason";
                 } else {
-                    $fail_list[] = $table_name;
+                    $fail_list[] = $this->canonical_mapper->getCanonicalTable($table_name);
                 }
                 $skipped++;
             }
@@ -305,7 +314,7 @@ class Exporter {
         $fail_list = array();
 
         foreach ($all_tables as $table_name) {
-            $table_list[] = $table_name;
+            $table_list[] = $this->canonical_mapper->getCanonicalTable($table_name);
             $columns = $flattener->describeTable($table_name);
             if ($columns) {
                 $schema = array(
@@ -314,17 +323,18 @@ class Exporter {
                     'generated_at' => $this->export_timestamp,
                     'db_type' => $this->db_type
                 );
-                $filename = $schema_dir . '/' . $table_name . '.json';
-                file_put_contents($filename, json_encode($schema, JSON_PRETTY_PRINT));
-                $this->log("Exported schema: $table_name");
+                $canonical_schema = $this->canonical_mapper->toCanonicalSchema($schema);
+                $filename = $schema_dir . '/' . $canonical_schema['table_name'] . '.json';
+                file_put_contents($filename, json_encode($canonical_schema, JSON_PRETTY_PRINT));
+                $this->log("Exported schema: $table_name as {$canonical_schema['table_name']}");
                 $exported++;
             }
             else {
                 $reason = $flattener->getLastError();
                 if ($reason) {
-                    $fail_list[] = "$table_name: $reason";
+                    $fail_list[] = $this->canonical_mapper->getCanonicalTable($table_name) . ": $reason";
                 } else {
-                    $fail_list[] = $table_name;
+                    $fail_list[] = $this->canonical_mapper->getCanonicalTable($table_name);
                 }
             }
         }
