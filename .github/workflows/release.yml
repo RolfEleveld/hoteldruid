@@ -50,64 +50,64 @@ jobs:
           New-Item -ItemType Directory -Force -Path $base | Out-Null
 
           $installer = @"
-PackageIdentifier: HotelDruid.PHPDesktop
-PackageVersion: $version
-InstallerType: zip
-NestedInstallerType: powershell
-NestedInstallerFiles:
-  - install_release.ps1
-InstallModes:
-  - silent
-  - silentWithProgress
-Installers:
-  - Architecture: x64
-    InstallerUrl: $installUrl
-    InstallerSha256: $sha
-    InstallerSwitches:
-      Silent: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
-      SilentWithProgress: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
-"@
+          PackageIdentifier: HotelDruid.PHPDesktop
+          PackageVersion: $version
+          InstallerType: zip
+          NestedInstallerType: powershell
+          NestedInstallerFiles:
+            - install_release.ps1
+          InstallModes:
+            - silent
+            - silentWithProgress
+          Installers:
+            - Architecture: x64
+              InstallerUrl: $installUrl
+              InstallerSha256: $sha
+              InstallerSwitches:
+                Silent: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
+                SilentWithProgress: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
+          "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.installer.yaml') -Value $installer -Encoding UTF8
 
           $localeEn = @"
-PackageIdentifier: HotelDruid.PHPDesktop
-PackageVersion: $version
-PackageLocale: en-US
-Publisher: Rolf Eleveld
-PackageName: HotelDruid
-ShortDescription: HotelDruid desktop installer (PHP Desktop)
-License: AGPL-3.0
-"@
+          PackageIdentifier: HotelDruid.PHPDesktop
+          PackageVersion: $version
+          PackageLocale: en-US
+          Publisher: Rolf Eleveld
+          PackageName: HotelDruid
+          ShortDescription: HotelDruid desktop installer (PHP Desktop)
+          License: AGPL-3.0
+          "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.en-US.yaml') -Value $localeEn -Encoding UTF8
 
           $localeEs = @"
-PackageIdentifier: HotelDruid.PHPDesktop
-PackageVersion: $version
-PackageLocale: es-ES
-Publisher: Rolf Eleveld
-PackageName: HotelDruid
-ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
-License: AGPL-3.0
-"@
+          PackageIdentifier: HotelDruid.PHPDesktop
+          PackageVersion: $version
+          PackageLocale: es-ES
+          Publisher: Rolf Eleveld
+          PackageName: HotelDruid
+          ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
+          License: AGPL-3.0
+          "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.es-ES.yaml') -Value $localeEs -Encoding UTF8
 
           $localeIt = @"
-PackageIdentifier: HotelDruid.PHPDesktop
-PackageVersion: $version
-PackageLocale: it-IT
-Publisher: Rolf Eleveld
-PackageName: HotelDruid
-ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
-License: AGPL-3.0
-"@
+          PackageIdentifier: HotelDruid.PHPDesktop
+          PackageVersion: $version
+          PackageLocale: it-IT
+          Publisher: Rolf Eleveld
+          PackageName: HotelDruid
+          ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
+          License: AGPL-3.0
+          "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.it-IT.yaml') -Value $localeIt -Encoding UTF8
 
           $versionManifest = @"
-PackageIdentifier: HotelDruid.PHPDesktop
-PackageVersion: $version
-DefaultLocale: en-US
-ManifestType: version
-"@
+          PackageIdentifier: HotelDruid.PHPDesktop
+          PackageVersion: $version
+          DefaultLocale: en-US
+          ManifestType: version
+          "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.yaml') -Value $versionManifest -Encoding UTF8
 
       - name: Upload winget manifests
