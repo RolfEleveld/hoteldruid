@@ -29,6 +29,7 @@ param(
     [bool]$CreateStartupShortcut = $false,
     [bool]$CreateDesktopShortcut = $false,
     [bool]$LaunchAfterInstall = $false,
+    [switch]$Quiet = $false,
     [ValidateSet('it', 'en', 'es')]
     [string]$Language,
     [string]$HoteldruidSource = '',
@@ -944,14 +945,14 @@ try {
         
         if ($CreateStartMenuShortcut) {
             $smPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
-            $smPath = Join-Path $smPath 'HotelDruid.lnk'
+            $smPath = Join-Path $smPath 'HotelDruid-phpdesktop.lnk'
             if (New-Shortcut -ShortcutPath $smPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['SmCreated'] -f $smPath) -ForegroundColor Green
             }
         }
         
         if ($CreateDesktopShortcut) {
-            $desktopPath = Join-Path $env:USERPROFILE 'Desktop' 'HotelDruid.lnk'
+            $desktopPath = Join-Path $env:USERPROFILE 'Desktop' 'HotelDruid-phpdesktop.lnk'
             if (New-Shortcut -ShortcutPath $desktopPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['DesktopCreated'] -f $desktopPath) -ForegroundColor Green
             }
@@ -959,7 +960,7 @@ try {
         
         if ($CreateStartupShortcut) {
             $startupPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
-            $startupPath = Join-Path $startupPath 'HotelDruid.lnk'
+            $startupPath = Join-Path $startupPath 'HotelDruid-phpdesktop.lnk'
             if (New-Shortcut -ShortcutPath $startupPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
                 Write-Host ($t['StartupCreated'] -f $startupPath) -ForegroundColor Green
             }

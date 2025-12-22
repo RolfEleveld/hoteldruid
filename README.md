@@ -10,6 +10,13 @@ Complete Docker containerization setup for the HotelDruid hotel management syste
 - On target machine in the unzipped folder run ```./install_release.ps1 -Language en```
 - Run the PHPDesktop to run HotelDruid
 
+- One can use the alternative winget: 
+  ```powershell
+  
+  pwsh -ExecutionPolicy Bypass -File [install_release.ps1](http://_vscodecontentref_/2) -Language en -Quiet
+  ```
+
+
 ## 🎯 Quick Start Guide Docker
 
 ### 1. Prerequisites

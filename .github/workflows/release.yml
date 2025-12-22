@@ -12,6 +12,8 @@ permissions:
 jobs:
   build-and-release:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.build.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,6 +29,159 @@ jobs:
           $resolved = (Resolve-Path $zipPath).Path
           "version=$version" >> $env:GITHUB_OUTPUT
           "zip=$resolved" >> $env:GITHUB_OUTPUT
+
+      - name: Compute SHA256 for winget
+        id: hash
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path '${{ steps.build.outputs.zip }}' -Algorithm SHA256).Hash
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Generate winget manifests
+        id: manifests
+        shell: pwsh
+        run: |
+          $version = '${{ steps.build.outputs.version }}'
+          $sha = '${{ steps.hash.outputs.sha256 }}'
+          $repo = '${{ github.repository }}'
+          $asset = "hoteldruid-PHPDesktop-$version.zip"
+          $installUrl = "https://github.com/$repo/releases/download/v$version/$asset"
+          $base = Join-Path $PWD "manifests/h/HotelDruid/PHPDesktop/$version"
+          New-Item -ItemType Directory -Force -Path $base | Out-Null
+
+          $installer = @"
+PackageIdentifier: HotelDruid.PHPDesktop
+PackageVersion: $version
+InstallerType: zip
+NestedInstallerType: powershell
+NestedInstallerFiles:
+  - install_release.ps1
+InstallModes:
+  - silent
+  - silentWithProgress
+Installers:
+  - Architecture: x64
+    InstallerUrl: $installUrl
+    InstallerSha256: $sha
+    InstallerSwitches:
+      Silent: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
+      SilentWithProgress: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
+"@
+          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.installer.yaml') -Value $installer -Encoding UTF8
+
+          $localeEn = @"
+PackageIdentifier: HotelDruid.PHPDesktop
+PackageVersion: $version
+PackageLocale: en-US
+Publisher: Rolf Eleveld
+PackageName: HotelDruid
+ShortDescription: HotelDruid desktop installer (PHP Desktop)
+License: AGPL-3.0
+"@
+          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.en-US.yaml') -Value $localeEn -Encoding UTF8
+
+          $localeEs = @"
+PackageIdentifier: HotelDruid.PHPDesktop
+PackageVersion: $version
+PackageLocale: es-ES
+Publisher: Rolf Eleveld
+PackageName: HotelDruid
+ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
+License: AGPL-3.0
+"@
+          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.es-ES.yaml') -Value $localeEs -Encoding UTF8
+
+          $localeIt = @"
+PackageIdentifier: HotelDruid.PHPDesktop
+PackageVersion: $version
+PackageLocale: it-IT
+Publisher: Rolf Eleveld
+PackageName: HotelDruid
+ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
+License: AGPL-3.0
+"@
+          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.it-IT.yaml') -Value $localeIt -Encoding UTF8
+
+          $versionManifest = @"
+PackageIdentifier: HotelDruid.PHPDesktop
+PackageVersion: $version
+DefaultLocale: en-US
+ManifestType: version
+"@
+          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.yaml') -Value $versionManifest -Encoding UTF8
+
+      - name: Upload winget manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifests-${{ steps.build.outputs.version }}
+          path: manifests/h/HotelDruid/PHPDesktop/${{ steps.build.outputs.version }}
+          if-no-files-found: error
+
+  submit-winget-pr:
+    needs: build-and-release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.build-and-release.outputs.version }}
+      WINGET_FORK: RolfEleveld/winget-pkgs
+      WINGET_UPSTREAM: microsoft/winget-pkgs
+      BASE_BRANCH: master
+    steps:
+      - name: Download winget manifests artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: winget-manifests-${{ needs.build-and-release.outputs.version }}
+          path: winget-manifests
+
+      - name: Clone winget-pkgs fork
+        env:
+          PAT: ${{ secrets.WINGET_PAT }}
+        run: |
+          git clone https://$PAT@github.com/$WINGET_FORK.git
+          cd winget-pkgs
+          git remote add upstream https://github.com/$WINGET_UPSTREAM.git
+          git fetch upstream $BASE_BRANCH
+          git checkout -B hoteldruid-phpdesktop-$VERSION upstream/$BASE_BRANCH
+
+      - name: Copy manifests into fork
+        run: |
+          mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/$VERSION
+          cp -r winget-manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/$VERSION/
+
+      - name: Commit changes
+        env:
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: github-actions@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions
+          GIT_COMMITTER_EMAIL: github-actions@users.noreply.github.com
+        run: |
+          cd winget-pkgs
+          git status --short
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No manifest changes; skipping PR."
+            exit 0
+          fi
+          git add manifests/h/HotelDruid/PHPDesktop/$VERSION
+          git commit -m "Add HotelDruid.PHPDesktop $VERSION"
+
+      - name: Push branch to fork
+        env:
+          PAT: ${{ secrets.WINGET_PAT }}
+        run: |
+          cd winget-pkgs
+          git push https://$PAT@github.com/$WINGET_FORK.git hoteldruid-phpdesktop-$VERSION --force
+
+      - name: Create PR to winget-pkgs upstream
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+        run: |
+          cd winget-pkgs
+          gh pr create \
+            --repo $WINGET_UPSTREAM \
+            --head RolfEleveld:hoteldruid-phpdesktop-$VERSION \
+            --base $BASE_BRANCH \
+            --title "Add HotelDruid.PHPDesktop $VERSION" \
+            --body "Automated submission for HotelDruid.PHPDesktop $VERSION"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

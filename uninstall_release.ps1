@@ -58,9 +58,9 @@ try {
     $settingsFile = Join-Path $settingsDir 'deployment-settings.json'
     $validationLog = Join-Path $settingsDir 'install-validation.log'
 
-    $startMenuShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDruid.lnk'
-    $desktopShortcut = Join-Path $env:USERPROFILE 'Desktop\HotelDruid.lnk'
-    $startupShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\HotelDruid.lnk'
+    $startMenuShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDruid-phpdesktop.lnk'
+    $desktopShortcut = Join-Path $env:USERPROFILE 'Desktop\HotelDruid-phpdesktop.lnk'
+    $startupShortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\HotelDruid-phpdesktop.lnk'
 
     $items = @("Install directory: $InstallDir")
     if ($RemoveDataFolder) {
