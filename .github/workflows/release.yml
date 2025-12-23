@@ -92,7 +92,6 @@ jobs:
               InstallerSwitches:
                 Silent: "-Quiet"
                 SilentWithProgress: "-Quiet"
-                SilentUninstall: "-Uninstall"
           ManifestType: installer
           ManifestVersion: 1.6.0
           "@

@@ -35,8 +35,7 @@ param(
     [string]$HoteldruidSource = '',
     [string]$GitHubRepo = 'RolfEleveld/hoteldruid',
     [string]$GitHubBranch = 'main',
-    [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random))),
-    [switch]$Uninstall = $false
+    [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random)))
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,10 +43,25 @@ $ErrorActionPreference = 'Stop'
 # VC++ REDISTRIBUTABLE (2015–2022 x64) HANDLING
 # ============================================================================
 
-if($Uninstall) {
-    Write-Host "Uninstallation mode selected." -ForegroundColor Yellow
-    .\uninstall_release.ps1 -Quiet:$Quiet
-    exit 0
+function Set-UninstallRegistryReference([string]$InstallDir){
+    # Where your app is installed
+    $scriptPath = Join-Path $InstallDir "uninstall_release.ps1"
+
+    # Registry uninstall key
+    $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid.PHPDesktop"
+
+    # Create the key
+    New-Item -Path $regPath -Force | Out-Null
+
+    # Set metadata
+    Set-ItemProperty -Path $regPath -Name "DisplayName" -Value "HotelDruid PHPDesktop"
+    Set-ItemProperty -Path $regPath -Name "Publisher" -Value "Rolf Eleveld"
+    Set-ItemProperty -Path $regPath -Name "DisplayVersion" -Value "3.0.7"
+
+    # IMPORTANT: wrap the PS1 in a PowerShell call
+    $uninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+
+    Set-ItemProperty -Path $regPath -Name "UninstallString" -Value $uninstallCmd
 }
 
 function Test-VCRedistPresent {
@@ -879,6 +893,15 @@ try {
     
     if (-not (Test-Path $InstallDir)) {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+    }
+
+    # Copy uninstaller if present to InstallDirectory
+    $uninstallerSource = Join-Path $PSScriptRoot 'uninstall_release.ps1'
+    if (Test-Path -LiteralPath $uninstallerSource) {
+        $uninstallerDest = Join-Path $InstallDir 'uninstall_release.ps1'
+        Copy-Item -LiteralPath $uninstallerSource -Destination $uninstallerDest -Force
+        Write-Host "Uninstaller script copied to installation directory" -ForegroundColor Green
+        Set-UninstallRegistryReference -InstallDir $InstallDir
     }
     
     # Copy phpdesktop
