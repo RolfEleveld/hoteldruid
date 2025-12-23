@@ -183,6 +183,23 @@ jobs:
           name: winget-manifests-${{ needs.build-and-release.outputs.version }}
           path: manifests
 
+      - name: Verify downloaded winget manifests
+        run: |
+          set -euo pipefail
+          echo "Verifying downloaded manifests directory 'manifests'..."
+          if [ ! -d "manifests" ]; then
+            echo "ERROR: 'manifests' directory not found"
+            exit 1
+          fi
+          cnt=$(find manifests -type f | wc -l)
+          echo "Files found in manifests: $cnt"
+          if [ "$cnt" -eq "0" ]; then
+            echo "ERROR: No files extracted from artifact"
+            ls -la manifests || true
+            exit 1
+          fi
+          echo 'Artifact extraction verification passed.'
+
       - name: Clone winget-pkgs fork
         env:
           PAT: ${{ secrets.WINGET_PAT }}
