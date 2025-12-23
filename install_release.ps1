@@ -884,7 +884,7 @@ try {
 
     # If package contains VC++ runtime DLLs, place them next to php-cgi.exe to allow PHP to start without system runtime
     try {
-        $dllStage = Join-Path $WorkDir 'vc_runtime_dlls'
+        $dllStage = $WorkDir
         # In minimal package, DLLs may be at root next to installer
         $dllStageAlt = Join-Path (Split-Path $PSCommandPath -Parent) 'vc_runtime_dlls'
         $dllSourceDir = $null

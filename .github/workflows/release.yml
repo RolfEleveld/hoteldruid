@@ -30,54 +30,14 @@ jobs:
           # The final EXE name
           $exePath = Join-Path $outDir "Hoteldruid-PHPDesktop-$version.exe"
 
-          # Copy SED file into output folder so we can modify it
-          Copy-Item "$PWD/Hoteldruid-PHPDesktop-Setup.SED" "$outDir/Hoteldruid-PHPDesktop-Setup.SED" -Force
-
-          # Update the SED file to output the versioned EXE and point SourceFiles to the current repo
-          $sedPath = "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
-          $content = Get-Content $sedPath -Raw -ErrorAction Stop -Encoding UTF8
-          $lines = $content -split "\r?\n"
-          # Ensure TargetName is set (prefer the entry under [Strings])
-          $stringsLineObj = $lines | Select-String -Pattern '^\[Strings\]' -SimpleMatch | Select-Object -First 1
-          if ($stringsLineObj) {
-            $start = $stringsLineObj.LineNumber
-            for ($i = $start; $i -lt $lines.Length; $i++) {
-              if ($lines[$i] -match '^TargetName=') { $lines[$i] = "TargetName=$exePath"; break }
-            }
-          }
-
-          # Force SourceFiles0/1 to the current workspace so IExpress can find the files
-          $sourceRoot = $PWD.Path
-          $sourceRootSlash = $sourceRoot + '\\'
-          for ($i=0; $i -lt $lines.Length; $i++) {
-            if ($lines[$i] -match '^SourceFiles0=') { $lines[$i] = "SourceFiles0=$sourceRootSlash" }
-            if ($lines[$i] -match '^SourceFiles1=') { $lines[$i] = "SourceFiles1=$sourceRootSlash" }
-          }
-          ($lines -join "`r`n") | Set-Content -Path $sedPath -Encoding UTF8
-
-          # Verify iexpress exists
-          $iexpressCmd = Get-Command iexpress.exe -ErrorAction SilentlyContinue
-          if (-not $iexpressCmd) {
-            Write-Host 'ERROR: iexpress.exe not found on runner.'
-            throw 'iexpress.exe not available'
-          }
-          Write-Host "IExpress command: $($iexpressCmd.Source)"
-
-          # Show which files will be referenced from SourceFiles entries
-          Write-Host '--- Files referenced by SED (checking existence) ---'
-          $fileEntries = $lines | Where-Object { $_ -match '^FILE\d+=' } | ForEach-Object { ($_ -split '=')[1].Trim('"') }
-          foreach ($f in $fileEntries) {
-            $p = Join-Path $sourceRoot $f
-            if (Test-Path $p) { Write-Host "FOUND: $p" } else { Write-Host "MISSING: $p" }
-          }
+          $sedPath = "$PWD/Hoteldruid-PHPDesktop-Setup.SED"
 
           # Run IExpress (capture exit code)
           $proc = Start-Process -FilePath iexpress.exe -ArgumentList "/N `"$sedPath`"" -Wait -NoNewWindow -PassThru
           Write-Host "IExpress exit code: $($proc.ExitCode)"
 
           # Debug: show SED and output directory contents
-          Write-Host '--- SED content ---'
-          Get-Content $sedPath | ForEach-Object { Write-Host $_ }
+          Move-Item -Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe" -NewName $exePath
           Write-Host '--- Out directory contents ---'
           Get-ChildItem -Path $outDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
 
