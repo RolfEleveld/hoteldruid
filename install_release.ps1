@@ -35,13 +35,20 @@ param(
     [string]$HoteldruidSource = '',
     [string]$GitHubRepo = 'RolfEleveld/hoteldruid',
     [string]$GitHubBranch = 'main',
-    [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random)))
+    [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random))),
+    [switch]$Uninstall = $false
 )
 
 $ErrorActionPreference = 'Stop'
 # ============================================================================
 # VC++ REDISTRIBUTABLE (2015–2022 x64) HANDLING
 # ============================================================================
+
+if($Uninstall) {
+    Write-Host "Uninstallation mode selected." -ForegroundColor Yellow
+    .\uninstall_release.ps1 -Quiet:$Quiet
+    exit 0
+}
 
 function Test-VCRedistPresent {
     try {

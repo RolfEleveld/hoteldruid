@@ -90,8 +90,9 @@ jobs:
               InstallerUrl: $installUrl
               InstallerSha256: $sha
               InstallerSwitches:
-                Silent: ""
-                SilentWithProgress: ""
+                Silent: "-Quiet"
+                SilentWithProgress: "-Quiet"
+                SilentUninstall: "-Uninstall"
           ManifestType: installer
           ManifestVersion: 1.6.0
           "@
@@ -106,6 +107,8 @@ jobs:
           ShortDescription: HotelDruid desktop installer (PHP Desktop)
           Description: HotelDruid is an open source hotel management software that runs on a web server. This package provides a desktop installer using PHP Desktop, allowing you to run HotelDruid as a standalone desktop application without needing a separate web server installation.
           License: AGPL-3.0
+          ManifestType: defaultLocale
+          ManifestVersion: 1.6.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.en-US.yaml') -Value $localeEn -Encoding UTF8
 
@@ -118,6 +121,8 @@ jobs:
           ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
           Description: HotelDruid es un software de gestión hotelera de código abierto que se ejecuta en un servidor web. Este paquete proporciona un instalador de escritorio utilizando PHP Desktop, lo que le permite ejecutar HotelDruid como una aplicación de escritorio independiente sin necesidad de una instalación de servidor web por separado.
           License: AGPL-3.0
+          ManifestType: locale
+          ManifestVersion: 1.6.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.es-ES.yaml') -Value $localeEs -Encoding UTF8
 
@@ -130,6 +135,8 @@ jobs:
           ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
           Description: HotelDruid è un software di gestione alberghiera open source che funziona su un server web. Questo pacchetto fornisce un programma di installazione desktop utilizzando PHP Desktop, che consente di eseguire HotelDruid come applicazione desktop autonoma senza la necessità di una installazione separata del server web.
           License: AGPL-3.0
+          ManifestType: locale
+          ManifestVersion: 1.6.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.it-IT.yaml') -Value $localeIt -Encoding UTF8
 
