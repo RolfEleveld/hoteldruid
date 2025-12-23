@@ -62,6 +62,9 @@ function Set-UninstallRegistryReference([string]$InstallDir){
     $uninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
 
     Set-ItemProperty -Path $regPath -Name "UninstallString" -Value $uninstallCmd
+    Write-Host"=================================================="
+    Write-Host "Uninstall registry reference created at $regPath"
+    Write-Host"=================================================="
 }
 
 function Test-VCRedistPresent {

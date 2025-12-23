@@ -90,8 +90,12 @@ jobs:
               InstallerUrl: $installUrl
               InstallerSha256: $sha
               InstallerSwitches:
-                Silent: "-Quiet"
-                SilentWithProgress: "-Quiet"
+                Silent: ""
+                SilentWithProgress: ""
+              AppsAndFeaturesEntries:
+                - DisplayName: HotelDruid PHPDesktop
+                  Publisher: Rolf Eleveld
+                  DisplayVersion: 3.0.7
           ManifestType: installer
           ManifestVersion: 1.6.0
           "@
