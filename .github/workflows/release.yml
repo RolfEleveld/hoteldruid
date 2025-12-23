@@ -46,7 +46,7 @@ jobs:
             }
           }
           # Debug: show SED and output directory contents
-          Move-Item -Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe" -NewName $exePath
+          Move-Item -Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe" -Destination $exePath
           Write-Host '--- Out directory contents ---'
           Get-ChildItem -Path $outDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
 
