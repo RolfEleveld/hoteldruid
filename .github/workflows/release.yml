@@ -24,18 +24,27 @@ jobs:
         run: |
           $version = "3.0.7.${{ github.run_number }}"
           $outDir = Join-Path $PWD 'out'
-          mkdir $outDir -Force | Out-Null
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
           # The final EXE name
           $exePath = Join-Path $outDir "Hoteldruid-PHPDesktop-$version.exe"
-
           $sedPath = "$PWD/Hoteldruid-PHPDesktop-Setup.SED"
 
           # Run IExpress (capture exit code)
-          $proc = Start-Process -FilePath iexpress.exe -ArgumentList "/N `"$sedPath`"" -Wait -NoNewWindow -PassThru
-          Write-Host "IExpress exit code: $($proc.ExitCode)"
+          $sedPath = "$PWD/Hoteldruid-PHPDesktop-Setup.SED"
+          iexpress.exe /N "$sedPath"
+          $rc = $LASTEXITCODE
+          Write-Host "IExpress exit code: $rc"
 
+          # Wait for teh exe to appear (sometimes delayed)
+          $counter = 0
+          while (-not (Test-Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe")) {
+            Start-Sleep -Seconds 1
+            $counter++
+            if ($counter -gt 10) {
+              throw "Timeout waiting for IExpress to produce EXE"
+            }
+          }
           # Debug: show SED and output directory contents
           Move-Item -Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe" -NewName $exePath
           Write-Host '--- Out directory contents ---'

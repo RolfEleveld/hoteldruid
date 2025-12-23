@@ -33,10 +33,9 @@ UserQuietInstCmd=
 FILE0="install_release.ps1"
 FILE1="phpdesktop-custom-settings.json"
 FILE2="uninstall_release.ps1"
-FILE3="vcredist_x64.exe"
-FILE4="msvcp140.dll"
-FILE5="vcruntime140.dll"
-FILE6="vcruntime140_1.dll"
+FILE3="msvcp140.dll"
+FILE4="vcruntime140.dll"
+FILE5="vcruntime140_1.dll"
 [SourceFiles]
 SourceFiles0=.\
 SourceFiles1=.\vc_runtime_dlls\
@@ -44,8 +43,7 @@ SourceFiles1=.\vc_runtime_dlls\
 %FILE0%=
 %FILE1%=
 %FILE2%=
-%FILE3%=
 [SourceFiles1]
+%FILE3%=
 %FILE4%=
 %FILE5%=
-%FILE6%=
