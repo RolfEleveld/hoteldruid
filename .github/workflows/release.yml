@@ -224,14 +224,38 @@ jobs:
           GIT_COMMITTER_NAME: github-actions
           GIT_COMMITTER_EMAIL: github-actions@users.noreply.github.com
         run: |
+          set -euo pipefail
           cd winget-pkgs
-          git status --short
+          echo '--- Repo root ---'
+          pwd
+          echo '--- Check target manifest dir ---'
+          ls -la manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} || true
+          echo '--- Git status (including untracked) ---'
+          git status --porcelain=1 -uall || true
+          echo '--- Git untracked files (top) ---'
+          git ls-files --others --exclude-standard | sed -n '1,50p' || true
+
+          # Add files (use -f if necessary) and show return codes
+          echo 'Adding files to index...'
+          git add -A manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
+          echo "git add exit: $?"
+
+          echo '--- Staged files ---'
+          git diff --name-only --cached || true
+          echo '--- Staged files with mode ---'
+          git ls-files --stage manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} || true
+
           if git diff --quiet && git diff --cached --quiet; then
             echo "No manifest changes; skipping PR."
             exit 0
           fi
-          git add manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
-          git commit -m "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}"
+
+          echo 'Committing changes...'
+          git commit -m "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}" || {
+            echo 'git commit failed or nothing to commit';
+            git status --porcelain=1 -uall || true
+            exit 1
+          }
 
       - name: Push branch to fork
         env:
