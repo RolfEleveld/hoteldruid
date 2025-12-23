@@ -36,6 +36,11 @@ jobs:
           (Get-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED") `
             -replace 'TargetName=.*', "TargetName=$exePath" |
             Set-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
+          # Update the SED file sources to point to the correct versioned source folder
+          (Get-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED") `
+            -replace 'SourceFiles0=.*', "SourceFiles0=$PWD\" `
+            -replace 'SourceFiles1=.*', "SourceFiles1=$PWD\vc_runtime_dlls\" |
+            Set-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
 
           # Run IExpress silently to build the EXE
           iexpress.exe /N "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
