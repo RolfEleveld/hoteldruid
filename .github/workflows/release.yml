@@ -163,8 +163,8 @@ jobs:
 
       - name: Copy manifests into fork
         run: |
-          mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/$VERSION
-          cp -r winget-manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/$VERSION/
+          mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
+          cp -r winget-manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
 
       - name: Commit changes
         env:
@@ -179,15 +179,15 @@ jobs:
             echo "No manifest changes; skipping PR."
             exit 0
           fi
-          git add manifests/h/HotelDruid/PHPDesktop/$VERSION
-          git commit -m "Add HotelDruid.PHPDesktop $VERSION"
+          git add manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
+          git commit -m "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}"
 
       - name: Push branch to fork
         env:
           PAT: ${{ secrets.WINGET_PAT }}
         run: |
           cd winget-pkgs
-          git push https://$PAT@github.com/$WINGET_FORK.git hoteldruid-phpdesktop-$VERSION --force
+          git push https://$PAT@github.com/$WINGET_FORK.git hoteldruid-phpdesktop-${{ needs.build-and-release.outputs.version }} --force
 
       # - name: Create PR to winget-pkgs upstream
       #   env:
@@ -196,8 +196,8 @@ jobs:
       #     cd winget-pkgs
       #     gh pr create \
       #       --repo $WINGET_UPSTREAM \
-      #       --head RolfEleveld:hoteldruid-phpdesktop-$VERSION \
+      #       --head RolfEleveld:hoteldruid-phpdesktop-${{ needs.build-and-release.outputs.version }} \
       #       --base $BASE_BRANCH \
-      #       --title "Add HotelDruid.PHPDesktop $VERSION" \
-      #       --body "Automated submission for HotelDruid.PHPDesktop $VERSION"
+      #       --title "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}" \
+      #       --body "Automated submission for HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}"
 
