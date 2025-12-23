@@ -24,7 +24,7 @@ SourceFiles=SourceFiles
 InstallPrompt=
 DisplayLicense=
 FinishMessage=
-TargetName=C:\Users\rolfe\Hoteldruid-PHPDesktop-Setup.exe
+TargetName=.\Hoteldruid-PHPDesktop-Setup.exe
 FriendlyName=Hoteldruid PHPDesktop Installer
 AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File install_release.ps1
 PostInstallCmd=<None>
@@ -38,8 +38,8 @@ FILE4="msvcp140.dll"
 FILE5="vcruntime140.dll"
 FILE6="vcruntime140_1.dll"
 [SourceFiles]
-SourceFiles0=C:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\
-SourceFiles1=C:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid\vc_runtime_dlls\
+SourceFiles0=.\
+SourceFiles1=.\vc_runtime_dlls\
 [SourceFiles0]
 %FILE0%=
 %FILE1%=
