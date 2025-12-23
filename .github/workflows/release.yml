@@ -78,7 +78,7 @@ jobs:
           $repo = '${{ github.repository }}'
           $asset = "hoteldruid-PHPDesktop-$version.exe"
           $installUrl = "https://github.com/$repo/releases/download/v$version/$asset"
-          $base = Join-Path $PWD "manifests/h/HotelDruid/PHPDesktop/$version"
+          $base = Join-Path $PWD "manifests"          
           New-Item -ItemType Directory -Force -Path $base | Out-Null
 
           $installer = @"
@@ -146,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: winget-manifests-${{ steps.build.outputs.version }}
-          path: manifests/h/HotelDruid/PHPDesktop/${{ steps.build.outputs.version }}
+          path: manifests
           if-no-files-found: error
 
       - name: Upload package artifact
@@ -181,7 +181,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: winget-manifests-${{ needs.build-and-release.outputs.version }}
-          path: winget-manifests
+          path: manifests
 
       - name: Clone winget-pkgs fork
         env:
@@ -196,7 +196,7 @@ jobs:
       - name: Copy manifests into fork
         run: |
           mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
-          cp -r winget-manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
+          cp -r manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
 
       - name: Commit changes
         env:
