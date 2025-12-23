@@ -153,7 +153,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
-          path: ${{ steps.build.outputs.zip }}
+          path: ${{ steps.build.outputs.exe }}
           if-no-files-found: error
 
       - name: Create GitHub release
@@ -161,7 +161,7 @@ jobs:
         with:
           tag_name: v${{ steps.build.outputs.version }}
           name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
-          files: ${{ steps.build.outputs.zip }}
+          files: ${{ steps.build.outputs.exe }}
           draft: false
           prerelease: false
         env:
