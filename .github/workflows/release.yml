@@ -34,7 +34,7 @@ jobs:
 
           # Update the SED file to output the versioned EXE
           (Get-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED") `
-            -replace 'PackageName=.*', "PackageName=$exePath" |
+            -replace 'TargetName=.*', "TargetName=$exePath" |
             Set-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
 
           # Run IExpress silently to build the EXE
