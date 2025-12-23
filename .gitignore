@@ -36,3 +36,10 @@ temp_*
 # OS
 .DS_Store
 Thumbs.db
+
+# CS
+bin
+obj
+
+# Rust
+target/

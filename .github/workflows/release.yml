@@ -24,17 +24,32 @@ jobs:
         run: |
           $version = "3.0.7.${{ github.run_number }}"
           $outDir = Join-Path $PWD 'out'
-          $zipPath = Join-Path $outDir "hoteldruid-PHPDesktop-$version.zip"
-          ./build_deployment_package.ps1 -RepoRoot $PWD -OutputDir $outDir -OutputZip $zipPath
-          $resolved = (Resolve-Path $zipPath).Path
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "zip=$resolved" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
+          # The final EXE name
+          $exePath = Join-Path $outDir "Hoteldruid-PHPDesktop-$version.exe"
+
+          # Copy SED file into output folder so we can modify it
+          Copy-Item "$PWD/Hoteldruid-PHPDesktop-Setup.SED" "$outDir/Hoteldruid-PHPDesktop-Setup.SED" -Force
+
+          # Update the SED file to output the versioned EXE
+          (Get-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED") `
+            -replace 'PackageName=.*', "PackageName=$exePath" |
+            Set-Content "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
+
+          # Run IExpress silently to build the EXE
+          iexpress.exe /N "$outDir/Hoteldruid-PHPDesktop-Setup.SED"
+
+          # Output variables for later steps
+          $resolved = (Resolve-Path $exePath).Path
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "exe=$resolved" >> $env:GITHUB_OUTPUT
+        
       - name: Compute SHA256 for winget
         id: hash
         shell: pwsh
         run: |
-          $hash = (Get-FileHash -Path '${{ steps.build.outputs.zip }}' -Algorithm SHA256).Hash
+          $hash = (Get-FileHash -Path '${{ steps.build.outputs.exe }}' -Algorithm SHA256).Hash
           "sha256=$hash" >> $env:GITHUB_OUTPUT
 
       - name: Generate winget manifests
@@ -44,7 +59,7 @@ jobs:
           $version = '${{ steps.build.outputs.version }}'
           $sha = '${{ steps.hash.outputs.sha256 }}'
           $repo = '${{ github.repository }}'
-          $asset = "hoteldruid-PHPDesktop-$version.zip"
+          $asset = "hoteldruid-PHPDesktop-$version.exe"
           $installUrl = "https://github.com/$repo/releases/download/v$version/$asset"
           $base = Join-Path $PWD "manifests/h/HotelDruid/PHPDesktop/$version"
           New-Item -ItemType Directory -Force -Path $base | Out-Null
@@ -52,20 +67,16 @@ jobs:
           $installer = @"
           PackageIdentifier: HotelDruid.PHPDesktop
           PackageVersion: $version
-          InstallerType: zip
-          NestedInstallerType: powershell
-          NestedInstallerFiles:
-            - install_release.ps1
-          InstallModes:
-            - silent
-            - silentWithProgress
+          InstallerType: exe
           Installers:
             - Architecture: x64
               InstallerUrl: $installUrl
               InstallerSha256: $sha
               InstallerSwitches:
-                Silent: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
-                SilentWithProgress: -ExecutionPolicy Bypass -File install_release.ps1 -Language en -Quiet
+                Silent: ""
+                SilentWithProgress: ""
+          ManifestType: installer
+          ManifestVersion: 1.6.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.installer.yaml') -Value $installer -Encoding UTF8
 
@@ -74,8 +85,9 @@ jobs:
           PackageVersion: $version
           PackageLocale: en-US
           Publisher: Rolf Eleveld
-          PackageName: HotelDruid
+          PackageName: HotelDruid PHPDesktop
           ShortDescription: HotelDruid desktop installer (PHP Desktop)
+          Description: HotelDruid is an open source hotel management software that runs on a web server. This package provides a desktop installer using PHP Desktop, allowing you to run HotelDruid as a standalone desktop application without needing a separate web server installation.
           License: AGPL-3.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.en-US.yaml') -Value $localeEn -Encoding UTF8
@@ -87,6 +99,7 @@ jobs:
           Publisher: Rolf Eleveld
           PackageName: HotelDruid
           ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
+          Description: HotelDruid es un software de gestión hotelera de código abierto que se ejecuta en un servidor web. Este paquete proporciona un instalador de escritorio utilizando PHP Desktop, lo que le permite ejecutar HotelDruid como una aplicación de escritorio independiente sin necesidad de una instalación de servidor web por separado.
           License: AGPL-3.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.es-ES.yaml') -Value $localeEs -Encoding UTF8
@@ -98,6 +111,7 @@ jobs:
           Publisher: Rolf Eleveld
           PackageName: HotelDruid
           ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
+          Description: HotelDruid è un software di gestione alberghiera open source che funziona su un server web. Questo pacchetto fornisce un programma di installazione desktop utilizzando PHP Desktop, che consente di eseguire HotelDruid come applicazione desktop autonoma senza la necessità di una installazione separata del server web.
           License: AGPL-3.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.it-IT.yaml') -Value $localeIt -Encoding UTF8
@@ -107,6 +121,7 @@ jobs:
           PackageVersion: $version
           DefaultLocale: en-US
           ManifestType: version
+          ManifestVersion: 1.6.0
           "@
           Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.yaml') -Value $versionManifest -Encoding UTF8
 

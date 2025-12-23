@@ -82,11 +82,6 @@ try {
     $items | ForEach-Object { Write-Host " - $_" -ForegroundColor Yellow }
     Write-Host ''
 
-    if (-not ($Force -or $Silent)) {
-        $answer = Read-Host 'Proceed? (y/N)'
-        if ($answer -notin @('y','Y','yes','YES')) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }
-    }
-
     Stop-PhpDesktop
 
     Remove-PathSafe -Path $startMenuShortcut
