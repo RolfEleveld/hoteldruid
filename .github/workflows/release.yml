@@ -189,15 +189,15 @@ jobs:
           cd winget-pkgs
           git push https://$PAT@github.com/$WINGET_FORK.git hoteldruid-phpdesktop-$VERSION --force
 
-      - name: Create PR to winget-pkgs upstream
-        env:
-          GH_TOKEN: ${{ secrets.WINGET_PAT }}
-        run: |
-          cd winget-pkgs
-          gh pr create \
-            --repo $WINGET_UPSTREAM \
-            --head RolfEleveld:hoteldruid-phpdesktop-$VERSION \
-            --base $BASE_BRANCH \
-            --title "Add HotelDruid.PHPDesktop $VERSION" \
-            --body "Automated submission for HotelDruid.PHPDesktop $VERSION"
+      # - name: Create PR to winget-pkgs upstream
+      #   env:
+      #     GH_TOKEN: ${{ secrets.WINGET_PAT }}
+      #   run: |
+      #     cd winget-pkgs
+      #     gh pr create \
+      #       --repo $WINGET_UPSTREAM \
+      #       --head RolfEleveld:hoteldruid-phpdesktop-$VERSION \
+      #       --base $BASE_BRANCH \
+      #       --title "Add HotelDruid.PHPDesktop $VERSION" \
+      #       --body "Automated submission for HotelDruid.PHPDesktop $VERSION"
 
