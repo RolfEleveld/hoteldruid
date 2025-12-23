@@ -183,23 +183,6 @@ jobs:
           name: winget-manifests-${{ needs.build-and-release.outputs.version }}
           path: manifests
 
-      - name: Verify downloaded winget manifests
-        run: |
-          set -euo pipefail
-          echo "Verifying downloaded manifests directory 'manifests'..."
-          if [ ! -d "manifests" ]; then
-            echo "ERROR: 'manifests' directory not found"
-            exit 1
-          fi
-          cnt=$(find manifests -type f | wc -l)
-          echo "Files found in manifests: $cnt"
-          if [ "$cnt" -eq "0" ]; then
-            echo "ERROR: No files extracted from artifact"
-            ls -la manifests || true
-            exit 1
-          fi
-          echo 'Artifact extraction verification passed.'
-
       - name: Clone winget-pkgs fork
         env:
           PAT: ${{ secrets.WINGET_PAT }}
@@ -212,8 +195,27 @@ jobs:
 
       - name: Copy manifests into fork
         run: |
+          set -euo pipefail
+          echo '--- Source manifests (before copy) ---'
+          if [ -d manifests ]; then
+            find manifests -type f -maxdepth 5 -print || true
+          else
+            echo 'ERROR: manifests directory missing'
+            exit 1
+          fi
           mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
-          cp -r manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
+          echo 'Copying manifests...'
+          cp -a manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
+          echo "Copy exit: $?"
+          echo '--- Destination manifests (after copy) ---'
+          find winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} -type f -print || true
+          cnt=$(find winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} -type f | wc -l)
+          echo "Files copied: $cnt"
+          if [ "$cnt" -eq "0" ]; then
+            echo 'ERROR: No files were copied into the fork manifest path'
+            ls -la winget-pkgs/manifests || true
+            exit 1
+          fi
 
       - name: Commit changes
         env:
