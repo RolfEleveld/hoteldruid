@@ -7,6 +7,8 @@ hoteldruid/logs
 hoteldruid/dati
 # Hotel druid software
 hoteldruid*.zip
+hoteldruid*.exe
+
 # Easy PHP runtime services
 EasyPHP*.exe 
 phpdesktop*.zip
