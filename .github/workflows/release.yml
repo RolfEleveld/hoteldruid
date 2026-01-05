@@ -5,6 +5,10 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional tag to use for the release (e.g. v1.2.3). When omitted the workflow will use the ref name.'
+        required: false
 
 permissions:
   contents: write
@@ -14,336 +18,70 @@ jobs:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.build.outputs.version }}
+      zip: ${{ steps.build.outputs.zip }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build phpdesktop package
+      - name: Build release ZIP and generate installer launcher
         id: build
         shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $version = "3.0.7.${{ github.run_number }}"
+
+          # Determine release tag to use as version. Prefer explicit input, otherwise use the ref name.
+          $tag = $env:RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = $env:REF_NAME }
+          if ([string]::IsNullOrWhiteSpace($tag) -or $tag -eq 'main') { throw 'Release tag is empty or invalid. Provide a tag via workflow_dispatch input `release_tag` or run on a tag ref.' }
+
           $outDir = Join-Path $PWD 'out'
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-          # Final EXE name
-          $exePath = Join-Path $outDir "Hoteldruid-PHPDesktop-$version.exe"
+          $zipName = "Hoteldruid-PHPDesktop-$tag.zip"
+          $zipPath = Join-Path $outDir $zipName
 
-          # Validate config exists
-          $config = Join-Path $PWD 'build\\config.txt'
-          if (-not (Test-Path $config)) { throw "Missing build/config.txt at $config" }
-
-          # Download 7z SFX from multiple potential sources (tries each until one succeeds)
-          $sfxDest = Join-Path $PWD 'build\\7zSD.sfx'
-          if (Test-Path $sfxDest) { Remove-Item -Force $sfxDest }
-          $sfxUrls = @(
-            'https://raw.githubusercontent.com/mcmilk/7zSD.sfx/master/7zSD.sfx',
-            'https://raw.githubusercontent.com/skywind3000/7z-sfx/master/7zSD.sfx',
-            'https://raw.githubusercontent.com/kiwi0fruit/7zSD.sfx/master/7zSD.sfx'
-          )
-          $downloaded = $false
-          foreach ($u in $sfxUrls) {
-            try {
-              Write-Host "Attempting download: $u"
-              Invoke-WebRequest -Uri $u -OutFile $sfxDest -UseBasicParsing -TimeoutSec 30
-              if ((Test-Path $sfxDest) -and ((Get-Item $sfxDest).Length -gt 0)) { Write-Host "Downloaded SFX from $u"; $downloaded = $true; break }
-            } catch {
-              Write-Host "Download failed from $u: $_"
-            }
+          # Files to include in the ZIP (search common locations)
+          $names = @('install_release.ps1','uninstall_release.ps1','phpdesktop-custom-settings.json','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll')
+          $payload = @()
+          foreach ($n in $names) {
+            $candidates = @(Join-Path $PWD $n, Join-Path $PWD "vc_runtime_dlls\$n")
+            $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if (-not $found) { throw "Required payload file missing: $n (looked in: $($candidates -join ', '))" }
+            $payload += $found
           }
 
-          # If download didn't work, try common local install locations for an SFX module
-          if (-not $downloaded) {
-            $localCandidates = @(
-              'C:\\Program Files\\7-Zip\\7z.sfx',
-              'C:\\Program Files\\7-Zip\\7zSD.sfx',
-              'C:\\Program Files (x86)\\7-Zip\\7z.sfx'
-            )
-            foreach ($lc in $localCandidates) {
-              if (Test-Path $lc) { Copy-Item -Force $lc $sfxDest; Write-Host "Copied local SFX from $lc"; $downloaded = $true; break }
-            }
-          }
-          if (-not $downloaded) { throw "Unable to obtain 7z SFX module from configured URLs or local candidates" }
+          # Create the zip (idempotent)
+          if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+          Write-Host "Creating ZIP $zipPath containing: $($payload -join ', ')"
+          Compress-Archive -Path $payload -DestinationPath $zipPath -Force
+          if (-not (Test-Path $zipPath)) { throw "Failed to create ZIP: $zipPath" }
 
-          # Ensure 7z.exe is available: prefer existing, otherwise attempt install (choco or winget)
-          $sevenZip = $null
-          $possible = @(
-            'C:\\Program Files\\7-Zip\\7z.exe',
-            'C:\\Program Files (x86)\\7-Zip\\7z.exe'
-          )
-          foreach ($p in $possible) { if (Test-Path $p) { $sevenZip = $p; break } }
-          if (-not $sevenZip) {
-            $cmd = Get-Command 7z -ErrorAction SilentlyContinue
-            if ($cmd) { $sevenZip = $cmd.Source }
-          }
-          if (-not $sevenZip) {
-            if (Get-Command choco -ErrorAction SilentlyContinue) {
-              Write-Host 'Installing 7-Zip via choco...'
-              choco install 7zip -y --no-progress
-            } elseif (Get-Command winget -ErrorAction SilentlyContinue) {
-              Write-Host 'Installing 7-Zip via winget...'
-              winget install --id=7zip.7zip -e --accept-package-agreements --accept-source-agreements
-            } else {
-              throw 'No package manager available to install 7-Zip; ensure runner has 7z.exe or choco/winget present.'
-            }
-            foreach ($p in $possible) { if (Test-Path $p) { $sevenZip = $p; break } }
-            if (-not $sevenZip) { $cmd = Get-Command 7z -ErrorAction SilentlyContinue; if ($cmd) { $sevenZip = $cmd.Source } }
-          }
-          if (-not $sevenZip) { throw "7z.exe not found after install attempts" }
+          # Generate install.ps1 launcher. It downloads the versioned ZIP from this repo's release and runs install_release.ps1 from it.
+          $repo = $env:REPO
+          $zipAsset = $zipName
 
-          # Create payload.7z containing required files
-          $payload = Join-Path $PWD 'payload.7z'
-          if (Test-Path $payload) { Remove-Item -Force $payload }
-          $files = @(
-            (Join-Path $PWD 'install_release.ps1'),
-            (Join-Path $PWD 'uninstall_release.ps1'),
-            (Join-Path $PWD 'phpdesktop-custom-settings.json'),
-            (Join-Path $PWD 'msvcp140.dll'),
-            (Join-Path $PWD 'vcruntime140.dll'),
-            (Join-Path $PWD 'vcruntime140_1.dll')
-          )
-          foreach ($f in $files) { if (-not (Test-Path $f)) { throw "Required payload file missing: $f" } }
+          # Ensure `install.ps1` exists in repo root (user-managed)
+          $installInRepo = Join-Path $PWD 'install.ps1'
+          if (-not (Test-Path $installInRepo)) { throw "install.ps1 not found in repository root. Add the launcher script to the repo as requested." }
 
-          Write-Host "Creating $payload using $sevenZip"
-          & "$sevenZip" a -t7z $payload $files -mx=9 | Write-Host
-          if (-not (Test-Path $payload)) { throw "Failed to create payload: $payload" }
+          # Set outputs for downstream use
+          "version=$tag" >> $env:GITHUB_OUTPUT
+          "zip=$zipPath" >> $env:GITHUB_OUTPUT
 
-          # Combine into final EXE (binary concat). This mirrors `copy /b sfx + config + payload out.exe`.
-          Write-Host "Combining SFX + config + payload into $exePath"
-          $b1 = [IO.File]::ReadAllBytes($sfxDest)
-          $b2 = [IO.File]::ReadAllBytes($config)
-          $b3 = [IO.File]::ReadAllBytes($payload)
-          [IO.File]::WriteAllBytes($exePath, $b1 + $b2 + $b3)
-
-          if (-not (Test-Path $exePath)) { throw "SFX packaging did not produce expected EXE: $exePath" }
-          $resolved = (Resolve-Path $exePath).Path
-          Write-Host '--- Out directory contents ---'
-          Get-ChildItem -Path $outDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "exe=$resolved" >> $env:GITHUB_OUTPUT
-        
-      - name: Compute SHA256 for winget
-        id: hash
-        shell: pwsh
-        run: |
-          $hash = (Get-FileHash -Path '${{ steps.build.outputs.exe }}' -Algorithm SHA256).Hash
-          "sha256=$hash" >> $env:GITHUB_OUTPUT
-
-      - name: Generate winget manifests
-        id: manifests
-        shell: pwsh
-        run: |
-          $version = '${{ steps.build.outputs.version }}'
-          $sha = '${{ steps.hash.outputs.sha256 }}'
-          $repo = '${{ github.repository }}'
-          $asset = "hoteldruid-PHPDesktop-$version.exe"
-          $installUrl = "https://github.com/$repo/releases/download/v$version/$asset"
-          $base = Join-Path $PWD "manifests"          
-          New-Item -ItemType Directory -Force -Path $base | Out-Null
-
-          $installer = @"
-          PackageIdentifier: HotelDruid.PHPDesktop
-          PackageVersion: $version
-          InstallerType: exe
-          Installers:
-            - Architecture: x64
-              InstallerUrl: $installUrl
-              InstallerSha256: $sha
-              InstallerSwitches:
-                Silent: ""
-                SilentWithProgress: ""
-              AppsAndFeaturesEntries:
-                - DisplayName: HotelDruid PHPDesktop
-                  Publisher: Rolf Eleveld
-                  DisplayVersion: 3.0.7
-          ManifestType: installer
-          ManifestVersion: 1.6.0
-          "@
-          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.installer.yaml') -Value $installer -Encoding UTF8
-
-          $localeEn = @"
-          PackageIdentifier: HotelDruid.PHPDesktop
-          PackageVersion: $version
-          PackageLocale: en-US
-          Publisher: Rolf Eleveld
-          PackageName: HotelDruid PHPDesktop
-          ShortDescription: HotelDruid desktop installer (PHP Desktop)
-          Description: HotelDruid is an open source hotel management software that runs on a web server. This package provides a desktop installer using PHP Desktop, allowing you to run HotelDruid as a standalone desktop application without needing a separate web server installation.
-          License: AGPL-3.0
-          ManifestType: defaultLocale
-          ManifestVersion: 1.6.0
-          "@
-          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.en-US.yaml') -Value $localeEn -Encoding UTF8
-
-          $localeEs = @"
-          PackageIdentifier: HotelDruid.PHPDesktop
-          PackageVersion: $version
-          PackageLocale: es-ES
-          Publisher: Rolf Eleveld
-          PackageName: HotelDruid
-          ShortDescription: Instalador de escritorio HotelDruid (PHP Desktop)
-          Description: HotelDruid es un software de gestión hotelera de código abierto que se ejecuta en un servidor web. Este paquete proporciona un instalador de escritorio utilizando PHP Desktop, lo que le permite ejecutar HotelDruid como una aplicación de escritorio independiente sin necesidad de una instalación de servidor web por separado.
-          License: AGPL-3.0
-          ManifestType: locale
-          ManifestVersion: 1.6.0
-          "@
-          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.es-ES.yaml') -Value $localeEs -Encoding UTF8
-
-          $localeIt = @"
-          PackageIdentifier: HotelDruid.PHPDesktop
-          PackageVersion: $version
-          PackageLocale: it-IT
-          Publisher: Rolf Eleveld
-          PackageName: HotelDruid
-          ShortDescription: Programma di installazione desktop HotelDruid (PHP Desktop)
-          Description: HotelDruid è un software di gestione alberghiera open source che funziona su un server web. Questo pacchetto fornisce un programma di installazione desktop utilizzando PHP Desktop, che consente di eseguire HotelDruid come applicazione desktop autonoma senza la necessità di una installazione separata del server web.
-          License: AGPL-3.0
-          ManifestType: locale
-          ManifestVersion: 1.6.0
-          "@
-          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.locale.it-IT.yaml') -Value $localeIt -Encoding UTF8
-
-          $versionManifest = @"
-          PackageIdentifier: HotelDruid.PHPDesktop
-          PackageVersion: $version
-          DefaultLocale: en-US
-          ManifestType: version
-          ManifestVersion: 1.6.0
-          "@
-          Set-Content -Path (Join-Path $base 'HotelDruid.PHPDesktop.yaml') -Value $versionManifest -Encoding UTF8
-
-      - name: Upload winget manifests
-        uses: actions/upload-artifact@v4
-        with:
-          name: winget-manifests-${{ steps.build.outputs.version }}
-          path: manifests
-          if-no-files-found: error
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
-          path: ${{ steps.build.outputs.exe }}
-          if-no-files-found: error
-
-      - name: Create GitHub release
+      - name: Create GitHub release and upload assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.build.outputs.version }}
-          name: hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
-          files: ${{ steps.build.outputs.exe }}
+          tag_name: ${{ steps.build.outputs.version }}
+          name: Hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
+          files: |
+            ${{ steps.build.outputs.zip }}
+            ${{ steps.build.outputs.install }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  submit-winget-pr:
-    needs: build-and-release
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.build-and-release.outputs.version }}
-      WINGET_FORK: RolfEleveld/winget-pkgs
-      WINGET_UPSTREAM: microsoft/winget-pkgs
-      BASE_BRANCH: master
-    steps:
-      - name: Download winget manifests artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: winget-manifests-${{ needs.build-and-release.outputs.version }}
-          path: manifests
-
-      - name: Clone winget-pkgs fork
-        env:
-          PAT: ${{ secrets.WINGET_PAT }}
-        run: |
-          git clone https://$PAT@github.com/$WINGET_FORK.git
-          cd winget-pkgs
-          git remote add upstream https://github.com/$WINGET_UPSTREAM.git
-          git fetch upstream $BASE_BRANCH
-          git checkout -B hoteldruid-phpdesktop-$VERSION upstream/$BASE_BRANCH
-
-      - name: Copy manifests into fork
-        run: |
-          set -euo pipefail
-          echo '--- Source manifests (before copy) ---'
-          if [ -d manifests ]; then
-            find manifests -type f -maxdepth 5 -print || true
-          else
-            echo 'ERROR: manifests directory missing'
-            exit 1
-          fi
-          mkdir -p winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
-          echo 'Copying manifests...'
-          cp -a manifests/. winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}/
-          echo "Copy exit: $?"
-          echo '--- Destination manifests (after copy) ---'
-          find winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} -type f -print || true
-          cnt=$(find winget-pkgs/manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} -type f | wc -l)
-          echo "Files copied: $cnt"
-          if [ "$cnt" -eq "0" ]; then
-            echo 'ERROR: No files were copied into the fork manifest path'
-            ls -la winget-pkgs/manifests || true
-            exit 1
-          fi
-
-      - name: Commit changes
-        env:
-          GIT_AUTHOR_NAME: github-actions
-          GIT_AUTHOR_EMAIL: github-actions@users.noreply.github.com
-          GIT_COMMITTER_NAME: github-actions
-          GIT_COMMITTER_EMAIL: github-actions@users.noreply.github.com
-        run: |
-          set -euo pipefail
-          cd winget-pkgs
-          echo '--- Repo root ---'
-          pwd
-          echo '--- Check target manifest dir ---'
-          ls -la manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} || true
-          echo '--- Git status (including untracked) ---'
-          git status --porcelain=1 -uall || true
-          echo '--- Git untracked files (top) ---'
-          git ls-files --others --exclude-standard | sed -n '1,50p' || true
-
-          # Add files (use -f if necessary) and show return codes
-          echo 'Adding files to index...'
-          git add -A manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }}
-          echo "git add exit: $?"
-
-          echo '--- Staged files ---'
-          git diff --name-only --cached || true
-          echo '--- Staged files with mode ---'
-          git ls-files --stage manifests/h/HotelDruid/PHPDesktop/${{ needs.build-and-release.outputs.version }} || true
-
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "No manifest changes; skipping PR."
-            exit 0
-          fi
-
-          echo 'Committing changes...'
-          git commit -m "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}" || {
-            echo 'git commit failed or nothing to commit';
-            git status --porcelain=1 -uall || true
-            exit 1
-          }
-
-      - name: Push branch to fork
-        env:
-          PAT: ${{ secrets.WINGET_PAT }}
-        run: |
-          cd winget-pkgs
-          git push https://$PAT@github.com/$WINGET_FORK.git hoteldruid-phpdesktop-${{ needs.build-and-release.outputs.version }} --force
-
-      # - name: Create PR to winget-pkgs upstream
-      #   env:
-      #     GH_TOKEN: ${{ secrets.WINGET_PAT }}
-      #   run: |
-      #     cd winget-pkgs
-      #     gh pr create \
-      #       --repo $WINGET_UPSTREAM \
-      #       --head RolfEleveld:hoteldruid-phpdesktop-${{ needs.build-and-release.outputs.version }} \
-      #       --base $BASE_BRANCH \
-      #       --title "Add HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}" \
-      #       --body "Automated submission for HotelDruid.PHPDesktop ${{ needs.build-and-release.outputs.version }}"
 
