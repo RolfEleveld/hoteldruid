@@ -398,3 +398,6 @@ $deploymentSettings = @{
 }
 
 return $deploymentSettings
+
+# await user input before closing (for testing purposes)
+read-host "Press Enter to exit..."
