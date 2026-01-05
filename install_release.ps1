@@ -1026,4 +1026,6 @@ try {
     Write-Host ($t['Error'] -f $_) -ForegroundColor Red
     Write-Host ""
     exit 1
+} finally {
+    Read-Host "Press Enter to exit..."
 }
