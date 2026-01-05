@@ -22,45 +22,106 @@ jobs:
         id: build
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $version = "3.0.7.${{ github.run_number }}"
           $outDir = Join-Path $PWD 'out'
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-          # The final EXE name
+          # Final EXE name
           $exePath = Join-Path $outDir "Hoteldruid-PHPDesktop-$version.exe"
-          $sedPath = "$PWD/Hoteldruid-PHPDesktop-Setup.SED"
 
-          # Run IExpress (capture exit code)
-          $sedPath = "$PWD/Hoteldruid-PHPDesktop-Setup.SED"
-          iexpress.exe /N "$sedPath"
-          $rc = $LASTEXITCODE
-          Write-Host "IExpress exit code: $rc"
+          # Validate config exists
+          $config = Join-Path $PWD 'build\\config.txt'
+          if (-not (Test-Path $config)) { throw "Missing build/config.txt at $config" }
 
-          # Wait for teh exe to appear (sometimes delayed)
-          $counter = 0
-          while (-not (Test-Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe")) {
-            Start-Sleep -Seconds 1
-            $counter++
-            if ($counter -gt 10) {
-              throw "Timeout waiting for IExpress to produce EXE"
+          # Download 7z SFX from multiple potential sources (tries each until one succeeds)
+          $sfxDest = Join-Path $PWD 'build\\7zSD.sfx'
+          if (Test-Path $sfxDest) { Remove-Item -Force $sfxDest }
+          $sfxUrls = @(
+            'https://raw.githubusercontent.com/mcmilk/7zSD.sfx/master/7zSD.sfx',
+            'https://raw.githubusercontent.com/skywind3000/7z-sfx/master/7zSD.sfx',
+            'https://raw.githubusercontent.com/kiwi0fruit/7zSD.sfx/master/7zSD.sfx'
+          )
+          $downloaded = $false
+          foreach ($u in $sfxUrls) {
+            try {
+              Write-Host "Attempting download: $u"
+              Invoke-WebRequest -Uri $u -OutFile $sfxDest -UseBasicParsing -TimeoutSec 30
+              if ((Test-Path $sfxDest) -and ((Get-Item $sfxDest).Length -gt 0)) { Write-Host "Downloaded SFX from $u"; $downloaded = $true; break }
+            } catch {
+              Write-Host "Download failed from $u: $_"
             }
           }
-          # Debug: show SED and output directory contents
-          Move-Item -Path "$PWD/Hoteldruid-PHPDesktop-Setup.exe" -Destination $exePath
+
+          # If download didn't work, try common local install locations for an SFX module
+          if (-not $downloaded) {
+            $localCandidates = @(
+              'C:\\Program Files\\7-Zip\\7z.sfx',
+              'C:\\Program Files\\7-Zip\\7zSD.sfx',
+              'C:\\Program Files (x86)\\7-Zip\\7z.sfx'
+            )
+            foreach ($lc in $localCandidates) {
+              if (Test-Path $lc) { Copy-Item -Force $lc $sfxDest; Write-Host "Copied local SFX from $lc"; $downloaded = $true; break }
+            }
+          }
+          if (-not $downloaded) { throw "Unable to obtain 7z SFX module from configured URLs or local candidates" }
+
+          # Ensure 7z.exe is available: prefer existing, otherwise attempt install (choco or winget)
+          $sevenZip = $null
+          $possible = @(
+            'C:\\Program Files\\7-Zip\\7z.exe',
+            'C:\\Program Files (x86)\\7-Zip\\7z.exe'
+          )
+          foreach ($p in $possible) { if (Test-Path $p) { $sevenZip = $p; break } }
+          if (-not $sevenZip) {
+            $cmd = Get-Command 7z -ErrorAction SilentlyContinue
+            if ($cmd) { $sevenZip = $cmd.Source }
+          }
+          if (-not $sevenZip) {
+            if (Get-Command choco -ErrorAction SilentlyContinue) {
+              Write-Host 'Installing 7-Zip via choco...'
+              choco install 7zip -y --no-progress
+            } elseif (Get-Command winget -ErrorAction SilentlyContinue) {
+              Write-Host 'Installing 7-Zip via winget...'
+              winget install --id=7zip.7zip -e --accept-package-agreements --accept-source-agreements
+            } else {
+              throw 'No package manager available to install 7-Zip; ensure runner has 7z.exe or choco/winget present.'
+            }
+            foreach ($p in $possible) { if (Test-Path $p) { $sevenZip = $p; break } }
+            if (-not $sevenZip) { $cmd = Get-Command 7z -ErrorAction SilentlyContinue; if ($cmd) { $sevenZip = $cmd.Source } }
+          }
+          if (-not $sevenZip) { throw "7z.exe not found after install attempts" }
+
+          # Create payload.7z containing required files
+          $payload = Join-Path $PWD 'payload.7z'
+          if (Test-Path $payload) { Remove-Item -Force $payload }
+          $files = @(
+            (Join-Path $PWD 'install_release.ps1'),
+            (Join-Path $PWD 'uninstall_release.ps1'),
+            (Join-Path $PWD 'phpdesktop-custom-settings.json'),
+            (Join-Path $PWD 'msvcp140.dll'),
+            (Join-Path $PWD 'vcruntime140.dll'),
+            (Join-Path $PWD 'vcruntime140_1.dll')
+          )
+          foreach ($f in $files) { if (-not (Test-Path $f)) { throw "Required payload file missing: $f" } }
+
+          Write-Host "Creating $payload using $sevenZip"
+          & "$sevenZip" a -t7z $payload $files -mx=9 | Write-Host
+          if (-not (Test-Path $payload)) { throw "Failed to create payload: $payload" }
+
+          # Combine into final EXE (binary concat). This mirrors `copy /b sfx + config + payload out.exe`.
+          Write-Host "Combining SFX + config + payload into $exePath"
+          $b1 = [IO.File]::ReadAllBytes($sfxDest)
+          $b2 = [IO.File]::ReadAllBytes($config)
+          $b3 = [IO.File]::ReadAllBytes($payload)
+          [IO.File]::WriteAllBytes($exePath, $b1 + $b2 + $b3)
+
+          if (-not (Test-Path $exePath)) { throw "SFX packaging did not produce expected EXE: $exePath" }
+          $resolved = (Resolve-Path $exePath).Path
           Write-Host '--- Out directory contents ---'
           Get-ChildItem -Path $outDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
-
-          # Output variables for later steps; fail with clear diagnostics if EXE not produced
-          if (Test-Path $exePath) {
-            $resolved = (Resolve-Path $exePath).Path
-            "version=$version" >> $env:GITHUB_OUTPUT
-            "exe=$resolved" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Host "ERROR: Expected EXE not found at $exePath"
-            Write-Host 'Listing out directory for troubleshooting:'
-            Get-ChildItem -Path $outDir -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
-            throw "IExpress did not create the expected EXE: $exePath"
-          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "exe=$resolved" >> $env:GITHUB_OUTPUT
         
       - name: Compute SHA256 for winget
         id: hash

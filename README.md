@@ -4,6 +4,9 @@ Complete Docker containerization setup for the HotelDruid hotel management syste
 
 ## 🎯 Quick Start Guide phpDesktop
 
+- One step deploy:
+  ```irm https://raw.githubusercontent.com/<repo>/install_release.ps1 | iex```
+
 - Get clone of this repository
 - Run ```./build_deployment_package.ps1```  
 - On target machine unzip the package from ```./out/``` folder
