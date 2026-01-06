@@ -34,15 +34,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          # Determine release tag to use as version.
-          # Preference order: explicit input -> tag ref -> generated snapshot using run number
-            # Determine release version. Use fixed base 3.0.7 and append run number when no explicit tag provided.
-            $baseVersion = '3.0.7'
-            $tag = $env:RELEASE_TAG
-            if ([string]::IsNullOrWhiteSpace($tag)) {
-              $tag = "${baseVersion}.$($env:RUN_NUMBER)"
-              Write-Host "No explicit tag provided; using generated version: $tag"
-
+          # Determine release version. Use fixed base 3.0.7 and append run number when no explicit tag provided.
+          $baseVersion = '3.0.7'
+          $tag = $env:RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            $tag = "${baseVersion}.$($env:RUN_NUMBER)"
+            Write-Host "No explicit tag provided; using generated version: $tag"
+          }
           $outDir = Join-Path $PWD 'out'
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
@@ -84,7 +82,7 @@ jobs:
           name: Hoteldruid-PHPDesktop-${{ steps.build.outputs.version }}
           files: |
             ${{ steps.build.outputs.zip }}
-            ${{ steps.build.outputs.install }}
+            install.ps1
           draft: false
           prerelease: false
         env:
