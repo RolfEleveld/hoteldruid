@@ -51,7 +51,7 @@ jobs:
           $names = @('install_release.ps1','uninstall_release.ps1','phpdesktop-custom-settings.json','msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll')
           $payload = @()
           foreach ($n in $names) {
-            $candidates = @(Join-Path $PWD $n, Join-Path $PWD "vc_runtime_dlls\$n")
+            $candidates = @( (Join-Path $PWD $n); (Join-Path $PWD "vc_runtime_dlls\$n") )
             $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
             if (-not $found) { throw "Required payload file missing: $n (looked in: $($candidates -join ', '))" }
             $payload += $found
