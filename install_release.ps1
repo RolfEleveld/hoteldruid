@@ -38,6 +38,11 @@ param(
     [string]$WorkDir = (Join-Path $env:TEMP ("hoteldruid_install_{0}" -f (Get-Random)))
 )
 
+# Setup of secure and default values for web requests
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$PSDefaultParameterValues['Invoke-RestMethod:UserAgent'] = 'HotelDruid-Installer'
+
+
 $ErrorActionPreference = 'Stop'
 # ============================================================================
 # VC++ REDISTRIBUTABLE (2015–2022 x64) HANDLING
