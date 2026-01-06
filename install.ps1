@@ -1,20 +1,71 @@
 # Install HotelDruid via the latest GitHub release
 $ErrorActionPreference = 'Stop'
+
 # Repository information
 $repo = 'rolfeleveld/hoteldruid'
-# Get the latest release information from GitHub API
-$release = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
-# Find the asset matching the desired pattern
-$asset = $release.assets | Where-Object { $_.name -like 'Hoteldruid-PHPDesktop-*.zip' } | Select-Object -First 1
-# Exit if no matching asset is found
-if (-not $asset) { Write-Error 'No matching release found for PHP Desktop HotelDruid on GitHub'; exit 1 }
-# Download the zip asset into temporary location
-$downloadUrl = $asset.browser_download_url
-Write-Host "Downloading $($asset.name) from $downloadUrl"
+$headers = @{ 'User-Agent' = 'HotelDruid Installer' }
+
+# Prepare temporary folder for download and extraction
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('hoteldruid_install_' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-$zipPath = Join-Path $tmp $asset.name
-Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -ErrorAction Stop
+
+# Helper to download URL to $zipPath
+function Download-Zip($url, $outPath) {
+	try {
+		Invoke-WebRequest -Uri $url -OutFile $outPath -UseBasicParsing -Headers $headers -ErrorAction Stop
+		return $true
+	} catch {
+		Write-Host "Download failed from $url : $_"
+		return $false
+	}
+}
+
+# 1) Try deterministic approach: follow releases/latest redirect to determine tag, then compute download URL
+$zipPath = $null
+$downloaded = $false
+try {
+	$resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -UseBasicParsing -Headers $headers -ErrorAction Stop
+	$finalUri = $resp.BaseResponse.ResponseUri.AbsoluteUri
+	if ($finalUri -match '/releases/tag/(.+)$') { $tag = $Matches[1] }
+} catch {
+	Write-Host "Could not resolve latest release redirect: $_"
+	$tag = $null
+}
+
+if ($tag) {
+	$assetName = "Hoteldruid-PHPDesktop-$tag.zip"
+	$zipPath = Join-Path $tmp $assetName
+	$downloadUrl = "https://github.com/$repo/releases/download/$tag/$assetName"
+	Write-Host "Attempting deterministic download: $assetName from $downloadUrl"
+	$downloaded = Download-Zip $downloadUrl $zipPath
+}
+
+# 2) Fallback: parse releases page for an asset link if deterministic download failed
+if (-not $downloaded) {
+	try {
+		if (-not $resp) { $resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -UseBasicParsing -Headers $headers -ErrorAction Stop }
+		$link = $resp.Links | Where-Object { $_.href -match 'Hoteldruid-PHPDesktop-.*\.zip$' } | Select-Object -First 1
+		if (-not $link) {
+			# As a last resort search the raw HTML for .zip
+			$href = ($resp.RawContent -split 'href="') | Where-Object { $_ -match 'Hoteldruid-PHPDesktop-.*\.zip' } | Select-Object -First 1
+			if ($href) { $href = ($href -split '"')[0] }
+		} else {
+			$href = $link.href
+		}
+		if ($href) {
+			if ($href -notmatch '^https?://') { $downloadUrl = "https://github.com$href" } else { $downloadUrl = $href }
+			$assetName = Split-Path $downloadUrl -Leaf
+			$zipPath = Join-Path $tmp $assetName
+			Write-Host "Attempting fallback download from page link: $downloadUrl"
+			$downloaded = Download-Zip $downloadUrl $zipPath
+		}
+	} catch {
+		Write-Host "Failed to parse releases page: $_"
+		$downloaded = $false
+	}
+}
+
+if (-not $downloaded) { Write-Error 'Unable to obtain Hoteldruid release ZIP via deterministic URL or releases page parsing.'; exit 1 }
 
 # Extract the zip file
 Write-Host "Extracting $zipPath to $tmp"
