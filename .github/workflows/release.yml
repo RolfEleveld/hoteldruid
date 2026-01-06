@@ -30,13 +30,18 @@ jobs:
           RELEASE_TAG: ${{ github.event.inputs.release_tag }}
           REF_NAME: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           $ErrorActionPreference = 'Stop'
 
-          # Determine release tag to use as version. Prefer explicit input, otherwise use the ref name.
-          $tag = $env:RELEASE_TAG
-          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = $env:REF_NAME }
-          if ([string]::IsNullOrWhiteSpace($tag) -or $tag -eq 'main') { throw 'Release tag is empty or invalid. Provide a tag via workflow_dispatch input `release_tag` or run on a tag ref.' }
+          # Determine release tag to use as version.
+          # Preference order: explicit input -> tag ref -> generated snapshot using run number
+            # Determine release version. Use fixed base 3.0.7 and append run number when no explicit tag provided.
+            $baseVersion = '3.0.7'
+            $tag = $env:RELEASE_TAG
+            if ([string]::IsNullOrWhiteSpace($tag)) {
+              $tag = "${baseVersion}.$($env:RUN_NUMBER)"
+              Write-Host "No explicit tag provided; using generated version: $tag"
 
           $outDir = Join-Path $PWD 'out'
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
