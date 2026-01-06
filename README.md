@@ -5,19 +5,15 @@ Complete Docker containerization setup for the HotelDruid hotel management syste
 ## 🎯 Quick Start Guide phpDesktop
 
 - One step deploy:
-  ```irm https://github.com/RolfEleveld/hoteldruid/blob/1b5d3ce3420c5e4d2aba6b196ed668fccfb5bbb0/install.ps1 | iex```
+  ```irm https://raw.githubusercontent.com/RolfEleveld/hoteldruid/main/install.ps1 | iex```
+
+### and a fully manual deploy
 
 - Get clone of this repository
 - Run ```./build_deployment_package.ps1```  
 - On target machine unzip the package from ```./out/``` folder
 - On target machine in the unzipped folder run ```./install_release.ps1 -Language en```
 - Run the PHPDesktop to run HotelDruid
-
-- One can use the alternative winget  
-
-  ```powershell
-  Winget Install HotelDruid.PHPDesktop
-  ```
 
 ## 🎯 Quick Start Guide Docker
 
