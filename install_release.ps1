@@ -302,14 +302,9 @@ $t = $strings[$lang]
 # HELPER FUNCTIONS
 # ============================================================================
 
-function Get-LatestReleaseAssetUrl {
-    param(
-        [string]$Repo = 'cztomczak/phpdesktop',
-        [string]$AssetNameRegex = 'phpdesktop-chrome-.*-php-.*\.zip$'
-    )
-    
+function Get-LatestReleaseAssetUrl {  
     try {
-        $uri = "https://api.github.com/repos/$Repo/releases/latest"
+        $uri = 'https://github.com/cztomczak/phpdesktop/releases/download/chrome-v130.1/phpdesktop-chrome-130.1-php-8.3.zip'
         $headers = @{
             'User-Agent' = 'HotelDruid-Installer'
             'Accept'     = 'application/vnd.github+json'
@@ -331,7 +326,7 @@ function Get-LatestReleaseAssetUrl {
             Tag  = $release.tag_name
         }
     } catch {
-        throw "Failed to fetch latest release: $_"
+        throw "Failed to fetch latest release (non-API): $_"
     }
 }
 
