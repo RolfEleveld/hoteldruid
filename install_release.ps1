@@ -307,26 +307,18 @@ function Get-LatestReleaseAssetUrl {
         $uri = 'https://github.com/cztomczak/phpdesktop/releases/download/chrome-v130.1/phpdesktop-chrome-130.1-php-8.3.zip'
         $headers = @{
             'User-Agent' = 'HotelDruid-Installer'
-            'Accept'     = 'application/vnd.github+json'
         }
-        
-        $release = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET -TimeoutSec 30
-        if (-not $release -or -not $release.assets) {
-            throw "GitHub API returned no assets"
-        }
-        
-        $asset = $release.assets | Where-Object { $_.name -match $AssetNameRegex } | Select-Object -First 1
-        if (-not $asset) {
-            throw "No matching asset found"
-        }
-        
+        # Download the latest release into a temporary file which can be given back
+        $tempFile = Join-Path -Path "$([System.IO.Path]::GetTempPath())" -ChildPath "$([System.IO.Path]::GetRandomFileName())phpdesktop.zip"
+        Invoke-WebRequest -Uri $uri -Headers $headers -Method Get -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop -OutFile $tempFile
+
         return @{
-            Name = $asset.name
-            Url  = $asset.browser_download_url
-            Tag  = $release.tag_name
+            Name = 'phpdesktop-chrome-130.1-php-8.3.zip'
+            Url  = $tempFile
+            Tag  = 'chrome-130.1-php-8.3'
         }
     } catch {
-        throw "Failed to fetch latest release (non-API): $_"
+        throw "Failed to fetch latest release: $_"
     }
 }
 
