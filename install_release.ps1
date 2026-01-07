@@ -67,9 +67,9 @@ function Set-UninstallRegistryReference([string]$InstallDir){
     $uninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
 
     Set-ItemProperty -Path $regPath -Name "UninstallString" -Value $uninstallCmd
-    Write-Host"=================================================="
+    Write-Host "=================================================="
     Write-Host "Uninstall registry reference created at $regPath"
-    Write-Host"=================================================="
+    Write-Host "=================================================="
 }
 
 function Test-VCRedistPresent {
@@ -303,22 +303,10 @@ $t = $strings[$lang]
 # ============================================================================
 
 function Get-LatestReleaseAssetUrl {  
-    try {
-        $uri = 'https://github.com/cztomczak/phpdesktop/releases/download/chrome-v130.1/phpdesktop-chrome-130.1-php-8.3.zip'
-        $headers = @{
-            'User-Agent' = 'HotelDruid-Installer'
-        }
-        # Download the latest release into a temporary file which can be given back
-        $tempFile = Join-Path -Path "$([System.IO.Path]::GetTempPath())" -ChildPath "$([System.IO.Path]::GetRandomFileName())phpdesktop.zip"
-        Invoke-WebRequest -Uri $uri -Headers $headers -Method Get -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop -OutFile $tempFile
-
-        return @{
-            Name = 'phpdesktop-chrome-130.1-php-8.3.zip'
-            Url  = $tempFile
-            Tag  = 'chrome-130.1-php-8.3'
-        }
-    } catch {
-        throw "Failed to fetch latest release: $_"
+    return @{
+        Name = 'phpdesktop-chrome-130.1-php-8.3.zip'
+        Url  = 'https://github.com/cztomczak/phpdesktop/releases/download/chrome-v130.1/phpdesktop-chrome-130.1-php-8.3.zip'
+        Tag  = 'chrome-130.1-php-8.3'
     }
 }
 
