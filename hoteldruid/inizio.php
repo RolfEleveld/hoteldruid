@@ -36,6 +36,7 @@ $titolo = "HotelDruid";
 
 // Include site constants, security and template systems
 include("./costanti.php");
+include_once("./includes/costanti.php");
 include_once("./includes/security.php");
 include_once("./includes/template.php");
 
