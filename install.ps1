@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 
 # Repository information
-$repo = 'rolfeleveld/hoteldruid'
+$repo = 'RolfEleveld/hoteldruid'
 $headers = @{ 'User-Agent' = 'HotelDruid Installer' }
 
 # Prepare temporary folder for download and extraction
@@ -25,7 +25,7 @@ $zipPath = $null
 $downloaded = $false
 try {
 	$resp = Invoke-WebRequest -Uri "https://github.com/$repo/releases/latest" -UseBasicParsing -Headers $headers -ErrorAction Stop
-	$finalUri = $resp.BaseResponse.ResponseUri.AbsoluteUri
+	$finalUri = $resp.BaseResponse.RequestMessage.RequestUri.OriginalString
 	if ($finalUri -match '/releases/tag/(.+)$') { $tag = $Matches[1] }
 } catch {
 	Write-Host "Could not resolve latest release redirect: $_"
