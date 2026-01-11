@@ -161,6 +161,46 @@ include(C_DATI_PATH."/lingua.php");
 include("./includes/funzioni_clienti.php");
 # Include template system for UI/logic separation
 if (file_exists("./includes/template.php")) include("./includes/template.php");
+// Ensure common form variables are defined to avoid undefined variable notices
+if (!isset($cognome)) $cognome = "";
+if (!isset($nome)) $nome = "";
+if (!isset($soprannome)) $soprannome = "";
+if (!isset($titolo_cli)) $titolo_cli = "";
+if (!isset($sesso)) $sesso = "";
+if (!isset($giornonascita)) $giornonascita = "";
+if (!isset($mesenascita)) $mesenascita = "";
+if (!isset($annonascita)) $annonascita = "";
+if (!isset($documento)) $documento = "";
+if (!isset($giornoscaddoc)) $giornoscaddoc = "";
+if (!isset($mesescaddoc)) $mesescaddoc = "";
+if (!isset($annoscaddoc)) $annoscaddoc = "";
+if (!isset($tipodoc)) $tipodoc = "";
+if (!isset($cittadoc)) $cittadoc = "";
+if (!isset($regionedoc)) $regionedoc = "";
+if (!isset($nazionedoc)) $nazionedoc = "";
+if (!isset($cittanascita)) $cittanascita = "";
+if (!isset($regionenascita)) $regionenascita = "";
+if (!isset($nazionenascita)) $nazionenascita = "";
+if (!isset($nazionalita)) $nazionalita = "";
+if (!isset($lingua_cli)) $lingua_cli = "";
+if (!isset($nazione)) $nazione = "";
+if (!isset($citta)) $citta = "";
+if (!isset($regione)) $regione = "";
+if (!isset($via)) $via = "";
+if (!isset($nomevia)) $nomevia = "";
+if (!isset($numcivico)) $numcivico = "";
+if (!isset($cap)) $cap = "";
+if (!isset($telefono)) $telefono = "";
+if (!isset($telefono2)) $telefono2 = "";
+if (!isset($telefono3)) $telefono3 = "";
+if (!isset($fax)) $fax = "";
+if (!isset($email)) $email = "";
+if (!isset($email2)) $email2 = "";
+if (!isset($email_cert)) $email_cert = "";
+if (!isset($cod_fiscale)) $cod_fiscale = "";
+if (!isset($partita_iva)) $partita_iva = "";
+if (!isset($num_campi_pers)) $num_campi_pers = 0;
+for ($__cp_i = 0; $__cp_i < (int)$num_campi_pers; $__cp_i++) if (!isset(${"campo_pers".$__cp_i})) ${"campo_pers".$__cp_i} = "";
 $tablemessaggi = $PHPR_TAB_PRE."messaggi";
 $tablerelutenti = $PHPR_TAB_PRE."relutenti";
 $tablenazioni = $PHPR_TAB_PRE."nazioni";
@@ -526,8 +566,6 @@ include("./includes/dati_form_prenotazione.php");
 $echo_dati_form = "";
 $form_orig .= $mess_dati_form;
 if (!isset($inserire)) $inserire = "";
-
-
 
 if ($nuovaprenotazione != "Continua lo stesso") {
 
@@ -2655,18 +2693,99 @@ $tabelle_lock = array($tableclienti,$tablerelclienti);
 $altre_tab_lock = array($tablepersonalizza);
 $tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
 
-$inserire = htmlentities($inserire);
-if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire or str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire) != $inserire) {
+    $inserire = htmlentities($inserire);
+    $is_modify_click = false;
+    if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire or str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire) != $inserire) {
+        $is_modify_click = true;
 if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire) $idclienti = str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire);
 else $idclienti = str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire);
 $idclienti = str_replace(" ","",$idclienti);
 $idclienti = aggslashdb($idclienti);
-$dati_cliente = esegui_query("select cognome,utente_inserimento from $tableclienti where idclienti = '$idclienti'");
-$cognome = risul_query($dati_cliente,0,'cognome');
-$cliente_modificato = "SI";
-#$inserire_dato_cognome = "inserire_dato_cognome".$idclienti;
-#$inserire_dato_nome = "inserire_dato_nome".$idclienti;
-$utente_inserimento = risul_query($dati_cliente,0,'utente_inserimento');
+    // Fallbacks: if $idclienti couldn't be parsed from the button label,
+    // try common alternatives (explicit POST idclienti or numeric suffix).
+    if (empty($idclienti)) {
+        if (!empty($_POST['idclienti'])) {
+            $idclienti = (int) $_POST['idclienti'];
+        } else {
+            // Try to capture any digits from the submitted label (works across locales)
+            if (!empty($inserire) && preg_match('/(\d+)/', $inserire, $m)) {
+                $idclienti = (int) $m[1];
+            }
+        }
+    }
+
+    // Load full client row to prefill the edit form
+    $dati_cliente = array();
+    if (!empty($idclienti)) {
+        $idclienti_q = aggslashdb($idclienti);
+        $dati_cliente = esegui_query("select * from $tableclienti where idclienti = '$idclienti_q'");
+    }
+    if (numlin_query($dati_cliente)) {
+        $cognome = risul_query($dati_cliente,0,'cognome');
+        $nome = risul_query($dati_cliente,0,'nome');
+        $soprannome = risul_query($dati_cliente,0,'soprannome');
+        $titolo_cli = risul_query($dati_cliente,0,'titolo');
+        $sesso = risul_query($dati_cliente,0,'sesso');
+        $datanasc = risul_query($dati_cliente,0,'datanascita');
+        if ($datanasc) {
+            $annonascita = substr($datanasc,0,4);
+            $mesenascita = substr($datanasc,5,2);
+            $giornonascita = substr($datanasc,8,2);
+        } else {
+            $annonascita = "";
+            $mesenascita = "";
+            $giornonascita = "";
+        }
+        $documento = risul_query($dati_cliente,0,'documento');
+        $dscad = risul_query($dati_cliente,0,'scadenzadoc');
+        if ($dscad) {
+            $annoscaddoc = substr($dscad,0,4);
+            $mesescaddoc = substr($dscad,5,2);
+            $giornoscaddoc = substr($dscad,8,2);
+        } else {
+            $annoscaddoc = "";
+            $mesescaddoc = "";
+            $giornoscaddoc = "";
+        }
+        $tipodoc = risul_query($dati_cliente,0,'tipodoc');
+        $cittadoc = risul_query($dati_cliente,0,'cittadoc');
+        $regionedoc = risul_query($dati_cliente,0,'regionedoc');
+        $nazionedoc = risul_query($dati_cliente,0,'nazionedoc');
+        $cittanascita = risul_query($dati_cliente,0,'cittanascita');
+        $regionenascita = risul_query($dati_cliente,0,'regionenascita');
+        $nazionenascita = risul_query($dati_cliente,0,'nazionenascita');
+        $nazionalita = risul_query($dati_cliente,0,'nazionalita');
+        $lingua_cli = risul_query($dati_cliente,0,'lingua');
+        $nazione = risul_query($dati_cliente,0,'nazione');
+        $citta = risul_query($dati_cliente,0,'citta');
+        $regione = risul_query($dati_cliente,0,'regione');
+        $via = risul_query($dati_cliente,0,'via');
+        $numcivico = risul_query($dati_cliente,0,'numcivico');
+        $cap = risul_query($dati_cliente,0,'cap');
+        $telefono = risul_query($dati_cliente,0,'telefono');
+        $telefono2 = risul_query($dati_cliente,0,'telefono2');
+        $telefono3 = risul_query($dati_cliente,0,'telefono3');
+        $fax = risul_query($dati_cliente,0,'fax');
+        $email = risul_query($dati_cliente,0,'email');
+        $email2 = risul_query($dati_cliente,0,'email2');
+        $email_cert = risul_query($dati_cliente,0,'email3');
+        $cod_fiscale = risul_query($dati_cliente,0,'cod_fiscale');
+        $partita_iva = risul_query($dati_cliente,0,'partita_iva');
+        $utente_inserimento = risul_query($dati_cliente,0,'utente_inserimento');
+        $cliente_modificato = "SI";
+        // Load custom personal fields from relclienti (tipo = 'campo_pers')
+        $rel = esegui_query("select testo1,testo2,testo3 from $tablerelclienti where idclienti = '$idclienti' and tipo = 'campo_pers' order by numero");
+        $num_rel = numlin_query($rel);
+        if ($num_rel) {
+            $num_campi_pers = $num_rel;
+            for ($__i = 0; $__i < $num_rel; $__i++) {
+                ${"campo_pers".$__i} = risul_query($rel,$__i,'testo3');
+            }
+        }
+    } else {
+        $cognome = "";
+        $utente_inserimento = "";
+    }
 if ($vedi_clienti == "NO" or ($vedi_clienti == "PROPRI" and $utente_inserimento != $id_utente) or ($vedi_clienti == "GRUPPI" and !$utenti_gruppi[$utente_inserimento])) $inserire = "NO";
 if ($modifica_clienti == "NO" or ($modifica_clienti == "PROPRI" and $utente_inserimento != $id_utente) or ($modifica_clienti == "GRUPPI" and !$utenti_gruppi[$utente_inserimento])) $inserire = "NO";
 } # fine if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire or...
@@ -2682,6 +2801,11 @@ $cognome_agg = "";
 $max_num_ordine = "";
 } # fine else if ((empty($idclienti))
 
+// If form submitted via hidden `inseriscicliente`, treat as a save request
+if ((isset($_POST['inseriscicliente']) && $_POST['inseriscicliente']) || !empty($inseriscicliente)) {
+    if (empty($inserire)) $inserire = "SI";
+}
+
 if ($inserire != "NO") {
 if (isset($$inserire_dato_nome) and $$inserire_dato_nome == "NO") $nome = "";
 $campi_pers_vett = array();
@@ -2693,7 +2817,7 @@ $campi_pers_vett['tipo'][$num1] = $opt[1];
 $campi_pers_vett['val'][$num1] = ${"campo_pers".$num1};
 } # fine for $num1
 
-$idclienti = inserisci_dati_cliente($cognome_agg,$nome,$soprannome,$titolo_cli,$sesso,$mesenascita,$giornonascita,$annonascita,$nazionenascita,$cittanascita,$regionenascita,$documento,$tipodoc,$mesescaddoc,$giornoscaddoc,$annoscaddoc,$cittadoc,$regionedoc,$nazionedoc,$nazionalita,$lingua_cli,$nazione,$citta,$regione,$via,$nomevia,$numcivico,$cap,$telefono,$telefono2,$telefono3,$fax,$email,$email2,$email_cert,$cod_fiscale,$partita_iva,$max_num_ordine,$id_utente_ins,$attiva_prefisso_clienti,$prefisso_clienti,$idclienti,"NO",$campi_pers_vett);
+    $idclienti = inserisci_dati_cliente($cognome_agg,$nome,$soprannome,$titolo_cli,$sesso,$mesenascita,$giornonascita,$annonascita,$nazionenascita,$cittanascita,$regionenascita,$documento,$tipodoc,$mesescaddoc,$giornoscaddoc,$annoscaddoc,$cittadoc,$regionedoc,$nazionedoc,$nazionalita,$lingua_cli,$nazione,$citta,$regione,$via,$nomevia,$numcivico,$cap,$telefono,$telefono2,$telefono3,$fax,$email,$email2,$email_cert,$cod_fiscale,$partita_iva,$max_num_ordine,$id_utente_ins,$attiva_prefisso_clienti,$prefisso_clienti,$idclienti,"NO",$campi_pers_vett);
 
 // Add success message to panel feedback
 if (isset($cliente_modificato) and $cliente_modificato == "SI") {
@@ -2712,7 +2836,7 @@ $cliente_modificato = "";
 
 // Redisplay the client form panel with success message
 $mostra_form_dati_cliente = "";
-} # fine if ($inserire != "NO")
+    } # fine if ($inserire != "NO")
 else echo mex("Non si è trovato nessun cliente chiamato",$pag)." $cognome.<br>";
 
 unlock_tabelle($tabelle_lock);
@@ -2804,6 +2928,8 @@ else echo "<br>";
 mostra_funzjs_cpval();
 echo "<form id=\"clienti_form\" accept-charset=\"utf-8\" method=\"post\" action=\"".controlla_pag_origine($origine)."\"><div class=\"linhbox\">";
 echo "<input type=\"hidden\" name=\"anno\" value=\"$anno\">"; 
+// If editing an existing client, keep the id so the save updates that client
+if (!empty($idclienti)) echo "<input type=\"hidden\" name=\"idclienti\" value=\"".htmlspecialchars($idclienti,ENT_COMPAT)."\">";
 echo "<input type=\"hidden\" name=\"id_sessione\" value=\"$id_sessione\">"; 
 echo "<input type=\"hidden\" name=\"origine\" value=\"".htmlspecialchars($origine)."\">"; 
 echo "<hr style=\"width: 95%\">"; 
@@ -3307,6 +3433,21 @@ echo "<button id=\"inse\" class=\"icli\" type=\"submit\"><div>".mex("Inserisci i
 } # fine else if (!empty($datiprenota))
 
 echo "</div></div></form>";
+
+// If we prefilled a client for editing, move the rendered form under the corresponding client entry
+if (!empty($idclienti)) {
+    $id_js = addslashes($idclienti);
+    echo "<script type=\"text/javascript\">(function(){\n";
+    echo "  var id='".$id_js."';\n";
+    echo "  var form=document.getElementById('clienti_form');\n";
+    echo "  if(form){\n";
+    echo "    var buttons=document.querySelectorAll('button.mcli');\n";
+    echo "    var target=null;\n";
+    echo "    for(var i=0;i<buttons.length;i++){ var v=buttons[i].getAttribute('value')||''; if(v.indexOf(id)!==-1){ target=buttons[i]; break; } }\n";
+    echo "    if(target){ var container=document.createElement('div'); container.id='client_form_container_'+id; target.parentNode.insertBefore(container,target.nextSibling); container.appendChild(form); window.setTimeout(function(){ form.scrollIntoView({behavior:'smooth', block:'center'}); },60); }\n";
+    echo "  }\n";
+    echo "})();</script>";
+}
 
 if (empty($datiprenota)) {
 echo "<br>

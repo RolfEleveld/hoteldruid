@@ -574,7 +574,7 @@ echo '<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
         <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #FF9800;">
             <h3 style="margin: 0 0 15px 0; color: #333;">👥 '.mex("Clienti", $pag).'</h3>
             <p style="margin: 0 0 15px 0; color: #666;">'.mex("Gestione ospiti", $pag).'</p>
-            <a href="clienti.php?anno='.$anno.'&id_sessione='.$id_sessione.'" 
+            <a href="clienti.php?anno='.$anno.'&id_sessione='.$id_sessione.'&cognome=%25&inseriscicliente=1" 
                style="display: inline-block; background: #FF9800; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
                 '.mex("Gestisci Clienti", $pag).'
             </a>
