@@ -67,6 +67,10 @@ function Set-UninstallRegistryReference([string]$InstallDir){
     $uninstallCmd = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
 
     Set-ItemProperty -Path $regPath -Name "UninstallString" -Value $uninstallCmd
+    Set-ItemProperty -Path $regPath -Name "InstallLocation" -Value $InstallDir
+    Set-ItemProperty -Path $regPath -Name "InstallDate" -Value (Get-Date -Format "yyyyMMdd")
+    Set-ItemProperty -Path $regPath -Name "DisplayIcon" -Value (Join-Path $InstallDir "hoteldruid\icon.ico")
+    Set-ItemProperty -Path $regPath -Name "EstimatedSize" -Value 1500000  # Size in KB (approx 150 MB)
     Write-Host "=================================================="
     Write-Host "Uninstall registry reference created at $regPath"
     Write-Host "=================================================="
@@ -670,13 +674,17 @@ function Find-PhpDesktopExe {
 }
 
 function New-Shortcut {
-    param([string]$ShortcutPath, [string]$TargetPath, [string]$WorkingDir)
+    param([string]$ShortcutPath, [string]$TargetPath, [string]$WorkingDir, [string]$IconPath)
     
     try {
         $ws = New-Object -ComObject WScript.Shell
         $shortcut = $ws.CreateShortcut($ShortcutPath)
         $shortcut.TargetPath = $TargetPath
         $shortcut.WorkingDirectory = $WorkingDir
+        if ($IconPath) {
+            $IconPath = (Resolve-Path -LiteralPath $IconPath).Path
+            $shortcut.IconLocation = $IconPath
+        }
         $shortcut.Save()
         return $true
     } catch {
@@ -950,6 +958,7 @@ try {
     Write-Host $t['SearchingExe'] -ForegroundColor Yellow
     
     $exePath = Find-PhpDesktopExe -InstallDir $InstallDir
+    $iconPath = Join-Path $InstallDir 'hoteldruid\icon.ico'
     
     if ($exePath) {
         Write-Host ($t['ExeFound'] -f $exePath) -ForegroundColor Green
@@ -959,14 +968,14 @@ try {
         if ($CreateStartMenuShortcut) {
             $smPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
             $smPath = Join-Path $smPath 'HotelDruid-phpdesktop.lnk'
-            if (New-Shortcut -ShortcutPath $smPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            if (New-Shortcut -ShortcutPath $smPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent) -IconPath $iconPath) {
                 Write-Host ($t['SmCreated'] -f $smPath) -ForegroundColor Green
             }
         }
         
         if ($CreateDesktopShortcut) {
             $desktopPath = Join-Path $env:USERPROFILE 'Desktop' 'HotelDruid-phpdesktop.lnk'
-            if (New-Shortcut -ShortcutPath $desktopPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            if (New-Shortcut -ShortcutPath $desktopPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent) -IconPath $iconPath) {
                 Write-Host ($t['DesktopCreated'] -f $desktopPath) -ForegroundColor Green
             }
         }
@@ -974,7 +983,7 @@ try {
         if ($CreateStartupShortcut) {
             $startupPath = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
             $startupPath = Join-Path $startupPath 'HotelDruid-phpdesktop.lnk'
-            if (New-Shortcut -ShortcutPath $startupPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent)) {
+            if (New-Shortcut -ShortcutPath $startupPath -TargetPath $exePath -WorkingDir (Split-Path $exePath -Parent) -IconPath $iconPath) {
                 Write-Host ($t['StartupCreated'] -f $startupPath) -ForegroundColor Green
             }
         }

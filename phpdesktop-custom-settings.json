@@ -5,7 +5,7 @@
     },
     "main_window": {
         "title": "Hoteldruid PHP Desktop - Hotel Management System",
-        "icon": "../hoteldruid/img/logo48x48.png",
+        "icon": "../hoteldruid/icon.ico",
         "default_size": [1920, 1080],
         "minimum_size": [640, 480],
         "center_on_screen":  true

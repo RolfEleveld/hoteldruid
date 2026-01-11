@@ -105,6 +105,30 @@ try {
         } catch {}
     }
 
+    # Remove the registry setting if it exists
+    try {
+        $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid.PHPDesktop'
+        if (Test-Path -LiteralPath $regPath) {
+            Remove-Item -LiteralPath $regPath -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
+    # remove any entries in the installed programs in the windows settings installed apps list
+    try {
+        $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+        $subKeys = Get-ChildItem -LiteralPath $uninstallKey -ErrorAction SilentlyContinue
+        foreach ($key in $subKeys) {
+            $displayName = (Get-ItemProperty -LiteralPath $key.PSPath -ErrorAction SilentlyContinue).DisplayName
+            if ($displayName -eq 'HotelDruid-phpdesktop') {
+                Remove-Item -LiteralPath $key.PSPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {}
+    # remove the hotel druid entry from teh winget application list if it exist it as installed.
+    try {
+        $wingetUninstall = 'winget uninstall "ARP\User\X64\HotelDruid.PHPDesktop"'
+        Invoke-Expression -Command $wingetUninstall 2>$null
+    } catch {}
+
     Write-Host ''
     Write-Host 'Uninstall complete.' -ForegroundColor Green
     if (-not $RemoveDataFolder) {
