@@ -1333,7 +1333,7 @@ attiva_colora_date(allinea_tab_mesi);
 // Color coding legend inside panel
 if ($show_bar != "NO") {
 if (!$mobile_device) echo "<div style=\"text-align: center; font-size: 80%; padding-bottom: 6px;\">".mex("Premere su una prenotazione e trascinarla per spostarla in un nuovo appartamento",'unit.php').".
- ".mex(" Trascinare l'inizio o la fine di una prenotazione per cambiare la data di arrivo o partenza",$pag).".</div>";
+ ".mex("Trascinare l'inizio o la fine di una prenotazione per cambiare la data di arrivo o partenza",$pag).".</div>";
 echo "<table style=\"margin-left: auto; margin-right: auto;\" cellspacing=\"0\" cellpadding=\"1\"><tr>
 <td>&nbsp;</td><td style=\"background-color: $colore_rosso; width: 60px; border: solid black 1px; border-radius: 10px;\">&nbsp;</td><td>&nbsp;</td>
 <td style=\"width: 50px;\"></td>
