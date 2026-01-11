@@ -153,7 +153,7 @@ function Ensure-VCRedistInstalled {
     if (-not (Test-VCRedistPresent)) {
         Write-Host "Primary install did not detect runtime; attempting repair..." -ForegroundColor Yellow
         try {
-            $args2 = '/repair /quiet /norestart'
+            $args2 = '/repair /norestart'
             $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if ($isAdmin) {
                 $proc2 = Start-Process -FilePath $installer -ArgumentList $args2 -Wait -PassThru -ErrorAction Stop

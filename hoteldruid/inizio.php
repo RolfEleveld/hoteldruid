@@ -583,7 +583,7 @@ echo '<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
         <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #9C27B0;">
             <h3 style="margin: 0 0 15px 0; color: #333;">📊 '.mex("Calendario", $pag).'</h3>
             <p style="margin: 0 0 15px 0; color: #666;">'.mex("Vista calendario", $pag).'</p>
-            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=mesi" 
+            <a href="visualizza_tabelle.php?anno='.$anno.'&id_sessione='.$id_sessione.'&tipo_tabella=prenotazioni&sel_tab_prenota=correnti"
                style="display: inline-block; background: #9C27B0; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
                 '.mex("Vedi Calendario", $pag).'
             </a>
@@ -593,7 +593,7 @@ echo '<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
     <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 30px;">
         <h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">'.mex("Azioni Rapide", $pag).'</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-            <a href="inserimento.php?anno='.$anno.'&id_sessione='.$id_sessione.'" 
+            <a href="prenota.php?anno='.$anno.'&id_sessione='.$id_sessione.'" 
                style="display: block; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; text-decoration: none; border-radius: 8px; text-align: center;">
                 <div style="font-size: 24px; margin-bottom: 8px;">➕</div>
                 <div style="font-weight: bold;">'.mex("Nuova Prenotazione", $pag).'</div>
