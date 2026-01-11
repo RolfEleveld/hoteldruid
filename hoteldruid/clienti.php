@@ -1032,7 +1032,7 @@ unset($moltiplica_costo);
 unset($costo_aggiungi_letti);
 $num_costi_associati = 0;
 $lunghezza_periodo = $idfineperiodo - $idinizioperiodo + 1;
-if ($inserire != "NO") {
+if ($inserire != "NO" && empty($is_modify_click)) {
 for ($num1 = 0 ; $num1 < $dati_ca['num'] ; $num1++) {
 if ($attiva_costi_agg_consentiti == "n" or (isset($costi_agg_consentiti_vett[$dati_ca[$num1]['id']]) and $costi_agg_consentiti_vett[$dati_ca[$num1]['id']] == "SI")) {
 if (fixset($dati_ca[$num1]["tipo_associa_".$nometipotariffa]) == "r") $periodo_costo_trovato = trova_periodo_permesso_costo($dati_ca,$num1,$idinizioperiodo,$idfineperiodo,1);
@@ -1131,12 +1131,16 @@ echo "<option value=\"".$opt[0]."\">".$opt[0]."</option>";
 echo "</select> ";
 } # fine if ($titoli_cliente)
 if (!empty($datiprenota)) {
-$cognome_mostra = str_replace("&amp;","&",$cognome);
-$nome_mostra = str_replace("&amp;","&",$nome);
+    if (isset($cognome_preserve)) $cognome_mostra = str_replace("&amp;","&",$cognome_preserve);
+    else $cognome_mostra = str_replace("&amp;","&",$cognome);
+    if (isset($nome_preserve)) $nome_mostra = str_replace("&amp;","&",$nome_preserve);
+    else $nome_mostra = str_replace("&amp;","&",$nome);
 } # fine if (!empty($datiprenota))
 else {
-$cognome_mostra = $cognome;
-$nome_mostra = $nome;
+    if (isset($cognome_preserve)) $cognome_mostra = $cognome_preserve;
+    else $cognome_mostra = $cognome;
+    if (isset($nome_preserve)) $nome_mostra = $nome_preserve;
+    else $nome_mostra = $nome;
 } # fine else if (!empty($datiprenota))
 $lista_sett_passa = "";
 for ($num1 = $idinizioperiodo; $num1 <= $idfineperiodo; $num1++) {
@@ -2697,22 +2701,21 @@ $tabelle_lock = lock_tabelle($tabelle_lock,$altre_tab_lock);
     $is_modify_click = false;
     if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire or str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire) != $inserire) {
         $is_modify_click = true;
-if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire) $idclienti = str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire);
-else $idclienti = str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire);
-$idclienti = str_replace(" ","",$idclienti);
-$idclienti = aggslashdb($idclienti);
-    // Fallbacks: if $idclienti couldn't be parsed from the button label,
-    // try common alternatives (explicit POST idclienti or numeric suffix).
-    if (empty($idclienti)) {
-        if (!empty($_POST['idclienti'])) {
-            $idclienti = (int) $_POST['idclienti'];
-        } else {
-            // Try to capture any digits from the submitted label (works across locales)
-            if (!empty($inserire) && preg_match('/(\d+)/', $inserire, $m)) {
+        if (str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire) != $inserire) $idclienti = str_replace(mex($Modifica_i_dati_del_cliente,$pag),"",$inserire);
+        else $idclienti = str_replace(htmlentities(mex($Modifica_i_dati_del_cliente,$pag)),"",$inserire);
+        $idclienti = trim($idclienti);
+        // Normalize/fallback: prefer explicit POST idclienti, then digits inside the label
+        if (!strlen((string)$idclienti) || !ctype_digit((string)$idclienti)) {
+            if (!empty($_POST['idclienti'])) {
+                $idclienti = (int) $_POST['idclienti'];
+            } elseif (!empty($inserire) && preg_match('/(\d+)/', $inserire, $m)) {
                 $idclienti = (int) $m[1];
+            } else {
+                $idclienti = "";
             }
+        } else {
+            $idclienti = (int) $idclienti;
         }
-    }
 
     // Load full client row to prefill the edit form
     $dati_cliente = array();
@@ -2782,6 +2785,12 @@ $idclienti = aggslashdb($idclienti);
                 ${"campo_pers".$__i} = risul_query($rel,$__i,'testo3');
             }
         }
+        // (debug echoes removed)
+        // Preserve prefilled values in dedicated variables so later clears won't remove them
+        if (!empty($idclienti)) {
+            $cognome_preserve = $cognome;
+            $nome_preserve = $nome;
+        }
     } else {
         $cognome = "";
         $utente_inserimento = "";
@@ -2836,8 +2845,10 @@ $cliente_modificato = "";
 
 // Redisplay the client form panel with success message
 $mostra_form_dati_cliente = "";
-    } # fine if ($inserire != "NO")
-else echo mex("Non si è trovato nessun cliente chiamato",$pag)." $cognome.<br>";
+    } # fine if ($inserire != "NO" && empty($is_modify_click))
+    else if (!empty($is_modify_click)) {
+        // Modify click: skip insert so prefilled data can be displayed in the form below
+    } else echo mex("Non si è trovato nessun cliente chiamato",$pag)." $cognome.<br>";
 
 unlock_tabelle($tabelle_lock);
 
@@ -2969,6 +2980,15 @@ $cognome_mostra = $cognome;
 $nome_mostra = $nome;
 } # fine else if (!empty($datiprenota))
 
+// If a preserved prefill exists (set during Modify handling), prefer it for display
+if (isset($cognome_preserve) && $cognome_preserve !== "") {
+    $cognome_mostra = str_replace("&amp;","&",$cognome_preserve);
+}
+if (isset($nome_preserve) && $nome_preserve !== "") {
+    $nome_mostra = str_replace("&amp;","&",$nome_preserve);
+}
+
+// (render-time debug removed)
 // Start panels container
 echo "<div class=\"rpanels\">";
 
@@ -3049,12 +3069,23 @@ if (class_exists('HotelDruidTemplate')) {
     }
     $sel_mscaddoc .= "</select>";
     
-    # Render panels using templates
-    $template->display('clienti/panel_dati_personali', get_defined_vars());
-    $template->display('clienti/panel_residenza', get_defined_vars());
-    $template->display('clienti/panel_documento', get_defined_vars());
-    $template->display('clienti/panel_contatti', get_defined_vars());
-    $template->display('clienti/panel_dati_fiscali', get_defined_vars());
+    # Render panels using templates — ensure preserved prefill values are passed
+    $tpl_vars = get_defined_vars();
+    if (!empty($cognome_preserve)) {
+        $tpl_vars['cognome_preserve'] = $cognome_preserve;
+        $tpl_vars['cognome_mostra'] = $cognome_preserve;
+        $tpl_vars['cognome'] = $cognome_preserve;
+    }
+    if (!empty($nome_preserve)) {
+        $tpl_vars['nome_preserve'] = $nome_preserve;
+        $tpl_vars['nome_mostra'] = $nome_preserve;
+        $tpl_vars['nome'] = $nome_preserve;
+    }
+    $template->display('clienti/panel_dati_personali', $tpl_vars);
+    $template->display('clienti/panel_residenza', $tpl_vars);
+    $template->display('clienti/panel_documento', $tpl_vars);
+    $template->display('clienti/panel_contatti', $tpl_vars);
+    $template->display('clienti/panel_dati_fiscali', $tpl_vars);
 } else {
     # Fallback to original inline rendering if template system not available
     echo "<div class=\"rbox\" style=\"--rbox-color: #2196F3;\">";
