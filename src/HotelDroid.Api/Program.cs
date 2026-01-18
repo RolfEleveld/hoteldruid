@@ -4,16 +4,42 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Optional: bind Kestrel to a LocalMachine certificate when a thumbprint is provided
 var certThumbprint = Environment.GetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Thumbprint");
+certThumbprint = certThumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase);
 var hasLocalCert = false;
 if (!string.IsNullOrEmpty(certThumbprint))
 {
     try
     {
-        using var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-        store.Open(OpenFlags.ReadOnly);
-        var cert = store.Certificates.Find(X509FindType.FindByThumbprint, certThumbprint, false).OfType<X509Certificate2>().FirstOrDefault();
-        store.Close();
-        if (cert is not null)
+        X509Certificate2? cert = null;
+        // Try LocalMachine first
+        using (var store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
+        {
+            store.Open(OpenFlags.ReadOnly);
+            cert = store.Certificates.Find(X509FindType.FindByThumbprint, certThumbprint, false).OfType<X509Certificate2>().FirstOrDefault();
+            store.Close();
+        }
+
+        // If not found or lacks private key, try CurrentUser store as a fallback
+        if (cert is null || !cert.HasPrivateKey)
+        {
+            if (cert is not null && !cert.HasPrivateKey)
+            {
+                Console.WriteLine($"Certificate {certThumbprint} found in LocalMachine\\My but has no private key.");
+            }
+            using (var store = new X509Store(StoreName.My, StoreLocation.CurrentUser))
+            {
+                store.Open(OpenFlags.ReadOnly);
+                var certCu = store.Certificates.Find(X509FindType.FindByThumbprint, certThumbprint, false).OfType<X509Certificate2>().FirstOrDefault();
+                store.Close();
+                if (certCu is not null && certCu.HasPrivateKey)
+                {
+                    cert = certCu;
+                    Console.WriteLine($"Certificate {certThumbprint} found in CurrentUser\\My and will be used.");
+                }
+            }
+        }
+
+        if (cert is not null && cert.HasPrivateKey)
         {
             builder.WebHost.ConfigureKestrel(options =>
             {
@@ -24,7 +50,7 @@ if (!string.IsNullOrEmpty(certThumbprint))
         }
         else
         {
-            Console.WriteLine($"Certificate with thumbprint {certThumbprint} not found in LocalMachine\\My.");
+            Console.WriteLine($"Certificate with thumbprint {certThumbprint} not found or has no private key in LocalMachine\\My or CurrentUser\\My.");
         }
     }
     catch (Exception ex)
