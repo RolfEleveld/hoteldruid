@@ -29,7 +29,7 @@ param(
     [switch]$Force
 )
 
-function Is-Admin {
+function Test-Admin {
     return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
@@ -67,7 +67,7 @@ Write-Host "Exported PFX: $pfxPath"
 Write-Host "Exported CER: $cerPath"
 
 if ($Trust) {
-    if ($Store -eq 'LocalMachine' -and -not (Is-Admin)) {
+    if ($Store -eq 'LocalMachine' -and -not (Test-Admin)) {
         Write-Warning "Importing into LocalMachine\Root requires elevation. Re-run as Administrator or omit -Trust or use -Store CurrentUser."
     }
     else {
@@ -76,7 +76,7 @@ if ($Trust) {
             Import-Certificate -FilePath $cerPath -CertStoreLocation $targetRoot | Out-Null
             Write-Host "Imported certificate into $targetRoot (trusted)."
         } catch {
-            Write-Warning "Failed to import into $targetRoot: $($_.Exception.Message)"
+            Write-Warning "Failed to import into $targetRoot : $($_.Exception.Message)"
         }
     }
 }

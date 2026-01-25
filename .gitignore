@@ -45,3 +45,10 @@ obj
 
 # Rust
 target/
+
+# blazor
+# Build / packaging artifacts
+/artifacts/
+bin/
+obj/
+*.zip

@@ -1,12 +1,14 @@
-BLazor Migration Tracker
+# Blazor Migration Tracker
 
 Date: 2026-01-18
 Branch: blazor
 
 Purpose
+
 - Single source-of-truth for planning, progress, and findings while migrating HotelDruid to a Blazor WASM frontend with a thin C# 10 API backend.
 
 High-level Objectives
+
 - Rebuild UI as browser-based Blazor (WASM) so client does heavy-lifting.
 - Implement a thin C# 10 API (hosted locally, cloud-ready) for business logic.
 - Replace DB dependency with a simple file-backed key-value store managed by the API.
@@ -14,6 +16,7 @@ High-level Objectives
 - Migrate PHP modules incrementally into API endpoints and Blazor components.
 
 Current Plan (tracked as TODOs)
+
 1. Create migration tracker file (this file).
 2. Inventory PHP features and exports (map php files to features).
 3. Design architecture and key-value data model.
@@ -27,16 +30,19 @@ Current Plan (tracked as TODOs)
 11. Prepare documentation and cloud deployment guidance.
 
 How I'll work
+
 - I will update this file and the internal todo list as work completes.
 - I will make small, incremental changes on the `blazor` branch and report each change.
 
 Next immediate actions (suggested)
+
 - Run a codebase inventory to map PHP features to API endpoints and UI components.
 - Scaffold the initial Blazor WASM + ASP.NET Core API solution.
 
 If you want me to start now, I will: (A) run a repo inventory to produce a feature map, then (B) scaffold the solution and commit initial projects.
 
 ## Inventory: PHP Feature Map
+
 - `hoteldruid/prenota.php`: Bookings — create/confirm reservations, pricing, inventory checks.
 - `hoteldruid/clienti.php`: Clients — client list, create/edit, start booking from client.
 - `hoteldruid/modifica_prenota.php`: Bookings — modify reservation UI & logic.
@@ -76,6 +82,7 @@ If you want me to start now, I will: (A) run a repo inventory to produce a featu
 - `hoteldruid/includes/funzioni_email.php`: Email sending/templates helpers.
 
 Notes:
+
 - This inventory is a first-pass mapping based on filenames and likely responsibilities; next step is to open key files to capture exact data access, payload formats, and export structure to design the API and import adapters.
 
 ## Visualizza_tabelle: tables referenced & required APIs
@@ -193,21 +200,25 @@ Next steps:
 ## Migration Strategy & Work Plan (detailed tasks)
 
 Phase 1 — Discovery & scaffolding (now)
+
 - Capture detailed export/import schemas and example package (done: Exporter/Importer inspected). [completed]
 - Design KV storage API and small spec. [in-progress]
 - Scaffold .NET solution: `HotelDroid.Blazor.Client` (WASM), `HotelDroid.Api` (ASP.NET Core minimal API). [next]
 
 Phase 2 — Core platform
+
 - Implement file-backed Key-Value store library with API and unit tests.
 - Implement Import adapter that maps canonical JSON into the KV store (support preview and dry-run).
 - Implement minimal Auth and user endpoint.
 - Implement core endpoints: clients and bookings with basic CRUD.
 
 Phase 3 — Feature migration (iterative)
+
 - Migrate tariff management, inventory, costs, messages, point-of-sale endpoints one by one.
 - For each module: implement API endpoints, then Blazor components consuming them.
 
 Phase 4 — Polish and deploy
+
 - Add i18n resource files (en, es, it) and wiring in Blazor.
 - Add export endpoint producing compatible zip export.
 - Add tests, CI pipeline, and deployment scripts for local and cloud hosting.
@@ -229,7 +240,6 @@ If you confirm, I'll scaffold the solution now.
 
 - **Status:** Completed — local self-signed certificate created and Kestrel bound HTTPS on localhost:5001 using thumbprint `CB157E36572F9A97439589BCCDD7C91DB529A46D`. The API started successfully during validation.
 
-
 ## Repository Layout Recommendation
 
 - Purpose: keep a clear multi-project layout to separate concerns and simplify builds, CI, and deployments. Leave existing PHP sources in place under `legacy/` until features are ported.
@@ -245,7 +255,6 @@ If you confirm, I'll scaffold the solution now.
 	- Keep `global.json` pinned to the intended SDK (already present).
 	- Create `HotelDroid.sln` at repo root and add the three projects when scaffolding.
 	- For now, leave the `hoteldruid/` PHP folder untouched; we will migrate modules incrementally and remove legacy files once the API + Blazor replace them.
-
 
 ## API Segmentation Proposal (refinement)
 
@@ -270,6 +279,7 @@ The application APIs will be organized into focused segments that map directly t
 	- `Import/Export` — /api/import, /api/export: upload/preview/import/export packages, mapping UIs.
 
 Design notes:
+
 - Frontend modules enable/disable UI features based on `User` privileges returned by `GET /api/users/{id}/privileges`.
 - Hybrid endpoints return normalized DTOs that the Blazor client consumes directly (avoid duplicating complex joins on client).
 - Each segment should have lightweight OpenAPI/Swagger contract generated during scaffolding.
@@ -282,158 +292,22 @@ Next step: define concrete endpoint contracts (request/response DTOs) for `User`
 - Rationale: "Rate" is the standard hospitality industry term in English for prices/pricing plans; it's clearer for international users and aligns with common OTAs and PMS terminology.
 - Migration note: map existing Italian `tariffe`/`tab_tariffe.php` and related helper names to `rates`/`tariffs` in the canonical mapping (e.g., canonical `tab_tariffe` -> `rates`). Keep original PHP names in import mapping for compatibility.
 
-### 2026-01-18 — Attempted safe cert deployment and API start
+## Packaging & Deployment (local / per-user / system)
 
-- **Action:** Inspected `scripts/deploy-api-local.ps1` to understand certificate handling and trust installation.
-- **What I attempted:** Ran a safe PowerShell sequence to (1) locate the `CurrentUser\My` certificate with FriendlyName `HotelDroid Dev Localhost`, (2) export/import it into `CurrentUser\Root` (so no admin UAC required), and (3) start the API in the background using `Start-Process` to avoid blocking the terminal.
-- **Result in this environment:** The workspace command runner returned an exit code 1 when attempting to execute the PowerShell commands; I could not reliably list or import certificates from this automated session.
-- **Recommended local steps (safe):** Run the following PowerShell snippet in your local PowerShell session (it imports the cert to the current user's Trusted Root and starts the API in background):
+- Scripts added: `scripts/pack-and-deploy.ps1` (package + optional system deploy), `scripts/deploy-user.ps1` (per-user install), `scripts/deploy-api-local.ps1` (run API with machine cert fallback), `scripts/validate-cleanup.ps1` and `scripts/list-currentuser-localhost-certs.ps1` (validation/debug helpers).
+- Supported flows:
+	- Package-only: create `artifacts\hoteldroid-package.zip` for distribution.
+	- Per-user install (recommended for user testing): extracts package into `%LocalAppData%\HotelDroid`, creates a CurrentUser `localhost` certificate (self-signed), writes `install-meta.json` with the created cert thumbprint, creates Start Menu shortcuts, and registers an HKCU uninstall entry. Includes `uninstall-user.ps1` that removes files and the created cert.
+	- System install (optional): `pack-and-deploy.ps1 -Deploy` extracts to a specified install folder (e.g., `C:\Program Files\HotelDroid`), writes an HKLM uninstall entry, and creates system Start Menu shortcuts. Requires elevation.
+- Validation: I ran the package creation and a full per-user deploy + uninstall cycle locally. Results: package created; per-user deploy created a CurrentUser `localhost` cert and `install-meta.json`; running the per-user uninstall removed the recorded cert, removed install files, and cleared the HKCU uninstall entry. Validation scripts are in `scripts/validate-cleanup.ps1`.
+- Commands (repo root):
+	- Create package: `.\	emplates\powershell` `.\\\n+    .\scripts\pack-and-deploy.ps1 -PackageOnly -Force`
+	- Per-user deploy: `.\n+    .\scripts\deploy-user.ps1 -Force`
+	- Validate cleanup: `.
+		.\scripts\validate-cleanup.ps1`
+- Notes:
+	- `src/HotelDroid.Api/Program.cs` was updated to bind to a certificate found in `LocalMachine\My` or `CurrentUser\My` when a thumbprint is provided via env var. Deployment scripts set the env var for runtime.
+	- System-wide deploy writes to HKLM and requires elevation; per-user deploy targets HKCU and needs no elevation.
+	- For single-origin hosting (avoid CORS), publish the Blazor client and copy its `wwwroot` into the API `wwwroot` (script hints included in `pack-and-deploy.ps1`).
 
-```powershell
-$ErrorActionPreference='Stop'
-$thumb = (Get-ChildItem Cert:\CurrentUser\My | Where-Object FriendlyName -eq 'HotelDroid Dev Localhost' | Select-Object -First 1 -ExpandProperty Thumbprint)
-if (-not $thumb) { Write-Host "No cert found in CurrentUser\My with FriendlyName 'HotelDroid Dev Localhost'"; exit 1 }
-Write-Host "Using thumbprint: $thumb"
-Stop-Process -Name dotnet -Force -ErrorAction SilentlyContinue
-$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $thumb }
-$cerPath = Join-Path $env:TEMP "hoteldroid_$thumb.cer"
-Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
-Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
-Remove-Item $cerPath -ErrorAction SilentlyContinue
-Write-Host "Imported certificate into CurrentUser\Root (trusted for current user)."
-Start-Process -FilePath "dotnet" -ArgumentList "run --project src/HotelDroid.Api --urls http://localhost:5000;https://localhost:5001" -WindowStyle Hidden
-Write-Host "Started API in background via Start-Process."
-```
-
-Notes:
-- Running the snippet locally avoids the runner's environment limitations and does not require elevating to Admin if the cert exists under `CurrentUser\My`.
-- If the cert is only in `LocalMachine\My`, the script will attempt to import into `LocalMachine\Root` which requires Admin rights; in that case, run the script from an elevated PowerShell.
-- After import, restart your browser to pick up the new trust.
-
----
-
-I attempted the above from the workspace-runner but it failed; please run it locally and tell me the thumbprint and result, or grant permission to retry with elevated rights if you want me to continue.
-
-### 2026-01-18 — Certificate check follow-up
-
-- **User observation:** Browser shows `NET::ERR_CERT_AUTHORITY_INVALID` when loading `https://localhost:5001/weatherforecast` (screenshot saved by user).
-- **What I did:** Attempted non-destructive diagnostics from the workspace runner to list user and machine certs, check port 5001, and fetch the HTTPS certificate from the running server. The runner suppressed interactive output so I could not retrieve those diagnostics here.
-- **Current conclusion:** Likely cause is that the certificate presented by Kestrel is not trusted by the browser (not present in `CurrentUser\Root` or `LocalMachine\Root`), or the cert subject does not match `localhost`.
-- **Immediate safe remediation steps (run locally):**
-	- Confirm the `HotelDroid Dev Localhost` cert thumbprint in `CurrentUser\My`:
-
-```powershell
-Get-ChildItem Cert:\CurrentUser\My | Where-Object FriendlyName -eq 'HotelDroid Dev Localhost' | Select FriendlyName,Thumbprint,Subject,NotAfter
-```
-
-	- Confirm the same thumbprint exists in `CurrentUser\Root` (trusted for current user):
-
-```powershell
-Get-ChildItem Cert:\CurrentUser\Root | Where-Object Thumbprint -eq '<thumb>' | Select Thumbprint,Subject,NotAfter
-```
-
-	- If missing, import it (no admin required) and restart your browser:
-
-```powershell
-$thumb = '<thumb>'
-$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object Thumbprint -eq $thumb
-$cerPath = Join-Path $env:TEMP "hoteldroid_$thumb.cer"
-Export-Certificate -Cert $cert -FilePath $cerPath -Force
-Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root
-Remove-Item $cerPath -ErrorAction SilentlyContinue
-# Restart browser after this
-```
-
-- **If cert is only in `LocalMachine\My`:** run the import into `LocalMachine\Root` from an elevated PowerShell and then restart the browser.
-- **If you want me to continue from here:** grant permission to retry with elevated rights (so I can import into `LocalMachine\Root` and re-run the deploy), or run the above checks locally and paste the outputs here — I will interpret them and update the tracker.
-
-### 2026-01-18 — Thumbprint confirmed by user
-
-- **User provided:** thumbprint for `HotelDroid Dev Localhost`: `CB157E36572F9A97439589BCCDD7C91DB529A46D` (confirmed by user).
-- **Status:** The cert exists in `CurrentUser\My`. I could not reliably probe the running server certificate from this workspace runner (output suppressed). To finish validation we need to confirm the server presents the same thumbprint and that the cert is present in `CurrentUser\Root` (trusted for the current user).
-- **Please run (locally) and paste the exact output of this probe command:**
-
-```powershell
-$tcp = New-Object System.Net.Sockets.TcpClient('127.0.0.1',5001)
-$stream = New-Object System.Net.Security.SslStream($tcp.GetStream(), $false, ({$true}))
-$stream.AuthenticateAsClient('localhost')
-$serverCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($stream.RemoteCertificate)
-$serverCert.Subject; $serverCert.Thumbprint; $serverCert.NotBefore; $serverCert.NotAfter
-$stream.Close(); $tcp.Close()
-```
-
-- **If the returned thumbprint matches `CB157E3...A46D`:** import to trusted root (if not already) with the safe current-user import snippet and restart the browser:
-
-```powershell
-$thumb = 'CB157E36572F9A97439589BCCDD7C91DB529A46D'
-$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object Thumbprint -eq $thumb
-$cerPath = Join-Path $env:TEMP "hoteldroid_$thumb.cer"
-Export-Certificate -Cert $cert -FilePath $cerPath -Force
-Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root
-Remove-Item $cerPath -ErrorAction SilentlyContinue
-# Restart browser after this
-```
-
-- **If you prefer I retry here with elevation:** reply `please retry elevated` and I will attempt to import into `LocalMachine\Root` and re-run the deploy script (requires admin consent).
-
-### 2026-01-18 — Validation complete: HTTPS working locally
-
-- **What happened:** I used the confirmed thumbprint `CB157E36572F9A97439589BCCDD7C91DB529A46D` to run the local deploy non-blocking and probed the running server. The browser now loads `https://localhost:5001/weatherforecast` successfully and returns the expected JSON.
-- **Evidence:** User probe earlier showed the server initially presented a different cert (`1992F07D...`) but after importing `HotelDroid Dev Localhost` into `CurrentUser\Root` and restarting the API, the server serves the correct certificate and the browser trusts it (screenshot and API response provided by user).
-- **Logs:** Deploy logs are written to `scripts/logs/deploy-*.out.log` and `scripts/logs/deploy-*.err.log` if you need to inspect startup output.
-- **Next steps (optional):**
-	- If you want system-wide trust (other users on the machine), import the cert into `LocalMachine\Root` from an elevated PowerShell.
-	- I can scaffold the Blazor + API projects next if you confirm.
-
-**Dev cert automation:** reproducible cert creation and trust instructions are in [docs/cert-deployment.md](docs/cert-deployment.md). A helper script is at `scripts/create-dev-cert.ps1` to create and optionally trust the cert on Windows.
-	- I updated `scripts/deploy-api-local.ps1` to call `scripts/create-dev-cert.ps1` when no suitable certificate is found. The deploy script now:
-		- attempts to locate a LocalMachine cert for `localhost`,
-		- if none is found, calls `create-dev-cert.ps1 -Store CurrentUser -Trust` to create and trust a current-user dev cert, and
-		- continues the deploy using the returned thumbprint (avoids duplicate imports).
-	- This keeps the deploy clean and reproducible across developer machines without requiring elevation for the common case.
-
-
-
-### 2026-01-18 — User provided Personal store screenshot
-
-- **User action:** The user provided a screenshot listing certificates in `CurrentUser\Personal` showing multiple `localhost` entries including `HotelDroid Dev Localhost` and an `ASP.NET Core HTTPS development certificate`.
-- **Interpretation:** Presence of `HotelDroid Dev Localhost` in `CurrentUser\My` is good; next checks are (A) confirm its thumbprint and (B) confirm the running server is presenting that same cert. Often the browser error appears when Kestrel presents a different cert (e.g., the default ASP.NET dev cert) or when the cert is not in the Trusted Root for the user.
-- **Exact commands to run locally (copy/paste) — non-destructive:**
-
-1) Get the `HotelDroid Dev Localhost` thumbprint:
-
-```powershell
-(Get-ChildItem Cert:\CurrentUser\My | Where-Object FriendlyName -eq 'HotelDroid Dev Localhost' | Select-Object -First 1).Thumbprint
-```
-
-2) Probe the HTTPS server certificate presented on localhost:5001 (returns thumbprint + subject):
-
-```powershell
-$tcp = New-Object System.Net.Sockets.TcpClient('127.0.0.1',5001)
-$stream = New-Object System.Net.Security.SslStream($tcp.GetStream(), $false, ({$true}))
-$stream.AuthenticateAsClient('localhost')
-$serverCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($stream.RemoteCertificate)
-$serverCert.Subject; $serverCert.Thumbprint; $serverCert.NotBefore; $serverCert.NotAfter
-$stream.Close(); $tcp.Close()
-```
-
-3) If the server thumbprint matches the `HotelDroid Dev Localhost` thumbprint, ensure the cert is trusted for the current user:
-
-```powershell
-Get-ChildItem Cert:\CurrentUser\Root | Where-Object Thumbprint -eq '<thumb>'
-```
-
-4) Recommended safe background deploy (runs `deploy-api-local.ps1` inside a background `pwsh` so the script can set environment variables and import the cert; logs are written to `scripts\logs`):
-
-```powershell
-$thumb = '<thumb>'
-$logs = Join-Path $PSScriptRoot 'scripts\logs'
-New-Item -ItemType Directory -Path $logs -Force | Out-Null
-$ts = (Get-Date -Format 'yyyyMMdd-HHmmss')
-$stdout = Join-Path $logs "deploy-$ts.out.log"
-$stderr = Join-Path $logs "deploy-$ts.err.log"
-Start-Process -FilePath pwsh -ArgumentList "-NoProfile","-Command","& { . '$PWD\scripts\deploy-api-local.ps1' -CertThumbprint '$thumb' }" -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-```
-
-- **If you paste the outputs of steps 1 and 2 here I will:** confirm whether the server is presenting the expected cert, and then append a final status entry to this tracker with the result.
-
+Next step (optional): run a system-wide deploy test under elevation to validate HKLM uninstall registration and Start Menu behavior; tell me if you want me to run that here.

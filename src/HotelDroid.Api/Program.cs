@@ -76,6 +76,14 @@ if (hasLocalCert)
     app.UseHttpsRedirection();
 }
 
+// Serve static files (useful when Blazor client is copied to api/wwwroot)
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+// Basic root & health endpoints for quick validation
+app.MapGet("/", () => Results.Text("HotelDroid API running", "text/plain"));
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
