@@ -53,10 +53,69 @@ Write-Host "3) Publishing client and API..."
 $clientOut = Join-Path $PSScriptRoot "..\artifacts\client"
 $apiOut = Join-Path $PSScriptRoot "..\artifacts\api"
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $clientOut, $apiOut
-dotnet publish src/HotelDroid.Client -c Release -o $clientOut
+
+# Ensure third-party client libraries are restored via LibMan (if libman is available)
+Write-Host "-> Restoring client libraries with LibMan (required)..."
+$libman = Get-Command libman -ErrorAction SilentlyContinue
+if ($null -eq $libman) {
+    Write-Host "LibMan CLI not found. Installing Microsoft.Web.LibraryManager.Cli as a user tool..."
+    dotnet tool install -g Microsoft.Web.LibraryManager.Cli
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to install LibMan CLI (dotnet tool install failed)."
+        throw "LibMan CLI installation failed"
+    }
+    # Ensure user tools folder is on PATH for the current session
+    $dotnetTools = Join-Path $env:USERPROFILE ".dotnet\tools"
+    if (-not ($env:PATH -split ';' | Where-Object { $_ -eq $dotnetTools })) {
+        $env:PATH = $env:PATH + ";" + $dotnetTools
+    }
+    $libman = Get-Command libman -ErrorAction SilentlyContinue
+    if ($null -eq $libman) {
+        Write-Error "LibMan CLI was installed but not found on PATH. Ensure '$dotnetTools' is on your PATH and re-run the script."
+        throw "LibMan CLI not available after install"
+    }
+}
+
+Push-Location (Join-Path $PSScriptRoot "..\src\HotelDroid.Api")
+try {
+    libman restore
+    if ($LASTEXITCODE -ne 0) { throw "libman restore failed with exit code $LASTEXITCODE" }
+} catch {
+    Pop-Location
+    Write-Error "libman restore failed: $_"
+    throw "libman restore failed"
+} finally { if ((Get-Location).Path -ne (Join-Path $PSScriptRoot "..\src\HotelDroid.Api")) { Pop-Location } }
+
+# Publish Blazor client (precompress on publish)
+dotnet publish src/HotelDroid.Client -c Release -o $clientOut -p:BlazorEnableCompression=true
 if ($LASTEXITCODE -ne 0) { throw "publish client failed (exit code $LASTEXITCODE)" }
-dotnet publish src/HotelDroid.Api -c Release -o $apiOut
+
+# Publish API as a single-file executable for Windows x64 so deployment is a single host exe
+# Ensure any running instance of the published API is stopped so the publish can overwrite the exe
+try { Stop-Process -Name HotelDroid.Api -Force -ErrorAction SilentlyContinue } catch {}
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $apiOut 'HotelDroid.Api.exe')
+dotnet publish src/HotelDroid.Api -c Release -r win-x64 -p:PublishSingleFile=true -p:PublishTrimmed=false -o $apiOut
 if ($LASTEXITCODE -ne 0) { throw "publish api failed (exit code $LASTEXITCODE)" }
+
+# Copy published client files into the API wwwroot so API serves the Blazor app from the same origin
+$wwwroot = Join-Path $apiOut 'wwwroot'
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $wwwroot
+New-Item -ItemType Directory -Path $wwwroot | Out-Null
+Copy-Item -Path (Join-Path $clientOut '*') -Destination $wwwroot -Recurse -Force
+
+# Ensure a run launcher is present in the API root to start the single exe with an optional cert thumbprint
+$runBatPath = Join-Path $apiOut 'run.bat'
+$runContent = @"
+@echo off
+set ASPNETCORE_Kestrel__Certificates__Default__Thumbprint=%ASPNETCORE_Kestrel__Certificates__Default__Thumbprint%
+cd /d "%~dp0"
+if exist HotelDroid.Api.exe (
+    start "HotelDroid API" /b .\HotelDroid.Api.exe
+) else (
+    start "HotelDroid API" /b dotnet HotelDroid.Api.dll
+)
+"@
+$runContent | Out-File -FilePath $runBatPath -Encoding ASCII -Force
 
 Write-Host "4) Creating deployment package..."
 Ensure-Dir (Join-Path $PSScriptRoot "..\artifacts")

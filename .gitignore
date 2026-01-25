@@ -47,8 +47,70 @@ obj
 target/
 
 # blazor
+
 # Build / packaging artifacts
 /artifacts/
 bin/
 obj/
 *.zip
+
+# Published Blazor/Client outputs (when publishing into API/wwwroot)
+artifacts/client/
+/artifacts/api/
+/src/HotelDroid.Api/wwwroot/_framework/
+/src/HotelDroid.Api/wwwroot/*.br
+src/HotelDroid.Api/wwwroot/*.gz
+
+# Single-file publish exe (if you don't want to commit it)
+/artifacts/**/HotelDroid.Api.exe
+
+# Certificates / exported credentials
+/scripts/certs/
+/**/*.pfx
+**/*.p12
+
+# User / IDE
+.vscode/
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS temp / thumbnails
+Thumbs.db
+ehthumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Recommended: ignore precompressed Blazor static assets and generated client wwwroot
+src/HotelDroid.Client/bin/
+src/HotelDroid.Client/obj/
+artifacts/client/_framework/
+artifacts/client/**/*.br
+artifacts/client/**/*.gz
+
+# If you publish the client into the API project, ignore generated wwwroot framework
+src/HotelDroid.Api/wwwroot/_framework/
+src/HotelDroid.Api/wwwroot/*.br
+src/HotelDroid.Api/wwwroot/*.gz
+
+# Vendored third-party libraries managed by LibMan
+/src/HotelDroid.Api/wwwroot/lib/
+/src/HotelDroid.Client/wwwroot/lib/
+
+# Ignore any precompressed assets under wwwroot (restored at build time)
+src/HotelDroid.Api/wwwroot/**/*.br
+src/HotelDroid.Api/wwwroot/**/*.gz
+
+
+# Single-file exe artifacts (optional)
+/artifacts/**/HotelDroid.Api.exe
+
+# Cert exports
+/scripts/certs/
+*.pfx
+*.cer

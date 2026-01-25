@@ -1,4 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
+using HotelDroid.Api.Services;
+using HotelDroid.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +64,8 @@ if (!string.IsNullOrEmpty(certThumbprint))
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+// Register a simple file-backed store for development
+builder.Services.AddSingleton<FileKvStore>();
 
 var app = builder.Build();
 
@@ -102,6 +106,35 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+// --- Mock API endpoints for early Blazor development ---
+
+app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = "2026", User = "admin", Version = "HotelDruid 3.0.7" }));
+
+app.MapGet("/api/clients", async (FileKvStore store) => Results.Ok(await store.GetClientsAsync()));
+app.MapGet("/api/clients/{id:int}", async (int id, FileKvStore store) =>
+{
+    var c = await store.GetClientAsync(id);
+    return c is null ? Results.NotFound() : Results.Ok(c);
+});
+app.MapPost("/api/clients", async (ClientDto client, FileKvStore store) =>
+{
+    var added = await store.AddClientAsync(client);
+    return Results.Created($"/api/clients/{added.Id}", added);
+});
+
+app.MapGet("/api/bookings", async (FileKvStore store) => Results.Ok(await store.GetBookingsAsync()));
+app.MapGet("/api/bookings/{id:int}", async (int id, FileKvStore store) =>
+{
+    var b = await store.GetBookingAsync(id);
+    return b is null ? Results.NotFound() : Results.Ok(b);
+});
+app.MapPost("/api/bookings", async (BookingDto booking, FileKvStore store) =>
+{
+    var added = await store.AddBookingAsync(booking);
+    return Results.Created($"/api/bookings/{added.Id}", added);
+});
+
 
 app.Run();
 

@@ -1,0 +1,65 @@
+@page "/clients"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="container py-4">
+  <h3>Clients</h3>
+  <div class="mb-3">
+    <input class="form-control mb-2" placeholder="Name" @bind="newName" />
+    <input class="form-control mb-2" placeholder="Email" @bind="newEmail" />
+    <input class="form-control mb-2" placeholder="Phone" @bind="newPhone" />
+    <button class="btn btn-primary" @onclick="AddClient">Add Client</button>
+  </div>
+
+  @if (clients is null)
+  {
+    <p><em>Loading...</em></p>
+  }
+  else
+  {
+    <table class="table table-striped">
+      <thead><tr><th>Id</th><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
+      <tbody>
+        @foreach (var c in clients)
+        {
+          <tr>
+            <td>@c.Id</td>
+            <td>@c.Name</td>
+            <td>@c.Email</td>
+            <td>@c.Phone</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@code {
+  private List<ClientItem>? clients;
+  private string newName = "";
+  private string newEmail = "";
+  private string newPhone = "";
+
+  protected override async Task OnInitializedAsync()
+  {
+    try { clients = await Http.GetFromJsonAsync<List<ClientItem>>("/api/clients"); } catch { }
+  }
+
+  private async Task AddClient()
+  {
+    var toPost = new ClientItem(0, newName, newEmail, newPhone);
+    try
+    {
+      var res = await Http.PostAsJsonAsync("/api/clients", toPost);
+      if (res.IsSuccessStatusCode)
+      {
+        var created = await res.Content.ReadFromJsonAsync<ClientItem>();
+        if (created is not null) clients ??= new(); clients.Add(created);
+        newName = newEmail = newPhone = string.Empty;
+      }
+    }
+    catch { }
+  }
+
+  record ClientItem(int Id, string Name, string? Email, string? Phone);
+}

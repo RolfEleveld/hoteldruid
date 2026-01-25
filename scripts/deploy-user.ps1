@@ -60,6 +60,20 @@ if ($null -eq $cert) {
 $thumb = $cert.Thumbprint
 Write-Host "Using certificate thumbprint: $thumb"
 
+# Ensure the cert is trusted for the current user by importing into CurrentUser\Root
+try {
+    $raw = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+    $cer = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList (,$raw)
+    $root = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root','CurrentUser')
+    $root.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    $exists = $root.Certificates | Where-Object { $_.Thumbprint -eq $cer.Thumbprint }
+    if (-not $exists) { $root.Add($cer) }
+    $root.Close()
+    Write-Host "Imported certificate into CurrentUser\Root (trusted for current user)."
+} catch {
+    Write-Warning "Failed to import cert into CurrentUser\Root: $_"
+}
+
 # write install metadata so validators/uninstallers can reference the created cert
 $meta = @{ thumbprint = $thumb; installDir = $InstallDir; installedAt = (Get-Date).ToString('o') }
 $meta | ConvertTo-Json | Out-File -FilePath (Join-Path $InstallDir 'install-meta.json') -Encoding UTF8 -Force
@@ -70,7 +84,11 @@ $runContent = @"
 @echo off
 set ASPNETCORE_Kestrel__Certificates__Default__Thumbprint=$thumb
 cd /d "%~dp0\api"
-dotnet HotelDroid.Api.dll --urls "https://localhost:5001;http://localhost:5000"
+if exist HotelDroid.Api.exe (
+    start "HotelDroid API" /b .\HotelDroid.Api.exe
+) else (
+    start "HotelDroid API" /b dotnet HotelDroid.Api.dll --urls "https://localhost:5001;http://localhost:5000"
+)
 "@
 $runContent | Out-File -FilePath $runBat -Encoding ASCII -Force
 
@@ -81,13 +99,20 @@ $uninstallContent = @'
 param()
 Write-Host 'Removing HotelDroid user installation...'
 try {
-    # remove cert
+    # remove cert from My and Root
     $thumb = '__THUMB__'
-    $store = New-Object System.Security.Cryptography.X509Certificates.X509Store('My','CurrentUser')
-    $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-    $c = $store.Certificates.Find([System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $thumb, $false)
-    foreach ($cert in $c) { $store.Remove($cert) }
-    $store.Close()
+    $storeMy = New-Object System.Security.Cryptography.X509Certificates.X509Store('My','CurrentUser')
+    $storeMy.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    $c = $storeMy.Certificates.Find([System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $thumb, $false)
+    foreach ($cert in $c) { $storeMy.Remove($cert) }
+    $storeMy.Close()
+    try {
+        $storeRoot = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root','CurrentUser')
+        $storeRoot.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+        $c2 = $storeRoot.Certificates.Find([System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint, $thumb, $false)
+        foreach ($cert2 in $c2) { $storeRoot.Remove($cert2) }
+        $storeRoot.Close()
+    } catch { }
 } catch { Write-Warning "Failed to remove certificate: $_" }
 
 try { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue '__INSTALLDIR__' } catch {}
