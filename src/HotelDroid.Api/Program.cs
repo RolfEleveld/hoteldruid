@@ -1,6 +1,8 @@
 using System.Security.Cryptography.X509Certificates;
 using HotelDroid.Api.Services;
 using HotelDroid.Api.Models;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,9 +82,30 @@ if (hasLocalCert)
     app.UseHttpsRedirection();
 }
 
+// Allow static serving of .dat (ICU) and compressed assets that Blazor emits.
+var staticContentTypeProvider = new FileExtensionContentTypeProvider();
+staticContentTypeProvider.Mappings[".dat"] = "application/octet-stream";
+staticContentTypeProvider.Mappings[".br"] = "application/octet-stream";
+
 // Serve static files (useful when Blazor client is copied to api/wwwroot)
+var staticFileOptions = new StaticFileOptions
+{
+    ContentTypeProvider = staticContentTypeProvider
+};
+
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(staticFileOptions);
+
+// Also serve static files from the content root. Some publish flows place the
+// Blazor client files at the app content root (not under wwwroot). Serve them
+// directly so index.html and _framework resources are available regardless
+// of whether they were placed in the publish root or in wwwroot.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(app.Environment.ContentRootPath),
+    RequestPath = string.Empty,
+    ContentTypeProvider = staticContentTypeProvider
+});
 
 // Basic root & health endpoints for quick validation
 app.MapGet("/", () => Results.Text("HotelDroid API running", "text/plain"));

@@ -101,7 +101,53 @@ if ($LASTEXITCODE -ne 0) { throw "publish api failed (exit code $LASTEXITCODE)" 
 $wwwroot = Join-Path $apiOut 'wwwroot'
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $wwwroot
 New-Item -ItemType Directory -Path $wwwroot | Out-Null
-Copy-Item -Path (Join-Path $clientOut '*') -Destination $wwwroot -Recurse -Force
+
+# The Blazor publish output commonly places client files under a nested 'wwwroot' folder
+# e.g. artifacts/client/wwwroot. Prefer copying the contents of that folder when present.
+$clientWww = Join-Path $clientOut 'wwwroot'
+if (Test-Path $clientWww) {
+    Copy-Item -Path (Join-Path $clientWww '*') -Destination $wwwroot -Recurse -Force
+} else {
+    Copy-Item -Path (Join-Path $clientOut '*') -Destination $wwwroot -Recurse -Force
+}
+
+# Ensure client assets actually live under the API's wwwroot directory.
+# Some publish layouts accidentally place files at the API root; move them
+# into wwwroot so runtime static file middleware works reliably after deploy.
+if (-not (Test-Path (Join-Path $wwwroot 'index.html'))) {
+    Write-Host "Index not found under $wwwroot — searching for stray client files..."
+    $foundIndex = Get-ChildItem -Path $apiOut -Filter 'index.html' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $foundIndex) {
+        Write-Host "Moving stray index.html from $($foundIndex.DirectoryName) to $wwwroot"
+        Ensure-Dir $wwwroot
+        Move-Item -Path $foundIndex.FullName -Destination (Join-Path $wwwroot 'index.html') -Force
+    }
+
+    # Move any top-level _framework folder into wwwroot as well
+    $rootFramework = Join-Path $apiOut '_framework'
+    if (Test-Path $rootFramework -PathType Container) {
+        Write-Host "Moving stray _framework from $rootFramework to $wwwroot\_framework"
+        Ensure-Dir (Join-Path $wwwroot '_framework')
+        Copy-Item -Path (Join-Path $rootFramework '*') -Destination (Join-Path $wwwroot '_framework') -Recurse -Force
+        Remove-Item -Recurse -Force $rootFramework -ErrorAction SilentlyContinue
+    }
+}
+
+# Some runtimes expect ICU payloads under _framework/icu. Duplicate the ICU files there to satisfy lookups.
+$frameworkDir = Join-Path $wwwroot '_framework'
+$icuDir = Join-Path $frameworkDir 'icu'
+if (Test-Path $frameworkDir -PathType Container) {
+    Ensure-Dir $icuDir
+    Get-ChildItem -Path $frameworkDir -Filter 'icudt_*.dat*' -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination (Join-Path $icuDir $_.Name) -Force
+    }
+}
+
+# Final sanity check: fail early if client entrypoint missing
+if (-not (Test-Path (Join-Path $wwwroot 'index.html'))) {
+    Write-Error "Client index.html not found under $wwwroot after copy/move — aborting package creation."
+    throw "Client files missing from API wwwroot"
+}
 
 # Ensure a run launcher is present in the API root to start the single exe with an optional cert thumbprint
 $runBatPath = Join-Path $apiOut 'run.bat'
@@ -119,16 +165,27 @@ $runContent | Out-File -FilePath $runBatPath -Encoding ASCII -Force
 
 Write-Host "4) Creating deployment package..."
 Ensure-Dir (Join-Path $PSScriptRoot "..\artifacts")
-if ((Test-Path $PackagePath) -and $Force) { Remove-Item $PackagePath -Force }
-if ((Test-Path $PackagePath) -and (-not $Force)) { Write-Host "Package exists. Use -Force to overwrite." }
+if ((Test-Path $PackagePath) -and $Force) {
+    Write-Host "Removing existing package: $PackagePath"
+    Remove-Item $PackagePath -Force
+}
+elseif ((Test-Path $PackagePath) -and (-not $Force)) {
+    Write-Host "Package exists. Use -Force to overwrite. Aborting."
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    exit 1
+}
 
 $tmp = Join-Path $env:TEMP "hoteldroid_package_$(Get-Random)"
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $tmp
 Ensure-Dir $tmp
 
-# copy published outputs
-Copy-Item -Path (Join-Path $clientOut "*") -Destination (Join-Path $tmp "client") -Recurse -Force
-Copy-Item -Path (Join-Path $apiOut "*") -Destination (Join-Path $tmp "api") -Recurse -Force
+# copy published outputs (preserve folder names)
+$clientDest = Join-Path $tmp "client"
+$apiDest = Join-Path $tmp "api"
+Ensure-Dir $clientDest
+Ensure-Dir $apiDest
+Copy-Item -Path $clientOut -Destination $tmp -Recurse -Force
+Copy-Item -Path $apiOut -Destination $tmp -Recurse -Force
 
 # include scripts and README
 Ensure-Dir (Join-Path $tmp "scripts")
