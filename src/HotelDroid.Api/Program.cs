@@ -1,6 +1,8 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json.Serialization;
 using HotelDroid.Api.Services;
 using HotelDroid.Api.Models;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
 
@@ -66,7 +68,30 @@ if (!string.IsNullOrEmpty(certThumbprint))
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-// Register a simple file-backed store for development
+builder.Services.AddLogging();
+
+// Configure JSON serialization for API responses
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = null; // Use PascalCase (no transformation)
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
+// Configure data root (from env var or appsettings)
+var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT") 
+    ?? builder.Configuration["DataRoot"]
+    ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
+
+// Register file-based stores
+builder.Services.AddSingleton<ILogger>(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger("HotelDroid.Api"));
+builder.Services.AddSingleton(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<FileKeyValueStore>>();
+    return new FileKeyValueStore(dataRoot, logger);
+});
+
+// Register a simple file-backed store for development (legacy support)
 builder.Services.AddSingleton<FileKvStore>();
 
 var app = builder.Build();
@@ -158,6 +183,99 @@ app.MapPost("/api/bookings", async (BookingDto booking, FileKvStore store) =>
     return Results.Created($"/api/bookings/{added.Id}", added);
 });
 
+// --- Room API endpoints ---
+
+app.MapPost("/api/rooms", async (RoomDto request, FileKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Room name is required" });
+
+    try
+    {
+        var storage = new RoomStorageModel
+        {
+            Name = request.Name,
+            Capacity = request.Capacity,
+            RoomType = request.RoomType,
+            PricePerNight = request.PricePerNight
+        };
+
+        var id = await store.CreateAsync("rooms", request.Name, storage);
+        return Results.Created($"/api/rooms/{id}", new RoomDto(id, request.Name, request.Capacity, request.RoomType, request.PricePerNight));
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
+{
+    var room = await store.GetAsync<RoomStorageModel>("rooms", id);
+    if (room is null)
+        return Results.NotFound();
+
+    return Results.Ok(new RoomDto(id, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+});
+
+app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
+{
+    if (!string.IsNullOrEmpty(name))
+    {
+        // Get by name
+        var room = await store.GetByNameAsync<RoomStorageModel>("rooms", name);
+        if (room is null)
+            return Results.NotFound();
+
+        // Get the ID from the index
+        var index = await store.GetIndexAsync("rooms");
+        var id = index.TryGetValue(name, out var roomId) ? roomId : "";
+        
+        return Results.Ok(new RoomDto(id, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+    }
+
+    // List all
+    var rooms = await store.ListAsync<RoomStorageModel>("rooms");
+    var index2 = await store.GetIndexAsync("rooms");
+    
+    var result = new List<RoomDto>();
+    foreach (var room in rooms)
+    {
+        var roomName = room.Name ?? "";
+        var roomId = index2.TryGetValue(roomName, out var id) ? id : "";
+        result.Add(new RoomDto(roomId, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+    }
+    
+    return Results.Ok(result);
+});
+
+app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, FileKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("rooms", id);
+    if (!exists)
+        return Results.NotFound();
+
+    var storage = new RoomStorageModel
+    {
+        Name = request.Name,
+        Capacity = request.Capacity,
+        RoomType = request.RoomType,
+        PricePerNight = request.PricePerNight
+    };
+
+    await store.UpdateAsync("rooms", id, storage);
+    return Results.Ok(new RoomDto(id, request.Name, request.Capacity, request.RoomType, request.PricePerNight));
+});
+
+app.MapDelete("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("rooms", id);
+    if (!exists)
+        return Results.NotFound();
+
+    await store.DeleteAsync("rooms", id);
+    return Results.NoContent();
+});
 
 app.Run();
 

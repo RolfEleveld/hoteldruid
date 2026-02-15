@@ -201,12 +201,66 @@ Next steps:
 
 ## Migration Strategy & Work Plan (detailed tasks)
 
-Phase 1 — Discovery & scaffolding (now)
+Phase 1A — Core Storage Layer [**COMPLETED**]
 
-- Capture detailed export/import schemas and example package (done: Exporter/Importer inspected). [completed]
-- Design KV storage API and small spec. [**completed** — see ARCHITECTURE.md]
-- Scaffold .NET solution: `HotelDroid.Blazor.Client` (WASM), `HotelDroid.Api` (ASP.NET Core minimal API). [completed]
-- **New**: Implement file-backed KV store with repository layer. [starting]
+- Capture detailed export/import schemas and example package (done: Exporter/Importer inspected). [✅ completed]
+- Design KV storage API and small spec. [✅ completed — see ARCHITECTURE.md]
+- Scaffold .NET solution: `HotelDroid.Blazor.Client` (WASM), `HotelDroid.Api` (ASP.NET Core minimal API). [✅ completed]
+- Implement file-backed KV store (`FileKeyValueStore`). [✅ completed]
+  - SemaphoreSlim per-collection locking for write serialization
+  - GUID-base32 ID generation (26-char, URL-safe)
+  - Index files (`_index.json`) for name → ID mapping
+  - Self-healing index rebuild
+  - Atomic writes with temp → rename pattern
+  - Generic CRUD: `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `ListAsync`
+  - Index: `RebuildIndexAsync`, `GetIndexAsync`
+  - Collection management: `DeleteCollectionAsync`
+- Unit tests for FileKeyValueStore [✅ completed]
+  - Basic CRUD operations
+  - Concurrent writes (10+ simultaneous creates)
+  - Concurrent updates (no corruption)
+  - Index operations
+  - Path traversal validation
+  - Edge cases (nulls, missing documents)
+
+Phase 1A — Test Infrastructure [**COMPLETED**]
+
+- Enhanced unit tests with file system validation. [✅ completed]
+  - FileKeyValueStoreTests (10+ test cases)
+  - FileKeyValueStoreFileSystemTests (validates actual files on disk)
+  - Concurrent operation validation
+  
+- API integration tests with WebApplicationFactory. [✅ completed]
+  - RoomsApiTests (CRUD endpoints)
+  - LedgerApiTests (snapshot/entry endpoints)
+  - Full environment setup/teardown per test
+  
+- Event logging infrastructure for SIEM integration. [✅ completed]
+  - ISystemEventLogger interface
+  - WindowsEventLogger implementation
+  - Structured JSON events
+  - SIEM-compatible format
+  
+- Test helpers and utilities. [✅ completed]
+  - TestFixture with DI setup
+  - XunitLogger/XunitLoggerProvider
+  - TestEventCapture for assertion validation
+  - TestEnvironment for file system setup
+  
+- Test dashboard and reporting. [✅ completed]
+  - TestDashboardGenerator (HTML, JSON reports)
+  - run-tests.ps1 script for test execution
+  - TRX report generation
+  - Performance metrics and slowest test tracking
+  
+- Documentation: TEST_INFRASTRUCTURE.md. [✅ completed]
+
+Phase 1B — Repositories & Ledger (next)
+
+- Implement `IRoomRepository` with validation
+- Implement `ILedgerRepository` (snapshots + incremental sequences)
+- Implement `IBookingTransactionRepository` (per-stay ledger)
+- Repository unit tests with event logging
 
 Phase 2 — Core platform
 
