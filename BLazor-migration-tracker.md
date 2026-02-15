@@ -1,7 +1,9 @@
 # Blazor Migration Tracker
 
-Date: 2026-01-18
+Date: 2026-01-18  
 Branch: blazor
+
+**Architecture**: See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions, data model, and implementation phases.
 
 Purpose
 
@@ -202,8 +204,9 @@ Next steps:
 Phase 1 — Discovery & scaffolding (now)
 
 - Capture detailed export/import schemas and example package (done: Exporter/Importer inspected). [completed]
-- Design KV storage API and small spec. [in-progress]
-- Scaffold .NET solution: `HotelDroid.Blazor.Client` (WASM), `HotelDroid.Api` (ASP.NET Core minimal API). [next]
+- Design KV storage API and small spec. [**completed** — see ARCHITECTURE.md]
+- Scaffold .NET solution: `HotelDroid.Blazor.Client` (WASM), `HotelDroid.Api` (ASP.NET Core minimal API). [completed]
+- **New**: Implement file-backed KV store with repository layer. [starting]
 
 Phase 2 — Core platform
 
@@ -301,13 +304,10 @@ Next step: define concrete endpoint contracts (request/response DTOs) for `User`
 	- System install (optional): `pack-and-deploy.ps1 -Deploy` extracts to a specified install folder (e.g., `C:\Program Files\HotelDroid`), writes an HKLM uninstall entry, and creates system Start Menu shortcuts. Requires elevation.
 - Validation: I ran the package creation and a full per-user deploy + uninstall cycle locally. Results: package created; per-user deploy created a CurrentUser `localhost` cert and `install-meta.json`; running the per-user uninstall removed the recorded cert, removed install files, and cleared the HKCU uninstall entry. Validation scripts are in `scripts/validate-cleanup.ps1`.
 - Commands (repo root):
-	- Create package: `.\	emplates\powershell` `.\\\n+    .\scripts\pack-and-deploy.ps1 -PackageOnly -Force`
-	- Per-user deploy: `.\n+    .\scripts\deploy-user.ps1 -Force`
-	- Validate cleanup: `.
-		.\scripts\validate-cleanup.ps1`
+	- Create package: `.\	emplates\powershell` `.\scripts\pack-and-deploy.ps1 -PackageOnly -Force`
+	- Per-user deploy: `.\scripts\deploy-user.ps1 -Force`
+	- Validate cleanup: `.\scripts\validate-cleanup.ps1`
 - Notes:
 	- `src/HotelDroid.Api/Program.cs` was updated to bind to a certificate found in `LocalMachine\My` or `CurrentUser\My` when a thumbprint is provided via env var. Deployment scripts set the env var for runtime.
 	- System-wide deploy writes to HKLM and requires elevation; per-user deploy targets HKCU and needs no elevation.
 	- For single-origin hosting (avoid CORS), publish the Blazor client and copy its `wwwroot` into the API `wwwroot` (script hints included in `pack-and-deploy.ps1`).
-
-Next step (optional): run a system-wide deploy test under elevation to validate HKLM uninstall registration and Start Menu behavior; tell me if you want me to run that here.
