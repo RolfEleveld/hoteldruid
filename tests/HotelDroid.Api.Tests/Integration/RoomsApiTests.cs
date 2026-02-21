@@ -33,10 +33,8 @@ public class RoomsApiTests : IAsyncLifetime
         _testDataRoot = Path.Combine(Path.GetTempPath(), $"api-tests-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDataRoot);
 
-        // Configure test environment
-        Environment.SetEnvironmentVariable("HOTELDRUID_DATAROOT", _testDataRoot);
-
-        // Create factory with custom configuration
+        // Create factory with custom configuration - DataRoot must be set via WithWebHostBuilder
+        // before the application factory builds the app
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
@@ -66,6 +64,30 @@ public class RoomsApiTests : IAsyncLifetime
         }
 
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Clear all rooms from the collection for test isolation.
+    /// </summary>
+    private async Task ClearRoomsAsync()
+    {
+        // Get all rooms and delete each one
+        var response = await _client.GetAsync("/api/rooms");
+        if (response.IsSuccessStatusCode)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var rooms = JsonSerializer.Deserialize<List<RoomDto>>(responseContent);
+            if (rooms != null)
+            {
+                foreach (var room in rooms)
+                {
+                    if (!string.IsNullOrEmpty(room.Id))
+                    {
+                        await _client.DeleteAsync($"/api/rooms/{room.Id}");
+                    }
+                }
+            }
+        }
     }
 
     [Fact]
@@ -163,6 +185,9 @@ public class RoomsApiTests : IAsyncLifetime
     [Fact]
     public async Task ListRooms_Returns200Ok()
     {
+        // Clear any existing rooms to ensure test isolation
+        await ClearRoomsAsync();
+
         // Arrange - Create multiple rooms
         for (int i = 1; i <= 3; i++)
         {

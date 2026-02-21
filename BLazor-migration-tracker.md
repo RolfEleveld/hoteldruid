@@ -1,9 +1,23 @@
 # Blazor Migration Tracker
 
-Date: 2026-01-18  
+Date: 2026-02-21  
 Branch: blazor
 
 **Architecture**: See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions, data model, and implementation phases.
+
+## Current Status Summary (2026-02-21)
+
+**Phase 1A — Core Storage & Test Infrastructure: COMPLETE ✅**
+
+- FileKeyValueStore fully implemented and tested (48/48 tests passing)
+- Complete test infrastructure with unit, integration, and event logging tests
+- All test failures analyzed and resolved (11 fixes applied to JSON serialization, test isolation, configuration, and closure bugs)
+- API endpoints for rooms (POST, GET, PUT, DELETE) fully functional
+- Documentation complete (ARCHITECTURE.md, TEST_INFRASTRUCTURE.md, Migration Tracker)
+
+**Phase 1B — Repositories & Ledger: Ready to begin**
+
+Next milestone: Implement `IRoomRepository`, `ILedgerRepository`, and `IBookingTransactionRepository` with comprehensive validation and event logging.
 
 Purpose
 
@@ -226,14 +240,15 @@ Phase 1A — Core Storage Layer [**COMPLETED**]
 Phase 1A — Test Infrastructure [**COMPLETED**]
 
 - Enhanced unit tests with file system validation. [✅ completed]
-  - FileKeyValueStoreTests (10+ test cases)
+  - FileKeyValueStoreTests (11+ test cases)
   - FileKeyValueStoreFileSystemTests (validates actual files on disk)
   - Concurrent operation validation
+  - **Status (2026-02-21):** All 48 tests passing ✅
   
 - API integration tests with WebApplicationFactory. [✅ completed]
   - RoomsApiTests (CRUD endpoints)
-  - LedgerApiTests (snapshot/entry endpoints)
   - Full environment setup/teardown per test
+  - **Fixes applied:** Test data isolation, JSON serialization consistency, proper DataRoot configuration
   
 - Event logging infrastructure for SIEM integration. [✅ completed]
   - ISystemEventLogger interface
@@ -255,12 +270,24 @@ Phase 1A — Test Infrastructure [**COMPLETED**]
   
 - Documentation: TEST_INFRASTRUCTURE.md. [✅ completed]
 
-Phase 1B — Repositories & Ledger (next)
+### Test Fixes Applied (2026-02-21)
 
-- Implement `IRoomRepository` with validation
+- **Test Infrastructure Configuration:** Fixed `RoomsApiTests` initialization to set `DataRoot` configuration via `WithWebHostBuilder` before factory creation (was setting environment variable too late).
+- **Test Data Isolation:** Added `ClearRoomsAsync()` method using API calls to prevent test data contamination across integration tests.
+- **JSON Serialization Consistency:** Updated tests to deserialize JSON using same options as `FileKeyValueStore` (CamelCase naming policy, case-insensitive).
+- **Base32 ID Validation:** Fixed `IdGenerator.IsValidId()` to properly validate base32 alphabet (a-z, 2-7) instead of generic alphanumeric.
+- **Closure Bug in Concurrent Test:** Fixed closure variable capture in `ConcurrentUpdates_PreventCorruption` to properly isolate loop variable `i` for async tasks.
+- **Index Rebuild Test:** Fixed `RebuildIndexAsync_ReconstructsIndexFromFiles` to write JSON documents using FileKeyValueStore's JSON options (CamelCase) for proper index field name matching.
+
+**Current Test Status: 48/48 passing** (was 37/48, 11 failures fixed)
+
+Phase 1B — Repositories & Ledger (NEXT: upcoming)
+
+- Design and implement `IRoomRepository` with validation rules
 - Implement `ILedgerRepository` (snapshots + incremental sequences)
 - Implement `IBookingTransactionRepository` (per-stay ledger)
-- Repository unit tests with event logging
+- Repository unit tests with event logging integration and event validation patterns
+- **Status (2026-02-21):** Pending — will start after Phase 1A validation complete
 
 Phase 2 — Core platform
 

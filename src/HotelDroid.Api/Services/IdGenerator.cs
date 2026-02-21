@@ -21,9 +21,10 @@ public static class IdGenerator
     /// <summary>
     /// Convert a GUID to base32 format.
     /// Uses lowercase for consistency with file naming conventions.
+    /// RFC 4648 base32 encoding: 128 bits / 5 bits per character = 26 characters.
     /// </summary>
     /// <param name="bytes">Byte array from GUID.ToByteArray()</param>
-    /// <returns>Base32-encoded string (22 characters)</returns>
+    /// <returns>Base32-encoded string (26 characters)</returns>
     private static string ConvertToBase32(byte[] bytes)
     {
         if (bytes.Length != 16)
@@ -60,14 +61,16 @@ public static class IdGenerator
 
     /// <summary>
     /// Validate that a string is a valid GUID-base32 ID.
+    /// IDs must be exactly 26 lowercase characters (base32 alphabet: a-z, 2-7).
     /// </summary>
     /// <param name="id">ID to validate</param>
-    /// <returns>True if valid base32 ID (22 lowercase alphanumeric chars), false otherwise</returns>
+    /// <returns>True if valid base32 ID (26 lowercase alphanumeric chars from base32 alphabet), false otherwise</returns>
     public static bool IsValidId(string id)
     {
         if (string.IsNullOrEmpty(id) || id.Length != 26)
             return false;
 
-        return id.All(c => char.IsLower(c) && (char.IsLetter(c) || char.IsDigit(c)));
+        // Valid base32 alphabet: A-Z (case-insensitive here, stored as lowercase) and 2-7
+        return id.All(c => (c >= 'a' && c <= 'z') || (c >= '2' && c <= '7'));
     }
 }

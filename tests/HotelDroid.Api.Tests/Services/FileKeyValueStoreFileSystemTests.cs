@@ -71,8 +71,14 @@ public class FileKeyValueStoreFileSystemTests : IAsyncLifetime
         Assert.True(File.Exists(filePath), $"File not found: {filePath}");
 
         // Assert - File content is valid JSON
+        // Use same JSON options as FileKeyValueStore for deserialization
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        };
         var fileContent = await File.ReadAllTextAsync(filePath);
-        var parsed = JsonSerializer.Deserialize<TestDocument>(fileContent);
+        var parsed = JsonSerializer.Deserialize<TestDocument>(fileContent, jsonOptions);
         Assert.NotNull(parsed);
         Assert.Equal("Room1", parsed!.Name);
         Assert.Equal(42, parsed.Value);
@@ -115,9 +121,15 @@ public class FileKeyValueStoreFileSystemTests : IAsyncLifetime
         await _store.UpdateAsync("rooms", id, updated);
 
         // Assert - File content changed
+        // Use same JSON options as FileKeyValueStore for deserialization
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        };
         var filePath = Path.Combine(_tempDataRoot, "collections", "rooms", $"{id}.json");
         var fileContent = await File.ReadAllTextAsync(filePath);
-        var parsed = JsonSerializer.Deserialize<TestDocument>(fileContent);
+        var parsed = JsonSerializer.Deserialize<TestDocument>(fileContent, jsonOptions);
         
         Assert.NotNull(parsed);
         Assert.Equal(75, parsed!.Value);

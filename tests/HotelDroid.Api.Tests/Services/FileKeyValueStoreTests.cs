@@ -240,12 +240,20 @@ public class FileKeyValueStoreTests : IAsyncLifetime
         var doc1 = new TestDocument { Id = id1, Name = "Room1", Value = 1 };
         var doc2 = new TestDocument { Id = id2, Name = "Room2", Value = 2 };
         
+        // Use same JSON options as FileKeyValueStore for consistency
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        };
+        
         await File.WriteAllTextAsync(
             Path.Combine(collectionPath, $"{id1}.json"),
-            System.Text.Json.JsonSerializer.Serialize(doc1));
+            System.Text.Json.JsonSerializer.Serialize(doc1, jsonOptions));
         await File.WriteAllTextAsync(
             Path.Combine(collectionPath, $"{id2}.json"),
-            System.Text.Json.JsonSerializer.Serialize(doc2));
+            System.Text.Json.JsonSerializer.Serialize(doc2, jsonOptions));
 
         // Act
         var count = await _store.RebuildIndexAsync("rooms");
@@ -331,9 +339,10 @@ public class FileKeyValueStoreTests : IAsyncLifetime
         var tasks = new List<Task>();
         for (int i = 1; i <= 5; i++)
         {
+            int value = i;  // Capture the value to avoid closure bug
             tasks.Add(Task.Run(async () =>
             {
-                var updated = new TestDocument { Id = id, Name = "Room1", Value = i };
+                var updated = new TestDocument { Id = id, Name = "Room1", Value = value };
                 await _store.UpdateAsync("rooms", id, updated);
             }));
         }
