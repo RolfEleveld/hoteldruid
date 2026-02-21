@@ -188,7 +188,9 @@ app.MapPost("/api/bookings", async (BookingDto booking, FileKvStore store) =>
 app.MapPost("/api/rooms", async (RoomDto request, FileKeyValueStore store) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
-        return Results.BadRequest(new { error = "Room name is required" });
+        return Results.BadRequest(new { error = "Room name (ID) is required" });
+    if (request.Capacity <= 0)
+        return Results.BadRequest(new { error = "Capacity must be greater than 0" });
 
     try
     {
@@ -196,12 +198,19 @@ app.MapPost("/api/rooms", async (RoomDto request, FileKeyValueStore store) =>
         {
             Name = request.Name,
             Capacity = request.Capacity,
-            RoomType = request.RoomType,
-            PricePerNight = request.PricePerNight
+            FloorNumber = request.FloorNumber,
+            HouseNumber = request.HouseNumber,
+            Priority = request.Priority,
+            SecondaryPriority = request.SecondaryPriority,
+            HasBeds = request.HasBeds,
+            NeighboringRooms = request.NeighboringRooms,
+            Comments = request.Comments
         };
 
         var id = await store.CreateAsync("rooms", request.Name, storage);
-        return Results.Created($"/api/rooms/{id}", new RoomDto(id, request.Name, request.Capacity, request.RoomType, request.PricePerNight));
+        return Results.Created($"/api/rooms/{id}", new RoomDto(
+            id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
+            request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
     }
     catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
     {
@@ -215,7 +224,9 @@ app.MapGet("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
     if (room is null)
         return Results.NotFound();
 
-    return Results.Ok(new RoomDto(id, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+    return Results.Ok(new RoomDto(
+        id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
+        room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
 });
 
 app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
@@ -231,7 +242,9 @@ app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
         var index = await store.GetIndexAsync("rooms");
         var id = index.TryGetValue(name, out var roomId) ? roomId : "";
         
-        return Results.Ok(new RoomDto(id, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+        return Results.Ok(new RoomDto(
+            id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
+            room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
     }
 
     // List all
@@ -243,7 +256,9 @@ app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
     {
         var roomName = room.Name ?? "";
         var roomId = index2.TryGetValue(roomName, out var id) ? id : "";
-        result.Add(new RoomDto(roomId, room.Name ?? "", room.Capacity ?? 0, room.RoomType ?? "", room.PricePerNight ?? 0m));
+        result.Add(new RoomDto(
+            roomId, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
+            room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
     }
     
     return Results.Ok(result);
@@ -254,17 +269,29 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, FileKeyValueSto
     var exists = await store.ExistsAsync("rooms", id);
     if (!exists)
         return Results.NotFound();
+    
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Room name is required" });
+    if (request.Capacity <= 0)
+        return Results.BadRequest(new { error = "Capacity must be greater than 0" });
 
     var storage = new RoomStorageModel
     {
         Name = request.Name,
         Capacity = request.Capacity,
-        RoomType = request.RoomType,
-        PricePerNight = request.PricePerNight
+        FloorNumber = request.FloorNumber,
+        HouseNumber = request.HouseNumber,
+        Priority = request.Priority,
+        SecondaryPriority = request.SecondaryPriority,
+        HasBeds = request.HasBeds,
+        NeighboringRooms = request.NeighboringRooms,
+        Comments = request.Comments
     };
 
     await store.UpdateAsync("rooms", id, storage);
-    return Results.Ok(new RoomDto(id, request.Name, request.Capacity, request.RoomType, request.PricePerNight));
+    return Results.Ok(new RoomDto(
+        id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
+        request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
 });
 
 app.MapDelete("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>

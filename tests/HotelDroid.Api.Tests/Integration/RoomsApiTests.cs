@@ -8,9 +8,23 @@ using HotelDroid.Api;
 namespace HotelDroid.Api.Tests.Integration;
 
 /// <summary>
-/// API integration tests for rooms endpoints.
-/// Uses WebApplicationFactory to test HTTP endpoints end-to-end.
-/// Full environment setup/teardown per test fixture.
+/// Comprehensive integration tests for Room API endpoints.
+/// 
+/// PROPERTY MAPPING (hoteldruid database → API):
+/// - Id          ← idappartamenti (Room identifier, e.g., "101", "Suite-A")
+/// - Name        ← idappartamenti (Same as Id, required)
+/// - Capacity    ← maxoccupanti (Max occupants, required, must be > 0)
+/// - FloorNumber ← numpiano (Physical floor, optional, e.g., "1", "2", "Ground")
+/// - HouseNumber ← numcasa (House/building section, optional, e.g., "A", "B1")
+/// - Priority    ← priorita (Booking priority, optional, INTEGER lower=better)
+/// - SecondaryPriority ← priorita2 (Bed assignment priority, optional)
+/// - HasBeds     ← letto (Room has beds flag, optional, "S"/"N")
+/// - NeighboringRooms ← app_vicini (Adjacent rooms, optional, comma-separated IDs)
+/// - Comments    ← commento (Room notes, optional)
+/// 
+/// REMOVED (not in hoteldruid):
+/// - RoomType (custom addition, removed)
+/// - PricePerNight (custom addition, removed)
 /// </summary>
 public class RoomsApiTests : IAsyncLifetime
 {
@@ -23,18 +37,20 @@ public class RoomsApiTests : IAsyncLifetime
         public string? Id { get; set; }
         public string? Name { get; set; }
         public int Capacity { get; set; }
-        public string? RoomType { get; set; }
-        public decimal PricePerNight { get; set; }
+        public string? FloorNumber { get; set; }
+        public string? HouseNumber { get; set; }
+        public int? Priority { get; set; }
+        public int? SecondaryPriority { get; set; }
+        public string? HasBeds { get; set; }
+        public string? NeighboringRooms { get; set; }
+        public string? Comments { get; set; }
     }
 
     public async Task InitializeAsync()
     {
-        // Setup test data directory
         _testDataRoot = Path.Combine(Path.GetTempPath(), $"api-tests-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDataRoot);
 
-        // Create factory with custom configuration - DataRoot must be set via WithWebHostBuilder
-        // before the application factory builds the app
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
@@ -42,7 +58,6 @@ public class RoomsApiTests : IAsyncLifetime
             });
 
         _client = _factory.CreateClient();
-        
         await Task.CompletedTask;
     }
 
@@ -71,7 +86,6 @@ public class RoomsApiTests : IAsyncLifetime
     /// </summary>
     private async Task ClearRoomsAsync()
     {
-        // Get all rooms and delete each one
         var response = await _client.GetAsync("/api/rooms");
         if (response.IsSuccessStatusCode)
         {
@@ -90,16 +104,16 @@ public class RoomsApiTests : IAsyncLifetime
         }
     }
 
+    #region CRUD Basic Operations
+
     [Fact]
-    public async Task CreateRoom_Returns201Created()
+    public async Task CreateRoom_WithRequiredFields_Returns201Created()
     {
         // Arrange
         var room = new RoomDto
         {
-            Name = "Room-101",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 100m
+            Name = "101",
+            Capacity = 2
         };
 
         var json = JsonSerializer.Serialize(room);
@@ -110,98 +124,106 @@ public class RoomsApiTests : IAsyncLifetime
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<RoomDto>(responseContent);
-        
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(result);
-        Assert.NotEmpty(result!.Id);
-        Assert.Equal("Room-101", result.Name);
+        Assert.NotNull(result!.Id);
+        Assert.NotEmpty(result.Id);
+        Assert.Equal("101", result.Name);
+        Assert.Equal(2, result.Capacity);
     }
 
     [Fact]
-    public async Task GetRoom_Returns200Ok()
+    public async Task CreateRoom_WithAllFields_Returns201CreatedAndPreservesAll()
     {
-        // Arrange - Create a room first
-        var createRoom = new RoomDto
+        // Arrange - Create room with all hoteldruid fields
+        var room = new RoomDto
         {
-            Name = "Room-102",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 100m
-        };
-
-        var createJson = JsonSerializer.Serialize(createRoom);
-        var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-        var createResponse = await _client.PostAsync("/api/rooms", createContent);
-        
-        var createResult = await createResponse.Content.ReadAsStringAsync();
-        var created = JsonSerializer.Deserialize<RoomDto>(createResult);
-        var roomId = created!.Id;
-
-        // Act
-        var response = await _client.GetAsync($"/api/rooms/{roomId}");
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<RoomDto>(responseContent);
-        
-        Assert.NotNull(result);
-        Assert.Equal(roomId, result!.Id);
-        Assert.Equal("Room-102", result.Name);
-    }
-
-    [Fact]
-    public async Task GetRoomByName_Returns200Ok()
-    {
-        // Arrange - Create a room first
-        var createRoom = new RoomDto
-        {
-            Name = "Suite-Deluxe",
+            Name = "Suite-A",
             Capacity = 4,
-            RoomType = "Suite",
-            PricePerNight = 250m
+            FloorNumber = "2",
+            HouseNumber = "B",
+            Priority = 1,
+            SecondaryPriority = 2,
+            HasBeds = "S",
+            NeighboringRooms = "101,102",
+            Comments = "Premium suite with balcony"
         };
 
-        var createJson = JsonSerializer.Serialize(createRoom);
-        var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-        await _client.PostAsync("/api/rooms", createContent);
+        var json = JsonSerializer.Serialize(room);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.GetAsync("/api/rooms?name=Suite-Deluxe");
+        var response = await _client.PostAsync("/api/rooms", content);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(result);
+        Assert.Equal("Suite-A", result?.Name);
+        Assert.Equal(4, result?.Capacity);
+        Assert.Equal("2", result?.FloorNumber);
+        Assert.Equal("B", result?.HouseNumber);
+        Assert.Equal(1, result?.Priority);
+        Assert.Equal(2, result?.SecondaryPriority);
+        Assert.Equal("S", result?.HasBeds);
+        Assert.Equal("101,102", result?.NeighboringRooms);
+        Assert.Equal("Premium suite with balcony", result?.Comments);
+    }
+
+    [Fact]
+    public async Task GetRoom_ByIdReturns200Ok()
+    {
+        // Arrange - Create a room first
+        var roomData = new RoomDto { Name = "102", Capacity = 2, FloorNumber = "1" };
+        var json = JsonSerializer.Serialize(roomData);
+        var createResponse = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+        var created = JsonSerializer.Deserialize<RoomDto>(await createResponse.Content.ReadAsStringAsync());
+
+        // Act
+        var response = await _client.GetAsync($"/api/rooms/{created!.Id}");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<RoomDto>(responseContent);
-        
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(result);
-        Assert.Equal("Suite-Deluxe", result!.Name);
+        Assert.Equal(created.Id, result!.Id);
+        Assert.Equal("102", result.Name);
+        Assert.Equal(2, result.Capacity);
+        Assert.Equal("1", result.FloorNumber);
+    }
+
+    [Fact]
+    public async Task GetRoom_ByName_Returns200Ok()
+    {
+        // Arrange - Create a room first
+        var roomData = new RoomDto { Name = "DeluxeRoom", Capacity = 4, FloorNumber = "3" };
+        var json = JsonSerializer.Serialize(roomData);
+        await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Act
+        var response = await _client.GetAsync("/api/rooms?name=DeluxeRoom");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(result);
+        Assert.Equal("DeluxeRoom", result!.Name);
+        Assert.Equal(4, result.Capacity);
     }
 
     [Fact]
     public async Task ListRooms_Returns200Ok()
     {
-        // Clear any existing rooms to ensure test isolation
+        // Arrange
         await ClearRoomsAsync();
-
-        // Arrange - Create multiple rooms
         for (int i = 1; i <= 3; i++)
         {
-            var room = new RoomDto
-            {
-                Name = $"Room-{i:D3}",
-                Capacity = i,
-                RoomType = "Standard",
-                PricePerNight = 50m * i
-            };
-
+            var room = new RoomDto { Name = $"Room-{i:D3}", Capacity = i };
             var json = JsonSerializer.Serialize(room);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            await _client.PostAsync("/api/rooms", content);
+            await _client.PostAsync("/api/rooms", 
+                new StringContent(json, Encoding.UTF8, "application/json"));
         }
 
         // Act
@@ -209,104 +231,313 @@ public class RoomsApiTests : IAsyncLifetime
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var results = JsonSerializer.Deserialize<List<RoomDto>>(responseContent);
-        
+        var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(results);
         Assert.Equal(3, results!.Count);
     }
 
     [Fact]
-    public async Task UpdateRoom_Returns200Ok()
+    public async Task UpdateRoom_WithNewData_Returns200Ok()
     {
-        // Arrange - Create a room first
-        var createRoom = new RoomDto
-        {
-            Name = "Room-103",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 100m
-        };
+        // Arrange - Create a room
+        var initial = new RoomDto { Name = "103", Capacity = 2, Priority = 5 };
+        var json = JsonSerializer.Serialize(initial);
+        var createResponse = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+        var created = JsonSerializer.Deserialize<RoomDto>(await createResponse.Content.ReadAsStringAsync());
 
-        var createJson = JsonSerializer.Serialize(createRoom);
-        var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-        var createResponse = await _client.PostAsync("/api/rooms", createContent);
-        
-        var createResult = await createResponse.Content.ReadAsStringAsync();
-        var created = JsonSerializer.Deserialize<RoomDto>(createResult);
-        var roomId = created!.Id;
-
-        // Update the room
-        var updateRoom = new RoomDto
+        // Act - Update with new data
+        var updated = new RoomDto
         {
-            Name = "Room-103",
+            Name = "103-Updated",
             Capacity = 3,
-            RoomType = "Deluxe",
-            PricePerNight = 150m
+            FloorNumber = "2",
+            HouseNumber = "A",
+            Priority = 1,
+            Comments = "Renovated"
         };
-
-        var updateJson = JsonSerializer.Serialize(updateRoom);
-        var updateContent = new StringContent(updateJson, Encoding.UTF8, "application/json");
-
-        // Act
-        var response = await _client.PutAsync($"/api/rooms/{roomId}", updateContent);
+        var updateJson = JsonSerializer.Serialize(updated);
+        var response = await _client.PutAsync($"/api/rooms/{created!.Id}", 
+            new StringContent(updateJson, Encoding.UTF8, "application/json"));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<RoomDto>(responseContent);
-        
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(result);
-        Assert.Equal(3, result!.Capacity);
-        Assert.Equal("Deluxe", result.RoomType);
-        Assert.Equal(150m, result.PricePerNight);
+        Assert.Equal("103-Updated", result?.Name);
+        Assert.Equal(3, result?.Capacity);
+        Assert.Equal("2", result?.FloorNumber);
+        Assert.Equal("A", result?.HouseNumber);
+        Assert.Equal(1, result?.Priority);
+        Assert.Equal("Renovated", result?.Comments);
     }
 
     [Fact]
     public async Task DeleteRoom_Returns204NoContent()
     {
-        // Arrange - Create a room first
-        var createRoom = new RoomDto
-        {
-            Name = "Room-104",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 100m
-        };
-
-        var createJson = JsonSerializer.Serialize(createRoom);
-        var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-        var createResponse = await _client.PostAsync("/api/rooms", createContent);
-        
-        var createResult = await createResponse.Content.ReadAsStringAsync();
-        var created = JsonSerializer.Deserialize<RoomDto>(createResult);
-        var roomId = created!.Id;
+        // Arrange - Create a room
+        var room = new RoomDto { Name = "104", Capacity = 2 };
+        var json = JsonSerializer.Serialize(room);
+        var createResponse = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+        var created = JsonSerializer.Deserialize<RoomDto>(await createResponse.Content.ReadAsStringAsync());
 
         // Act
-        var response = await _client.DeleteAsync($"/api/rooms/{roomId}");
+        var response = await _client.DeleteAsync($"/api/rooms/{created!.Id}");
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
         // Verify deletion
-        var getResponse = await _client.GetAsync($"/api/rooms/{roomId}");
+        var getResponse = await _client.GetAsync($"/api/rooms/{created.Id}");
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    #endregion
+
+    #region Field Coverage Tests
+
+    [Fact]
+    public async Task CreateRoom_WithFloorNumber_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "201", Capacity = 2, FloorNumber = "Ground" };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("Ground", result?.FloorNumber);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithHouseNumber_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "202", Capacity = 2, HouseNumber = "West Wing" };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("West Wing", result?.HouseNumber);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithPriority_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "203", Capacity = 2, Priority = 3 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal(3, result?.Priority);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithSecondaryPriority_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "204", Capacity = 2, SecondaryPriority = 2 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal(2, result?.SecondaryPriority);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithHasBedsFlag_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "205", Capacity = 2, HasBeds = "S" };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("S", result?.HasBeds);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithNeighboringRooms_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "206", Capacity = 2, NeighboringRooms = "204,205" };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("204,205", result?.NeighboringRooms);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithComments_IsPreserved()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "207", Capacity = 2, Comments = "Needs maintenance" };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("Needs maintenance", result?.Comments);
+    }
+
+    #endregion
+
+    #region Partial Field Coverage (Missing Data Tests)
+
+    [Fact]
+    public async Task CreateRoom_WithoutOptionalFields_UsesDefaults()
+    {
+        // Arrange - Only required fields
+        var room = new RoomDto { Name = "MinimalRoom", Capacity = 1 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(result);
+        Assert.Equal("MinimalRoom", result!.Name);
+        Assert.Equal(1, result.Capacity);
+        Assert.Null(result.FloorNumber);
+        Assert.Null(result.HouseNumber);
+        Assert.Null(result.Priority);
+        Assert.Null(result.SecondaryPriority);
+        Assert.Null(result.HasBeds);
+        Assert.Null(result.NeighboringRooms);
+        Assert.Null(result.Comments);
+    }
+
+    [Fact]
+    public async Task UpdateRoom_WithPartialFields_PreservesOtherFields()
+    {
+        // Arrange - Create room with all fields
+        var initial = new RoomDto
+        {
+            Name = "PartialTest",
+            Capacity = 2,
+            FloorNumber = "1",
+            HouseNumber = "A",
+            Priority = 5,
+            Comments = "Original comment"
+        };
+        var json = JsonSerializer.Serialize(initial);
+        var createResponse = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+        var created = JsonSerializer.Deserialize<RoomDto>(await createResponse.Content.ReadAsStringAsync());
+
+        // Act - Update only some fields
+        var partial = new RoomDto
+        {
+            Name = "PartialTest",
+            Capacity = 3,
+            FloorNumber = "2"
+            // Leave other fields as null/default
+        };
+        var updateJson = JsonSerializer.Serialize(partial);
+        var response = await _client.PutAsync($"/api/rooms/{created!.Id}", 
+            new StringContent(updateJson, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.Equal("PartialTest", result?.Name);
+        Assert.Equal(3, result?.Capacity);
+        Assert.Equal("2", result?.FloorNumber);
+    }
+
+    #endregion
+
+    #region Validation & Error Handling
+
+    [Fact]
+    public async Task CreateRoom_MissingName_Returns400BadRequest()
+    {
+        // Arrange
+        var room = new { Capacity = 2 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRoom_ZeroCapacity_Returns400BadRequest()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "Invalid", Capacity = 0 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRoom_NegativeCapacity_Returns400BadRequest()
+    {
+        // Arrange
+        var room = new RoomDto { Name = "Invalid", Capacity = -1 };
+        var json = JsonSerializer.Serialize(room);
+
+        // Act
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
     public async Task CreateRoom_DuplicateName_Returns409Conflict()
     {
         // Arrange
-        var room = new RoomDto
-        {
-            Name = "Room-Unique",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 100m
-        };
-
+        var room = new RoomDto { Name = "DuplicateCheck", Capacity = 2 };
         var json = JsonSerializer.Serialize(room);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -314,7 +545,8 @@ public class RoomsApiTests : IAsyncLifetime
         await _client.PostAsync("/api/rooms", content);
 
         // Act - Try to create duplicate
-        var response = await _client.PostAsync("/api/rooms", content);
+        var response = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
 
         // Assert
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -324,57 +556,209 @@ public class RoomsApiTests : IAsyncLifetime
     public async Task GetRoom_NonExistent_Returns404NotFound()
     {
         // Act
-        var response = await _client.GetAsync("/api/rooms/nonexistent-id-12345");
+        var response = await _client.GetAsync("/api/rooms/nonexistent-room-id");
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task CreateRoom_MissingRequired_Returns400BadRequest()
+    public async Task UpdateRoom_NonExistent_Returns404NotFound()
     {
-        // Arrange - Invalid room (missing name)
-        var room = new { Capacity = 2 };
+        // Arrange
+        var room = new RoomDto { Name = "NonExistent", Capacity = 2 };
         var json = JsonSerializer.Serialize(room);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _client.PostAsync("/api/rooms", content);
+        var response = await _client.PutAsync("/api/rooms/nonexistent-id", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
 
         // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    #endregion
+
+    #region Integration & Priority Logic Tests
+
+    [Fact]
+    public async Task NeighboringRooms_CanBeListed_AndRetrieved()
+    {
+        // Arrange - Create rooms with neighbor relationships
+        var room1 = new RoomDto { Name = "RoomA", Capacity = 2, NeighboringRooms = "RoomB,RoomC" };
+        var room2 = new RoomDto { Name = "RoomB", Capacity = 2, NeighboringRooms = "RoomA" };
+        var room3 = new RoomDto { Name = "RoomC", Capacity = 3, NeighboringRooms = "RoomA" };
+
+        foreach (var room in new[] { room1, room2, room3 })
+        {
+            var json = JsonSerializer.Serialize(room);
+            await _client.PostAsync("/api/rooms", 
+                new StringContent(json, Encoding.UTF8, "application/json"));
+        }
+
+        // Act - Retrieve RoomA and verify neighbors
+        var response = await _client.GetAsync("/api/rooms?name=RoomA");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = JsonSerializer.Deserialize<RoomDto>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(result);
+        Assert.Equal("RoomB,RoomC", result!.NeighboringRooms);
+    }
+
+    [Fact]
+    public async Task PriorityOrder_MultipleRooms_AreDistinct()
+    {
+        // Arrange - Create rooms with different priorities
+        var priorities = new[] { (Name: "P1", Priority: 1), (Name: "P5", Priority: 5), (Name: "P3", Priority: 3) };
+        
+        foreach (var (name, priority) in priorities)
+        {
+            var room = new RoomDto { Name = name, Capacity = 2, Priority = priority };
+            var json = JsonSerializer.Serialize(room);
+            await _client.PostAsync("/api/rooms", 
+                new StringContent(json, Encoding.UTF8, "application/json"));
+        }
+
+        // Act - List all and verify priorities are preserved
+        var response = await _client.GetAsync("/api/rooms");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(results);
+        Assert.Equal(3, results!.Count);
+        
+        var p1 = results.FirstOrDefault(r => r.Name == "P1");
+        var p3 = results.FirstOrDefault(r => r.Name == "P3");
+        var p5 = results.FirstOrDefault(r => r.Name == "P5");
+        
+        Assert.Equal(1, p1?.Priority);
+        Assert.Equal(3, p3?.Priority);
+        Assert.Equal(5, p5?.Priority);
+    }
+
+    [Fact]
+    public async Task SecondaryPriority_BedAssignment_Works()
+    {
+        // Arrange - Create rooms with bed assignment priorities
+        var room1 = new RoomDto 
+        { 
+            Name = "BedRoom1", 
+            Capacity = 2, 
+            HasBeds = "S",
+            SecondaryPriority = 1 
+        };
+        var room2 = new RoomDto 
+        { 
+            Name = "BedRoom2", 
+            Capacity = 2, 
+            HasBeds = "S",
+            SecondaryPriority = 2 
+        };
+
+        foreach (var room in new[] { room1, room2 })
+        {
+            var json = JsonSerializer.Serialize(room);
+            await _client.PostAsync("/api/rooms", 
+                new StringContent(json, Encoding.UTF8, "application/json"));
+        }
+
+        // Act - Retrieve both rooms and verify SecondaryPriority values
+        var response = await _client.GetAsync("/api/rooms");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(results);
+        
+        var bed1 = results.FirstOrDefault(r => r.Name == "BedRoom1");
+        var bed2 = results.FirstOrDefault(r => r.Name == "BedRoom2");
+        
+        Assert.Equal(1, bed1?.SecondaryPriority);
+        Assert.Equal(2, bed2?.SecondaryPriority);
+    }
+
+    #endregion
+
+    #region Data Integrity Tests
 
     [Fact]
     public async Task RoomOperations_PreservesDataIntegrity()
     {
         // Arrange
-        var room = new RoomDto
+        var original = new RoomDto
         {
-            Name = "Integrity-Test-Room",
-            Capacity = 2,
-            RoomType = "Standard",
-            PricePerNight = 99.99m
+            Name = "IntegrityTest",
+            Capacity = 4,
+            FloorNumber = "3",
+            HouseNumber = "B",
+            Priority = 2,
+            SecondaryPriority = 1,
+            HasBeds = "S",
+            NeighboringRooms = "101,102,103",
+            Comments = "Integrity check room"
         };
 
         // Act - Create
-        var createJson = JsonSerializer.Serialize(room);
-        var createContent = new StringContent(createJson, Encoding.UTF8, "application/json");
-        var createResponse = await _client.PostAsync("/api/rooms", createContent);
-        var created = JsonSerializer.Deserialize<RoomDto>(
-            await createResponse.Content.ReadAsStringAsync());
+        var json = JsonSerializer.Serialize(original);
+        var createResponse = await _client.PostAsync("/api/rooms", 
+            new StringContent(json, Encoding.UTF8, "application/json"));
+        var created = JsonSerializer.Deserialize<RoomDto>(await createResponse.Content.ReadAsStringAsync());
 
-        // Act - Get
+        // Act - Retrieve
         var getResponse = await _client.GetAsync($"/api/rooms/{created!.Id}");
-        var retrieved = JsonSerializer.Deserialize<RoomDto>(
-            await getResponse.Content.ReadAsStringAsync());
+        var retrieved = JsonSerializer.Deserialize<RoomDto>(await getResponse.Content.ReadAsStringAsync());
 
-        // Assert - Data matches
-        Assert.Equal(room.Name, retrieved!.Name);
-        Assert.Equal(room.Capacity, retrieved.Capacity);
-        Assert.Equal(room.RoomType, retrieved.RoomType);
-        Assert.Equal(room.PricePerNight, retrieved.PricePerNight);
+        // Assert - All fields match
+        Assert.Equal(original.Name, retrieved?.Name);
+        Assert.Equal(original.Capacity, retrieved?.Capacity);
+        Assert.Equal(original.FloorNumber, retrieved?.FloorNumber);
+        Assert.Equal(original.HouseNumber, retrieved?.HouseNumber);
+        Assert.Equal(original.Priority, retrieved?.Priority);
+        Assert.Equal(original.SecondaryPriority, retrieved?.SecondaryPriority);
+        Assert.Equal(original.HasBeds, retrieved?.HasBeds);
+        Assert.Equal(original.NeighboringRooms, retrieved?.NeighboringRooms);
+        Assert.Equal(original.Comments, retrieved?.Comments);
     }
+
+    [Fact]
+    public async Task MultipleRooms_AllFieldsPreserved_WhenListing()
+    {
+        // Arrange
+        await ClearRoomsAsync();
+        
+        var rooms = new[]
+        {
+            new RoomDto { Name = "R1", Capacity = 1, FloorNumber = "1", Priority = 1 },
+            new RoomDto { Name = "R2", Capacity = 2, FloorNumber = "1", Priority = 2 },
+            new RoomDto { Name = "R3", Capacity = 3, FloorNumber = "2", Priority = 3 }
+        };
+
+        foreach (var room in rooms)
+        {
+            var json = JsonSerializer.Serialize(room);
+            await _client.PostAsync("/api/rooms", 
+                new StringContent(json, Encoding.UTF8, "application/json"));
+        }
+
+        // Act
+        var response = await _client.GetAsync("/api/rooms");
+        var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
+
+        // Assert
+        Assert.Equal(3, results!.Count);
+        foreach (var original in rooms)
+        {
+            var retrieved = results.FirstOrDefault(r => r.Name == original.Name);
+            Assert.NotNull(retrieved);
+            Assert.Equal(original.Capacity, retrieved!.Capacity);
+            Assert.Equal(original.FloorNumber, retrieved.FloorNumber);
+            Assert.Equal(original.Priority, retrieved.Priority);
+        }
+    }
+
+    #endregion
 }
 
 /// <summary>
