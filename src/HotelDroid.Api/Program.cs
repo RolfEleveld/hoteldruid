@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using HotelDroid.Api.Services;
+using HotelDroid.Api.Services.ExportImport;
 using HotelDroid.Api.Models;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.FileProviders;
@@ -93,6 +94,16 @@ builder.Services.AddSingleton(sp =>
 
 // Register a simple file-backed store for development (legacy support)
 builder.Services.AddSingleton<FileKvStore>();
+
+// Register export/import services
+builder.Services.AddScoped<ICanonicalMapper>(sp =>
+    new CanonicalMapper(sp.GetRequiredService<ILogger<CanonicalMapper>>())
+);
+builder.Services.AddScoped<IPackageBuilder, PackageBuilder>();
+builder.Services.AddScoped<IZipBuilder, ZipBuilder>();
+builder.Services.AddScoped<IApiDistributor, ApiDistributor>();
+builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<IImportService, ImportService>();
 
 var app = builder.Build();
 
@@ -303,6 +314,124 @@ app.MapDelete("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
     await store.DeleteAsync("rooms", id);
     return Results.NoContent();
 });
+
+// --- Export/Import API endpoints ---
+
+app.MapPost("/api/export/create", async (ExportRequest? request, IExportService exportService) =>
+{
+    request ??= new ExportRequest();
+    var exportId = await exportService.CreateExportPackageAsync(request);
+    var status = await exportService.GetExportStatusAsync(exportId);
+    return Results.Ok(new ExportResponse(
+        ExportId: exportId,
+        Status: status.Status,
+        StatusUrl: $"/api/export/{exportId}/status",
+        EstimatedSeconds: 5
+    ));
+})
+.WithName("CreateExport")
+.WithOpenApi();
+
+app.MapGet("/api/export/{exportId}/status", async (string exportId, IExportService exportService) =>
+{
+    try
+    {
+        var status = await exportService.GetExportStatusAsync(exportId);
+        return Results.Ok(status);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { error = $"Export {exportId} not found" });
+    }
+})
+.WithName("GetExportStatus")
+.WithOpenApi();
+
+app.MapGet("/api/export/{exportId}/download", async (string exportId, IExportService exportService) =>
+{
+    try
+    {
+        var (stream, fileName) = await exportService.DownloadExportAsync(exportId);
+        return Results.File(stream, "application/zip", fileName);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.WithName("DownloadExport")
+.WithOpenApi();
+
+app.MapGet("/api/export/list", async (IExportService exportService, int limit = 20, int offset = 0) =>
+{
+    var exports = await exportService.ListExportsAsync(limit, offset);
+    return Results.Ok(new { exports = exports, total = exports.Count });
+})
+.WithName("ListExports")
+.WithOpenApi();
+
+app.MapPost("/api/import/validate", async (IFormFile file, IImportService importService) =>
+{
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "File is required" });
+
+    try
+    {
+        var validation = await importService.ValidatePackageAsync(file);
+        return Results.Ok(validation);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.WithName("ValidateImport")
+.WithOpenApi();
+
+app.MapGet("/api/import/{packageId}/preview", async (string packageId, IImportService importService) =>
+{
+    try
+    {
+        var preview = await importService.GetImportPreviewAsync(packageId);
+        return Results.Ok(preview);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { error = $"Package {packageId} not found" });
+    }
+})
+.WithName("GetImportPreview")
+.WithOpenApi();
+
+app.MapPost("/api/import/{packageId}/execute", async (string packageId, ImportExecuteRequest request, IImportService importService) =>
+{
+    try
+    {
+        var result = await importService.ExecuteImportAsync(packageId, request);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { error = $"Package {packageId} not found" });
+    }
+})
+.WithName("ExecuteImport")
+.WithOpenApi();
+
+app.MapGet("/api/import/{importId}/status", async (string importId, IImportService importService) =>
+{
+    try
+    {
+        var status = await importService.GetImportStatusAsync(importId);
+        return Results.Ok(status);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { error = $"Import {importId} not found" });
+    }
+})
+.WithName("GetImportStatus")
+.WithOpenApi();
 
 app.Run();
 
