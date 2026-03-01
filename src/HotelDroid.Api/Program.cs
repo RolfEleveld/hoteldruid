@@ -79,15 +79,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-// Configure data root (from env var or appsettings)
-var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT") 
-    ?? builder.Configuration["DataRoot"]
-    ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
-
 // Register file-based stores
 builder.Services.AddSingleton<ILogger>(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger("HotelDroid.Api"));
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton<IKeyValueStore>(sp =>
 {
+    // Read dataRoot lazily so tests can override it via configuration
+    var config = sp.GetRequiredService<IConfiguration>();
+    var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT") 
+        ?? config["DataRoot"]
+        ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
     var logger = sp.GetRequiredService<ILogger<FileKeyValueStore>>();
     return new FileKeyValueStore(dataRoot, logger);
 });
@@ -196,7 +196,7 @@ app.MapPost("/api/bookings", async (BookingDto booking, FileKvStore store) =>
 
 // --- Room API endpoints ---
 
-app.MapPost("/api/rooms", async (RoomDto request, FileKeyValueStore store) =>
+app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest(new { error = "Room name (ID) is required" });
@@ -229,7 +229,7 @@ app.MapPost("/api/rooms", async (RoomDto request, FileKeyValueStore store) =>
     }
 });
 
-app.MapGet("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
+app.MapGet("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
 {
     var room = await store.GetAsync<RoomStorageModel>("rooms", id);
     if (room is null)
@@ -240,7 +240,7 @@ app.MapGet("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
         room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
 });
 
-app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
+app.MapGet("/api/rooms", async (IKeyValueStore store, string? name) =>
 {
     if (!string.IsNullOrEmpty(name))
     {
@@ -275,7 +275,7 @@ app.MapGet("/api/rooms", async (FileKeyValueStore store, string? name) =>
     return Results.Ok(result);
 });
 
-app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, FileKeyValueStore store) =>
+app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore store) =>
 {
     var exists = await store.ExistsAsync("rooms", id);
     if (!exists)
@@ -305,7 +305,7 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, FileKeyValueSto
         request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
 });
 
-app.MapDelete("/api/rooms/{id}", async (string id, FileKeyValueStore store) =>
+app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
 {
     var exists = await store.ExistsAsync("rooms", id);
     if (!exists)

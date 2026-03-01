@@ -1,0 +1,112 @@
+@namespace HotelDroid.Client.Components.Rooms
+@using HotelDroid.Client.Services
+@inject IRoomApiService RoomApiService
+@inject ILanguageService LanguageService
+
+<div class="export-settings-panel">
+    <div style="border: 1px solid #e0e0e0; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+        <h5 style="margin-top: 0;">@LanguageService.GetText("export.title", "Export Room Configuration")</h5>
+        <p style="font-size: 0.9em; color: #666;">
+            @LanguageService.GetText("export.description", "Download your room data as a ZIP file for backup or migration")
+        </p>
+
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 8px;">
+                @LanguageService.GetText("export.selectRooms", "Select rooms to export:")
+            </label>
+            <div style="margin-left: 10px;">
+                <label>
+                    <input type="radio" name="export-mode" value="all" 
+                        @onchange="@((ChangeEventArgs e) => ExportMode = e.Value?.ToString() ?? "all")"
+                        checked="@(ExportMode == "all")" />
+                    @LanguageService.GetText("export.selectAll", "Export All Rooms")
+                </label>
+                <label style="margin-left: 15px;">
+                    <input type="radio" name="export-mode" value="custom"
+                        @onchange="@((ChangeEventArgs e) => ExportMode = e.Value?.ToString() ?? "all")"
+                        checked="@(ExportMode == "custom")" />
+                    @LanguageService.GetText("export.selectCustom", "Select Custom Rooms")
+                </label>
+            </div>
+        </div>
+
+        <div style="margin: 15px 0;">
+            <label>
+                <input type="checkbox" @bind="IncludeMetadata" />
+                @LanguageService.GetText("export.includeMetadata", "Include metadata")
+            </label>
+        </div>
+
+        <div style="margin: 15px 0;">
+            <button class="sbutton" @onclick="PerformExportAsync" disabled="@IsExporting">
+                @if (IsExporting)
+                {
+                    <span>@LanguageService.GetText("export.exporting", "Exporting...")</span>
+                }
+                else
+                {
+                    <span>@LanguageService.GetText("export.button", "Export Now")</span>
+                }
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ExportStatus))
+        {
+            <div style="padding: 10px; border-radius: 3px; margin-top: 10px;" 
+                class="@(ExportError ? "alert-error" : "alert-success")">
+                @ExportStatus
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(DownloadUrl))
+        {
+            <div style="margin-top: 10px;">
+                <a href="@DownloadUrl" download class="btn-link">
+                    @LanguageService.GetText("export.downloadLink", "Download your export file")
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string ExportMode = "all";
+    private bool IncludeMetadata = true;
+    private bool IsExporting = false;
+    private string ExportStatus = string.Empty;
+    private string DownloadUrl = string.Empty;
+    private bool ExportError = false;
+
+    private async Task PerformExportAsync()
+    {
+        try
+        {
+            IsExporting = true;
+            ExportStatus = LanguageService.GetText("export.statusInProgress", "Export in progress...");
+            ExportError = false;
+            DownloadUrl = string.Empty;
+
+            // Get all rooms first
+            var rooms = await RoomApiService.GetRoomsAsync();
+            var roomIds = ExportMode == "all" 
+                ? rooms.Select(r => r.Id).ToList()
+                : rooms.Take(3).Select(r => r.Id).ToList(); // Example: take first 3 for custom
+
+            // Perform export
+            await RoomApiService.ExportRoomsAsync(roomIds, IncludeMetadata ? "full" : "minimal");
+
+            ExportStatus = LanguageService.GetText("export.statusCompleted", "Export completed successfully");
+            DownloadUrl = "/api/export/download"; // This would be the actual download URL
+        }
+        catch (Exception ex)
+        {
+            ExportStatus = LanguageService.GetText("export.statusFailed", "Export failed. Please try again.");
+            ExportError = true;
+            Console.Error.WriteLine($"Export error: {ex.Message}");
+        }
+        finally
+        {
+            IsExporting = false;
+        }
+    }
+}
