@@ -1,5 +1,6 @@
 using HotelDroid.Api.Models;
 using HotelDroid.Api.Services.ExportImport;
+using HotelDroid.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

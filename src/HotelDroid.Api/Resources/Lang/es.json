@@ -1,0 +1,85 @@
+{
+  "language": {
+    "name": "Español",
+    "code": "es"
+  },
+  "common": {
+    "export": "Exportar",
+    "import": "Importar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "loading": "Cargando...",
+    "success": "Éxito",
+    "error": "Error",
+    "settings": "Configuración"
+  },
+  "rooms": {
+    "title": "Habitaciones Principales",
+    "description": "Ver y gestionar sus habitaciones de hotel",
+    "emptyList": "No hay habitaciones disponibles",
+    "room": "Habitación",
+    "capacity": "Capacidad",
+    "floor": "Piso",
+    "house": "Casa",
+    "comments": "Comentarios",
+    "viewDetails": "Ver Detalles",
+    "priority": "Prioridad",
+    "secondaryPriority": "Prioridad Secundaria",
+    "hasBeds": "Tiene Camas",
+    "neighboringRooms": "Habitaciones Adyacentes"
+  },
+  "settings": {
+    "title": "Configuración y Gestión",
+    "description": "Exportar e importar configuraciones de habitaciones",
+    "export": "Exportar Habitaciones",
+    "import": "Importar Habitaciones"
+  },
+  "export": {
+    "title": "Exportar Configuración de Habitaciones",
+    "description": "Descargue sus datos de habitaciones como archivo ZIP para copia de seguridad o migración",
+    "button": "Exportar Ahora",
+    "exporting": "Exportando...",
+    "selectRooms": "Seleccione las habitaciones a exportar:",
+    "selectAll": "Exportar Todas las Habitaciones",
+    "selectCustom": "Seleccionar Habitaciones Personalizadas",
+    "includeMetadata": "Incluir metadatos",
+    "fileFormat": "Formato de archivo",
+    "downloadReady": "La descarga está lista",
+    "downloadLink": "Descargar su archivo de exportación",
+    "generatedAt": "Generado en",
+    "exportId": "ID de Exportación",
+    "statusInProgress": "Exportación en progreso...",
+    "statusCompleted": "Exportación completada exitosamente",
+    "statusFailed": "La exportación falló. Intente de nuevo.",
+    "errorMessage": "Ocurrió un error durante la exportación"
+  },
+  "import": {
+    "title": "Importar Configuración de Habitaciones",
+    "description": "Cargue un archivo ZIP que contenga datos de habitaciones para importar",
+    "button": "Importar Ahora",
+    "selectFile": "Seleccione un archivo ZIP para importar",
+    "dragDrop": "Arrastra y suelta tu archivo ZIP aquí",
+    "validate": "Validar",
+    "validating": "Validando...",
+    "execute": "Ejecutar Importación",
+    "executing": "Importando...",
+    "fileSelected": "Archivo seleccionado",
+    "validationResult": "Resultado de la Validación",
+    "validationPassed": "Validación aprobada exitosamente",
+    "validationFailed": "La validación falló",
+    "errors": "Errores",
+    "warnings": "Advertencias",
+    "importedCount": "Habitación(es) importada(s)",
+    "updatedCount": "Habitación(es) actualizada(s)",
+    "statusInProgress": "Importación en progreso...",
+    "statusCompleted": "Importación completada exitosamente",
+    "statusFailed": "La importación falló. Intente de nuevo.",
+    "errorMessage": "Ocurrió un error durante la importación"
+  },
+  "language": {
+    "switcher": "Idioma",
+    "selectLanguage": "Seleccionar idioma"
+  }
+}

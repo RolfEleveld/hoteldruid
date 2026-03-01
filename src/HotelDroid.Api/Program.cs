@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using HotelDroid.Api.Services;
 using HotelDroid.Api.Services.ExportImport;
 using HotelDroid.Api.Models;
+using HotelDroid.Shared;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
@@ -144,7 +145,6 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 // Basic root & health endpoints for quick validation
-app.MapGet("/", () => Results.Text("HotelDroid API running", "text/plain"));
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 
 var summaries = new[]
@@ -432,6 +432,9 @@ app.MapGet("/api/import/{importId}/status", async (string importId, IImportServi
 })
 .WithName("GetImportStatus")
 .WithOpenApi();
+
+// SPA fallback: route unmatched requests to index.html for Blazor client-side routing
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

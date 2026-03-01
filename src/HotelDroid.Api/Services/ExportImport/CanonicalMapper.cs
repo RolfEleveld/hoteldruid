@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HotelDroid.Api.Models;
+using HotelDroid.Shared;
 
 namespace HotelDroid.Api.Services.ExportImport;
 

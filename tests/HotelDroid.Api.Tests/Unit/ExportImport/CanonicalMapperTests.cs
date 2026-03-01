@@ -1,5 +1,6 @@
 using HotelDroid.Api.Models;
 using HotelDroid.Api.Services.ExportImport;
+using HotelDroid.Shared;
 using Microsoft.Extensions.Logging;
 using Xunit;
 

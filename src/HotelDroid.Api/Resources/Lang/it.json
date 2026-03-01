@@ -1,0 +1,85 @@
+{
+  "language": {
+    "name": "Italiano",
+    "code": "it"
+  },
+  "common": {
+    "export": "Esporta",
+    "import": "Importa",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "download": "Scarica",
+    "upload": "Carica",
+    "loading": "Caricamento...",
+    "success": "Successo",
+    "error": "Errore",
+    "settings": "Impostazioni"
+  },
+  "rooms": {
+    "title": "Camere Principali",
+    "description": "Visualizza e gestisci le camere del tuo hotel",
+    "emptyList": "Nessuna camera disponibile",
+    "room": "Camera",
+    "capacity": "Capacità",
+    "floor": "Piano",
+    "house": "Casa",
+    "comments": "Commenti",
+    "viewDetails": "Visualizza Dettagli",
+    "priority": "Priorità",
+    "secondaryPriority": "Priorità Secondaria",
+    "hasBeds": "Ha Letti",
+    "neighboringRooms": "Camere Adiacenti"
+  },
+  "settings": {
+    "title": "Impostazioni e Gestione",
+    "description": "Esporta e importa configurazioni delle camere",
+    "export": "Esporta Camere",
+    "import": "Importa Camere"
+  },
+  "export": {
+    "title": "Esporta Configurazione Camere",
+    "description": "Scarica i tuoi dati delle camere come file ZIP per backup o migrazione",
+    "button": "Esporta Ora",
+    "exporting": "Esportazione in corso...",
+    "selectRooms": "Seleziona le camere da esportare:",
+    "selectAll": "Esporta Tutte le Camere",
+    "selectCustom": "Seleziona Camere Personalizzate",
+    "includeMetadata": "Includi metadati",
+    "fileFormat": "Formato file",
+    "downloadReady": "Il download è pronto",
+    "downloadLink": "Scarica il tuo file di esportazione",
+    "generatedAt": "Generato il",
+    "exportId": "ID Esportazione",
+    "statusInProgress": "Esportazione in corso...",
+    "statusCompleted": "Esportazione completata con successo",
+    "statusFailed": "L'esportazione non è riuscita. Riprova.",
+    "errorMessage": "Si è verificato un errore durante l'esportazione"
+  },
+  "import": {
+    "title": "Importa Configurazione Camere",
+    "description": "Carica un file ZIP contenente dati delle camere per importarli",
+    "button": "Importa Ora",
+    "selectFile": "Seleziona un file ZIP da importare",
+    "dragDrop": "Trascina e rilascia il tuo file ZIP qui",
+    "validate": "Convalida",
+    "validating": "Convalida in corso...",
+    "execute": "Esegui Importazione",
+    "executing": "Importazione in corso...",
+    "fileSelected": "File selezionato",
+    "validationResult": "Risultato Convalida",
+    "validationPassed": "Convalida completata con successo",
+    "validationFailed": "La convalida non è riuscita",
+    "errors": "Errori",
+    "warnings": "Avvertenze",
+    "importedCount": "Camera(e) importata(e)",
+    "updatedCount": "Camera(e) aggiornata(e)",
+    "statusInProgress": "Importazione in corso...",
+    "statusCompleted": "Importazione completata con successo",
+    "statusFailed": "L'importazione non è riuscita. Riprova.",
+    "errorMessage": "Si è verificato un errore durante l'importazione"
+  },
+  "language": {
+    "switcher": "Lingua",
+    "selectLanguage": "Seleziona lingua"
+  }
+}

@@ -1,0 +1,48 @@
+@implements IAsyncDisposable
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="navbar-brand">
+    <a class="navbar-brand" href="/">
+        <span class="brand-text">HotelDroid</span>
+    </a>
+</div>
+
+<nav class="flex-column">
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+            <span class="bi bi-house-fill" aria-hidden="true"></span> Home
+        </NavLink>
+    </div>
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/rooms">
+            <span class="bi bi-door-closed" aria-hidden="true"></span> Rooms
+        </NavLink>
+    </div>
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/bookings">
+            <span class="bi bi-calendar-check" aria-hidden="true"></span> Bookings
+        </NavLink>
+    </div>
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="/clients">
+            <span class="bi bi-people" aria-hidden="true"></span> Clients
+        </NavLink>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        // Cleanup if needed
+    }
+}

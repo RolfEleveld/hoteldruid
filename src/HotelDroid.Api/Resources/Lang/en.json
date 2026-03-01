@@ -1,0 +1,85 @@
+{
+  "language": {
+    "name": "English",
+    "code": "en"
+  },
+  "common": {
+    "export": "Export",
+    "import": "Import",
+    "cancel": "Cancel",
+    "save": "Save",
+    "download": "Download",
+    "upload": "Upload",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "settings": "Settings"
+  },
+  "rooms": {
+    "title": "Top Rooms",
+    "description": "View and manage your hotel rooms",
+    "emptyList": "No rooms available",
+    "room": "Room",
+    "capacity": "Capacity",
+    "floor": "Floor",
+    "house": "House",
+    "comments": "Comments",
+    "viewDetails": "View Details",
+    "priority": "Priority",
+    "secondaryPriority": "Secondary Priority",
+    "hasBeds": "Has Beds",
+    "neighboringRooms": "Neighboring Rooms"
+  },
+  "settings": {
+    "title": "Settings & Management",
+    "description": "Export and import room configurations",
+    "export": "Export Rooms",
+    "import": "Import Rooms"
+  },
+  "export": {
+    "title": "Export Room Configuration",
+    "description": "Download your room data as a ZIP file for backup or migration",
+    "button": "Export Now",
+    "exporting": "Exporting...",
+    "selectRooms": "Select rooms to export:",
+    "selectAll": "Export All Rooms",
+    "selectCustom": "Select Custom Rooms",
+    "includeMetadata": "Include metadata",
+    "fileFormat": "File format",
+    "downloadReady": "Download is ready",
+    "downloadLink": "Download your export file",
+    "generatedAt": "Generated at",
+    "exportId": "Export ID",
+    "statusInProgress": "Export in progress...",
+    "statusCompleted": "Export completed successfully",
+    "statusFailed": "Export failed. Please try again.",
+    "errorMessage": "An error occurred during export"
+  },
+  "import": {
+    "title": "Import Room Configuration",
+    "description": "Upload a ZIP file containing room data to import",
+    "button": "Import Now",
+    "selectFile": "Select a ZIP file to import",
+    "dragDrop": "Drag and drop your ZIP file here",
+    "validate": "Validate",
+    "validating": "Validating...",
+    "execute": "Execute Import",
+    "executing": "Importing...",
+    "fileSelected": "File selected",
+    "validationResult": "Validation Result",
+    "validationPassed": "Validation passed successfully",
+    "validationFailed": "Validation failed",
+    "errors": "Errors",
+    "warnings": "Warnings",
+    "importedCount": "Room(s) imported",
+    "updatedCount": "Room(s) updated",
+    "statusInProgress": "Import in progress...",
+    "statusCompleted": "Import completed successfully",
+    "statusFailed": "Import failed. Please try again.",
+    "errorMessage": "An error occurred during import"
+  },
+  "language": {
+    "switcher": "Language",
+    "selectLanguage": "Select language"
+  }
+}
