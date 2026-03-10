@@ -11,7 +11,7 @@ public class ExportService : IExportService
     private readonly ICanonicalMapper _canonicalMapper;
     private readonly IPackageBuilder _packageBuilder;
     private readonly IZipBuilder _zipBuilder;
-    private readonly IKeyValueStore _roomsStore;
+    private readonly IKeyValueStore _store;
     private readonly ILogger<ExportService> _logger;
     
     // Track in-progress exports
@@ -21,13 +21,13 @@ public class ExportService : IExportService
         ICanonicalMapper canonicalMapper,
         IPackageBuilder packageBuilder,
         IZipBuilder zipBuilder,
-        IKeyValueStore roomsStore,
+        IKeyValueStore store,
         ILogger<ExportService> logger)
     {
         _canonicalMapper = canonicalMapper;
         _packageBuilder = packageBuilder;
         _zipBuilder = zipBuilder;
-        _roomsStore = roomsStore;
+        _store = store;
         _logger = logger;
     }
 
@@ -119,21 +119,24 @@ public class ExportService : IExportService
         {
             _logger.LogInformation("Executing export {ExportId}", exportId);
 
-            // Step 1: Collect data from RoomsAPI (currently just from store)
+            // Step 1: Collect data from stores
             tracker.ProgressPercent = 20;
             var rooms = await CollectRoomsDataAsync();
-            _logger.LogInformation("Collected {Count} rooms", rooms.Length);
+            var assets = await _store.ListAsync<AssetDto>("assets");
+            var warehouses = await _store.ListAsync<WarehouseDto>("warehouses");
+            var inventory = await _store.ListAsync<InventoryDto>("inventory");
 
-            if (rooms.Length == 0)
-            {
-                _logger.LogWarning("No rooms found for export");
-            }
+            _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows",
+                rooms.Length, assets.Count, warehouses.Count, inventory.Count);
 
             // Step 2: Convert to canonical format
             tracker.ProgressPercent = 40;
             var canonicalData = new Dictionary<string, CanonicalData>
             {
-                ["rooms"] = _canonicalMapper.ToCanonical(rooms)
+                ["rooms"] = _canonicalMapper.ToCanonical(rooms),
+                ["assets"] = _canonicalMapper.ToCanonicalAssets(assets.ToArray()),
+                ["warehouses"] = _canonicalMapper.ToCanonicalWarehouses(warehouses.ToArray()),
+                ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory.ToArray())
             };
 
             // Step 3: Build package
@@ -166,7 +169,7 @@ public class ExportService : IExportService
         try
         {
             // Get all rooms from the file store
-            var rooms = await _roomsStore.ListAsync<RoomDto>("rooms");
+            var rooms = await _store.ListAsync<RoomDto>("rooms");
             return rooms.ToArray();
         }
         catch (Exception ex)

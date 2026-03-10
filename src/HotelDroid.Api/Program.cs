@@ -315,6 +315,257 @@ app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
     return Results.NoContent();
 });
 
+// --- Assets API (parallel to Rooms) ---
+
+app.MapPost("/api/assets", async (AssetDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Asset name is required" });
+
+    try
+    {
+        var storage = new AssetStorageModel
+        {
+            Name = request.Name,
+            Code = request.Code,
+            Description = request.Description,
+            CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+        };
+
+        var id = await store.CreateAsync("assets", request.Name, storage);
+        return Results.Created($"/api/assets/{id}", new AssetDto(id, request.Name, request.Code, request.Description, storage.CreatedAt));
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+}).WithName("CreateAsset").WithOpenApi();
+
+app.MapGet("/api/assets/{id}", async (string id, IKeyValueStore store) =>
+{
+    var asset = await store.GetAsync<AssetStorageModel>("assets", id);
+    if (asset is null)
+        return Results.NotFound();
+
+    return Results.Ok(new AssetDto(id, asset.Name ?? "", asset.Code, asset.Description, asset.CreatedAt));
+}).WithName("GetAsset").WithOpenApi();
+
+app.MapGet("/api/assets", async (IKeyValueStore store, string? name) =>
+{
+    if (!string.IsNullOrEmpty(name))
+    {
+        var asset = await store.GetByNameAsync<AssetStorageModel>("assets", name);
+        if (asset is null)
+            return Results.NotFound();
+
+        var index = await store.GetIndexAsync("assets");
+        var id = index.TryGetValue(name, out var assetId) ? assetId : "";
+        return Results.Ok(new AssetDto(id, asset.Name ?? "", asset.Code, asset.Description, asset.CreatedAt));
+    }
+
+    var assets = await store.ListAsync<AssetStorageModel>("assets");
+    var index2 = await store.GetIndexAsync("assets");
+
+    var result = new List<AssetDto>();
+    foreach (var a in assets)
+    {
+        var assetName = a.Name ?? "";
+        var assetId = index2.TryGetValue(assetName, out var id) ? id : "";
+        result.Add(new AssetDto(assetId, a.Name ?? "", a.Code, a.Description, a.CreatedAt));
+    }
+
+    return Results.Ok(result);
+}).WithName("ListAssets").WithOpenApi();
+
+app.MapPut("/api/assets/{id}", async (string id, AssetDto request, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("assets", id);
+    if (!exists)
+        return Results.NotFound();
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Asset name is required" });
+
+    var storage = new AssetStorageModel
+    {
+        Name = request.Name,
+        Code = request.Code,
+        Description = request.Description,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    await store.UpdateAsync("assets", id, storage);
+    return Results.Ok(new AssetDto(id, request.Name, request.Code, request.Description, storage.CreatedAt));
+}).WithName("UpdateAsset").WithOpenApi();
+
+app.MapDelete("/api/assets/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("assets", id);
+    if (!exists)
+        return Results.NotFound();
+
+    await store.DeleteAsync("assets", id);
+    return Results.NoContent();
+}).WithName("DeleteAsset").WithOpenApi();
+
+// --- Warehouses (magazzini) ---
+
+app.MapPost("/api/warehouses", async (WarehouseDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Warehouse name is required" });
+
+    var storage = new WarehouseStorageModel
+    {
+        Name = request.Name,
+        Code = request.Code,
+        Description = request.Description,
+        FloorNumber = request.FloorNumber,
+        HouseNumber = request.HouseNumber,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    var id = await store.CreateAsync("warehouses", request.Name, storage);
+    return Results.Created($"/api/warehouses/{id}", new WarehouseDto(id, request.Name, request.Code, request.Description, request.FloorNumber, request.HouseNumber, storage.CreatedAt));
+}).WithName("CreateWarehouse").WithOpenApi();
+
+app.MapGet("/api/warehouses/{id}", async (string id, IKeyValueStore store) =>
+{
+    var w = await store.GetAsync<WarehouseStorageModel>("warehouses", id);
+    if (w is null) return Results.NotFound();
+    return Results.Ok(new WarehouseDto(id, w.Name, w.Code, w.Description, w.FloorNumber, w.HouseNumber, w.CreatedAt));
+}).WithName("GetWarehouse").WithOpenApi();
+
+app.MapGet("/api/warehouses", async (IKeyValueStore store, string? name) =>
+{
+    if (!string.IsNullOrEmpty(name))
+    {
+        var w = await store.GetByNameAsync<WarehouseStorageModel>("warehouses", name);
+        if (w is null) return Results.NotFound();
+        var index = await store.GetIndexAsync("warehouses");
+        var id = index.TryGetValue(name, out var wid) ? wid : "";
+        return Results.Ok(new WarehouseDto(id, w.Name, w.Code, w.Description, w.FloorNumber, w.HouseNumber, w.CreatedAt));
+    }
+
+    var all = await store.ListAsync<WarehouseStorageModel>("warehouses");
+    var idx = await store.GetIndexAsync("warehouses");
+    var list = new List<WarehouseDto>();
+    foreach (var w in all)
+    {
+        var name2 = w.Name ?? "";
+        var id2 = idx.TryGetValue(name2, out var wid) ? wid : "";
+        list.Add(new WarehouseDto(id2, w.Name, w.Code, w.Description, w.FloorNumber, w.HouseNumber, w.CreatedAt));
+    }
+    return Results.Ok(list);
+}).WithName("ListWarehouses").WithOpenApi();
+
+app.MapPut("/api/warehouses/{id}", async (string id, WarehouseDto request, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("warehouses", id);
+    if (!exists) return Results.NotFound();
+    if (string.IsNullOrWhiteSpace(request.Name)) return Results.BadRequest(new { error = "Warehouse name is required" });
+
+    var storage = new WarehouseStorageModel
+    {
+        Name = request.Name,
+        Code = request.Code,
+        Description = request.Description,
+        FloorNumber = request.FloorNumber,
+        HouseNumber = request.HouseNumber,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    await store.UpdateAsync("warehouses", id, storage);
+    return Results.Ok(new WarehouseDto(id, request.Name, request.Code, request.Description, request.FloorNumber, request.HouseNumber, storage.CreatedAt));
+}).WithName("UpdateWarehouse").WithOpenApi();
+
+app.MapDelete("/api/warehouses/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("warehouses", id);
+    if (!exists) return Results.NotFound();
+    await store.DeleteAsync("warehouses", id);
+    return Results.NoContent();
+}).WithName("DeleteWarehouse").WithOpenApi();
+
+// --- Inventory relations (relinventario) ---
+
+app.MapPost("/api/inventory", async (InventoryDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.AssetId))
+        return Results.BadRequest(new { error = "AssetId is required" });
+    if (string.IsNullOrWhiteSpace(request.RoomId) && string.IsNullOrWhiteSpace(request.WarehouseId))
+        return Results.BadRequest(new { error = "Either RoomId or WarehouseId must be provided" });
+
+    var storage = new InventoryStorageModel
+    {
+        AssetId = request.AssetId,
+        RoomId = request.RoomId,
+        WarehouseId = request.WarehouseId,
+        Quantity = request.Quantity,
+        MinQuantityDefault = request.MinQuantityDefault,
+        RequiredOnCheckin = request.RequiredOnCheckin,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    var id = await store.CreateAsync("inventory", request.AssetId ?? "", storage);
+    return Results.Created($"/api/inventory/{id}", new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
+}).WithName("CreateInventory").WithOpenApi();
+
+app.MapGet("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
+{
+    var inv = await store.GetAsync<InventoryStorageModel>("inventory", id);
+    if (inv is null) return Results.NotFound();
+    return Results.Ok(new InventoryDto(id, inv.AssetId, inv.RoomId, inv.WarehouseId, inv.Quantity, inv.MinQuantityDefault, inv.RequiredOnCheckin, inv.CreatedAt));
+}).WithName("GetInventory").WithOpenApi();
+
+app.MapGet("/api/inventory", async (IKeyValueStore store, string? assetId, string? roomId, string? warehouseId) =>
+{
+    // Basic filtering implemented client-side in this prototype by listing and filtering
+    var all = await store.ListAsync<InventoryStorageModel>("inventory");
+    var filtered = all.AsEnumerable();
+    if (!string.IsNullOrEmpty(assetId)) filtered = filtered.Where(x => x.AssetId == assetId);
+    if (!string.IsNullOrEmpty(roomId)) filtered = filtered.Where(x => x.RoomId == roomId);
+    if (!string.IsNullOrEmpty(warehouseId)) filtered = filtered.Where(x => x.WarehouseId == warehouseId);
+
+    var idx = await store.GetIndexAsync("inventory");
+    var list = new List<InventoryDto>();
+    foreach (var item in filtered)
+    {
+        // try to find id by AssetId or by searching idx (best-effort)
+        var id = idx.FirstOrDefault(kvp => kvp.Value == item.AssetId).Value ?? "";
+        list.Add(new InventoryDto(id, item.AssetId, item.RoomId, item.WarehouseId, item.Quantity, item.MinQuantityDefault, item.RequiredOnCheckin, item.CreatedAt));
+    }
+    return Results.Ok(list);
+}).WithName("ListInventory").WithOpenApi();
+
+app.MapPut("/api/inventory/{id}", async (string id, InventoryDto request, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("inventory", id);
+    if (!exists) return Results.NotFound();
+
+    var storage = new InventoryStorageModel
+    {
+        AssetId = request.AssetId,
+        RoomId = request.RoomId,
+        WarehouseId = request.WarehouseId,
+        Quantity = request.Quantity,
+        MinQuantityDefault = request.MinQuantityDefault,
+        RequiredOnCheckin = request.RequiredOnCheckin,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    await store.UpdateAsync("inventory", id, storage);
+    return Results.Ok(new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
+}).WithName("UpdateInventory").WithOpenApi();
+
+app.MapDelete("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("inventory", id);
+    if (!exists) return Results.NotFound();
+    await store.DeleteAsync("inventory", id);
+    return Results.NoContent();
+}).WithName("DeleteInventory").WithOpenApi();
+
 // --- Export/Import API endpoints ---
 
 app.MapPost("/api/export/create", async (ExportRequest? request, IExportService exportService) =>

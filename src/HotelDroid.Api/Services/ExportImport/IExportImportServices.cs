@@ -45,6 +45,16 @@ public interface ICanonicalMapper
     /// </summary>
     RoomDto[] FromCanonical(CanonicalData data);
 
+    // Assets / Inventory
+    CanonicalData ToCanonicalAssets(AssetDto[] assets);
+    AssetDto[] FromCanonicalAssets(CanonicalData data);
+
+    CanonicalData ToCanonicalWarehouses(WarehouseDto[] warehouses);
+    WarehouseDto[] FromCanonicalWarehouses(CanonicalData data);
+
+    CanonicalData ToCanonicalInventory(InventoryDto[] inventory);
+    InventoryDto[] FromCanonicalInventory(CanonicalData data);
+
     /// <summary>
     /// Get value from row with flexible field name handling
     /// Handles all aliases
