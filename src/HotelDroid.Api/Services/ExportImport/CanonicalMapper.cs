@@ -36,7 +36,65 @@ public class CanonicalMapper : ICanonicalMapper
             // English forms
             ["assets"] = "assets",
             ["warehouses"] = "warehouses",
-            ["inventory"] = "inventory"
+            ["inventory"] = "inventory",
+
+            // Reference data (italian → canonical)
+            ["nazioni"] = "nations",
+            ["regioni"] = "regions",
+            ["citta"] = "cities",
+            ["documentiid"] = "identity-document-types",
+            ["parentele"] = "family-relationships",
+
+            // Reference data (english → canonical)
+            ["nations"] = "nations",
+            ["regions"] = "regions",
+            ["cities"] = "cities",
+            ["identity-document-types"] = "identity-document-types",
+            ["family-relationships"] = "family-relationships",
+
+            // Layer 1: Configuration entities (italian → canonical)
+            ["casse"] = "cash_registers",
+            ["cash_registers"] = "cash_registers",
+            ["gruppi"] = "user_groups",
+            ["user_groups"] = "user_groups",
+            ["utenti"] = "users",
+            ["users"] = "users",
+            ["personalizza"] = "settings",
+            ["settings"] = "settings",
+
+            // Layer 2: Guest and User management (italian → canonical)
+            ["clienti"] = "clients",
+            ["clients"] = "clients",
+            ["relclienti"] = "client_data",
+            ["client_data"] = "client_data",
+            ["privilegi"] = "user_privileges",
+            ["user_privileges"] = "user_privileges",
+            ["relutenti"] = "user_relations",
+            ["user_relations"] = "user_relations",
+            ["relgruppi"] = "group_memberships",
+            ["group_memberships"] = "group_memberships",
+            ["anni"] = "years",
+            ["years"] = "years",
+            ["periodi"] = "periods",
+            ["periods"] = "periods",
+            ["ntariffe"] = "tariffs",
+            ["tariffs"] = "tariffs",
+            ["regole"] = "assignment_rules",
+            ["assignment_rules"] = "assignment_rules",
+
+            // Layer 4: Transactional entities (italian → canonical)
+            ["prenotazioni"] = "bookings",
+            ["bookings"] = "bookings",
+            ["costiprenotazione"] = "booking_costs",
+            ["booking_costs"] = "booking_costs",
+            ["ospiti"] = "booking_guests",
+            ["booking_guests"] = "booking_guests",
+            ["prenotazioniannullate"] = "cancelled_bookings",
+            ["cancelled_bookings"] = "cancelled_bookings",
+            ["spese"] = "expenses",
+            ["expenses"] = "expenses",
+            ["movimenticassa"] = "money_history",
+            ["money_history"] = "money_history"
         },
         FieldAliases: new()
         {
@@ -95,7 +153,224 @@ public class CanonicalMapper : ICanonicalMapper
             ["idmagazzino"] = "warehouse_id",
             ["quantita"] = "quantity",
             ["quantita_min_predef"] = "min_quantity_default",
-            ["richiesto_checkin"] = "required_on_checkin"
+            ["richiesto_checkin"] = "required_on_checkin",
+
+            // Nations (italian → canonical)
+            ["idnazioni"] = "id",
+            ["nome_nazione"] = "name",
+            ["codice_nazione"] = "code",
+            ["codice2_nazione"] = "code2",
+            ["codice3_nazione"] = "code3",
+
+            // Regions (italian → canonical)
+            ["idregioni"] = "id",
+            ["nome_regione"] = "name",
+            ["codice_regione"] = "code",
+            ["codice2_regione"] = "code2",
+            ["codice3_regione"] = "code3",
+
+            // Cities (italian → canonical)
+            ["idcitta"] = "id",
+            ["nome_citta"] = "name",
+            ["codice_citta"] = "code",
+            ["codice2_citta"] = "code2",
+            ["codice3_citta"] = "code3",
+
+            // Identity document types (italian → canonical)
+            ["iddocumentiid"] = "id",
+            ["nome_documentoid"] = "name",
+            ["codice_documentoid"] = "code",
+            ["codice2_documentoid"] = "code2",
+            ["codice3_documentoid"] = "code3",
+
+            // Family relationships (italian → canonical)
+            ["idparentele"] = "id",
+            ["nome_parentela"] = "name",
+            ["codice_parentela"] = "code",
+            ["codice2_parentela"] = "code2",
+            ["codice3_parentela"] = "code3",
+
+            // Cash Registers (italian → canonical)
+            ["idcasse"] = "id",
+            ["nome_cassa"] = "name",
+            ["stato"] = "status",
+            ["codice_cassa"] = "code",
+            ["descrizione_cassa"] = "description",
+
+            // User Groups (italian → canonical)
+            ["idgruppi"] = "id",
+            ["nome_gruppo"] = "name",
+
+            // Users (italian → canonical)
+            ["idutenti"] = "id",
+            ["nome_utente"] = "username",
+            ["tipo_pass"] = "password_type",
+
+            // Settings (italian → canonical)
+            ["idpersonalizza"] = "key",
+            ["idutente"] = "user_id",
+            ["valpersonalizza"] = "string_value",
+            ["valpersonalizza_num"] = "numeric_value",
+
+            // Clients (italian → canonical)
+            ["idclienti"] = "id",
+            ["cognome"] = "last_name",
+            ["nome"] = "first_name",
+            ["soprannome"] = "nickname",
+            ["sesso"] = "gender",
+            ["titolo"] = "title",
+            ["lingua"] = "language",
+            ["datanascita"] = "date_of_birth",
+            ["cittanascita"] = "birth_city",
+            ["regionenascita"] = "birth_region",
+            ["nazionenascita"] = "birth_nation",
+            ["documento"] = "document_number",
+            ["scadenzadoc"] = "document_expiry",
+            ["tipodoc"] = "document_type",
+            ["nazione"] = "nation",
+            ["regione"] = "region",
+            ["citta_res"] = "city",
+            ["via"] = "street",
+            ["numcivico"] = "street_number",
+            ["cap"] = "postal_code",
+            ["telefono"] = "phone",
+            ["email"] = "email",
+            ["cod_fiscale"] = "tax_code",
+            ["partita_iva"] = "vat_number",
+
+            // Client pass-throughs
+            ["last_name"] = "last_name",
+            ["first_name"] = "first_name",
+            ["date_of_birth"] = "date_of_birth",
+            ["birth_city"] = "birth_city",
+            ["birth_region"] = "birth_region",
+            ["birth_nation"] = "birth_nation",
+            ["document_number"] = "document_number",
+            ["document_expiry"] = "document_expiry",
+            ["document_type"] = "document_type",
+            ["document_nation"] = "document_nation",
+            ["nationality"] = "nationality",
+            ["street"] = "street",
+            ["street_number"] = "street_number",
+            ["postal_code"] = "postal_code",
+            ["phone"] = "phone",
+            ["tax_code"] = "tax_code",
+            ["vat_number"] = "vat_number",
+
+            // ClientData (italian → canonical)
+            ["relclienti_id"] = "client_id",
+            ["numero"] = "number",
+            ["tipo"] = "type",
+            ["testo1"] = "text1",
+            ["testo2"] = "text2",
+            ["testo3"] = "text3",
+            ["testo4"] = "text4",
+            ["testo5"] = "text5",
+            ["testo6"] = "text6",
+            ["testo7"] = "text7",
+            ["testo8"] = "text8",
+
+            // ClientData pass-throughs
+            ["client_id"] = "client_id",
+            ["number"] = "number",
+            ["type"] = "type",
+            ["text1"] = "text1",
+            ["text2"] = "text2",
+            ["text3"] = "text3",
+            ["text4"] = "text4",
+            ["text5"] = "text5",
+            ["text6"] = "text6",
+            ["text7"] = "text7",
+            ["text8"] = "text8",
+
+            // UserPrivileges (italian → canonical)
+            ["anno"] = "year",
+            ["regole1_consentite"] = "allowed_rules",
+            ["tariffe_consentite"] = "allowed_tariffs",
+            ["casse_consentite"] = "allowed_cash_registers",
+
+            // UserPrivileges pass-throughs
+            ["user_id"] = "user_id",
+            ["year"] = "year",
+            ["allowed_rules"] = "allowed_rules",
+            ["allowed_tariffs"] = "allowed_tariffs",
+            ["allowed_cash_registers"] = "allowed_cash_registers",
+
+            // UserRelations (italian → canonical)
+            ["idnazione"] = "nation_id",
+            ["idregione"] = "region_id",
+            ["idcitta"] = "city_id",
+            ["iddocumentoid"] = "document_type_id",
+            ["idparentela"] = "family_relationship_id",
+            ["idsup"] = "superior_id",
+            ["predef"] = "is_default",
+
+            // UserRelations pass-throughs
+            ["nation_id"] = "nation_id",
+            ["region_id"] = "region_id",
+            ["city_id"] = "city_id",
+            ["document_type_id"] = "document_type_id",
+            ["family_relationship_id"] = "family_relationship_id",
+            ["superior_id"] = "superior_id",
+            ["is_default"] = "is_default",
+
+            // GroupMemberships (italian → canonical)
+            ["idgruppo"] = "group_id",
+
+            // GroupMemberships pass-throughs
+            ["group_id"] = "group_id",
+
+            // Years (italian → canonical)
+            ["tipoper"] = "period_type",
+
+            // Years pass-throughs
+            ["period_type"] = "period_type",
+
+            // Periods (italian → canonical)
+            ["inizioper"] = "start_date",
+            ["fineper"] = "end_date",
+            ["tper1"] = "tariff_1",
+            ["tper1pp"] = "tariff_1_per_person",
+
+            // Periods pass-throughs
+            ["start_date"] = "start_date",
+            ["end_date"] = "end_date",
+            ["tariff_1"] = "tariff_1",
+            ["tariff_1_per_person"] = "tariff_1_per_person",
+
+            // Tariffs (italian → canonical)
+            ["nomecosto_ca"] = "extra_cost_name",
+            ["tipocosto_ca"] = "cost_type",
+            ["valoreb_ca"] = "base_value",
+            ["valorep_ca"] = "percentage_value",
+            ["aliq_ca"] = "tax_percentage",
+            ["categoria_ca"] = "category",
+            ["numlimite_ca"] = "number_limit",
+
+            // Tariffs pass-throughs
+            ["extra_cost_name"] = "extra_cost_name",
+            ["cost_type"] = "cost_type",
+            ["base_value"] = "base_value",
+            ["percentage_value"] = "percentage_value",
+            ["tax_percentage"] = "tax_percentage",
+            ["category"] = "category",
+            ["number_limit"] = "number_limit",
+
+            // AssignmentRules (italian → canonical)
+            ["camoeag_ra"] = "room_or_agency",
+            ["tariccl_ra"] = "closed_tariff",
+            ["taricam_ra"] = "tariff_per_room",
+            ["inizioper_ra"] = "start_period_id",
+            ["fineper_ra"] = "end_period_id",
+            ["motivo1_ra"] = "reason_1",
+
+            // AssignmentRules pass-throughs
+            ["room_or_agency"] = "room_or_agency",
+            ["closed_tariff"] = "closed_tariff",
+            ["tariff_per_room"] = "tariff_per_room",
+            ["start_period_id"] = "start_period_id",
+            ["end_period_id"] = "end_period_id",
+            ["reason_1"] = "reason_1"
         },
         ExportNames: new ExportNamingConfig(
             TableName: "rooms",  // Standard export name

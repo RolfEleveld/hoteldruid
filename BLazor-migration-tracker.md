@@ -5,7 +5,7 @@ Branch: blazor
 
 **Architecture**: See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions, data model, and implementation phases.
 
-## Current Status Summary (2026-02-21)
+## Current Status Summary (2026-05-03)
 
 **Phase 1A — Core Storage & Test Infrastructure: COMPLETE ✅**
 
@@ -15,9 +15,18 @@ Branch: blazor
 - API endpoints for rooms (POST, GET, PUT, DELETE) fully functional
 - Documentation complete (ARCHITECTURE.md, TEST_INFRASTRUCTURE.md, Migration Tracker)
 
-**Phase 1B — Repositories & Ledger: Ready to begin**
+**Phase 1B — Repositories & Ledger: COMPLETE ✅**
 
-Next milestone: Implement `IRoomRepository`, `ILedgerRepository`, and `IBookingTransactionRepository` with comprehensive validation and event logging.
+- `IRoomRepository` / `RoomRepository` — CRUD + validation (name required, capacity 1–100, HasBeds "S"/"N"/null)
+- `ILedgerRepository` / `LedgerRepository` — daily partitioned ledger with atomic appends, snapshots, consolidation, per-booking queries; SemaphoreSlim concurrency per date-partition
+- `IBookingTransactionRepository` / `BookingTransactionRepository` — per-booking sequence tracking with atomic index, SemaphoreSlim per booking ID
+- Models: `LedgerEntry`, `LedgerSnapshot`, `BookingTransaction`, `BookingTransactionIndex` added to `Models/`
+- All three repositories registered in DI (`Program.cs`)
+- 170/170 tests passing (including new RoomRepository, LedgerRepository, BookingTransactionRepository suites)
+
+**Phase 2 — API Endpoints: Ready to begin**
+
+Next milestone: Expose `IRoomRepository`, `ILedgerRepository`, and `IBookingTransactionRepository` via REST endpoints; replace inline endpoint logic in `Program.cs` with repository-backed handlers.
 
 Purpose
 

@@ -81,5 +81,126 @@
   "language": {
     "switcher": "Language",
     "selectLanguage": "Select language"
+  },
+  "nations": { "title": "Nations", "description": "Country reference list", "name": "Country Name", "code": "ISO Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No nations defined" },
+  "regions": { "title": "Regions", "description": "Province / state reference list", "name": "Region Name", "code": "Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No regions defined" },
+  "cities": { "title": "Cities", "description": "City reference list", "name": "City Name", "code": "Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No cities defined" },
+  "identityDocumentTypes": { "title": "Identity Document Types", "description": "Passport and ID document type list", "name": "Document Type", "code": "Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No document types defined" },
+  "familyRelationships": { "title": "Family Relationships", "description": "Kinship and family relationship types", "name": "Relationship", "code": "Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No relationship types defined" },
+  "cashRegisters": {
+    "title": "Cash Registers",
+    "description": "Manage payment cash registers",
+    "name": "Register Name",
+    "code": "Code",
+    "status": "Status",
+    "statusOpen": "Open",
+    "statusClosed": "Closed",
+    "description_field": "Description",
+    "emptyList": "No cash registers defined"
+  },
+  "userGroups": {
+    "title": "User Groups",
+    "description": "Manage user permission groups",
+    "name": "Group Name",
+    "emptyList": "No user groups defined"
+  },
+  "users": {
+    "title": "Users",
+    "description": "Manage system users",
+    "username": "Username",
+    "passwordType": "Password Type",
+    "emptyList": "No users defined",
+    "changePassword": "Change Password",
+    "newPassword": "New Password"
+  },
+  "userSettings": {
+    "title": "Settings",
+    "description": "System and user settings",
+    "key": "Setting Key",
+    "userId": "User ID",
+    "stringValue": "Value",
+    "numericValue": "Numeric Value",
+    "emptyList": "No settings defined"
+  },
+  "clients": {
+    "title": "Clients", "description": "Guest and client management",
+    "lastName": "Last Name", "firstName": "First Name", "nickname": "Nickname",
+    "gender": "Gender", "title_field": "Title", "language": "Language",
+    "dateOfBirth": "Date of Birth", "birthCity": "Birth City",
+    "documentNumber": "Document Number", "documentExpiry": "Document Expiry",
+    "documentType": "Document Type", "nation": "Nation", "region": "Region",
+    "city": "City", "street": "Street", "postalCode": "Postal Code",
+    "phone": "Phone", "email": "Email", "taxCode": "Tax Code", "vatNumber": "VAT Number",
+    "notes": "Notes", "emptyList": "No clients registered"
+  },
+  "clientData": {
+    "title": "Client Data", "description": "Additional client data records",
+    "clientId": "Client ID", "number": "Sequence", "type": "Type",
+    "text1": "Text 1", "emptyList": "No client data records"
+  },
+  "userPrivileges": {
+    "title": "User Privileges", "description": "Per-user and per-year privilege settings",
+    "userId": "User ID", "year": "Year", "allowedRules": "Allowed Rules",
+    "allowedTariffs": "Allowed Tariffs", "allowedCashRegisters": "Allowed Cash Registers",
+    "bookingInsertPriv": "Booking Insert", "bookingModifyPriv": "Booking Modify",
+    "emptyList": "No privilege records"
+  },
+  "userRelations": {
+    "title": "User Preferences", "description": "User default location and document preferences",
+    "userId": "User ID", "nationId": "Nation", "regionId": "Region", "cityId": "City",
+    "documentTypeId": "Document Type", "familyRelationshipId": "Family Relationship",
+    "isDefault": "Is Default", "emptyList": "No user preference records"
+  },
+  "groupMemberships": {
+    "title": "Group Memberships", "description": "User group assignments",
+    "userId": "User ID", "groupId": "Group ID", "emptyList": "No group memberships"
+  },
+  "years": {
+    "title": "Years", "description": "Fiscal year configuration",
+    "periodType": "Period Type", "emptyList": "No years defined"
+  },
+  "periods": {
+    "title": "Periods", "description": "Year rate periods",
+    "startDate": "Start Date", "endDate": "End Date", "emptyList": "No periods defined"
+  },
+  "tariffs": {
+    "title": "Tariffs", "description": "Extra cost tariffs",
+    "extraCostName": "Extra Cost Name", "costType": "Cost Type", "baseValue": "Base Value", "emptyList": "No tariffs defined"
+  },
+  "assignmentRules": {
+    "title": "Assignment Rules", "description": "Room/agency assignment rules",
+    "roomOrAgency": "Room or Agency", "closedTariff": "Closed Tariff", "emptyList": "No assignment rules defined"
+  },
+  "bookings": {
+    "title": "Bookings", "description": "Guest room bookings",
+    "clientId": "Client ID", "roomId": "Room ID", "arrivalDate": "Arrival Date",
+    "departureDate": "Departure Date", "status": "Status", "notes": "Notes",
+    "emptyList": "No bookings"
+  },
+  "bookingCosts": {
+    "title": "Booking Costs", "description": "Costs associated with bookings",
+    "bookingId": "Booking ID", "tariffId": "Tariff ID", "amount": "Amount",
+    "description": "Description", "emptyList": "No booking costs"
+  },
+  "bookingGuests": {
+    "title": "Booking Guests", "description": "Guests linked to bookings",
+    "bookingId": "Booking ID", "clientId": "Client ID", "guestNumber": "Guest Number",
+    "emptyList": "No booking guests"
+  },
+  "cancelledBookings": {
+    "title": "Cancelled Bookings", "description": "Archive of cancelled bookings",
+    "clientId": "Client ID", "roomId": "Room ID", "arrivalDate": "Arrival Date",
+    "departureDate": "Departure Date", "status": "Status", "cancelledAt": "Cancelled At",
+    "notes": "Notes", "emptyList": "No cancelled bookings"
+  },
+  "expenses": {
+    "title": "Expenses", "description": "Year expenses",
+    "cashRegisterId": "Cash Register", "amount": "Amount", "description": "Description",
+    "date": "Date", "emptyList": "No expenses"
+  },
+  "moneyHistory": {
+    "title": "Money History", "description": "Cash register movement history",
+    "cashRegisterId": "Cash Register", "amount": "Amount", "type": "Type",
+    "description": "Description", "date": "Date", "emptyList": "No money history"
   }
 }

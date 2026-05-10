@@ -81,5 +81,126 @@
   "language": {
     "switcher": "Lingua",
     "selectLanguage": "Seleziona lingua"
+  },
+  "nations": { "title": "Nazioni", "description": "Lista paesi di riferimento", "name": "Nome Paese", "code": "Codice ISO", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna nazione definita" },
+  "regions": { "title": "Regioni", "description": "Lista province/stati", "name": "Nome Regione", "code": "Codice", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna regione definita" },
+  "cities": { "title": "Città", "description": "Lista città", "name": "Nome Città", "code": "Codice", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna città definita" },
+  "identityDocumentTypes": { "title": "Tipi Documento", "description": "Lista tipi di documenti d'identità", "name": "Tipo Documento", "code": "Codice", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessun tipo documento definito" },
+  "familyRelationships": { "title": "Parentele", "description": "Tipi di relazione di parentela", "name": "Parentela", "code": "Codice", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna parentela definita" },
+  "cashRegisters": {
+    "title": "Casse",
+    "description": "Gestione casse per i pagamenti",
+    "name": "Nome Cassa",
+    "code": "Codice",
+    "status": "Stato",
+    "statusOpen": "Aperta",
+    "statusClosed": "Chiusa",
+    "description_field": "Descrizione",
+    "emptyList": "Nessuna cassa definita"
+  },
+  "userGroups": {
+    "title": "Gruppi Utenti",
+    "description": "Gestione gruppi di permessi utenti",
+    "name": "Nome Gruppo",
+    "emptyList": "Nessun gruppo definito"
+  },
+  "users": {
+    "title": "Utenti",
+    "description": "Gestione utenti del sistema",
+    "username": "Nome Utente",
+    "passwordType": "Tipo Password",
+    "emptyList": "Nessun utente definito",
+    "changePassword": "Cambia Password",
+    "newPassword": "Nuova Password"
+  },
+  "userSettings": {
+    "title": "Impostazioni",
+    "description": "Impostazioni di sistema e utente",
+    "key": "Chiave Impostazione",
+    "userId": "ID Utente",
+    "stringValue": "Valore",
+    "numericValue": "Valore Numerico",
+    "emptyList": "Nessuna impostazione definita"
+  },
+  "clients": {
+    "title": "Clienti", "description": "Gestione ospiti e clienti",
+    "lastName": "Cognome", "firstName": "Nome", "nickname": "Soprannome",
+    "gender": "Sesso", "title_field": "Titolo", "language": "Lingua",
+    "dateOfBirth": "Data di Nascita", "birthCity": "Città di Nascita",
+    "documentNumber": "Numero Documento", "documentExpiry": "Scadenza Documento",
+    "documentType": "Tipo Documento", "nation": "Nazione", "region": "Regione",
+    "city": "Città", "street": "Via", "postalCode": "CAP",
+    "phone": "Telefono", "email": "Email", "taxCode": "Codice Fiscale", "vatNumber": "Partita IVA",
+    "notes": "Commento", "emptyList": "Nessun cliente registrato"
+  },
+  "clientData": {
+    "title": "Dati Cliente", "description": "Dati aggiuntivi del cliente",
+    "clientId": "ID Cliente", "number": "Sequenza", "type": "Tipo",
+    "text1": "Testo 1", "emptyList": "Nessun dato cliente"
+  },
+  "userPrivileges": {
+    "title": "Privilegi Utente", "description": "Impostazioni privilegi per utente e anno",
+    "userId": "ID Utente", "year": "Anno", "allowedRules": "Regole Consentite",
+    "allowedTariffs": "Tariffe Consentite", "allowedCashRegisters": "Casse Consentite",
+    "bookingInsertPriv": "Inserimento Prenotazione", "bookingModifyPriv": "Modifica Prenotazione",
+    "emptyList": "Nessun privilegio definito"
+  },
+  "userRelations": {
+    "title": "Preferenze Utente", "description": "Preferenze di default per posizione e documento",
+    "userId": "ID Utente", "nationId": "Nazione", "regionId": "Regione", "cityId": "Città",
+    "documentTypeId": "Tipo Documento", "familyRelationshipId": "Parentela",
+    "isDefault": "Predefinito", "emptyList": "Nessuna preferenza utente"
+  },
+  "groupMemberships": {
+    "title": "Gruppi di Appartenenza", "description": "Assegnazione utenti ai gruppi",
+    "userId": "ID Utente", "groupId": "ID Gruppo", "emptyList": "Nessuna appartenenza a gruppi"
+  },
+  "years": {
+    "title": "Anni", "description": "Configurazione anno fiscale",
+    "periodType": "Tipo Periodo", "emptyList": "Nessun anno definito"
+  },
+  "periods": {
+    "title": "Periodi", "description": "Periodi tariffari annuali",
+    "startDate": "Data Inizio", "endDate": "Data Fine", "emptyList": "Nessun periodo definito"
+  },
+  "tariffs": {
+    "title": "Tariffe", "description": "Tariffe costi extra",
+    "extraCostName": "Nome Costo Extra", "costType": "Tipo Costo", "baseValue": "Valore Base", "emptyList": "Nessuna tariffa definita"
+  },
+  "assignmentRules": {
+    "title": "Regole di Assegnazione", "description": "Regole assegnazione camera/agenzia",
+    "roomOrAgency": "Camera o Agenzia", "closedTariff": "Tariffa Chiusa", "emptyList": "Nessuna regola di assegnazione"
+  },
+  "bookings": {
+    "title": "Prenotazioni", "description": "Prenotazioni camere degli ospiti",
+    "clientId": "ID Cliente", "roomId": "ID Camera", "arrivalDate": "Data Arrivo",
+    "departureDate": "Data Partenza", "status": "Stato", "notes": "Note",
+    "emptyList": "Nessuna prenotazione"
+  },
+  "bookingCosts": {
+    "title": "Costi Prenotazione", "description": "Costi associati alle prenotazioni",
+    "bookingId": "ID Prenotazione", "tariffId": "ID Tariffa", "amount": "Importo",
+    "description": "Descrizione", "emptyList": "Nessun costo di prenotazione"
+  },
+  "bookingGuests": {
+    "title": "Ospiti Prenotazione", "description": "Ospiti collegati alle prenotazioni",
+    "bookingId": "ID Prenotazione", "clientId": "ID Cliente", "guestNumber": "Numero Ospite",
+    "emptyList": "Nessun ospite di prenotazione"
+  },
+  "cancelledBookings": {
+    "title": "Prenotazioni Annullate", "description": "Archivio prenotazioni annullate",
+    "clientId": "ID Cliente", "roomId": "ID Camera", "arrivalDate": "Data Arrivo",
+    "departureDate": "Data Partenza", "status": "Stato", "cancelledAt": "Annullata Il",
+    "notes": "Note", "emptyList": "Nessuna prenotazione annullata"
+  },
+  "expenses": {
+    "title": "Spese", "description": "Spese annuali",
+    "cashRegisterId": "Cassa", "amount": "Importo", "description": "Descrizione",
+    "date": "Data", "emptyList": "Nessuna spesa"
+  },
+  "moneyHistory": {
+    "title": "Movimenti Cassa", "description": "Storico movimenti di cassa",
+    "cashRegisterId": "Cassa", "amount": "Importo", "type": "Tipo",
+    "description": "Descrizione", "date": "Data", "emptyList": "Nessun movimento di cassa"
   }
 }

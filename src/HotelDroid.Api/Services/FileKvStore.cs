@@ -18,41 +18,6 @@ public class FileKvStore
 
     private string FileFor(string collection) => Path.Combine(_dataPath, collection + ".json");
 
-    public Task<List<ClientDto>> GetClientsAsync()
-    {
-        lock (_lock)
-        {
-            var path = FileFor("clients");
-            if (!File.Exists(path)) return Task.FromResult(new List<ClientDto>());
-            var txt = File.ReadAllText(path);
-            var list = JsonSerializer.Deserialize<List<ClientDto>>(txt, _jsonOptions) ?? new List<ClientDto>();
-            return Task.FromResult(list);
-        }
-    }
-
-    public async Task<ClientDto?> GetClientAsync(int id)
-    {
-        var list = await GetClientsAsync();
-        return list.FirstOrDefault(x => x.Id == id);
-    }
-
-    public Task<ClientDto> AddClientAsync(ClientDto client)
-    {
-        lock (_lock)
-        {
-            var path = FileFor("clients");
-            var list = File.Exists(path)
-                ? JsonSerializer.Deserialize<List<ClientDto>>(File.ReadAllText(path), _jsonOptions) ?? new List<ClientDto>()
-                : new List<ClientDto>();
-
-            var next = list.Any() ? list.Max(x => x.Id) + 1 : 1;
-            var toAdd = client with { Id = next };
-            list.Add(toAdd);
-            File.WriteAllText(path, JsonSerializer.Serialize(list, _jsonOptions));
-            return Task.FromResult(toAdd);
-        }
-    }
-
     public Task<List<BookingDto>> GetBookingsAsync()
     {
         lock (_lock)
@@ -65,7 +30,7 @@ public class FileKvStore
         }
     }
 
-    public async Task<BookingDto?> GetBookingAsync(int id)
+    public async Task<BookingDto?> GetBookingAsync(string id)
     {
         var list = await GetBookingsAsync();
         return list.FirstOrDefault(x => x.Id == id);
@@ -80,8 +45,7 @@ public class FileKvStore
                 ? JsonSerializer.Deserialize<List<BookingDto>>(File.ReadAllText(path), _jsonOptions) ?? new List<BookingDto>()
                 : new List<BookingDto>();
 
-            var next = list.Any() ? list.Max(x => x.Id) + 1 : 1;
-            var toAdd = booking with { Id = next };
+            var toAdd = booking with { Id = Guid.NewGuid().ToString("N") };
             list.Add(toAdd);
             File.WriteAllText(path, JsonSerializer.Serialize(list, _jsonOptions));
             return Task.FromResult(toAdd);
