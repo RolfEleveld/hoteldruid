@@ -1,0 +1,14 @@
+@namespace HotelDroid.Client.Shared
+@using Microsoft.AspNetCore.Components
+
+<a class="btn @ColorClass quick-action d-flex align-items-center" href="@Link">
+  <i class="bi @Icon me-2"></i>
+  <span>@Text</span>
+</a>
+
+@code {
+  [Parameter] public string Text { get; set; } = string.Empty;
+  [Parameter] public string Icon { get; set; } = "";
+  [Parameter] public string Link { get; set; } = "#";
+  [Parameter] public string ColorClass { get; set; } = "btn-primary";
+}

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HotelDroid.Api/HotelDroid.Api.csproj" />
+    <Project Path="src/HotelDroid.Client/HotelDroid.Client.csproj" />
+    <Project Path="src/HotelDroid.Shared/HotelDroid.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HotelDroid.Api.Tests/HotelDroid.Api.Tests.csproj" />
+  </Folder>
+</Solution>

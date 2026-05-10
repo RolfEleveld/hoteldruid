@@ -1,0 +1,129 @@
+@page "/tariffs"
+@using HotelDroid.Client.Services
+@inject ITariffApiService TariffApi
+
+<PageTitle>Tariffs</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col-auto"><h5 class="mb-0">Tariffs</h5></div>
+        <div class="col-auto">
+            <label class="me-1">Year:</label>
+            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">Load</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3 border-end">
+            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ New</button>
+            @if (records is null) { <p><em>Loading...</em></p> }
+            else if (records.Count == 0) { <p class="text-muted">No tariffs</p> }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var r in records)
+                    {
+                        <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
+                            style="cursor:pointer" @onclick="() => SelectRecord(r)">
+                            <div class="fw-bold">@r.Year — @r.ExtraCostName</div>
+                            <small>@r.CostType — @r.BaseValue</small>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+        <div class="col-md-6 border-end">
+            @if (editing)
+            {
+                <h5 class="mt-1">@(isNew ? "New Tariff" : "Edit Tariff")</h5>
+                <div class="row g-2">
+                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
+                    <div class="col-6"><label>Extra Cost Name</label><input class="form-control" @bind="form.ExtraCostName" /></div>
+                    <div class="col-6"><label>Cost Type</label><input class="form-control" @bind="form.CostType" /></div>
+                    <div class="col-6"><label>Base Value</label><input class="form-control" type="number" step="0.01" @bind="form.BaseValue" /></div>
+                    <div class="col-6"><label>Percentage Value</label><input class="form-control" type="number" step="0.01" @bind="form.PercentageValue" /></div>
+                    <div class="col-6"><label>Tax %</label><input class="form-control" type="number" step="0.01" @bind="form.TaxPercentage" /></div>
+                    <div class="col-6"><label>Category</label><input class="form-control" @bind="form.Category" /></div>
+                    <div class="col-6"><label>Number Limit</label><input class="form-control" type="number" @bind="form.NumberLimit" /></div>
+                </div>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
+                <div class="mt-3">
+                    <button class="btn btn-primary me-2" @onclick="Save">Save</button>
+                    <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                </div>
+            }
+        </div>
+        <div class="col-md-3">
+            @if (selected is not null && !editing)
+            {
+                <h5 class="mt-1">Details</h5>
+                <dl>
+                    <dt>Year</dt><dd>@selected.Year</dd>
+                    <dt>Extra Cost Name</dt><dd>@selected.ExtraCostName</dd>
+                    <dt>Cost Type</dt><dd>@selected.CostType</dd>
+                    <dt>Base Value</dt><dd>@selected.BaseValue</dd>
+                    <dt>Category</dt><dd>@selected.Category</dd>
+                </dl>
+                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
+                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">Delete</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TariffDto>? records;
+    private TariffDto? selected;
+    private bool editing, isNew;
+    private string errorMsg = "";
+    private int? filterYear;
+    private FormModel form = new();
+
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task LoadAll() => records = await TariffApi.ListAsync(filterYear);
+    private async Task ApplyFilter() => await LoadAll();
+
+    private void NewRecord() { form = new() { Year = filterYear ?? DateTime.Now.Year }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void SelectRecord(TariffDto r) { selected = r; editing = false; }
+    private void EditSelected()
+    {
+        if (selected is null) return;
+        form = new() { Year = selected.Year, ExtraCostName = selected.ExtraCostName, CostType = selected.CostType, BaseValue = selected.BaseValue, PercentageValue = selected.PercentageValue, TaxPercentage = selected.TaxPercentage, Category = selected.Category, NumberLimit = selected.NumberLimit };
+        isNew = false; editing = true; errorMsg = "";
+    }
+
+    private async Task Save()
+    {
+        if (form.Year == 0) { errorMsg = "Year is required."; return; }
+        var dto = new TariffDto(selected?.Id, form.Year, form.ExtraCostName, form.CostType, form.BaseValue, form.PercentageValue, form.TaxPercentage, form.Category, form.NumberLimit);
+        try
+        {
+            if (isNew) await TariffApi.CreateAsync(dto);
+            else await TariffApi.UpdateAsync(selected!.Year, selected.Id!, dto);
+            editing = false;
+            await LoadAll();
+        }
+        catch { errorMsg = "Save failed."; }
+    }
+
+    private void Cancel() { editing = false; errorMsg = ""; }
+
+    private async Task DeleteSelected()
+    {
+        if (selected?.Id is null) return;
+        try { await TariffApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
+        catch { errorMsg = "Delete failed."; }
+    }
+
+    private class FormModel
+    {
+        public int Year { get; set; }
+        public string? ExtraCostName { get; set; }
+        public string? CostType { get; set; }
+        public double? BaseValue { get; set; }
+        public double? PercentageValue { get; set; }
+        public double? TaxPercentage { get; set; }
+        public string? Category { get; set; }
+        public int? NumberLimit { get; set; }
+    }
+}

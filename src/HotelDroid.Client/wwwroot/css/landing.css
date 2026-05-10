@@ -1,0 +1,14 @@
+/* Small landing page overrides to match legacy inizio.php look */
+.landing-hero { background: #ffffff; }
+.landing-hero .display-5 { font-weight: 600; }
+.feature-card { border-radius: 12px; box-shadow: 0 6px 18px rgba(10,10,10,0.06); }
+.feature-card .card-body { padding: 1.25rem; }
+.border-purple { border: .25rem solid #9b5de5 !important; }
+.btn-purple { background:#8e44ad; color:white; border-color:#8e44ad; }
+.quick-action { padding: .8rem 1.4rem; border-radius: 10px; }
+.status-tile { border-radius: 10px; box-shadow: 0 4px 12px rgba(10,10,10,0.04); }
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .quick-actions .quick-action { flex: 1 1 auto; }
+}

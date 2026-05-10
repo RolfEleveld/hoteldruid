@@ -5,6 +5,22 @@ logs
 dati
 hoteldruid/logs
 hoteldruid/dati
+
+# .NET build artifacts
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+
+# Build / packaging artifacts
+/artifacts/
+
+# Temporary publish staging folders
+/_client_publish/
+
+# Published Blazor client embedded in API wwwroot — fully generated, never commit
+src/HotelDroid.Api/wwwroot/
+
 # Hotel druid software
 hoteldruid*.zip
 hoteldruid*.exe
@@ -30,18 +46,23 @@ temp_*
 
 # IDE
 .vscode/
+.vs/
 .idea/
 *.swp
 *.swo
 *~
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
 # OS
 .DS_Store
 Thumbs.db
+ehthumbs.db
 
-# CS
-bin
-obj
-
-# Rust
-target/
+# Certificates / exported credentials
+/scripts/certs/
+*.pfx
+*.p12
+*.cer

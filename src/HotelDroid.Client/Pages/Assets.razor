@@ -1,0 +1,149 @@
+@page "/assets"
+@using HotelDroid.Client.Services
+@inject IAssetApiService AssetApi
+@inject HttpClient Http
+
+<PageTitle>Assets Management</PageTitle>
+
+<div class="container-fluid assets-manager">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Assets</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNewAsset"> <span class="bi bi-plus"></span> Add Asset</button>
+                    @if (assets == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (assets.Count == 0)
+                    {
+                        <div class="alert alert-info">No assets yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var a in assets)
+                            {
+                                <a class="list-group-item list-group-item-action @(selectedAsset?.Id == a.Id ? "active" : "")" @onclick="() => SelectAsset(a)">@a.Name</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selectedAsset == null) ? "New Asset" : "Edit Asset")</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input class="form-control" @bind="editModel.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input class="form-control" @bind="editModel.Code" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" @bind="editModel.Description"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="SaveAsset">Save</button>
+                        @if (selectedAsset != null)
+                        {
+                            <button class="btn btn-danger" @onclick="DeleteAsset">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selectedAsset != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selectedAsset.Id</dd>
+                            <dt class="col-4">Created</dt><dd class="col-8">@selectedAsset.CreatedAt</dd>
+                            <dt class="col-4">Code</dt><dd class="col-8">@selectedAsset.Code</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Select an asset to view details</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AssetDto>? assets;
+    private AssetDto? selectedAsset;
+    private AssetEditModel editModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAssets();
+    }
+
+    private async Task LoadAssets()
+    {
+        assets = await AssetApi.GetAssetsAsync();
+        StateHasChanged();
+    }
+
+    private void SelectAsset(AssetDto a)
+    {
+        selectedAsset = a;
+        editModel = AssetEditModel.FromDto(a);
+    }
+
+    private void AddNewAsset()
+    {
+        selectedAsset = null;
+        editModel = new AssetEditModel();
+    }
+
+    private async Task SaveAsset()
+    {
+        if (string.IsNullOrWhiteSpace(editModel.Name)) return;
+
+        var dto = editModel.ToDto();
+        if (selectedAsset == null)
+        {
+            await AssetApi.CreateAssetAsync(dto);
+        }
+        else
+        {
+            await AssetApi.UpdateAssetAsync(selectedAsset.Id, dto);
+        }
+
+        await LoadAssets();
+    }
+
+    private async Task DeleteAsset()
+    {
+        if (selectedAsset == null) return;
+        await AssetApi.DeleteAssetAsync(selectedAsset.Id);
+        selectedAsset = null;
+        await LoadAssets();
+    }
+
+    private class AssetEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Description { get; set; }
+
+        public AssetDto ToDto() => new(Id: string.Empty, Name: Name, Code: Code, Description: Description, CreatedAt: null);
+
+        public static AssetEditModel FromDto(AssetDto dto) => new() { Name = dto.Name ?? string.Empty, Code = dto.Code, Description = dto.Description };
+    }
+}

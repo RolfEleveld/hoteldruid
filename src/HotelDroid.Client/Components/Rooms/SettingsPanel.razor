@@ -1,0 +1,63 @@
+@namespace HotelDroid.Client.Components.Rooms
+@using HotelDroid.Client.Services
+@inject ILanguageService LanguageService
+
+<div class="rpanels" style="margin-top: 20px;">
+    <div class="rbox">
+        <div class="rheader">
+            @Title
+            <button class="small-button" @onclick="ToggleSettings" style="float: right; padding: 2px 8px;">
+                @if (IsExpanded) { <span>▼</span> } else { <span>▶</span> }
+            </button>
+        </div>
+        <div class="rcontent">
+            <p>@Description</p>
+
+            @if (IsExpanded)
+            {
+                <div style="margin-top: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <button class="@("settings-tab-button " + (ActiveTab == "export" ? "active" : ""))" 
+                            @onclick='@(() => SetActiveTab("export"))'>
+                            @LanguageService.GetText("settings.export", "Export Rooms")
+                        </button>
+                        <button class="@("settings-tab-button " + (ActiveTab == "import" ? "active" : ""))" 
+                            @onclick='@(() => SetActiveTab("import"))'>
+                            @LanguageService.GetText("settings.import", "Import Rooms")
+                        </button>
+                    </div>
+
+                    @if (ActiveTab == "export")
+                    {
+                        <ExportSettings />
+                    }
+                    else if (ActiveTab == "import")
+                    {
+                        <ImportSettings />
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Settings";
+
+    [Parameter]
+    public string Description { get; set; } = "Manage your settings";
+
+    private bool IsExpanded = false;
+    private string ActiveTab = "export";
+
+    private void ToggleSettings()
+    {
+        IsExpanded = !IsExpanded;
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        ActiveTab = tab;
+    }
+}

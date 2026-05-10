@@ -1,0 +1,132 @@
+@page "/contract-templates"
+@using HotelDroid.Client.Services
+@inject IContractTemplateApiService ContractTemplateApi
+@inject HttpClient Http
+
+<PageTitle>Contract Templates</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Contract Templates</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> Add Template</button>
+                    @if (items == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="alert alert-info">No contract templates yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var item in items)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == item.Id ? "active" : "")" @onclick="() => Select(item)">
+                                    @item.Type / #@item.Number
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New Template" : "Edit Template")</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <input class="form-control" @bind="editType" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Content</label>
+                        <textarea class="form-control" rows="8" @bind="editContent"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">Type</dt><dd class="col-8">@selected.Type</dd>
+                            <dt class="col-4">Number</dt><dd class="col-8">@selected.Number</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Select a template to view details</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ContractTemplateApiDto>? items;
+    private ContractTemplateApiDto? selected;
+    private string editType = string.Empty;
+    private string editContent = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        items = await ContractTemplateApi.GetContractTemplatesAsync();
+        StateHasChanged();
+    }
+
+    private void Select(ContractTemplateApiDto item)
+    {
+        selected = item;
+        editType = item.Type ?? string.Empty;
+        editContent = item.Content ?? string.Empty;
+    }
+
+    private void AddNew()
+    {
+        selected = null;
+        editType = string.Empty;
+        editContent = string.Empty;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(editType) || string.IsNullOrWhiteSpace(editContent)) return;
+        if (selected == null)
+        {
+            await ContractTemplateApi.CreateContractTemplateAsync(new ContractTemplateApiDto(null, editType, 0, editContent));
+        }
+        else
+        {
+            await ContractTemplateApi.UpdateContractTemplateAsync(selected.Type!, selected.Number, new ContractTemplateApiDto(selected.Id, editType, selected.Number, editContent));
+        }
+        await Load();
+    }
+
+    private async Task Delete()
+    {
+        if (selected == null) return;
+        await ContractTemplateApi.DeleteContractTemplateAsync(selected.Type!, selected.Number);
+        selected = null;
+        await Load();
+    }
+}

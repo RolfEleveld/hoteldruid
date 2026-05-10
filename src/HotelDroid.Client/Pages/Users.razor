@@ -1,0 +1,204 @@
+@page "/users"
+@using HotelDroid.Client.Services
+@inject IUserApiService UserApi
+
+<PageTitle>Users</PageTitle>
+
+<div class="container-fluid assets-manager">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Users</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> Add User</button>
+                    @if (items == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="alert alert-info">No users defined.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var item in items)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == item.Id ? "active" : "")" @onclick="() => Select(item)">@item.Username</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New User" : "Edit User")</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input class="form-control" @bind="editModel.Username" />
+                    </div>
+                    @if (selected == null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" @bind="editModel.Password" />
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Password Type</label>
+                        <select class="form-select" @bind="editModel.PasswordType">
+                            <option value="n">Normal</option>
+                            <option value="m">MD5</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                            <button class="btn btn-warning" @onclick="ShowChangePassword">Change Password</button>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-2">@errorMessage</div>
+                    }
+                </div>
+            </div>
+
+            @if (showChangePassword && selected != null)
+            {
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Change Password</h6>
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" @bind="newPassword" />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning" @onclick="DoChangePassword">Update Password</button>
+                            <button class="btn btn-secondary" @onclick="() => showChangePassword = false">Cancel</button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(passwordMessage))
+                        {
+                            <div class="alert @(passwordMessage.StartsWith("Error") ? "alert-danger" : "alert-success") mt-2">@passwordMessage</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-5">ID</dt><dd class="col-7">@selected.Id</dd>
+                            <dt class="col-5">Username</dt><dd class="col-7">@selected.Username</dd>
+                            <dt class="col-5">Pwd Type</dt><dd class="col-7">@selected.PasswordType</dd>
+                            <dt class="col-5">Created</dt><dd class="col-7">@selected.CreatedAt</dd>
+                        </dl>
+                        <div class="alert alert-info mt-2 small">Password is never displayed for security reasons.</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Select a user to view details</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserDto>? items;
+    private UserDto? selected;
+    private EditModel editModel = new();
+    private string? errorMessage;
+    private bool showChangePassword;
+    private string? newPassword;
+    private string? passwordMessage;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        items = await UserApi.GetAllAsync();
+        StateHasChanged();
+    }
+
+    private void Select(UserDto item)
+    {
+        selected = item;
+        editModel = EditModel.From(item);
+        errorMessage = null;
+        showChangePassword = false;
+        passwordMessage = null;
+    }
+
+    private void AddNew()
+    {
+        selected = null;
+        editModel = new EditModel();
+        errorMessage = null;
+        showChangePassword = false;
+        passwordMessage = null;
+    }
+
+    private void ShowChangePassword()
+    {
+        showChangePassword = true;
+        newPassword = null;
+        passwordMessage = null;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(editModel.Username)) { errorMessage = "Username is required."; return; }
+        errorMessage = null;
+        var dto = editModel.ToWriteDto();
+        try
+        {
+            if (selected == null) await UserApi.CreateAsync(dto);
+            else await UserApi.UpdateAsync(selected.Id, dto);
+            await Load();
+        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+    }
+
+    private async Task Delete()
+    {
+        if (selected == null) return;
+        await UserApi.DeleteAsync(selected.Id);
+        selected = null;
+        await Load();
+    }
+
+    private async Task DoChangePassword()
+    {
+        if (selected == null || string.IsNullOrWhiteSpace(newPassword)) { passwordMessage = "Error: New password is required."; return; }
+        try
+        {
+            await UserApi.ChangePasswordAsync(selected.Id, newPassword);
+            passwordMessage = "Password updated successfully.";
+            newPassword = null;
+        }
+        catch (Exception ex) { passwordMessage = $"Error: {ex.Message}"; }
+    }
+
+    private class EditModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string? Password { get; set; }
+        public string PasswordType { get; set; } = "n";
+
+        public UserWriteDto ToWriteDto() => new(Username: Username, Password: Password, PasswordType: PasswordType);
+        public static EditModel From(UserDto dto) => new() { Username = dto.Username ?? string.Empty, PasswordType = dto.PasswordType ?? "n" };
+    }
+}

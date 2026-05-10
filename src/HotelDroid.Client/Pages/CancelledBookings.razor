@@ -1,0 +1,72 @@
+@page "/cancelled-bookings"
+@using HotelDroid.Client.Services
+@inject ICancelledBookingApiService CancelledBookingApi
+
+<PageTitle>Cancelled Bookings</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col-auto"><h5 class="mb-0">Cancelled Bookings</h5></div>
+        <div class="col-auto">
+            <label class="me-1">Year:</label>
+            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">Load</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 border-end">
+            @if (records is null) { <p><em>Loading...</em></p> }
+            else if (records.Count == 0) { <p class="text-muted">No cancelled bookings</p> }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var r in records)
+                    {
+                        <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
+                            style="cursor:pointer" @onclick="() => SelectRecord(r)">
+                            <div class="fw-bold">@r.Year — @r.ClientId</div>
+                            <small>@r.ArrivalDate → @r.DepartureDate | Cancelled: @r.CancelledAt</small>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+        <div class="col-md-8">
+            @if (selected is not null)
+            {
+                <h5 class="mt-1">Details</h5>
+                <dl>
+                    <dt>Year</dt><dd>@selected.Year</dd>
+                    <dt>Client ID</dt><dd>@selected.ClientId</dd>
+                    <dt>Room ID</dt><dd>@selected.RoomId</dd>
+                    <dt>Status</dt><dd>@selected.Status</dd>
+                    <dt>Arrival</dt><dd>@selected.ArrivalDate</dd>
+                    <dt>Departure</dt><dd>@selected.DepartureDate</dd>
+                    <dt>Cancelled At</dt><dd>@selected.CancelledAt</dd>
+                    <dt>Notes</dt><dd>@selected.Notes</dd>
+                </dl>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
+                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">Remove from Archive</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CancelledBookingClientDto>? records;
+    private CancelledBookingClientDto? selected;
+    private string errorMsg = "";
+    private int? filterYear;
+
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task LoadAll() => records = await CancelledBookingApi.ListAsync(filterYear);
+    private async Task ApplyFilter() => await LoadAll();
+    private void SelectRecord(CancelledBookingClientDto r) { selected = r; errorMsg = ""; }
+
+    private async Task DeleteSelected()
+    {
+        if (selected?.Id is null) return;
+        try { await CancelledBookingApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
+        catch { errorMsg = "Delete failed."; }
+    }
+}

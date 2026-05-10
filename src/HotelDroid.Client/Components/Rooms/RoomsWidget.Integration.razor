@@ -1,0 +1,24 @@
+<!--
+Rooms Widget Integration in App.razor
+Add this component to your main layout to display the Rooms Widget with all features
+-->
+
+@using HotelDroid.Client.Components.Rooms
+
+<div class="rooms-widget-container">
+    <!-- Language Switcher - Place at top of page for quick access -->
+    <div style="margin-bottom: 20px; text-align: right;">
+        <LanguageSwitcher />
+    </div>
+
+    <!-- Main Rooms Widget - Includes rooms list and settings panel -->
+    <RoomsWidget />
+</div>
+
+<style>
+    .rooms-widget-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 15px;
+    }
+</style>

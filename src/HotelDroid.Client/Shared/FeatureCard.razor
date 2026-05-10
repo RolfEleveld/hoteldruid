@@ -1,0 +1,20 @@
+@namespace HotelDroid.Client.Shared
+@using Microsoft.AspNetCore.Components
+
+<div class="card feature-card @BorderClass">
+  <div class="card-body text-center">
+    <div class="icon mb-2 fs-3"><i class="bi @Icon"></i></div>
+    <h5 class="card-title">@Title</h5>
+    <p class="text-muted small">@Subtitle</p>
+    <a class="btn btn-outline-primary btn-sm" href="@ButtonLink">@ButtonText</a>
+  </div>
+</div>
+
+@code {
+  [Parameter] public string Title { get; set; } = string.Empty;
+  [Parameter] public string Subtitle { get; set; } = string.Empty;
+  [Parameter] public string ButtonText { get; set; } = "Open";
+  [Parameter] public string ButtonLink { get; set; } = "#";
+  [Parameter] public string Icon { get; set; } = "";
+  [Parameter] public string BorderClass { get; set; } = "";
+}
