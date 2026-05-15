@@ -55,6 +55,8 @@ temp_*
 *.user
 *.userosscache
 *.sln.docstates
+# Language server / IDE caches
+*.lscache
 
 # OS
 .DS_Store
