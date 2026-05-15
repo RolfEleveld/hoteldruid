@@ -455,3 +455,48 @@ public class MoneyHistoryStorageModel
     public string? Description { get; set; }
     public DateOnly? Date { get; set; }
 }
+
+// --- Layer 5: Communication/Integration entities ---
+
+public class MessageStorageModel
+{
+    public string? MessageType { get; set; }
+    public string? Status { get; set; }
+    public string? RecipientUserIds { get; set; }
+    public string? SeenByUserIds { get; set; }
+    public DateTime? SeenAt { get; set; }
+    public string? Sender { get; set; }
+    public string? Body { get; set; }
+    public Dictionary<string, string?>? ExtraData { get; set; }
+    public DateTime? CreatedAt { get; set; }
+}
+
+public class ContractTemplateStorageModel
+{
+    public int Number { get; set; }
+    public string? Type { get; set; }
+    public string? Content { get; set; }
+}
+
+public class ExternalIntegrationStorageModel
+{
+    public int? LocalId { get; set; }
+    public string? RemoteId1 { get; set; }
+    public string? RemoteId2 { get; set; }
+    public string? IdType { get; set; }
+    public string? IntegrationName { get; set; }
+    public int? Year { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public string? HostCreated { get; set; }
+    public int? CreatedBy { get; set; }
+}
+
+public class SessionStorageModel
+{
+    public string? ClientToken { get; set; }
+    public int? UserId { get; set; }
+    public string? IpAddress { get; set; }
+    public string? ConnectionType { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime? LastAccess { get; set; }
+}

@@ -11,12 +11,14 @@ namespace HotelDroid.Client.Tests.Unit.Services
     public class RoomApiServiceTests : IAsyncLifetime
     {
         private RoomApiService _roomApiService = null!;
-        private HttpClientMock _httpClientMock = null!;
+        
 
         public async Task InitializeAsync()
         {
-            _httpClientMock = new HttpClientMock();
-            _roomApiService = new RoomApiService(_httpClientMock.GetHttpClient());
+            var handler = new RoomApiHttpClientMock();
+            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") };
+            _roomApiService = new RoomApiService(httpClient);
+            await Task.CompletedTask;
         }
 
         public Task DisposeAsync()
@@ -197,6 +199,18 @@ namespace HotelDroid.Client.Tests.Unit.Services
                 }
             }
 
+            if (method == HttpMethod.Get && uri.Contains("/api/export/status/"))
+            {
+                var eid = uri.Split("/").Last();
+                var ejson = @"{""ExportId"":""" + eid + @""",""Status"":""completed"",""DownloadUrl"":""http://localhost/dl""}";
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(ejson, System.Text.Encoding.UTF8, "application/json") });
+            }
+            if (method == HttpMethod.Post && uri.Contains("/api/export/rooms"))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ExportId"":""export-123"",""Status"":""completed"",""DownloadUrl"":""http://localhost/dl""}", System.Text.Encoding.UTF8, "application/json") });
+            if (method == HttpMethod.Post && uri.Contains("/api/import/validate"))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""IsValid"":true,""RoomsToImport"":2,""Errors"":[],""Warnings"":[]}", System.Text.Encoding.UTF8, "application/json") });
+            if (method == HttpMethod.Post && uri.Contains("/api/import/execute"))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ImportId"":""import-123"",""Status"":""completed"",""RoomsImported"":2}", System.Text.Encoding.UTF8, "application/json") });
             if (method == HttpMethod.Post)
             {
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.Created)

@@ -96,6 +96,8 @@ namespace HotelDroid.Client.Services
         private readonly HttpClient _httpClient;
         private const string ApiBaseUrl = "/api";
 
+        private static readonly System.Text.Json.JsonSerializerOptions _jsonOpts = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
         public RoomApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
@@ -134,7 +136,7 @@ namespace HotelDroid.Client.Services
                 response.EnsureSuccessStatusCode();
                 
                 var content = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<RoomDto>(content);
+                return System.Text.Json.JsonSerializer.Deserialize<RoomDto>(content, _jsonOpts);
             }
             catch (Exception ex)
             {
@@ -160,7 +162,7 @@ namespace HotelDroid.Client.Services
                 response.EnsureSuccessStatusCode();
                 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var result = System.Text.Json.JsonSerializer.Deserialize<RoomDto>(responseContent);
+                var result = System.Text.Json.JsonSerializer.Deserialize<RoomDto>(responseContent, _jsonOpts);
                 
                 return result?.Id ?? string.Empty;
             }
@@ -206,7 +208,7 @@ namespace HotelDroid.Client.Services
                 response.EnsureSuccessStatusCode();
                 
                 var content = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ExportStatusResponse>(content)
+                return System.Text.Json.JsonSerializer.Deserialize<ExportStatusResponse>(content, _jsonOpts)
                     ?? new ExportStatusResponse(exportId, "unknown");
             }
             catch (Exception ex)
@@ -230,7 +232,7 @@ namespace HotelDroid.Client.Services
                 response.EnsureSuccessStatusCode();
                 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ImportValidationResponse>(responseContent)
+                return System.Text.Json.JsonSerializer.Deserialize<ImportValidationResponse>(responseContent, _jsonOpts)
                     ?? new ImportValidationResponse(false, new(), new());
             }
             catch (Exception ex)
@@ -255,7 +257,7 @@ namespace HotelDroid.Client.Services
                 response.EnsureSuccessStatusCode();
                 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ImportExecuteResponse>(responseContent)
+                return System.Text.Json.JsonSerializer.Deserialize<ImportExecuteResponse>(responseContent, _jsonOpts)
                     ?? new ImportExecuteResponse("", "unknown");
             }
             catch (Exception ex)

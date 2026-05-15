@@ -168,7 +168,7 @@ namespace HotelDroid.Client.Tests.Unit.Services
         public HttpClientMock()
         {
             _handler = new HttpMessageHandlerMock();
-            _httpClient = new HttpClient(_handler);
+            _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost/") };
         }
 
         public HttpClient GetHttpClient() => _httpClient;
@@ -195,8 +195,9 @@ namespace HotelDroid.Client.Tests.Unit.Services
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var uri = request.RequestUri?.ToString() ?? string.Empty;
+            var matchedKey = _responses.Keys.FirstOrDefault(k => uri.EndsWith(k));
             
-            if (_responses.TryGetValue(uri, out var content))
+            if (matchedKey != null && _responses.TryGetValue(matchedKey, out var content))
             {
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                 {

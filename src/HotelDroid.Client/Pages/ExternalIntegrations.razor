@@ -1,0 +1,145 @@
+@page "/external-integrations"
+@using HotelDroid.Client.Services
+@inject IExternalIntegrationApiService ExternalIntegrationApi
+@inject HttpClient Http
+
+<PageTitle>External Integrations</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">External Integrations</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> Add Integration</button>
+                    @if (items == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="alert alert-info">No external integrations yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var item in items)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == item.Id ? "active" : "")" @onclick="() => Select(item)">
+                                    @item.IntegrationName
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New Integration" : "Edit Integration")</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Integration Name</label>
+                        <input class="form-control" @bind="editName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ID Type</label>
+                        <input class="form-control" @bind="editIdType" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Remote ID 1</label>
+                        <input class="form-control" @bind="editRemoteId1" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Year</label>
+                        <input class="form-control" type="number" @bind="editYear" />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">Name</dt><dd class="col-8">@selected.IntegrationName</dd>
+                            <dt class="col-4">ID Type</dt><dd class="col-8">@selected.IdType</dd>
+                            <dt class="col-4">Year</dt><dd class="col-8">@selected.Year</dd>
+                            <dt class="col-4">Created</dt><dd class="col-8">@selected.CreatedAt</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Select an integration to view details</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ExternalIntegrationApiDto>? items;
+    private ExternalIntegrationApiDto? selected;
+    private string editName = string.Empty;
+    private string editIdType = string.Empty;
+    private string editRemoteId1 = string.Empty;
+    private int? editYear;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        items = await ExternalIntegrationApi.GetExternalIntegrationsAsync();
+        StateHasChanged();
+    }
+
+    private void Select(ExternalIntegrationApiDto item)
+    {
+        selected = item;
+        editName = item.IntegrationName ?? string.Empty;
+        editIdType = item.IdType ?? string.Empty;
+        editRemoteId1 = item.RemoteId1 ?? string.Empty;
+        editYear = item.Year;
+    }
+
+    private void AddNew()
+    {
+        selected = null;
+        editName = string.Empty;
+        editIdType = string.Empty;
+        editRemoteId1 = string.Empty;
+        editYear = null;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(editName)) return;
+        var dto = new ExternalIntegrationApiDto(selected?.Id, editName, editIdType, null, editRemoteId1, null, editYear, null);
+        if (selected == null)
+            await ExternalIntegrationApi.CreateExternalIntegrationAsync(dto);
+        else
+            await ExternalIntegrationApi.UpdateExternalIntegrationAsync(selected.Id!, dto);
+        await Load();
+    }
+
+    private async Task Delete()
+    {
+        if (selected == null) return;
+        await ExternalIntegrationApi.DeleteExternalIntegrationAsync(selected.Id!);
+        selected = null;
+        await Load();
+    }
+}

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Bunit;
 using HotelDroid.Client.Components.Warehouses;

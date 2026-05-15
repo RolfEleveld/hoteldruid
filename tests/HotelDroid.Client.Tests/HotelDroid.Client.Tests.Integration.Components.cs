@@ -118,6 +118,7 @@ namespace HotelDroid.Client.Tests.Integration.Components
     public class SettingsPanelComponentTests : TestContext
     {
         private Mock<ILanguageService> _mockLanguageService;
+        private Mock<IRoomApiService> _mockRoomApiService;
 
         public SettingsPanelComponentTests()
         {
@@ -125,7 +126,14 @@ namespace HotelDroid.Client.Tests.Integration.Components
             _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
                 .Returns((string key, string defaultValue) => defaultValue);
 
+            _mockRoomApiService = new Mock<IRoomApiService>();
+            _mockRoomApiService.Setup(x => x.GetRoomsAsync())
+                .ReturnsAsync(new List<RoomDto>());
+            _mockRoomApiService.Setup(x => x.ValidateImportAsync(It.IsAny<Stream>()))
+                .ReturnsAsync(new ImportValidationResponse(true, new List<string>(), new List<string>(), 0, 0));
+
             Services.AddScoped(_ => _mockLanguageService.Object);
+            Services.AddScoped(_ => _mockRoomApiService.Object);
         }
 
         [Fact]
@@ -333,8 +341,10 @@ namespace HotelDroid.Client.Tests.Integration.Components
             var component = RenderComponent<ImportSettings>();
 
             // Assert
-            var buttons = component.FindAll("button");
-            Assert.True(buttons.Count > 0);
+            // The validate button is only shown after a file is selected.
+            // Verify the file input drop zone is rendered (prerequisite for validation).
+            var markup = component.Markup;
+            Assert.Contains("drop", markup);
         }
     }
 

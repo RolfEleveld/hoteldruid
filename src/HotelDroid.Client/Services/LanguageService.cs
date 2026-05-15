@@ -133,11 +133,20 @@ namespace HotelDroid.Client.Services
                 {
                     current = value;
                 }
+                else if (current is JsonElement jsonElem &&
+                         jsonElem.ValueKind == JsonValueKind.Object &&
+                         jsonElem.TryGetProperty(k, out var jsonProp))
+                {
+                    current = jsonProp;
+                }
                 else
                 {
                     return defaultValue;
                 }
             }
+
+            if (current is JsonElement leaf)
+                return leaf.ValueKind == JsonValueKind.String ? leaf.GetString() ?? defaultValue : leaf.ToString();
 
             return current?.ToString() ?? defaultValue;
         }

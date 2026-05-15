@@ -202,5 +202,9 @@
     "title": "Money History", "description": "Cash register movement history",
     "cashRegisterId": "Cash Register", "amount": "Amount", "type": "Type",
     "description": "Description", "date": "Date", "emptyList": "No money history"
-  }
+  },
+  "messages": { "title": "Messages", "description": "Internal and external messages", "messageType": "Type", "status": "Status", "sender": "Sender", "body": "Message Body", "recipientUserIds": "Recipients", "createdAt": "Sent At", "seenAt": "Seen At", "markRead": "Mark as Read", "archive": "Archive", "emptyList": "No messages" },
+  "contractTemplates": { "title": "Contract Templates", "description": "Document and contract templates", "type": "Template Type", "number": "Number", "content": "Content", "emptyList": "No contract templates" },
+  "externalIntegrations": { "title": "External Integrations", "description": "Channel manager and external system connections", "integrationName": "Integration Name", "idType": "ID Type", "localId": "Local ID", "remoteId1": "Remote ID 1", "year": "Year", "emptyList": "No external integrations" },
+  "sessions": { "title": "Sessions", "description": "Active user sessions", "sessionId": "Session ID", "userId": "User", "ipAddress": "IP Address", "connectionType": "Connection Type", "lastAccess": "Last Access", "emptyList": "No active sessions" }
 }

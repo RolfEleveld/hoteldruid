@@ -94,7 +94,17 @@ public class CanonicalMapper : ICanonicalMapper
             ["spese"] = "expenses",
             ["expenses"] = "expenses",
             ["movimenticassa"] = "money_history",
-            ["money_history"] = "money_history"
+            ["money_history"] = "money_history",
+
+            // Layer 5: Communication/Integration entities (italian → canonical)
+            ["messaggi"] = "messages",
+            ["messages"] = "messages",
+            ["contratti"] = "contract_templates",
+            ["contract_templates"] = "contract_templates",
+            ["interconnessioni"] = "external_integrations",
+            ["external_integrations"] = "external_integrations",
+            ["sessioni"] = "sessions",
+            ["sessions"] = "sessions"
         },
         FieldAliases: new()
         {
@@ -370,7 +380,56 @@ public class CanonicalMapper : ICanonicalMapper
             ["tariff_per_room"] = "tariff_per_room",
             ["start_period_id"] = "start_period_id",
             ["end_period_id"] = "end_period_id",
-            ["reason_1"] = "reason_1"
+            ["reason_1"] = "reason_1",
+
+            // Messages (italian → canonical)
+            ["idmessaggi"] = "message_id",
+            ["tipo_messaggio"] = "message_type",
+            ["idutenti_visto"] = "seen_by_user_ids",
+            ["datavisione"] = "seen_at",
+            ["mittente"] = "sender",
+            ["testo"] = "body",
+
+            // Messages pass-throughs
+            ["message_type"] = "message_type",
+            ["seen_by_user_ids"] = "seen_by_user_ids",
+            ["seen_at"] = "seen_at",
+            ["sender"] = "sender",
+            ["body"] = "body",
+            ["recipient_user_ids"] = "recipient_user_ids",
+
+            // ContractTemplates pass-throughs
+            ["content"] = "content",
+            ["numero"] = "number",
+
+            // ExternalIntegrations (italian → canonical)
+            ["idlocale"] = "local_id",
+            ["idremoto1"] = "remote_id1",
+            ["idremoto2"] = "remote_id2",
+            ["tipoid"] = "id_type",
+            ["nome_ic"] = "integration_name",
+
+            // ExternalIntegrations pass-throughs
+            ["local_id"] = "local_id",
+            ["remote_id1"] = "remote_id1",
+            ["remote_id2"] = "remote_id2",
+            ["id_type"] = "id_type",
+            ["integration_name"] = "integration_name",
+
+            // Sessions (italian → canonical)
+            ["idsessioni"] = "session_id",
+            ["idcliente"] = "client_token",
+            ["indirizzo_ip"] = "ip_address",
+            ["tipo_conn"] = "connection_type",
+            ["user_agent"] = "user_agent",
+            ["ultimo_accesso"] = "last_access",
+
+            // Sessions pass-throughs
+            ["session_id"] = "session_id",
+            ["client_token"] = "client_token",
+            ["ip_address"] = "ip_address",
+            ["connection_type"] = "connection_type",
+            ["last_access"] = "last_access"
         },
         ExportNames: new ExportNamingConfig(
             TableName: "rooms",  // Standard export name

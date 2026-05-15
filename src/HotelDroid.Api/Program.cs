@@ -51,9 +51,10 @@ if (!string.IsNullOrEmpty(certThumbprint))
         {
             builder.WebHost.ConfigureKestrel(options =>
             {
-                options.ListenLocalhost(5001, listenOptions => listenOptions.UseHttps(cert));
+                options.ListenLocalhost(5000);                                                    // HTTP
+                options.ListenLocalhost(5001, listenOptions => listenOptions.UseHttps(cert));     // HTTPS
             });
-            Console.WriteLine($"Kestrel will bind HTTPS on localhost:5001 using certificate {certThumbprint}");
+            Console.WriteLine($"Kestrel: HTTP -> http://localhost:5000   HTTPS -> https://localhost:5001");
             hasLocalCert = true;
         }
         else
@@ -140,12 +141,13 @@ if (hasLocalCert)
     app.UseHttpsRedirection();
 }
 
+// .NET 9/10 Blazor WASM publishes fingerprinted assets (e.g. dotnet.abc123.js).
+// UseStaticFiles() cannot resolve these tokens - only MapStaticAssets() can,
 // Allow static serving of .dat (ICU) and compressed assets that Blazor emits.
 var staticContentTypeProvider = new FileExtensionContentTypeProvider();
 staticContentTypeProvider.Mappings[".dat"] = "application/octet-stream";
-staticContentTypeProvider.Mappings[".br"] = "application/octet-stream";
+staticContentTypeProvider.Mappings[".br"]  = "application/octet-stream";
 
-// Serve static files (useful when Blazor client is copied to api/wwwroot)
 var staticFileOptions = new StaticFileOptions
 {
     ContentTypeProvider = staticContentTypeProvider
@@ -2225,6 +2227,297 @@ app.MapDelete("/api/money-history/{year:int}/{id}", async (int year, string id, 
     await store.DeleteAsync("money_history", id);
     return Results.NoContent();
 }).WithName("DeleteMoneyHistory").WithOpenApi();
+
+// --- Layer 5: Messages (messaggi) ---
+
+MessageDto ToMessageDto(string id, MessageStorageModel s) => new(id, s.MessageType, s.Status, s.Sender, s.Body, s.RecipientUserIds, s.CreatedAt, s.SeenAt);
+
+app.MapGet("/api/messages", async (IKeyValueStore store, string? userId, string? status) =>
+{
+    var idx = await store.GetIndexAsync("messages");
+    var result = new List<MessageDto>();
+    foreach (var kvp in idx)
+    {
+        var m = await store.GetAsync<MessageStorageModel>("messages", kvp.Value);
+        if (m is null) continue;
+        if (userId != null && (m.RecipientUserIds == null || !m.RecipientUserIds.Contains(userId))) continue;
+        if (status != null && !string.Equals(m.Status, status, StringComparison.OrdinalIgnoreCase)) continue;
+        result.Add(ToMessageDto(kvp.Value, m));
+    }
+    return Results.Ok(result);
+}).WithName("ListMessages").WithOpenApi();
+
+app.MapGet("/api/messages/{id}", async (string id, IKeyValueStore store) =>
+{
+    var m = await store.GetAsync<MessageStorageModel>("messages", id);
+    if (m is null) return Results.NotFound();
+    return Results.Ok(ToMessageDto(id, m));
+}).WithName("GetMessage").WithOpenApi();
+
+app.MapPost("/api/messages", async (MessageDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Sender) || string.IsNullOrWhiteSpace(request.Body))
+        return Results.BadRequest("Sender and Body are required.");
+    var name = Guid.NewGuid().ToString("N");
+    var storage = new MessageStorageModel
+    {
+        MessageType = request.MessageType ?? "internal",
+        Status = request.Status ?? "unread",
+        Sender = request.Sender,
+        Body = request.Body,
+        RecipientUserIds = request.RecipientUserIds,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+    var id = await store.CreateAsync("messages", name, storage);
+    return Results.Created($"/api/messages/{id}", ToMessageDto(id, storage));
+}).WithName("CreateMessage").WithOpenApi();
+
+app.MapPut("/api/messages/{id}/read", async (string id, IKeyValueStore store) =>
+{
+    var m = await store.GetAsync<MessageStorageModel>("messages", id);
+    if (m is null) return Results.NotFound();
+    m.Status = "read";
+    m.SeenAt = DateTime.UtcNow;
+    await store.UpdateAsync("messages", id, m);
+    return Results.Ok(ToMessageDto(id, m));
+}).WithName("MarkMessageRead").WithOpenApi();
+
+app.MapPut("/api/messages/{id}/archive", async (string id, IKeyValueStore store) =>
+{
+    var m = await store.GetAsync<MessageStorageModel>("messages", id);
+    if (m is null) return Results.NotFound();
+    m.Status = "archived";
+    await store.UpdateAsync("messages", id, m);
+    return Results.Ok(ToMessageDto(id, m));
+}).WithName("ArchiveMessage").WithOpenApi();
+
+app.MapDelete("/api/messages/{id}", async (string id, IKeyValueStore store) =>
+{
+    var m = await store.GetAsync<MessageStorageModel>("messages", id);
+    if (m is null) return Results.NotFound();
+    await store.DeleteAsync("messages", id);
+    return Results.NoContent();
+}).WithName("DeleteMessage").WithOpenApi();
+
+// --- Layer 5: ContractTemplates (contratti) ---
+
+static string SanitizeContractType(string type) =>
+    System.Text.RegularExpressions.Regex.Replace(type, @"[^a-zA-Z0-9_]", "_");
+
+ContractTemplateDto ToContractTemplateDto(string id, ContractTemplateStorageModel s) => new(id, s.Type, s.Number, s.Content);
+
+app.MapGet("/api/contract-templates", async (IKeyValueStore store, string? type) =>
+{
+    var idx = await store.GetIndexAsync("contract_templates");
+    var result = new List<ContractTemplateDto>();
+    foreach (var kvp in idx)
+    {
+        var ct = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", kvp.Value);
+        if (ct is null) continue;
+        if (type != null && !string.Equals(ct.Type, type, StringComparison.OrdinalIgnoreCase)) continue;
+        result.Add(ToContractTemplateDto(kvp.Value, ct));
+    }
+    return Results.Ok(result);
+}).WithName("ListContractTemplates").WithOpenApi();
+
+app.MapGet("/api/contract-templates/{type}/{number:int}", async (string type, int number, IKeyValueStore store) =>
+{
+    var sanitized = SanitizeContractType(type);
+    var key = $"{sanitized}_{number}";
+    var ctIdx = await store.GetIndexAsync("contract_templates");
+    if (!ctIdx.TryGetValue(key, out var ctId)) return Results.NotFound();
+    var ct = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", ctId);
+    if (ct is null) return Results.NotFound();
+    return Results.Ok(ToContractTemplateDto(key, ct));
+}).WithName("GetContractTemplate").WithOpenApi();
+
+app.MapPost("/api/contract-templates", async (ContractTemplateDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Type) || string.IsNullOrWhiteSpace(request.Content))
+        return Results.BadRequest("Type and Content are required.");
+    var sanitized = SanitizeContractType(request.Type);
+    var idx = await store.GetIndexAsync("contract_templates");
+    var existingForType = idx.Keys.Where(k => k.StartsWith($"{sanitized}_")).ToList();
+    var maxNum = existingForType.Count > 0
+        ? existingForType.Select(k => { var parts = k.Split('_'); return int.TryParse(parts.Last(), out var n) ? n : 0; }).Max()
+        : 0;
+    var number = request.Number > 0 ? request.Number : maxNum + 1;
+    var key = $"{sanitized}_{number}";
+    var storage = new ContractTemplateStorageModel { Type = request.Type, Number = number, Content = request.Content };
+    await store.CreateAsync("contract_templates", key, storage);
+    return Results.Created($"/api/contract-templates/{request.Type}/{number}", ToContractTemplateDto(key, storage));
+}).WithName("CreateContractTemplate").WithOpenApi();
+
+app.MapPut("/api/contract-templates/{type}/{number:int}", async (string type, int number, ContractTemplateDto request, IKeyValueStore store) =>
+{
+    var sanitized = SanitizeContractType(type);
+    var key = $"{sanitized}_{number}";
+    var ctPutIdx = await store.GetIndexAsync("contract_templates");
+    if (!ctPutIdx.TryGetValue(key, out var ctPutId)) return Results.NotFound();
+    var ct = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", ctPutId);
+    if (ct is null) return Results.NotFound();
+    ct.Type = request.Type ?? ct.Type;
+    ct.Content = request.Content ?? ct.Content;
+    await store.UpdateAsync("contract_templates", ctPutId, ct);
+    return Results.Ok(ToContractTemplateDto(key, ct));
+}).WithName("UpdateContractTemplate").WithOpenApi();
+
+app.MapDelete("/api/contract-templates/{type}/{number:int}", async (string type, int number, IKeyValueStore store) =>
+{
+    var sanitized = SanitizeContractType(type);
+    var key = $"{sanitized}_{number}";
+    var ctDelIdx = await store.GetIndexAsync("contract_templates");
+    if (!ctDelIdx.TryGetValue(key, out var ctDelId)) return Results.NotFound();
+    await store.DeleteAsync("contract_templates", ctDelId);
+    return Results.NoContent();
+}).WithName("DeleteContractTemplate").WithOpenApi();
+
+// --- Layer 5: ExternalIntegrations (interconnessioni) ---
+
+ExternalIntegrationDto ToExternalIntegrationDto(string id, ExternalIntegrationStorageModel s) => new(id, s.IntegrationName, s.IdType, s.LocalId, s.RemoteId1, s.RemoteId2, s.Year, s.CreatedAt);
+
+app.MapGet("/api/external-integrations", async (IKeyValueStore store, int? year, string? name) =>
+{
+    var idx = await store.GetIndexAsync("external_integrations");
+    var result = new List<ExternalIntegrationDto>();
+    foreach (var kvp in idx)
+    {
+        var ei = await store.GetAsync<ExternalIntegrationStorageModel>("external_integrations", kvp.Value);
+        if (ei is null) continue;
+        if (year.HasValue && ei.Year != year) continue;
+        if (name != null && (ei.IntegrationName == null || !ei.IntegrationName.Contains(name, StringComparison.OrdinalIgnoreCase))) continue;
+        result.Add(ToExternalIntegrationDto(kvp.Value, ei));
+    }
+    return Results.Ok(result);
+}).WithName("ListExternalIntegrations").WithOpenApi();
+
+app.MapGet("/api/external-integrations/{id}", async (string id, IKeyValueStore store) =>
+{
+    var ei = await store.GetAsync<ExternalIntegrationStorageModel>("external_integrations", id);
+    if (ei is null) return Results.NotFound();
+    return Results.Ok(ToExternalIntegrationDto(id, ei));
+}).WithName("GetExternalIntegration").WithOpenApi();
+
+app.MapPost("/api/external-integrations", async (ExternalIntegrationDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.IntegrationName))
+        return Results.BadRequest("IntegrationName is required.");
+    var name = Guid.NewGuid().ToString("N");
+    var storage = new ExternalIntegrationStorageModel
+    {
+        IntegrationName = request.IntegrationName,
+        IdType = request.IdType,
+        LocalId = request.LocalId,
+        RemoteId1 = request.RemoteId1,
+        RemoteId2 = request.RemoteId2,
+        Year = request.Year,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+    var id = await store.CreateAsync("external_integrations", name, storage);
+    return Results.Created($"/api/external-integrations/{id}", ToExternalIntegrationDto(id, storage));
+}).WithName("CreateExternalIntegration").WithOpenApi();
+
+app.MapPut("/api/external-integrations/{id}", async (string id, ExternalIntegrationDto request, IKeyValueStore store) =>
+{
+    var ei = await store.GetAsync<ExternalIntegrationStorageModel>("external_integrations", id);
+    if (ei is null) return Results.NotFound();
+    ei.IntegrationName = request.IntegrationName ?? ei.IntegrationName;
+    ei.IdType = request.IdType ?? ei.IdType;
+    ei.LocalId = request.LocalId ?? ei.LocalId;
+    ei.RemoteId1 = request.RemoteId1 ?? ei.RemoteId1;
+    ei.RemoteId2 = request.RemoteId2 ?? ei.RemoteId2;
+    ei.Year = request.Year ?? ei.Year;
+    await store.UpdateAsync("external_integrations", id, ei);
+    return Results.Ok(ToExternalIntegrationDto(id, ei));
+}).WithName("UpdateExternalIntegration").WithOpenApi();
+
+app.MapDelete("/api/external-integrations/{id}", async (string id, IKeyValueStore store) =>
+{
+    var ei = await store.GetAsync<ExternalIntegrationStorageModel>("external_integrations", id);
+    if (ei is null) return Results.NotFound();
+    await store.DeleteAsync("external_integrations", id);
+    return Results.NoContent();
+}).WithName("DeleteExternalIntegration").WithOpenApi();
+
+// --- Layer 5: Sessions (sessioni) ---
+
+static string SanitizeSessionId(string sessionId) =>
+    System.Text.RegularExpressions.Regex.Replace(sessionId, @"[^a-zA-Z0-9_]", "_");
+
+SessionDto ToSessionDto(string id, SessionStorageModel s) => new(id, s.UserId, s.IpAddress, s.ConnectionType, s.LastAccess);
+
+app.MapGet("/api/sessions", async (IKeyValueStore store, int? userId) =>
+{
+    var idx = await store.GetIndexAsync("sessions");
+    var result = new List<SessionDto>();
+    foreach (var kvp in idx)
+    {
+        var s = await store.GetAsync<SessionStorageModel>("sessions", kvp.Value);
+        if (s is null) continue;
+        if (userId.HasValue && s.UserId != userId) continue;
+        result.Add(ToSessionDto(kvp.Value, s));
+    }
+    return Results.Ok(result);
+}).WithName("ListSessions").WithOpenApi();
+
+app.MapGet("/api/sessions/{sessionId}", async (string sessionId, IKeyValueStore store) =>
+{
+    var key = SanitizeSessionId(sessionId);
+    var sessIdx = await store.GetIndexAsync("sessions");
+    if (!sessIdx.TryGetValue(key, out var sessId)) return Results.NotFound();
+    var s = await store.GetAsync<SessionStorageModel>("sessions", sessId);
+    if (s is null) return Results.NotFound();
+    return Results.Ok(ToSessionDto(key, s));
+}).WithName("GetSession").WithOpenApi();
+
+app.MapPost("/api/sessions", async (SessionDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.SessionId) || !request.UserId.HasValue)
+        return Results.BadRequest("SessionId and UserId are required.");
+    var key = SanitizeSessionId(request.SessionId);
+    var storage = new SessionStorageModel
+    {
+        UserId = request.UserId,
+        IpAddress = request.IpAddress,
+        ConnectionType = request.ConnectionType,
+        LastAccess = request.LastAccess ?? DateTime.UtcNow
+    };
+    await store.CreateAsync("sessions", key, storage);
+    return Results.Created($"/api/sessions/{key}", ToSessionDto(key, storage));
+}).WithName("CreateSession").WithOpenApi();
+
+app.MapPut("/api/sessions/{sessionId}/touch", async (string sessionId, IKeyValueStore store) =>
+{
+    var key = SanitizeSessionId(sessionId);
+    var touchIdx = await store.GetIndexAsync("sessions");
+    if (!touchIdx.TryGetValue(key, out var touchId)) return Results.NotFound();
+    var s = await store.GetAsync<SessionStorageModel>("sessions", touchId);
+    if (s is null) return Results.NotFound();
+    s.LastAccess = DateTime.UtcNow;
+    await store.UpdateAsync("sessions", touchId, s);
+    return Results.Ok(ToSessionDto(key, s));
+}).WithName("TouchSession").WithOpenApi();
+
+app.MapDelete("/api/sessions/{sessionId}", async (string sessionId, IKeyValueStore store) =>
+{
+    var key = SanitizeSessionId(sessionId);
+    var delSessIdx = await store.GetIndexAsync("sessions");
+    if (!delSessIdx.TryGetValue(key, out var delSessId)) return Results.NotFound();
+    await store.DeleteAsync("sessions", delSessId);
+    return Results.NoContent();
+}).WithName("DeleteSession").WithOpenApi();
+
+app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
+{
+    if (!userId.HasValue) return Results.BadRequest("userId query parameter is required.");
+    var idx = await store.GetIndexAsync("sessions");
+    foreach (var kvp in idx)
+    {
+        var s = await store.GetAsync<SessionStorageModel>("sessions", kvp.Value);
+        if (s?.UserId == userId) await store.DeleteAsync("sessions", kvp.Value);
+    }
+    return Results.NoContent();
+}).WithName("DeleteSessionsForUser").WithOpenApi();
 
 app.Run();
 

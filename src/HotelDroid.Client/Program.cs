@@ -42,5 +42,9 @@ builder.Services.AddScoped<HotelDroid.Client.Services.IBookingGuestApiService, H
 builder.Services.AddScoped<HotelDroid.Client.Services.ICancelledBookingApiService, HotelDroid.Client.Services.CancelledBookingApiService>();
 builder.Services.AddScoped<HotelDroid.Client.Services.IExpenseApiService, HotelDroid.Client.Services.ExpenseApiService>();
 builder.Services.AddScoped<HotelDroid.Client.Services.IMoneyHistoryApiService, HotelDroid.Client.Services.MoneyHistoryApiService>();
+builder.Services.AddScoped<HotelDroid.Client.Services.IMessageApiService, HotelDroid.Client.Services.MessageApiService>();
+builder.Services.AddScoped<HotelDroid.Client.Services.IContractTemplateApiService, HotelDroid.Client.Services.ContractTemplateApiService>();
+builder.Services.AddScoped<HotelDroid.Client.Services.IExternalIntegrationApiService, HotelDroid.Client.Services.ExternalIntegrationApiService>();
+builder.Services.AddScoped<HotelDroid.Client.Services.ISessionApiService, HotelDroid.Client.Services.SessionApiService>();
 
 await builder.Build().RunAsync();

@@ -202,5 +202,9 @@
     "title": "Movimenti Cassa", "description": "Storico movimenti di cassa",
     "cashRegisterId": "Cassa", "amount": "Importo", "type": "Tipo",
     "description": "Descrizione", "date": "Data", "emptyList": "Nessun movimento di cassa"
-  }
+  },
+  "messages": { "title": "Messaggi", "description": "Messaggi interni ed esterni", "messageType": "Tipo", "status": "Stato", "sender": "Mittente", "body": "Testo Messaggio", "recipientUserIds": "Destinatari", "createdAt": "Inviato il", "seenAt": "Visto il", "markRead": "Segna come Letto", "archive": "Archivia", "emptyList": "Nessun messaggio" },
+  "contractTemplates": { "title": "Modelli Contratto", "description": "Modelli di documenti e contratti", "type": "Tipo Modello", "number": "Numero", "content": "Contenuto", "emptyList": "Nessun modello contratto" },
+  "externalIntegrations": { "title": "Interconnessioni", "description": "Gestori canali e sistemi esterni", "integrationName": "Nome Integrazione", "idType": "Tipo ID", "localId": "ID Locale", "remoteId1": "ID Remoto 1", "year": "Anno", "emptyList": "Nessuna interconnessione" },
+  "sessions": { "title": "Sessioni", "description": "Sessioni utente attive", "sessionId": "ID Sessione", "userId": "Utente", "ipAddress": "Indirizzo IP", "connectionType": "Tipo Connessione", "lastAccess": "Ultimo Accesso", "emptyList": "Nessuna sessione attiva" }
 }

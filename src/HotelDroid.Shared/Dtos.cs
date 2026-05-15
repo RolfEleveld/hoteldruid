@@ -129,3 +129,13 @@ public record RoomDto(
     string? NeighboringRooms = null,
     string? Comments = null
 );
+
+// --- Layer 5: Communication/Integration DTOs ---
+
+public record MessageDto(string? Id, string? MessageType, string? Status, string? Sender, string? Body, string? RecipientUserIds, DateTime? CreatedAt, DateTime? SeenAt);
+
+public record ContractTemplateDto(string? Id, string? Type, int Number, string? Content);
+
+public record ExternalIntegrationDto(string? Id, string? IntegrationName, string? IdType, int? LocalId, string? RemoteId1, string? RemoteId2, int? Year, DateTime? CreatedAt);
+
+public record SessionDto(string? SessionId, int? UserId, string? IpAddress, string? ConnectionType, DateTime? LastAccess);

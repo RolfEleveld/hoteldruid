@@ -202,5 +202,9 @@
     "title": "Historial de Caja", "description": "Historial de movimientos de caja",
     "cashRegisterId": "Caja", "amount": "Importe", "type": "Tipo",
     "description": "Descripción", "date": "Fecha", "emptyList": "No hay historial de caja"
-  }
+  },
+  "messages": { "title": "Mensajes", "description": "Mensajes internos y externos", "messageType": "Tipo", "status": "Estado", "sender": "Remitente", "body": "Cuerpo del Mensaje", "recipientUserIds": "Destinatarios", "createdAt": "Enviado el", "seenAt": "Visto el", "markRead": "Marcar como Leído", "archive": "Archivar", "emptyList": "No hay mensajes" },
+  "contractTemplates": { "title": "Plantillas de Contrato", "description": "Plantillas de documentos y contratos", "type": "Tipo de Plantilla", "number": "Número", "content": "Contenido", "emptyList": "No hay plantillas de contrato" },
+  "externalIntegrations": { "title": "Integraciones Externas", "description": "Gestores de canales y sistemas externos", "integrationName": "Nombre de Integración", "idType": "Tipo de ID", "localId": "ID Local", "remoteId1": "ID Remoto 1", "year": "Año", "emptyList": "No hay integraciones externas" },
+  "sessions": { "title": "Sesiones", "description": "Sesiones de usuario activas", "sessionId": "ID de Sesión", "userId": "Usuario", "ipAddress": "Dirección IP", "connectionType": "Tipo de Conexión", "lastAccess": "Último Acceso", "emptyList": "No hay sesiones activas" }
 }
