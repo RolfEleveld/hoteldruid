@@ -1,15 +1,29 @@
-# Add logs directory to gitignore
-logs/
-*.log
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
 
-# Docker volumes
-hoteldruid_db_data/
-hoteldruid_uploads/
+# IDE
+.vs/
+.vscode/
+.idea/
+**/*.user
+**/*.lscache
 
-# Environment files
-.env.local
-.env.production
+# PHP / legacy (should not exist on blazor branch but just in case)
+hoteldruid/
+mysql/
+vc_runtime_dlls/
 
-# Database dumps
-*.sql
-!mysql/init/*.sql
+# Test results
+**/TestResults/
+
+# Git
+.git/
+
+# Secrets / certs
+scripts/certs/
+**/*.pfx
+**/*.p12
+**/*.cer
+.env

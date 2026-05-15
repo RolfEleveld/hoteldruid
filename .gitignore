@@ -1,3 +1,15 @@
+# PHP / legacy directories (removed from blazor branch — ignore local remnants)
+hoteldruid/
+mysql/
+vc_runtime_dlls/
+boot.out
+index.out
+phpdesktop-custom-settings.json
+setup-hoteldruid.ps1
+setup-phpdesktop.ps1
+start-hoteldruid-desktop.ps1
+hoteldruid-settings-manager.ps1
+deploy-hoteldruid-config.ps1
 .env
 windows
 phpdesktop
@@ -138,3 +150,19 @@ src/HotelDroid.Api/wwwroot/**/*.gz
 /scripts/certs/
 *.pfx
 *.cer
+
+# Legacy markdown docs removed from blazor branch
+BLazor-migration-tracker.md
+Docker.Windows.Container.compose.yml
+EXPORT_IMPORT.md
+EXPORT_IMPORT_API_ARCHITECTURE.md
+IMPLEMENTATION_ROOMS_WIDGET.md
+IMPLEMENTATION_SUMMARY.md
+INLINE_MESSAGE_SYSTEM.md
+MODERNIZATION_SUMMARY.md
+QUICKSTART-PHPDESKTOP.md
+README-PHPDESKTOP.md
+README_EXPORT_IMPORT.md
+ROOM_API_SPECIFICATION.md
+TESTING_ROOMS_WIDGET.md
+build_deployment_package.md

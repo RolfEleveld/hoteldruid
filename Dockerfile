@@ -1,91 +1,34 @@
-# HotelDruid LAMP Stack Dockerfile
-FROM php:8.1-apache
+# Stage 1: Build Blazor WASM client
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS client-build
+WORKDIR /src
+COPY src/HotelDroid.Shared/ src/HotelDroid.Shared/
+COPY src/HotelDroid.Client/ src/HotelDroid.Client/
+RUN dotnet publish src/HotelDroid.Client/HotelDroid.Client.csproj \
+    -c Release -o /artifacts/client
 
-# Set maintainer info
-LABEL maintainer="HotelDruid Docker Setup"
-LABEL description="LAMP stack for HotelDruid hotel management system"
+# Stage 2: Build API
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
+WORKDIR /src
+COPY src/HotelDroid.Shared/ src/HotelDroid.Shared/
+COPY src/HotelDroid.Api/ src/HotelDroid.Api/
+RUN dotnet publish src/HotelDroid.Api/HotelDroid.Api.csproj \
+    -c Release -o /artifacts/api
 
-# Install system dependencies and PHP extensions
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libxml2-dev \
-    libonig-dev \
-    default-mysql-client \
-    wget \
-    unzip \
-    curl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        gd \
-        mysqli \
-        pdo \
-        pdo_mysql \
-        zip \
-        mbstring \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Stage 3: Assemble — embed Blazor client into API wwwroot
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+COPY --from=api-build /artifacts/api ./
+COPY --from=client-build /artifacts/client/wwwroot ./wwwroot/
 
-# Enable Apache modules
-RUN a2enmod rewrite
-RUN a2enmod ssl
-RUN a2enmod headers
+# Data directory for the file-based store
+RUN mkdir -p /data && chown -R app:app /data 2>/dev/null || true
 
-# Configure PHP
-RUN echo "upload_max_filesize = 50M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "post_max_size = 50M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "session.save_path = '/tmp'" >> /usr/local/etc/php/conf.d/session.ini \
-    && echo "session.gc_maxlifetime = 1440" >> /usr/local/etc/php/conf.d/session.ini
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV HotelDroid__DataPath=/data
 
-# Set working directory
-WORKDIR /var/www/html
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Set Docker environment variable
-ENV DOCKER_ENVIRONMENT=true
-
-# Copy HotelDruid application to web root
-COPY hoteldruid/ /var/www/html/
-
-# Create necessary directories and set permissions
-RUN mkdir -p /var/www/html/dati \
-    && mkdir -p /var/www/html/includes \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod -R 777 /var/www/html/dati
-
-# Create custom Apache configuration
-RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    ServerName localhost' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    DocumentRoot /var/www/html' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    <Directory /var/www/html>' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '        Options Indexes FollowSymLinks' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '        AllowOverride All' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '        Require all granted' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    </Directory>' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    ErrorLog ${APACHE_LOG_DIR}/hoteldruid_error.log' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '    CustomLog ${APACHE_LOG_DIR}/hoteldruid_access.log combined' >> /etc/apache2/sites-available/hoteldruid.conf \
-    && echo '</VirtualHost>' >> /etc/apache2/sites-available/hoteldruid.conf
-
-# Enable the site and disable default
-RUN a2ensite hoteldruid.conf && a2dissite 000-default.conf
-
-# Create .htaccess for security (optional)
-RUN echo 'RewriteEngine On' > /var/www/html/.htaccess \
-    && echo 'RewriteCond %{REQUEST_FILENAME} !-f' >> /var/www/html/.htaccess \
-    && echo 'RewriteCond %{REQUEST_FILENAME} !-d' >> /var/www/html/.htaccess \
-    && echo 'Options -Indexes' >> /var/www/html/.htaccess \
-    && echo 'ServerTokens Prod' >> /var/www/html/.htaccess
-
-# Expose port 80
-EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
-
-# Start Apache in foreground
-CMD ["apache2-foreground"]
+ENTRYPOINT ["dotnet", "HotelDroid.Api.dll"]
