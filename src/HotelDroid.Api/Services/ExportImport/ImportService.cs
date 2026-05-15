@@ -341,7 +341,7 @@ public class ImportService : IImportService
 
     private class ImportStatusTracker
     {
-        public string ImportId { get; set; }
+        public string ImportId { get; set; } = string.Empty;
         public string Status { get; set; } = "pending";
         public int ProgressPercent { get; set; } = 0;
         public int TablesProcessed { get; set; } = 0;

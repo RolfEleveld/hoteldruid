@@ -102,7 +102,7 @@ public interface IExportService
     /// Create complete export package from all APIs
     /// Returns export ID for tracking
     /// </summary>
-    Task<string> CreateExportPackageAsync(ExportRequest options = null);
+    Task<string> CreateExportPackageAsync(ExportRequest? options = null);
 
     /// <summary>
     /// Get export status and download info

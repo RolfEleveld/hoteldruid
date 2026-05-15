@@ -36,7 +36,7 @@ public record ImportValidationRequest(
 public record ImportValidationResponse(
     bool Valid,
     string PackageId,
-    ManifestInfo Manifest,
+    ManifestInfo? Manifest,
     List<TablePreview> Tables,
     Dictionary<string, string> NameMapping,
     List<string> Errors
@@ -168,7 +168,7 @@ public record ImportPackageInfo(
     string PackageId,
     string FileName,
     long FileSizeBytes,
-    Manifest Manifest,
+    Manifest? Manifest,
     List<TablePreview> Tables,
     DateTime UploadedAt
 );

@@ -31,7 +31,7 @@ public class ExportService : IExportService
         _logger = logger;
     }
 
-    public async Task<string> CreateExportPackageAsync(ExportRequest options = null)
+    public async Task<string> CreateExportPackageAsync(ExportRequest? options = null)
     {
         var exportId = Guid.NewGuid().ToString();
         options ??= new ExportRequest();
@@ -188,7 +188,7 @@ public class ExportService : IExportService
 
     private class ExportStatusTracker
     {
-        public string ExportId { get; set; }
+        public string ExportId { get; set; } = string.Empty;
         public string Status { get; set; } = "pending"; // pending, processing, completed, failed, cancelled
         public int ProgressPercent { get; set; } = 0;
         public long? FileSizeBytes { get; set; }
