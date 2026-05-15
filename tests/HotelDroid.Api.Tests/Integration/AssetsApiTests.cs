@@ -181,4 +181,186 @@ public class AssetsApiTests : IAsyncLifetime
         await _client.DeleteAsync($"/api/warehouses/{createdWh.Id}");
         await _client.DeleteAsync($"/api/assets/{createdAsset.Id}");
     }
+    // ========== Asset validation tests ==========
+
+    [Fact]
+    public async Task Asset_Create_MissingName_ReturnsBadRequest()
+    {
+        var r = await _client.PostAsync("/api/assets",
+            new StringContent(JsonSerializer.Serialize(new AssetDto { Code = "X1", Description = "no name" }), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
+    }
+
+    [Fact]
+    public async Task Asset_GetById_NotFound()
+    {
+        var r = await _client.GetAsync("/api/assets/nonexistent-id-99999");
+        Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
+    }
+
+    // ========== Warehouse standalone lifecycle ==========
+
+    [Fact]
+    public async Task Warehouse_Create_GetById_Update_Delete_Lifecycle()
+    {
+        var wh = new WarehouseDto { Name = "WhTest-1", Code = "WH-T1", Description = "Test warehouse", FloorNumber = "2", HouseNumber = "5" };
+        var createResp = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(wh), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+        var created = JsonSerializer.Deserialize<WarehouseDto>(await createResp.Content.ReadAsStringAsync());
+        Assert.NotNull(created); Assert.False(string.IsNullOrEmpty(created!.Id));
+        Assert.Equal("WhTest-1", created.Name);
+
+        // Get by id
+        var getResp = await _client.GetAsync($"/api/warehouses/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var fetched = JsonSerializer.Deserialize<WarehouseDto>(await getResp.Content.ReadAsStringAsync());
+        Assert.Equal(created.Id, fetched?.Id);
+
+        // List
+        var listResp = await _client.GetAsync("/api/warehouses");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var list = JsonSerializer.Deserialize<List<WarehouseDto>>(await listResp.Content.ReadAsStringAsync());
+        Assert.Contains(list!, w => w.Id == created.Id);
+
+        // Update
+        var updated = new WarehouseDto { Id = created.Id, Name = "WhTest-1-Updated", Code = "WH-T1U", FloorNumber = "3" };
+        var putResp = await _client.PutAsync($"/api/warehouses/{created.Id}",
+            new StringContent(JsonSerializer.Serialize(updated), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+        var after = JsonSerializer.Deserialize<WarehouseDto>(await putResp.Content.ReadAsStringAsync());
+        Assert.Equal("WhTest-1-Updated", after?.Name);
+
+        // Delete
+        var delResp = await _client.DeleteAsync($"/api/warehouses/{created.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        // Verify deletion
+        var getAfter = await _client.GetAsync($"/api/warehouses/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+    }
+
+    [Fact]
+    public async Task Warehouse_Create_MissingName_ReturnsBadRequest()
+    {
+        var r = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(new WarehouseDto { Code = "WH-NM" }), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
+    }
+
+    [Fact]
+    public async Task Warehouse_GetById_NotFound()
+    {
+        var r = await _client.GetAsync("/api/warehouses/nonexistent-warehouse-99999");
+        Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
+    }
+
+    // ========== Inventory additional tests ==========
+
+    [Fact]
+    public async Task Inventory_Update_Quantity_ReturnsOk()
+    {
+        await ClearInventoryAsync(); await ClearWarehousesAsync(); await ClearAssetsAsync();
+
+        var assetResp = await _client.PostAsync("/api/assets",
+            new StringContent(JsonSerializer.Serialize(new AssetDto { Name = "InvUpd-Asset", Code = "IUA-1" }), Encoding.UTF8, "application/json"));
+        var asset = JsonSerializer.Deserialize<AssetDto>(await assetResp.Content.ReadAsStringAsync());
+
+        var whResp = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(new WarehouseDto { Name = "InvUpd-WH", Code = "IWH-1" }), Encoding.UTF8, "application/json"));
+        var wh = JsonSerializer.Deserialize<WarehouseDto>(await whResp.Content.ReadAsStringAsync());
+
+        var invResp = await _client.PostAsync("/api/inventory",
+            new StringContent(JsonSerializer.Serialize(new InventoryDto { AssetId = asset!.Id, WarehouseId = wh!.Id, Quantity = 3 }), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, invResp.StatusCode);
+        var inv = JsonSerializer.Deserialize<InventoryDto>(await invResp.Content.ReadAsStringAsync());
+
+        // Update quantity
+        var updatedInv = new InventoryDto { Id = inv!.Id, AssetId = asset.Id, WarehouseId = wh.Id, Quantity = 10, MinQuantityDefault = 2, RequiredOnCheckin = true };
+        var putResp = await _client.PutAsync($"/api/inventory/{inv.Id}",
+            new StringContent(JsonSerializer.Serialize(updatedInv), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+        var afterUpdate = JsonSerializer.Deserialize<InventoryDto>(await putResp.Content.ReadAsStringAsync());
+        Assert.Equal(10, afterUpdate?.Quantity);
+        Assert.Equal(2, afterUpdate?.MinQuantityDefault);
+        Assert.True(afterUpdate?.RequiredOnCheckin);
+
+        // Cleanup
+        await _client.DeleteAsync($"/api/inventory/{inv.Id}");
+        await _client.DeleteAsync($"/api/warehouses/{wh.Id}");
+        await _client.DeleteAsync($"/api/assets/{asset.Id}");
+    }
+
+    [Fact]
+    public async Task Inventory_Delete_ReturnsNoContent()
+    {
+        await ClearInventoryAsync(); await ClearWarehousesAsync(); await ClearAssetsAsync();
+
+        var assetResp = await _client.PostAsync("/api/assets",
+            new StringContent(JsonSerializer.Serialize(new AssetDto { Name = "DelInv-Asset", Code = "DIA-1" }), Encoding.UTF8, "application/json"));
+        var asset = JsonSerializer.Deserialize<AssetDto>(await assetResp.Content.ReadAsStringAsync());
+
+        var whResp = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(new WarehouseDto { Name = "DelInv-WH", Code = "DIW-1" }), Encoding.UTF8, "application/json"));
+        var wh = JsonSerializer.Deserialize<WarehouseDto>(await whResp.Content.ReadAsStringAsync());
+
+        var invResp = await _client.PostAsync("/api/inventory",
+            new StringContent(JsonSerializer.Serialize(new InventoryDto { AssetId = asset!.Id, WarehouseId = wh!.Id, Quantity = 1 }), Encoding.UTF8, "application/json"));
+        var inv = JsonSerializer.Deserialize<InventoryDto>(await invResp.Content.ReadAsStringAsync());
+
+        var delResp = await _client.DeleteAsync($"/api/inventory/{inv!.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        var getAfter = await _client.GetAsync($"/api/inventory/{inv.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, getAfter.StatusCode);
+
+        await _client.DeleteAsync($"/api/warehouses/{wh.Id}");
+        await _client.DeleteAsync($"/api/assets/{asset.Id}");
+    }
+
+    [Fact]
+    public async Task Inventory_List_FilteredByWarehouse()
+    {
+        await ClearInventoryAsync(); await ClearWarehousesAsync(); await ClearAssetsAsync();
+
+        var assetResp = await _client.PostAsync("/api/assets",
+            new StringContent(JsonSerializer.Serialize(new AssetDto { Name = "WH-Filter-Asset", Code = "WFA-1" }), Encoding.UTF8, "application/json"));
+        var asset = JsonSerializer.Deserialize<AssetDto>(await assetResp.Content.ReadAsStringAsync());
+
+        var wh1Resp = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(new WarehouseDto { Name = "WH-Filter-A", Code = "WFA-1" }), Encoding.UTF8, "application/json"));
+        var wh1 = JsonSerializer.Deserialize<WarehouseDto>(await wh1Resp.Content.ReadAsStringAsync());
+
+        var wh2Resp = await _client.PostAsync("/api/warehouses",
+            new StringContent(JsonSerializer.Serialize(new WarehouseDto { Name = "WH-Filter-B", Code = "WFB-1" }), Encoding.UTF8, "application/json"));
+        var wh2 = JsonSerializer.Deserialize<WarehouseDto>(await wh2Resp.Content.ReadAsStringAsync());
+
+        var inv1Resp = await _client.PostAsync("/api/inventory",
+            new StringContent(JsonSerializer.Serialize(new InventoryDto { AssetId = asset!.Id, WarehouseId = wh1!.Id, Quantity = 2 }), Encoding.UTF8, "application/json"));
+        var inv1 = JsonSerializer.Deserialize<InventoryDto>(await inv1Resp.Content.ReadAsStringAsync());
+
+        var inv2Resp = await _client.PostAsync("/api/inventory",
+            new StringContent(JsonSerializer.Serialize(new InventoryDto { AssetId = asset.Id, WarehouseId = wh2!.Id, Quantity = 4 }), Encoding.UTF8, "application/json"));
+        var inv2 = JsonSerializer.Deserialize<InventoryDto>(await inv2Resp.Content.ReadAsStringAsync());
+
+        var listByWh1 = await _client.GetAsync($"/api/inventory?warehouseId={wh1.Id}");
+        Assert.Equal(HttpStatusCode.OK, listByWh1.StatusCode);
+        var whList = JsonSerializer.Deserialize<List<InventoryDto>>(await listByWh1.Content.ReadAsStringAsync());
+        Assert.True(whList!.Any(i => i.WarehouseId == wh1.Id));
+        Assert.False(whList.Any(i => i.WarehouseId == wh2.Id));
+
+        // Cleanup
+        await _client.DeleteAsync($"/api/inventory/{inv1!.Id}");
+        await _client.DeleteAsync($"/api/inventory/{inv2!.Id}");
+        await _client.DeleteAsync($"/api/warehouses/{wh1.Id}");
+        await _client.DeleteAsync($"/api/warehouses/{wh2.Id}");
+        await _client.DeleteAsync($"/api/assets/{asset.Id}");
+    }
+
+    [Fact]
+    public async Task Inventory_GetById_NotFound()
+    {
+        var r = await _client.GetAsync("/api/inventory/nonexistent-inventory-99999");
+        Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
+    }
 }

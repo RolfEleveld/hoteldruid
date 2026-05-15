@@ -508,7 +508,7 @@ app.MapPost("/api/inventory", async (InventoryDto request, IKeyValueStore store)
         CreatedAt = request.CreatedAt ?? DateTime.UtcNow
     };
 
-    var id = await store.CreateAsync("inventory", request.AssetId ?? "", storage);
+    var id = await store.CreateAsync("inventory", Guid.NewGuid().ToString("N"), storage);
     return Results.Created($"/api/inventory/{id}", new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
 }).WithName("CreateInventory").WithOpenApi();
 
@@ -533,7 +533,7 @@ app.MapGet("/api/inventory", async (IKeyValueStore store, string? assetId, strin
     foreach (var item in filtered)
     {
         // try to find id by AssetId or by searching idx (best-effort)
-        var id = idx.FirstOrDefault(kvp => kvp.Value == item.AssetId).Value ?? "";
+        var id = idx.FirstOrDefault(kvp => kvp.Value == item.AssetId).Key ?? "";
         list.Add(new InventoryDto(id, item.AssetId, item.RoomId, item.WarehouseId, item.Quantity, item.MinQuantityDefault, item.RequiredOnCheckin, item.CreatedAt));
     }
     return Results.Ok(list);
