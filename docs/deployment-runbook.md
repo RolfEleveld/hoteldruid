@@ -21,7 +21,7 @@ Provide the following deployment artifacts:
 ## 3. Bring Up Environment
 
 ```powershell
-./scripts/scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/nginx.yml", "deploy/compose/keycloak.yml") -EnvFile "deploy/scenarios/public-acme-keycloak.env" -Build
+./scripts/scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml", "deploy/compose/keycloak.yml") -EnvFile "deploy/scenarios/public-acme-keycloak.env" -Build
 ```
 
 ## 4. Validate Environment
@@ -39,7 +39,7 @@ Checks include:
 ## 5. Tear Down Environment
 
 ```powershell
-./scripts/scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/nginx.yml", "deploy/compose/keycloak.yml") -RemoveVolumes
+./scripts/scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml", "deploy/compose/keycloak.yml") -RemoveVolumes
 ```
 
 ## 6. Security Baseline
