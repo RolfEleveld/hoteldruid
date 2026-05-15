@@ -358,7 +358,98 @@ public class Room
 
 ---
 
-## 7. Booking Transaction Tracking
+## 7. Solution Structure (2026)
+
+### Project/Folder Overview
+
+```mermaid
+graph TD
+  A[HotelDroid.slnx]
+  subgraph src
+    B[HotelDroid.Api]
+    C[HotelDroid.Client]
+    D[HotelDroid.Shared]
+  end
+  subgraph tools
+    E[HotelDroid.Migration]
+  end
+  subgraph tests
+    F[HotelDroid.Api.Tests]
+    G[HotelDroid.Client.Tests]
+    H[HotelDroid.Migration.Tests]
+  end
+  A --> B
+  A --> C
+  A --> D
+  A --> E
+  A --> F
+  A --> G
+  A --> H
+  B --> D
+  C --> D
+  F --> B
+  G --> C
+  H --> E
+```
+
+---
+
+## 8. Call Hierarchy and Repository Groups
+
+```mermaid
+classDiagram
+  class FileKeyValueStore
+  class IdGenerator
+  class IRoomRepository
+  class ILedgerRepository
+  class IBookingTransactionRepository
+  class RoomRepository
+  class LedgerRepository
+  class BookingTransactionRepository
+  FileKeyValueStore <|-- RoomRepository
+  FileKeyValueStore <|-- LedgerRepository
+  FileKeyValueStore <|-- BookingTransactionRepository
+  IRoomRepository <|-- RoomRepository
+  ILedgerRepository <|-- LedgerRepository
+  IBookingTransactionRepository <|-- BookingTransactionRepository
+  IdGenerator ..> FileKeyValueStore : GUIDs
+  RoomRepository --> IRoomRepository
+  LedgerRepository --> ILedgerRepository
+  BookingTransactionRepository --> IBookingTransactionRepository
+```
+
+---
+
+## 9. Entity/DTO Hierarchy
+
+```mermaid
+classDiagram
+  class ClientDto
+  class BookingDto
+  class BookingCostDto
+  class BookingGuestDto
+  class CancelledBookingDto
+  class ExpenseDto
+  class MoneyHistoryDto
+  class RoomDto
+  class MessageDto
+  class ContractTemplateDto
+  class ExternalIntegrationDto
+  class SessionDto
+  BookingDto --> ClientDto : clientId
+  BookingDto --> RoomDto : roomId
+  BookingCostDto --> BookingDto : bookingId
+  BookingGuestDto --> BookingDto : bookingId
+  BookingGuestDto --> ClientDto : clientId
+  CancelledBookingDto --> ClientDto : clientId
+  CancelledBookingDto --> RoomDto : roomId
+  ExpenseDto --> SessionDto : createdBy
+  MoneyHistoryDto --> SessionDto : createdBy
+```
+
+---
+
+## 10. Booking Transaction Tracking
 
 ### Per-Stay Transaction Sequence
 
@@ -396,7 +487,7 @@ data/
 
 ---
 
-## 8. Repository Interface Design
+## 11. Repository Interface Design
 
 ### IAssetRepository<T> (Static Assets)
 
@@ -476,7 +567,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-## 9. Implementation Phases
+## 12. Implementation Phases
 
 ### Phase 1A: Core Storage Layer (Days 1-2)
 
@@ -562,7 +653,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-## 10. Key Design Decisions Reference
+## 13. Key Design Decisions Reference
 
 | Decision | Rationale | Implication |
 |----------|-----------|------------|
@@ -577,7 +668,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-## 11. Future Considerations (Not Phase 1)
+## 14. Future Considerations (Not Phase 1)
 
 **Scalability Options** (when/if needed):
 - SQLite backend (instead of files) — drop-in replacement via same repository interfaces
@@ -592,7 +683,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-## 12. Getting Started
+## 15. Getting Started
 
 **Next Steps:**
 1. Create `src/HotelDroid.Services/` project
