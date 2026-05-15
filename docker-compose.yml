@@ -1,5 +1,5 @@
 # HotelDroid — Blazor WASM + .NET API
-# Run: docker compose up --build
+# Run:  docker compose up --build
 # Stop: docker compose down
 
 services:
@@ -10,11 +10,10 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Persist file-based data store outside the container
       - hoteldroid_data:/data
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      HotelDroid__DataPath: /data
+      HOTELDRUID_DATAROOT: /data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
