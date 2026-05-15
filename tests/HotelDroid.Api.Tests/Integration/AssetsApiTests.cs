@@ -174,7 +174,7 @@ public class AssetsApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, listByAsset.StatusCode);
         var invList = JsonSerializer.Deserialize<List<InventoryDto>>(await listByAsset.Content.ReadAsStringAsync());
         Assert.NotNull(invList);
-        Assert.True(invList!.Any(i => i.AssetId == createdAsset.Id));
+        Assert.Contains(invList!, i => i.AssetId == createdAsset.Id);
 
         // Cleanup
         await _client.DeleteAsync($"/api/inventory/{createdInv.Id}");
@@ -346,8 +346,9 @@ public class AssetsApiTests : IAsyncLifetime
         var listByWh1 = await _client.GetAsync($"/api/inventory?warehouseId={wh1.Id}");
         Assert.Equal(HttpStatusCode.OK, listByWh1.StatusCode);
         var whList = JsonSerializer.Deserialize<List<InventoryDto>>(await listByWh1.Content.ReadAsStringAsync());
-        Assert.True(whList!.Any(i => i.WarehouseId == wh1.Id));
-        Assert.False(whList.Any(i => i.WarehouseId == wh2.Id));
+        Assert.NotNull(whList);
+        Assert.Contains(whList!, i => i.WarehouseId == wh1.Id);
+        Assert.DoesNotContain(whList!, i => i.WarehouseId == wh2.Id);
 
         // Cleanup
         await _client.DeleteAsync($"/api/inventory/{inv1!.Id}");

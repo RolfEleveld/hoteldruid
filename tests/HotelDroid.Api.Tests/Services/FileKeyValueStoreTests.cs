@@ -375,7 +375,7 @@ public class FileKeyValueStoreTests : IAsyncLifetime
     [InlineData(null)]
     [InlineData("../../etc/passwd")]
     [InlineData("rooms/../../etc/passwd")]
-    public async Task ValidateCollectionName_RejectsInvalid(string collectionName)
+    public async Task ValidateCollectionName_RejectsInvalid(string? collectionName)
     {
         // Arrange
         var doc = new TestDocument { Name = "Test", Value = 1 };

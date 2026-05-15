@@ -33,7 +33,7 @@ public class ExportImportIntegrationTests : IAsyncLifetime
 
         // Create configuration with temp directories
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Storage:ExportDirectory"] = Path.Combine(_tempDirectory, "exports"),
                 ["Storage:ImportDirectory"] = Path.Combine(_tempDirectory, "imports")
@@ -127,7 +127,8 @@ public class ExportImportIntegrationTests : IAsyncLifetime
         {
             importedCanonical = importedCanonical with { TableName = "rooms" };
         }
-        var reimportedRooms = _canonicalMapper.FromCanonical(importedCanonical);
+        Assert.NotNull(importedCanonical);
+        var reimportedRooms = _canonicalMapper.FromCanonical(importedCanonical!);
 
         // Assert all data preserved
         Assert.Equal(2, reimportedRooms.Length);
@@ -219,7 +220,7 @@ public class ExportImportIntegrationTests : IAsyncLifetime
     public async Task ValidateImportPackage_DetectsTableStructure()
     {
         // Preamble: Clear any shared state from previous tests
-        _roomsStore.DeleteAsync("rooms", "room1").Wait();
+        await _roomsStore.DeleteAsync("rooms", "room1");
         
         // Arrange - create a test ZIP with manifest
         var rooms = new[]

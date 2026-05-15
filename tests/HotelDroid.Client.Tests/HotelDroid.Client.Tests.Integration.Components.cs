@@ -17,8 +17,8 @@ namespace HotelDroid.Client.Tests.Integration.Components
     /// </summary>
     public class RoomsWidgetComponentTests : TestContext
     {
-        private Mock<IRoomApiService> _mockRoomApiService;
-        private Mock<ILanguageService> _mockLanguageService;
+        private Mock<IRoomApiService> _mockRoomApiService = null!;
+        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public RoomsWidgetComponentTests()
         {
@@ -211,8 +211,8 @@ namespace HotelDroid.Client.Tests.Integration.Components
     /// </summary>
     public class ExportSettingsComponentTests : TestContext
     {
-        private Mock<IRoomApiService> _mockRoomApiService;
-        private Mock<ILanguageService> _mockLanguageService;
+        private Mock<IRoomApiService> _mockRoomApiService = null!;
+        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public ExportSettingsComponentTests()
         {
@@ -285,8 +285,8 @@ namespace HotelDroid.Client.Tests.Integration.Components
     /// </summary>
     public class ImportSettingsComponentTests : TestContext
     {
-        private Mock<IRoomApiService> _mockRoomApiService;
-        private Mock<ILanguageService> _mockLanguageService;
+        private Mock<IRoomApiService> _mockRoomApiService = null!;
+        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public ImportSettingsComponentTests()
         {
