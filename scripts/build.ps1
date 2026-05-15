@@ -8,11 +8,14 @@
   file aliases. This lets UseStaticFiles() serve dotnet.js, dotnet.native.js, etc.
   without needing MapStaticAssets() or a slow double-publish.
 
-  Artifacts land in:
-    artifacts\client\  - raw Blazor client publish output
-    artifacts\api\     - API publish output (with client embedded in wwwroot)
 
-  Run this whenever you change source code. Follow with run-local.ps1 to start the app.
+    Artifacts land in:
+        artifacts\client\  - raw Blazor client publish output
+        artifacts\api\     - API publish output (with client embedded in wwwroot)
+        artifacts\hoteldroid-package.zip - deployable package (always created)
+
+
+    Run this whenever you change source code. Follow with deploy.ps1 to start the app.
 
 .EXAMPLE
   .\scripts\build.ps1              # Debug build
@@ -33,6 +36,19 @@ $clientOut = Join-Path $root 'artifacts\client'
 $apiOut    = Join-Path $root 'artifacts\api'
 
 function Ensure-Dir([string]$d) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null } }
+function Reset-ProjectIntermediates([string]$projectPath, [string]$configuration) {
+    $projectDir = Join-Path $root $projectPath
+    $objDir = Join-Path $projectDir (Join-Path 'obj' $configuration)
+    $binDir = Join-Path $projectDir (Join-Path 'bin' $configuration)
+
+    if (Test-Path $objDir) {
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $objDir
+    }
+
+    if (Test-Path $binDir) {
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $binDir
+    }
+}
 
 # 0. Optional clean
 if ($Clean) {
@@ -40,11 +56,16 @@ if ($Clean) {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $clientOut, $apiOut
 }
 
+# Clear stale intermediates before restore so publish can reuse the restored assets.
+Reset-ProjectIntermediates 'src\HotelDroid.Shared' $Configuration
+Reset-ProjectIntermediates 'src\HotelDroid.Client' $Configuration
+Reset-ProjectIntermediates 'src\HotelDroid.Api' $Configuration
+
 # 1. Restore
 Write-Host "`n[1/4] Restoring packages..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet restore --no-restore-progress 2>&1 | Where-Object { $_ -notmatch 'up-to-date' }
+    dotnet restore --nologo 2>&1 | Where-Object { $_ -notmatch 'up-to-date' }
     if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
@@ -134,4 +155,11 @@ Write-Host "`nBuild complete ($Configuration)." -ForegroundColor Green
 Write-Host "   API artifacts : $apiOut"
 Write-Host "   Client in     : $wwwroot"
 Write-Host "`nRun the app with:"
-Write-Host "   .\scripts\run-local.ps1" -ForegroundColor Yellow
+Write-Host "   .\scripts\deploy.ps1" -ForegroundColor Yellow
+
+# 5. Create deployment package (zip)
+$packagePath = Join-Path $root 'artifacts\hoteldroid-package.zip'
+if (Test-Path $packagePath) { Remove-Item $packagePath -Force }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($apiOut, $packagePath)
+Write-Host "Created deployment package: $packagePath" -ForegroundColor Green
