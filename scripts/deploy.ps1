@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Deploy HotelDroid locally, per-user, or to a target directory.
+  Deploy HotelDruid locally, per-user, or to a target directory.
 
 .DESCRIPTION
   Uses the package created by build.ps1. Supports three common flows:
@@ -16,7 +16,7 @@
   ./deploy.ps1
   ./deploy.ps1 -Publish -OpenBrowser
   ./deploy.ps1 -User
-  ./deploy.ps1 -Target "C:\Deploy\HotelDroid"
+  ./deploy.ps1 -Target "C:\Deploy\HotelDruid"
 #>
 
 param(
@@ -34,7 +34,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $root = Join-Path $PSScriptRoot '..'
-$packagePath = Join-Path $root 'artifacts\hoteldroid-package.zip'
+$packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 $artifactsApi = Join-Path $root 'artifacts\api'
 
 function Ensure-Dir([string]$Path) {
@@ -102,7 +102,7 @@ function Get-OrCreate-LocalhostThumbprint {
     $createdCert = New-SelfSignedCertificate \
         -DnsName 'localhost' \
         -CertStoreLocation 'Cert:\CurrentUser\My' \
-        -FriendlyName 'HotelDroid Dev Localhost' \
+        -FriendlyName 'HotelDruid Dev Localhost' \
         -NotAfter (Get-Date).AddYears(1)
 
     if (-not $createdCert) {
@@ -129,7 +129,7 @@ function New-UserUninstallScript([string]$InstallDir, [string]$Thumbprint) {
     $script = @'
 param()
 
-Write-Host "Removing HotelDroid user installation..."
+Write-Host "Removing HotelDruid user installation..."
 
 try {
     $thumb = "__THUMB__"
@@ -159,13 +159,13 @@ catch {
 }
 
 try {
-    Remove-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDroid_User' -ErrorAction SilentlyContinue
+    Remove-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid_User' -ErrorAction SilentlyContinue
 }
 catch {
 }
 
 try {
-    $startMenuDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDroid'
+    $startMenuDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDruid'
     if (Test-Path $startMenuDir) {
         Remove-Item -Recurse -Force $startMenuDir
     }
@@ -189,12 +189,12 @@ Write-Host 'User uninstall complete.'
 }
 
 function New-UserShortcuts([string]$InstallDir, [string]$RunBatPath, [string]$UninstallPath, [int]$LocalHttpsPort) {
-    $startMenuDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDroid'
+    $startMenuDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HotelDruid'
     Ensure-Dir $startMenuDir
 
     $wsh = New-Object -ComObject WScript.Shell
 
-    $runShortcutPath = Join-Path $startMenuDir 'Run HotelDroid.lnk'
+    $runShortcutPath = Join-Path $startMenuDir 'Run HotelDruid.lnk'
     $runShortcut = $wsh.CreateShortcut($runShortcutPath)
     $runShortcut.TargetPath = $RunBatPath
     $runShortcut.WorkingDirectory = $InstallDir
@@ -202,7 +202,7 @@ function New-UserShortcuts([string]$InstallDir, [string]$RunBatPath, [string]$Un
     $runShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
     $runShortcut.Save()
 
-    $openShortcutPath = Join-Path $startMenuDir 'Open HotelDroid.lnk'
+    $openShortcutPath = Join-Path $startMenuDir 'Open HotelDruid.lnk'
     $openShortcut = $wsh.CreateShortcut($openShortcutPath)
     $openShortcut.TargetPath = 'powershell.exe'
     $openShortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"Start-Process '$RunBatPath'; Start-Sleep -Seconds 2; Start-Process 'https://localhost:$LocalHttpsPort/'`""
@@ -210,7 +210,7 @@ function New-UserShortcuts([string]$InstallDir, [string]$RunBatPath, [string]$Un
     $openShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
     $openShortcut.Save()
 
-    $uninstallShortcutPath = Join-Path $startMenuDir 'Uninstall HotelDroid.lnk'
+    $uninstallShortcutPath = Join-Path $startMenuDir 'Uninstall HotelDruid.lnk'
     $uninstallShortcut = $wsh.CreateShortcut($uninstallShortcutPath)
     $uninstallShortcut.TargetPath = 'powershell.exe'
     $uninstallShortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$UninstallPath`""
@@ -220,14 +220,14 @@ function New-UserShortcuts([string]$InstallDir, [string]$RunBatPath, [string]$Un
 }
 
 function Register-UserUninstall([string]$InstallDir, [string]$UninstallPath) {
-    $keyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDroid_User'
+    $keyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid_User'
     New-Item -Path $keyPath -Force | Out-Null
-    Set-ItemProperty -Path $keyPath -Name 'DisplayName' -Value 'HotelDroid (User)'
+    Set-ItemProperty -Path $keyPath -Name 'DisplayName' -Value 'HotelDruid (User)'
     Set-ItemProperty -Path $keyPath -Name 'DisplayVersion' -Value '1.0.0'
-    Set-ItemProperty -Path $keyPath -Name 'Publisher' -Value 'HotelDroid'
+    Set-ItemProperty -Path $keyPath -Name 'Publisher' -Value 'HotelDruid'
     Set-ItemProperty -Path $keyPath -Name 'InstallLocation' -Value $InstallDir
     Set-ItemProperty -Path $keyPath -Name 'UninstallString' -Value "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$UninstallPath`""
-    Set-ItemProperty -Path $keyPath -Name 'DisplayIcon' -Value (Join-Path $InstallDir 'HotelDroid.Api.dll')
+    Set-ItemProperty -Path $keyPath -Name 'DisplayIcon' -Value (Join-Path $InstallDir 'HotelDruid.Api.dll')
 }
 
 function Invoke-UserDeployment {
@@ -251,7 +251,7 @@ set ASPNETCORE_Kestrel__Certificates__Default__Store=My
 set ASPNETCORE_Kestrel__Certificates__Default__Location=CurrentUser
 set ASPNETCORE_Kestrel__Certificates__Default__Thumbprint=$thumbprint
 cd /d "%~dp0"
-start "HotelDroid API" /b dotnet HotelDroid.Api.dll --urls "http://*:$HttpPort;https://*:$HttpsPort"
+start "HotelDruid API" /b dotnet HotelDruid.Api.dll --urls "http://*:$HttpPort;https://*:$HttpsPort"
 "@
     Set-Content -Path $runBatPath -Value $runBat -Encoding ASCII
 
@@ -260,13 +260,13 @@ start "HotelDroid API" /b dotnet HotelDroid.Api.dll --urls "http://*:$HttpPort;h
     Register-UserUninstall -InstallDir $InstallDir -UninstallPath $uninstallPath
 
     Write-Host "User deployment completed at $InstallDir" -ForegroundColor Green
-    Write-Host "Start Menu entries were created under HotelDroid." -ForegroundColor Green
+    Write-Host "Start Menu entries were created under HotelDruid." -ForegroundColor Green
 }
 
 Ensure-Package
 
 if ($User) {
-    $installDir = if ($Target) { $Target } else { Join-Path $env:LOCALAPPDATA 'HotelDroid' }
+    $installDir = if ($Target) { $Target } else { Join-Path $env:LOCALAPPDATA 'HotelDruid' }
     Invoke-UserDeployment -InstallDir $installDir
     return
 }
@@ -285,7 +285,7 @@ $env:ASPNETCORE_Kestrel__Certificates__Default__Thumbprint = $CertThumbprint
 
 Push-Location $artifactsApi
 try {
-    Start-Process 'dotnet' "HotelDroid.Api.dll --urls=http://*:$HttpPort;https://*:$HttpsPort" -NoNewWindow
+    Start-Process 'dotnet' "HotelDruid.Api.dll --urls=http://*:$HttpPort;https://*:$HttpsPort" -NoNewWindow
     if ($OpenBrowser) {
         Start-Process "https://localhost:$HttpsPort/"
     }

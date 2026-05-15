@@ -1,0 +1,159 @@
+@page "/messages"
+@using HotelDruid.Client.Services
+@inject IMessageApiService MessageApi
+@inject HttpClient Http
+
+<PageTitle>Messages</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Messages</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> New Message</button>
+                    @if (items == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="alert alert-info">No messages yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var item in items)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == item.Id ? "active" : "")" @onclick="() => Select(item)">
+                                    @item.Sender — @item.Body?.Substring(0, Math.Min(item.Body?.Length ?? 0, 30))
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New Message" : "Edit Message")</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Sender</label>
+                        <input class="form-control" @bind="editSender" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Body</label>
+                        <textarea class="form-control" @bind="editBody"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message Type</label>
+                        <input class="form-control" @bind="editType" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Recipients (user IDs)</label>
+                        <input class="form-control" @bind="editRecipients" />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Send</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-warning" @onclick="MarkRead">Mark Read</button>
+                            <button class="btn btn-secondary" @onclick="Archive">Archive</button>
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">Status</dt><dd class="col-8">@selected.Status</dd>
+                            <dt class="col-4">Type</dt><dd class="col-8">@selected.MessageType</dd>
+                            <dt class="col-4">Sent</dt><dd class="col-8">@selected.CreatedAt</dd>
+                            <dt class="col-4">Seen</dt><dd class="col-8">@selected.SeenAt</dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Select a message to view details</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MessageApiDto>? items;
+    private MessageApiDto? selected;
+    private string editSender = string.Empty;
+    private string editBody = string.Empty;
+    private string editType = "internal";
+    private string editRecipients = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        items = await MessageApi.GetMessagesAsync();
+        StateHasChanged();
+    }
+
+    private void Select(MessageApiDto item)
+    {
+        selected = item;
+        editSender = item.Sender ?? string.Empty;
+        editBody = item.Body ?? string.Empty;
+        editType = item.MessageType ?? "internal";
+        editRecipients = item.RecipientUserIds ?? string.Empty;
+    }
+
+    private void AddNew()
+    {
+        selected = null;
+        editSender = string.Empty;
+        editBody = string.Empty;
+        editType = "internal";
+        editRecipients = string.Empty;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(editSender) || string.IsNullOrWhiteSpace(editBody)) return;
+        var dto = new MessageApiDto(null, editType, null, editSender, editBody, editRecipients, null, null);
+        await MessageApi.CreateMessageAsync(dto);
+        await Load();
+    }
+
+    private async Task MarkRead()
+    {
+        if (selected == null) return;
+        await MessageApi.MarkReadAsync(selected.Id!);
+        await Load();
+    }
+
+    private async Task Archive()
+    {
+        if (selected == null) return;
+        await MessageApi.ArchiveAsync(selected.Id!);
+        await Load();
+    }
+
+    private async Task Delete()
+    {
+        if (selected == null) return;
+        await MessageApi.DeleteMessageAsync(selected.Id!);
+        selected = null;
+        await Load();
+    }
+}
+

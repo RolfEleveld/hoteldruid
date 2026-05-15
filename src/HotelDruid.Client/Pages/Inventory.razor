@@ -1,0 +1,163 @@
+@page "/inventory"
+@using HotelDruid.Client.Services
+@inject IInventoryApiService InventoryApi
+
+<PageTitle>Inventory Management</PageTitle>
+
+<div class="container-fluid inventory-manager">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Inventory</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> Add Item</button>
+                    @if (rows == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (rows.Count == 0)
+                    {
+                        <div class="alert alert-info">No inventory items yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var r in rows)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")" @onclick="() => Select(r)">@r.AssetId (@r.Quantity)</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New Item" : "Edit Item")</h5>
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning" role="alert">@validationMessage</div>
+                    }
+                    <div class="mb-3"><label class="form-label">Asset ID</label><input class="form-control" @bind="edit.AssetId" /></div>
+                    <div class="mb-3"><label class="form-label">Room ID</label><input class="form-control" @bind="edit.RoomId" /></div>
+                    <div class="mb-3"><label class="form-label">Warehouse ID</label><input class="form-control" @bind="edit.WarehouseId" /></div>
+                    <div class="mb-3"><label class="form-label">Quantity</label><input type="number" class="form-control" @bind="edit.Quantity" /></div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">Asset</dt><dd class="col-8">@selected.AssetId</dd>
+                        </dl>
+                    }
+                    else { <div class="text-muted">Select an inventory item</div> }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<InventoryDto>? rows;
+    private InventoryDto? selected;
+    private InventoryEditModel edit = new();
+    private string? validationMessage;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() => rows = await InventoryApi.GetInventoryAsync();
+
+    private void Select(InventoryDto r)
+    {
+        validationMessage = null;
+        selected = r;
+        edit = InventoryEditModel.FromDto(r);
+    }
+
+    private void AddNew()
+    {
+        validationMessage = null;
+        selected = null;
+        edit = new InventoryEditModel();
+    }
+
+    private async Task Save()
+    {
+        validationMessage = null;
+        var dto = edit.ToDto();
+        if (selected == null) await InventoryApi.CreateInventoryAsync(dto);
+        else
+        {
+            if (!TryResolveSelectedId(out var selectedId))
+            {
+                return;
+            }
+
+            await InventoryApi.UpdateInventoryAsync(selectedId, dto);
+        }
+
+        await Load();
+    }
+
+    private async Task Delete()
+    {
+        validationMessage = null;
+        if (selected == null) return;
+
+        if (!TryResolveSelectedId(out var selectedId))
+        {
+            return;
+        }
+
+        await InventoryApi.DeleteInventoryAsync(selectedId);
+        selected = null;
+        await Load();
+    }
+
+    private bool TryResolveSelectedId(out string selectedId)
+    {
+        selectedId = string.Empty;
+        if (selected == null || string.IsNullOrWhiteSpace(selected.Id))
+        {
+            validationMessage = "Unable to continue: the selected inventory item has no valid ID.";
+            return false;
+        }
+
+        if (rows?.Any(r => string.Equals(r.Id, selected.Id, StringComparison.Ordinal)) != true)
+        {
+            validationMessage = "The selected inventory item is no longer available. Refresh and try again.";
+            return false;
+        }
+
+        selectedId = selected.Id;
+        return true;
+    }
+
+    private class InventoryEditModel
+    {
+        public string AssetId { get; set; } = string.Empty;
+        public string? RoomId { get; set; }
+        public string? WarehouseId { get; set; }
+        public int Quantity { get; set; } = 0;
+
+        public InventoryDto ToDto() => new(Id: string.Empty, AssetId: AssetId, RoomId: RoomId, WarehouseId: WarehouseId, Quantity: Quantity, MinQuantityDefault: null, RequiredOnCheckin: null, CreatedAt: null);
+        public static InventoryEditModel FromDto(InventoryDto d) => new() { AssetId = d.AssetId ?? string.Empty, RoomId = d.RoomId, WarehouseId = d.WarehouseId, Quantity = d.Quantity };
+    }
+}
+

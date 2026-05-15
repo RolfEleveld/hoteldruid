@@ -1,4 +1,4 @@
-# HotelDroid Test Infrastructure
+# HotelDruid Test Infrastructure
 
 ## Overview
 
@@ -157,7 +157,7 @@ The structured JSON format makes logs consumable by:
 
 **Example: Retrieve all CREATE operations**:
 ```powershell
-Get-EventLog -LogName Application -Source HotelDroid | 
+Get-EventLog -LogName Application -Source HotelDruid | 
   Where-Object { $_.Message -match '"OperationType":"CREATE"' }
 ```
 
@@ -208,7 +208,7 @@ cd scripts
 ### Per-Test Isolation
 
 Each test:
-1. Creates a unique temp directory (`C:\Users\{user}\AppData\Local\Temp\hoteldruid-test-{guid}`)
+1. Creates a unique temp directory (`C:\Users\{user}\AppData\Local\Temp\HotelDruid-test-{guid}`)
 2. Sets up full environment (FileKeyValueStore, services, etc.)
 3. Runs the test
 4. Cleans up the temp directory
@@ -219,7 +219,7 @@ Each test:
 public async Task InitializeAsync()
 {
     // Setup
-    _tempDataRoot = Path.Combine(Path.GetTempPath(), $"hoteldruid-tests-{Guid.NewGuid()}");
+    _tempDataRoot = Path.Combine(Path.GetTempPath(), $"HotelDruid-tests-{Guid.NewGuid()}");
     Directory.CreateDirectory(_tempDataRoot);
     _store = new FileKeyValueStore(_tempDataRoot, _mockLogger.Object);
     await Task.CompletedTask;
@@ -387,7 +387,7 @@ public async Task DisposeAsync()
 **Manual Cleanup** (if needed):
 ```powershell
 # Remove temp test directories older than 1 day
-Get-ChildItem C:\Users\{user}\AppData\Local\Temp\hoteldruid-test-* -Directory |
+Get-ChildItem C:\Users\{user}\AppData\Local\Temp\HotelDruid-test-* -Directory |
   Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
   Remove-Item -Recurse
 ```
@@ -440,3 +440,4 @@ Get-ChildItem C:\Users\{user}\AppData\Local\Temp\hoteldruid-test-* -Directory |
 - [WebApplicationFactory](https://docs.microsoft.com/aspnet/core/test/integration-tests)
 - [Structured Logging](https://docs.microsoft.com/dotnet/core/extensions/logging)
 - [SIEM Log Format Standards](https://www.splunk.com/en_us/software/pricing.html)
+

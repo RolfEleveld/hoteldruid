@@ -1,10 +1,10 @@
-# HotelDroid Scripts
+# HotelDruid Scripts
 
-This folder contains all automation scripts for building, deploying, and testing HotelDroid. Each script is single-purpose and follows convention over configuration—most common scenarios require no parameters.
+This folder contains all automation scripts for building, deploying, and testing HotelDruid. Each script is single-purpose and follows convention over configuration—most common scenarios require no parameters.
 
 ## Scripts Overview
 
-- **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/hoteldroid-package.zip`).
+- **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/HotelDruid-package.zip`).
 - **deploy.ps1**: Deploy the package locally, as a per-user install (`-User`), or to a specified target (`-Target <path>`). For per-user installs it creates or trusts the localhost certificate, writes install metadata, creates Start Menu shortcuts, and generates the uninstall script and registry entry.
 - **test.ps1**: Run all unit and integration tests, generate reports.
 - **scenario-up.ps1**: Bring up a selected deployment scenario with admin-provided compose files.
@@ -38,3 +38,4 @@ This folder contains all automation scripts for building, deploying, and testing
 ---
 
 If you need to customize or extend, see comments at the top of each script for details.
+

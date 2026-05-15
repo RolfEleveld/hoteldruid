@@ -24,7 +24,7 @@ hoteldruid/dati
 /_client_publish/
 
 # Published Blazor client embedded in API wwwroot — fully generated, never commit
-src/HotelDroid.Api/wwwroot/
+src/HotelDruid.Api/wwwroot/
 
 # Hotel druid software
 hoteldruid*.zip
@@ -83,12 +83,12 @@ obj/
 # Published Blazor/Client outputs (when publishing into API/wwwroot)
 artifacts/client/
 /artifacts/api/
-/src/HotelDroid.Api/wwwroot/_framework/
-/src/HotelDroid.Api/wwwroot/*.br
-src/HotelDroid.Api/wwwroot/*.gz
+/src/HotelDruid.Api/wwwroot/_framework/
+/src/HotelDruid.Api/wwwroot/*.br
+src/HotelDruid.Api/wwwroot/*.gz
 
 # Single-file publish exe (if you don't want to commit it)
-/artifacts/**/HotelDroid.Api.exe
+/artifacts/**/HotelDruid.Api.exe
 
 # Certificates / exported credentials
 /scripts/certs/
@@ -113,28 +113,28 @@ ehthumbs.db
 *.log
 
 # Recommended: ignore precompressed Blazor static assets and generated client wwwroot
-src/HotelDroid.Client/bin/
-src/HotelDroid.Client/obj/
+src/HotelDruid.Client/bin/
+src/HotelDruid.Client/obj/
 artifacts/client/_framework/
 artifacts/client/**/*.br
 artifacts/client/**/*.gz
 
 # If you publish the client into the API project, ignore generated wwwroot framework
-src/HotelDroid.Api/wwwroot/_framework/
-src/HotelDroid.Api/wwwroot/*.br
-src/HotelDroid.Api/wwwroot/*.gz
+src/HotelDruid.Api/wwwroot/_framework/
+src/HotelDruid.Api/wwwroot/*.br
+src/HotelDruid.Api/wwwroot/*.gz
 
 # Vendored third-party libraries managed by LibMan
-/src/HotelDroid.Api/wwwroot/lib/
-/src/HotelDroid.Client/wwwroot/lib/
+/src/HotelDruid.Api/wwwroot/lib/
+/src/HotelDruid.Client/wwwroot/lib/
 
 # Ignore any precompressed assets under wwwroot (restored at build time)
-src/HotelDroid.Api/wwwroot/**/*.br
-src/HotelDroid.Api/wwwroot/**/*.gz
+src/HotelDruid.Api/wwwroot/**/*.br
+src/HotelDruid.Api/wwwroot/**/*.gz
 
 
 # Single-file exe artifacts (optional)
-/artifacts/**/HotelDroid.Api.exe
+/artifacts/**/HotelDruid.Api.exe
 
 # Cert exports
 /scripts/certs/

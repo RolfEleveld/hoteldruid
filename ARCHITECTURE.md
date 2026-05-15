@@ -364,19 +364,19 @@ public class Room
 
 ```mermaid
 graph TD
-  A[HotelDroid.slnx]
+  A[HotelDruid.slnx]
   subgraph src
-    B[HotelDroid.Api]
-    C[HotelDroid.Client]
-    D[HotelDroid.Shared]
+    B[HotelDruid.Api]
+    C[HotelDruid.Client]
+    D[HotelDruid.Shared]
   end
   subgraph tools
-    E[HotelDroid.Migration]
+    E[HotelDruid.Migration]
   end
   subgraph tests
-    F[HotelDroid.Api.Tests]
-    G[HotelDroid.Client.Tests]
-    H[HotelDroid.Migration.Tests]
+    F[HotelDruid.Api.Tests]
+    G[HotelDruid.Client.Tests]
+    H[HotelDruid.Migration.Tests]
   end
   A --> B
   A --> C
@@ -700,7 +700,7 @@ profile choices selected by administrators.
 ```mermaid
 flowchart LR
   U[Users / Browsers] --> RP[Reverse Proxy or Ingress]
-  RP --> API[HotelDroid API + Blazor Static Assets]
+  RP --> API[HotelDruid API + Blazor Static Assets]
   API --> DATA[(Persistent Volume / Data Store)]
   RP --> IDP[Keycloak / OIDC Provider]
   API --> IDP
@@ -717,7 +717,7 @@ flowchart LR
 ## 15. Getting Started
 
 **Next Steps:**
-1. Create `src/HotelDroid.Services/` project
+1. Create `src/HotelDruid.Services/` project
 2. Implement `FileKeyValueStore` with unit tests
 3. Implement `IRoomRepository` with unit tests
 4. Create `/api/rooms` endpoints
@@ -750,4 +750,5 @@ flowchart LR
 ## References
 
 - [Architecture Decision Log](ARCHITECTURE.md) (this file)
-- Implementation code in `src/HotelDroid.Api/`
+- Implementation code in `src/HotelDruid.Api/`
+

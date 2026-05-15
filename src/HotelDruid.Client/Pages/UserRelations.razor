@@ -1,0 +1,119 @@
+@page "/user-relations"
+@using HotelDruid.Client.Services
+@inject IUserRelationApiService UserRelationApi
+
+<PageTitle>User Preferences</PageTitle>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4 border-end">
+            <h5 class="mt-3">User Preferences</h5>
+            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ New</button>
+            @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
+            @if (record is not null && !editing)
+            {
+                <div class="card mt-2">
+                    <div class="card-body">
+                        <h6>User @record.UserId</h6>
+                        <dl>
+                            <dt>Nation ID</dt><dd>@record.NationId</dd>
+                            <dt>Region ID</dt><dd>@record.RegionId</dd>
+                            <dt>City ID</dt><dd>@record.CityId</dd>
+                            <dt>Doc Type ID</dt><dd>@record.DocumentTypeId</dd>
+                            <dt>Is Default</dt><dd>@record.IsDefault</dd>
+                        </dl>
+                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditRecord">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="DeleteRecord">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="col-md-5 border-end">
+            <div class="mt-3">
+                <label>Look up User ID</label>
+                <div class="input-group mb-3">
+                    <input class="form-control" type="number" @bind="lookupUserId" placeholder="User ID" />
+                    <button class="btn btn-outline-secondary" @onclick="LookupUser">Lookup</button>
+                </div>
+            </div>
+            @if (editing)
+            {
+                <h5>@(isNew ? "New Preference" : "Edit Preference")</h5>
+                <div class="row g-2">
+                    <div class="col-6"><label>User ID *</label><input class="form-control" type="number" @bind="form.UserId" /></div>
+                    <div class="col-6"><label>Nation ID</label><input class="form-control" type="number" @bind="form.NationId" /></div>
+                    <div class="col-6"><label>Region ID</label><input class="form-control" type="number" @bind="form.RegionId" /></div>
+                    <div class="col-6"><label>City ID</label><input class="form-control" type="number" @bind="form.CityId" /></div>
+                    <div class="col-6"><label>Doc Type ID</label><input class="form-control" type="number" @bind="form.DocumentTypeId" /></div>
+                    <div class="col-6"><label>Family Rel ID</label><input class="form-control" type="number" @bind="form.FamilyRelationshipId" /></div>
+                    <div class="col-6"><label>Superior ID</label><input class="form-control" type="number" @bind="form.SuperiorId" /></div>
+                    <div class="col-6"><label>Is Default</label><input class="form-control" type="number" @bind="form.IsDefault" /></div>
+                </div>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
+                <div class="mt-3">
+                    <button class="btn btn-primary me-2" @onclick="Save">Save</button>
+                    <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserRelationDto? record;
+    private bool editing, isNew;
+    private string errorMsg = "";
+    private int? lookupUserId;
+    private FormModel form = new();
+
+    private void NewRecord() { form = new(); isNew = true; editing = true; record = null; errorMsg = ""; }
+    private void EditRecord()
+    {
+        if (record is null) return;
+        form = new() { UserId = record.UserId, NationId = record.NationId, RegionId = record.RegionId, CityId = record.CityId, DocumentTypeId = record.DocumentTypeId, FamilyRelationshipId = record.FamilyRelationshipId, SuperiorId = record.SuperiorId, IsDefault = record.IsDefault };
+        isNew = false; editing = true; errorMsg = "";
+    }
+
+    private async Task LookupUser()
+    {
+        if (lookupUserId is null) return;
+        record = await UserRelationApi.GetByUserAsync(lookupUserId.Value);
+        errorMsg = record is null ? $"No preference for user {lookupUserId}" : "";
+        editing = false;
+    }
+
+    private async Task Save()
+    {
+        if (form.UserId is null) { errorMsg = "User ID is required."; return; }
+        var dto = new UserRelationDto(record?.Id, form.UserId, form.NationId, form.RegionId, form.CityId, form.DocumentTypeId, form.FamilyRelationshipId, form.SuperiorId, form.IsDefault);
+        try
+        {
+            if (isNew) await UserRelationApi.CreateAsync(dto);
+            else await UserRelationApi.UpdateAsync(form.UserId.Value, dto);
+            editing = false;
+            record = await UserRelationApi.GetByUserAsync(form.UserId.Value);
+        }
+        catch { errorMsg = "Save failed."; }
+    }
+
+    private void Cancel() { editing = false; errorMsg = ""; }
+
+    private async Task DeleteRecord()
+    {
+        if (record?.UserId is null) return;
+        try { await UserRelationApi.DeleteAsync(record.UserId.Value); record = null; }
+        catch { errorMsg = "Delete failed."; }
+    }
+
+    private class FormModel
+    {
+        public int? UserId { get; set; }
+        public int? NationId { get; set; }
+        public int? RegionId { get; set; }
+        public int? CityId { get; set; }
+        public int? DocumentTypeId { get; set; }
+        public int? FamilyRelationshipId { get; set; }
+        public int? SuperiorId { get; set; }
+        public int? IsDefault { get; set; }
+    }
+}
+

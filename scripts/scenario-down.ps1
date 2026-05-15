@@ -2,7 +2,7 @@
 param(
     [string[]]$ComposeFiles,
     [string]$EnvFile = '',
-    [string]$ProjectName = 'hoteldroid',
+    [string]$ProjectName = 'HotelDruid',
     [switch]$RemoveVolumes,
     [switch]$RemoveOrphans
 )
@@ -38,3 +38,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host 'Scenario environment is down.' -ForegroundColor Green
+

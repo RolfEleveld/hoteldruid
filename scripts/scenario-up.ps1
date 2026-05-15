@@ -4,7 +4,7 @@ param(
     [string]$Scenario = 'internal-selfsigned-private',
     [string[]]$ComposeFiles,
     [string]$EnvFile = '',
-    [string]$ProjectName = 'hoteldroid',
+    [string]$ProjectName = 'HotelDruid',
     [switch]$Build
 )
 
@@ -36,3 +36,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Scenario '$Scenario' is up." -ForegroundColor Green
+

@@ -1,19 +1,19 @@
-# HotelDroid — Blazor WASM + .NET API
+# HotelDruid — Blazor WASM + .NET API
 # Run:  docker compose up --build
 # Stop: docker compose down
 
 services:
   api:
     build: .
-    container_name: hoteldroid-api
+    container_name: HotelDruid-api
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      - hoteldroid_data:/data
+      - HotelDruid_data:/data
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      HOTELDRUID_DATAROOT: /data
+      HotelDruid_DATAROOT: /data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -22,5 +22,6 @@ services:
       start_period: 20s
 
 volumes:
-  hoteldroid_data:
+  HotelDruid_data:
     driver: local
+

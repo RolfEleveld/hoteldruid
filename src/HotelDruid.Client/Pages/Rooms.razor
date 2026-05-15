@@ -1,0 +1,625 @@
+@page "/rooms"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using HotelDruid.Shared
+@inject HttpClient Http
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Rooms Management</PageTitle>
+
+<div class="container-fluid rooms-manager">
+    <div class="row g-3 h-100">
+        <!-- LEFT PANEL: Room List -->
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Rooms</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewRoom">
+                        <span class="bi bi-plus"></span> Add Room
+                    </button>
+
+                    @if (rooms == null)
+                    {
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    }
+                    else if (rooms.Count == 0)
+                    {
+                        <div class="alert alert-info">No rooms yet. Add one to get started.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var room in rooms)
+                            {
+                                <button type="button"
+                                    class="list-group-item list-group-item-action @(selectedRoom?.Name == room.Name ? "active" : "")"
+                                    @onclick="() => SelectRoom(room)">
+                                    <div class="d-flex justify-content-between">
+                                        <span>@room.Name</span>
+                                        <small class="text-muted">@room.Capacity ppl</small>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Room Details Editor -->
+        <div class="col-md-5">
+            @if (editModel is not null)
+            {
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">
+                                    @if (string.IsNullOrEmpty(editModel.Name))
+                                    {
+                                        <span>New Room</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@editModel.Name</span>
+                                    }
+                                </h3>
+                                <small class="text-muted">Manage the room</small>
+                            </div>
+                            <div class="status-badge" title="@statusMessage">
+                                @if (isSaving)
+                                {
+                                    <span class="badge bg-warning"><span class="spinner-border spinner-border-sm me-1"></span>Saving...</span>
+                                }
+                                else if (!string.IsNullOrEmpty(lastError))
+                                {
+                                    <span class="badge bg-danger" title="@lastError">Error</span>
+                                }
+                                else if (!string.IsNullOrEmpty(lastWarning))
+                                {
+                                    <span class="badge bg-warning" title="@lastWarning">Warning</span>
+                                }
+                                else if (isSaved)
+                                {
+                                    <span class="badge bg-success">Saved</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">Unsaved changes</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(lastError))
+                        {
+                            <div class="alert alert-danger alert-sm mt-2 mb-0">@lastError</div>
+                        }
+                        @if (!string.IsNullOrEmpty(lastWarning))
+                        {
+                            <div class="alert alert-warning alert-sm mt-2 mb-0">@lastWarning</div>
+                        }
+                    </div>
+
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Room Name / ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" @bind="editModel.Name" 
+                                    @bind:event="oninput" @onchange="() => OnFieldChanged()" disabled="@(editModel.Id is not null)" />
+                                <small class="form-text text-muted">Unique identifier (e.g., 101, Suite-A)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Capacity <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" @bind="editModel.Capacity" 
+                                    @bind:event="oninput" @onchange="() => OnFieldChanged()" min="1" />
+                                <small class="form-text text-muted">Max occupants</small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Floor Number</label>
+                                    <input type="text" class="form-control" @bind="editModel.FloorNumber" 
+                                        @bind:event="oninput" @onchange="() => OnFieldChanged()" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">House Number</label>
+                                    <input type="text" class="form-control" @bind="editModel.HouseNumber" 
+                                        @bind:event="oninput" @onchange="() => OnFieldChanged()" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Priority</label>
+                                    <input type="number" class="form-control" @bind="editModel.Priority" 
+                                        @bind:event="oninput" @onchange="() => OnFieldChanged()" />
+                                    <small class="form-text text-muted">Booking priority (lower = higher)</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Secondary Priority</label>
+                                    <input type="number" class="form-control" @bind="editModel.SecondaryPriority" 
+                                        @bind:event="oninput" @onchange="() => OnFieldChanged()" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Has Beds</label>
+                                <select class="form-select" @bind="editModel.HasBeds">
+                                    <option value="">Select...</option>
+                                    <option value="S">Yes</option>
+                                    <option value="N">No</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Comments</label>
+                                <textarea class="form-control" @bind="editModel.Comments" 
+                                    @bind:event="oninput" @onchange="() => OnFieldChanged()" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveRoom">
+                                <span class="bi bi-download"></span> Save
+                            </button>
+                            @if (editModel.Id is not null)
+                            {
+                                <button type="button" class="btn btn-info flex-grow-1" @onclick="DuplicateRoom">
+                                    <span class="bi bi-files"></span> Duplicate
+                                </button>
+                                <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteRoom">
+                                    <span class="bi bi-trash"></span> Remove
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
+                        <p>Select a room from the list or add a new one</p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- RIGHT PANEL: Neighboring Rooms Matrix -->
+        <div class="col-md-4">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <span class="bi bi-diagram-2"></span> Neighboring Rooms
+                    </h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (editModel?.Id is null)
+                    {
+                        <div class="alert alert-info">Create/select a room to view/edit neighbors</div>
+                    }
+                    else if (rooms is null || rooms.Count == 0)
+                    {
+                        <div class="alert alert-info">No rooms available</div>
+                    }
+                    else
+                    {
+                        <div class="neighbors-matrix">
+                            <div class="matrix-header">
+                                <div class="matrix-corner"></div>
+                                @foreach (var room in rooms)
+                                {
+                                    <div class="matrix-label-col">@room.Name</div>
+                                }
+                            </div>
+
+                            @foreach (var rowRoom in rooms)
+                            {
+                                <div class="matrix-row">
+                                    <div class="matrix-label-row">@rowRoom.Name</div>
+                                    @foreach (var colRoom in rooms)
+                                    {
+                                        var isNeighbor = editModel.NeighboringRooms?.Split(',')
+                                            .Select(r => r.Trim())
+                                            .Contains(colRoom.Name) ?? false;
+
+                                        <div class="matrix-cell">
+                                            <input type="checkbox" class="form-check-input"
+                                                checked="@isNeighbor"
+                                                @onchange="e => UpdateNeighbor(rowRoom.Name, colRoom.Name, (bool)(e.Value ?? false))" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.rooms-manager {
+    height: calc(100vh - 100px);
+}
+
+.panel {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.panel-heading {
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 15px;
+}
+
+.panel-body {
+    padding: 15px;
+}
+
+.panel-footer {
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+    padding: 10px 15px;
+}
+
+.status-badge {
+    display: flex;
+    gap: 5px;
+}
+
+.alert-sm {
+    padding: 8px 12px;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.neighbors-matrix {
+    display: grid;
+    gap: 2px;
+    font-size: 0.875rem;
+}
+
+.matrix-header,
+.matrix-row {
+    display: grid;
+    grid-template-columns: 80px repeat(auto-fit, minmax(50px, 1fr));
+    gap: 2px;
+}
+
+.matrix-corner,
+.matrix-label-col,
+.matrix-label-row {
+    background-color: #f0f0f0;
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.matrix-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    background-color: white;
+    min-height: 40px;
+}
+
+.matrix-cell input[type="checkbox"] {
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.list-group-item {
+    cursor: pointer;
+}
+
+.btn-group > .btn {
+    border-radius: 0;
+}
+
+.btn-group > .btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.btn-group > .btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+</style>
+
+@code {
+    private List<RoomDto>? rooms;
+    private RoomDto? selectedRoom;
+    private RoomEditModel? editModel;
+    private bool isSaving = false;
+    private bool isSaved = true;
+    private string? lastError;
+    private string? lastWarning;
+    private string statusMessage = "No changes";
+    private System.Timers.Timer? autoSaveTimer;
+    private bool hasUnsavedChanges = false;
+
+    // Mutable model for editing room properties
+    private class RoomEditModel
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Capacity { get; set; } = 1;
+        public string? FloorNumber { get; set; }
+        public string? HouseNumber { get; set; }
+        public int? Priority { get; set; }
+        public int? SecondaryPriority { get; set; }
+        public string? HasBeds { get; set; }
+        public string? NeighboringRooms { get; set; }
+        public string? Comments { get; set; }
+
+        public RoomDto ToDto()
+        {
+            return new RoomDto(Id, Name, Capacity, FloorNumber, HouseNumber, 
+                Priority, SecondaryPriority, HasBeds, NeighboringRooms, Comments);
+        }
+
+        public static RoomEditModel FromDto(RoomDto dto)
+        {
+            return new RoomEditModel
+            {
+                Id = dto.Id,
+                Name = dto.Name ?? "",
+                Capacity = dto.Capacity,
+                FloorNumber = dto.FloorNumber,
+                HouseNumber = dto.HouseNumber,
+                Priority = dto.Priority,
+                SecondaryPriority = dto.SecondaryPriority,
+                HasBeds = dto.HasBeds,
+                NeighboringRooms = dto.NeighboringRooms,
+                Comments = dto.Comments
+            };
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRooms();
+        initAutoSaveTimer();
+    }
+
+    private void initAutoSaveTimer()
+    {
+        autoSaveTimer = new System.Timers.Timer(1500);
+        autoSaveTimer.Elapsed += async (s, e) =>
+        {
+            if (hasUnsavedChanges && selectedRoom != null && !isSaving)
+            {
+                await SaveRoom();
+            }
+        };
+        autoSaveTimer.AutoReset = false;
+    }
+
+    private async Task LoadRooms()
+    {
+        try
+        {
+            rooms = await Http.GetFromJsonAsync<List<RoomDto>>("/api/rooms") ?? new();
+        }
+        catch (Exception ex)
+        {
+            lastError = $"Failed to load rooms: {ex.Message}";
+        }
+    }
+
+    private void SelectRoom(RoomDto room)
+    {
+        selectedRoom = room;
+        editModel = RoomEditModel.FromDto(room);
+        isSaved = true;
+        hasUnsavedChanges = false;
+        lastError = null;
+        lastWarning = null;
+        ClearAutoSaveTimer();
+    }
+
+    private void AddNewRoom()
+    {
+        selectedRoom = null;
+        editModel = new RoomEditModel();
+        isSaved = false;
+        hasUnsavedChanges = false;
+        lastError = null;
+        lastWarning = null;
+    }
+
+    private void OnFieldChanged()
+    {
+        isSaved = false;
+        hasUnsavedChanges = true;
+        statusMessage = "Unsaved changes";
+        autoSaveTimer?.Stop();
+        autoSaveTimer?.Start();
+    }
+
+    private void ClearAutoSaveTimer()
+    {
+        autoSaveTimer?.Stop();
+    }
+
+    private async Task SaveRoom()
+    {
+        if (editModel is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(editModel.Name))
+        {
+            lastError = "Room name is required";
+            return;
+        }
+
+        if (editModel.Capacity <= 0)
+        {
+            lastError = "Capacity must be greater than 0";
+            return;
+        }
+
+        isSaving = true;
+        lastError = null;
+        lastWarning = null;
+        hasUnsavedChanges = false;
+
+        try
+        {
+            var roomDto = editModel.ToDto();
+            HttpResponseMessage response;
+            if (string.IsNullOrEmpty(editModel.Id))
+            {
+                // Create new
+                response = await Http.PostAsJsonAsync("/api/rooms", roomDto);
+            }
+            else
+            {
+                // Update existing
+                response = await Http.PutAsJsonAsync($"/api/rooms/{editModel.Id}", roomDto);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<RoomDto>(text, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (result is not null)
+                {
+                    selectedRoom = result;
+                    editModel = RoomEditModel.FromDto(result);
+                    isSaved = true;
+                    statusMessage = "Saved successfully";
+                    await LoadRooms();
+                }
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    lastWarning = "Room already exists";
+                }
+                else
+                {
+                    lastError = $"Error saving room: {response.StatusCode}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            lastError = $"Failed to save room: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DuplicateRoom()
+    {
+        if (editModel is null)
+            return;
+
+        editModel = new RoomEditModel
+        {
+            Id = null,
+            Name = $"{editModel.Name}-copy",
+            Capacity = editModel.Capacity,
+            FloorNumber = editModel.FloorNumber,
+            HouseNumber = editModel.HouseNumber,
+            Priority = editModel.Priority,
+            SecondaryPriority = editModel.SecondaryPriority,
+            HasBeds = editModel.HasBeds,
+            NeighboringRooms = editModel.NeighboringRooms,
+            Comments = editModel.Comments
+        };
+        isSaved = false;
+    }
+
+    private async Task DeleteRoom()
+    {
+        if (editModel?.Id is null)
+            return;
+
+        if (!await ConfirmDelete())
+            return;
+
+        isSaving = true;
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/rooms/{editModel.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadRooms();
+                selectedRoom = null;
+                editModel = null;
+                isSaved = true;
+                lastError = null;
+            }
+            else
+            {
+                lastError = $"Failed to delete room: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastError = $"Failed to delete room: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task<bool> ConfirmDelete()
+    {
+        return await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete room {editModel?.Name}?");
+    }
+
+    private async Task UpdateNeighbor(string currentRoomName, string neighborRoomName, bool isChecked)
+    {
+        if (editModel?.Name != currentRoomName)
+            return;
+
+        var neighbors = editModel.NeighboringRooms?.Split(',')
+            .Select(r => r.Trim())
+            .ToList() ?? new();
+
+        if (isChecked)
+        {
+            if (!neighbors.Contains(neighborRoomName))
+                neighbors.Add(neighborRoomName);
+        }
+        else
+        {
+            neighbors.Remove(neighborRoomName);
+        }
+
+        editModel.NeighboringRooms = neighbors.Count > 0 ? string.Join(", ", neighbors) : null;
+        OnFieldChanged();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        autoSaveTimer?.Dispose();
+    }
+}
+

@@ -1,0 +1,168 @@
+@page "/warehouses"
+@using HotelDruid.Client.Services
+@inject IWarehouseApiService WarehouseApi
+
+<PageTitle>Warehouses Management</PageTitle>
+
+<div class="container-fluid warehouses-manager">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Warehouses</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> Add Warehouse</button>
+                    @if (items == null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else if (items.Count == 0)
+                    {
+                        <div class="alert alert-info">No warehouses yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var w in items)
+                            {
+                                <a class="list-group-item list-group-item-action @(selected?.Id == w.Id ? "active" : "")" @onclick="() => Select(w)">@w.Name</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@((selected == null) ? "New Warehouse" : "Edit Warehouse")</h5>
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning" role="alert">@validationMessage</div>
+                    }
+                    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" @bind="edit.Name" /></div>
+                    <div class="mb-3"><label class="form-label">Code</label><input class="form-control" @bind="edit.Code" /></div>
+                    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" @bind="edit.Description"></textarea></div>
+                    <div class="mb-3"><label class="form-label">Floor Number</label><input class="form-control" @bind="edit.FloorNumber" /></div>
+                    <div class="mb-3"><label class="form-label">House Number</label><input class="form-control" @bind="edit.HouseNumber" /></div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        @if (selected != null)
+                        {
+                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Details</h5>
+                    @if (selected != null)
+                    {
+                        <dl class="row">
+                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">Code</dt><dd class="col-8">@selected.Code</dd>
+                        </dl>
+                    }
+                    else { <div class="text-muted">Select a warehouse</div> }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<WarehouseDto>? items;
+    private WarehouseDto? selected;
+    private WarehouseEditModel edit = new();
+    private string? validationMessage;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        items = await WarehouseApi.GetWarehousesAsync();
+    }
+
+    private void Select(WarehouseDto w)
+    {
+        validationMessage = null;
+        selected = w;
+        edit = WarehouseEditModel.FromDto(w);
+    }
+
+    private void AddNew()
+    {
+        validationMessage = null;
+        selected = null;
+        edit = new WarehouseEditModel();
+    }
+
+    private async Task Save()
+    {
+        validationMessage = null;
+        var dto = edit.ToDto();
+        if (selected == null) await WarehouseApi.CreateWarehouseAsync(dto);
+        else
+        {
+            if (!TryResolveSelectedId(out var selectedId))
+            {
+                return;
+            }
+
+            await WarehouseApi.UpdateWarehouseAsync(selectedId, dto);
+        }
+
+        await Load();
+    }
+
+    private async Task Delete()
+    {
+        validationMessage = null;
+        if (selected == null) return;
+
+        if (!TryResolveSelectedId(out var selectedId))
+        {
+            return;
+        }
+
+        await WarehouseApi.DeleteWarehouseAsync(selectedId);
+        selected = null;
+        await Load();
+    }
+
+    private bool TryResolveSelectedId(out string selectedId)
+    {
+        selectedId = string.Empty;
+        if (selected == null || string.IsNullOrWhiteSpace(selected.Id))
+        {
+            validationMessage = "Unable to continue: the selected warehouse has no valid ID.";
+            return false;
+        }
+
+        if (items?.Any(w => string.Equals(w.Id, selected.Id, StringComparison.Ordinal)) != true)
+        {
+            validationMessage = "The selected warehouse is no longer available. Refresh and try again.";
+            return false;
+        }
+
+        selectedId = selected.Id;
+        return true;
+    }
+
+    private class WarehouseEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Description { get; set; }
+        public string? FloorNumber { get; set; }
+        public string? HouseNumber { get; set; }
+
+        public WarehouseDto ToDto() => new(Id: string.Empty, Name: Name, Code: Code, Description: Description, FloorNumber: FloorNumber, HouseNumber: HouseNumber, CreatedAt: null);
+        public static WarehouseEditModel FromDto(WarehouseDto d) => new() { Name = d.Name ?? string.Empty, Code = d.Code, Description = d.Description, FloorNumber = d.FloorNumber, HouseNumber = d.HouseNumber };
+    }
+}
+

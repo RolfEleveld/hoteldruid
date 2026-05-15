@@ -1,0 +1,48 @@
+@namespace HotelDruid.Client.Components.Inventory
+@using HotelDruid.Client.Services
+@inject IInventoryApiService InventoryApi
+@inject ILanguageService LanguageService
+
+<div class="rpanels">
+    <div class="rbox">
+        <div class="rheader">@LanguageService.GetText("inventory.title","Top Inventory")</div>
+        <div class="rcontent">
+            @if (Loading)
+            {
+                <p>@LanguageService.GetText("common.loading","Loading...")</p>
+            }
+            else if (!Items.Any())
+            {
+                <p>@LanguageService.GetText("inventory.empty","No inventory items")</p>
+            }
+            else
+            {
+                <table class="t1"><thead><tr><th>Asset</th><th>Qty</th></tr></thead><tbody>
+                    @foreach (var i in Items.Take(5))
+                    {
+                        <tr><td>@i.AssetId</td><td>@i.Quantity</td></tr>
+                    }
+                </tbody></table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<InventoryDto> Items = new();
+    private bool Loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LanguageService.InitializeAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try { Loading = true; Items = await InventoryApi.GetInventoryAsync(); }
+        catch { }
+        finally { Loading = false; }
+    }
+}
+

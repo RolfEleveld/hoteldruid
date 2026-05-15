@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Stage 1 — Build and assemble HotelDroid for local development.
+  Stage 1 — Build and assemble HotelDruid for local development.
 
 .DESCRIPTION
   Restores packages, publishes the Blazor client and the API, copies client files
@@ -12,7 +12,7 @@
     Artifacts land in:
         artifacts\client\  - raw Blazor client publish output
         artifacts\api\     - API publish output (with client embedded in wwwroot)
-        artifacts\hoteldroid-package.zip - deployable package (always created)
+        artifacts\HotelDruid-package.zip - deployable package (always created)
 
 
     Run this whenever you change source code. Follow with deploy.ps1 to start the app.
@@ -57,9 +57,9 @@ if ($Clean) {
 }
 
 # Clear stale intermediates before restore so publish can reuse the restored assets.
-Reset-ProjectIntermediates 'src\HotelDroid.Shared' $Configuration
-Reset-ProjectIntermediates 'src\HotelDroid.Client' $Configuration
-Reset-ProjectIntermediates 'src\HotelDroid.Api' $Configuration
+Reset-ProjectIntermediates 'src\HotelDruid.Shared' $Configuration
+Reset-ProjectIntermediates 'src\HotelDruid.Client' $Configuration
+Reset-ProjectIntermediates 'src\HotelDruid.Api' $Configuration
 
 # 1. Restore
 Write-Host "`n[1/4] Restoring packages..." -ForegroundColor Cyan
@@ -73,7 +73,7 @@ try {
 Write-Host "`n[2/4] Publishing Blazor client..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet publish src/HotelDroid.Client -c $Configuration -o $clientOut --no-restore --nologo -q
+    dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo -q
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish client failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
@@ -81,7 +81,7 @@ try {
 Write-Host "`n[3/4] Publishing API..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet publish src/HotelDroid.Api -c $Configuration -o $apiOut --no-restore --nologo -q
+    dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo -q
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish API failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
@@ -125,7 +125,7 @@ if ($bwJs) {
 # .NET 10 publishes only fingerprinted files (dotnet.abc123.js) but the bootstrapper
 # requests the plain names (dotnet.js). We copy the real file under the plain name so
 # UseStaticFiles() can serve it without MapStaticAssets().
-$manifestPath = Join-Path $clientOut 'HotelDroid.Client.staticwebassets.endpoints.json'
+$manifestPath = Join-Path $clientOut 'HotelDruid.Client.staticwebassets.endpoints.json'
 if (Test-Path $manifestPath) {
     $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
 
@@ -158,8 +158,9 @@ Write-Host "`nRun the app with:"
 Write-Host "   .\scripts\deploy.ps1" -ForegroundColor Yellow
 
 # 5. Create deployment package (zip)
-$packagePath = Join-Path $root 'artifacts\hoteldroid-package.zip'
+$packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 if (Test-Path $packagePath) { Remove-Item $packagePath -Force }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($apiOut, $packagePath)
 Write-Host "Created deployment package: $packagePath" -ForegroundColor Green
+

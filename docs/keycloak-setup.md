@@ -1,12 +1,12 @@
-# Keycloak Setup for HotelDroid
+# Keycloak Setup for HotelDruid
 
-This guide covers operational setup of Keycloak as the identity provider for HotelDroid.
+This guide covers operational setup of Keycloak as the identity provider for HotelDruid.
 
 ## Prerequisites
 
 - Keycloak container is running (via `deploy/compose/keycloak.yml`)
 - Admin credentials (from deployment environment)
-- HotelDroid API is available at a known URL
+- HotelDruid API is available at a known URL
 
 ## 1. Access Keycloak Admin Console
 
@@ -14,14 +14,14 @@ This guide covers operational setup of Keycloak as the identity provider for Hot
 2. Click **Administration Console**
 3. Log in with admin credentials from `deploy/scenarios/public-acme-keycloak.env`
 
-## 2. Create a Realm for HotelDroid
+## 2. Create a Realm for HotelDruid
 
 1. In the left sidebar, hover over **Realms** (top-left dropdown)
 2. Click **Create Realm**
-3. Name: `hoteldruid`
+3. Name: `HotelDruid`
 4. Click **Create**
 
-You now have an isolated realm for all HotelDroid identity.
+You now have an isolated realm for all HotelDruid identity.
 
 ## 3. Create a Client (OIDC Application)
 
@@ -29,8 +29,8 @@ You now have an isolated realm for all HotelDroid identity.
 2. Click **Create client**
 3. Fill in:
    - **Client type**: `OpenID Connect`
-   - **Client ID**: `hoteldruid-api`
-   - **Name**: `HotelDroid API`
+   - **Client ID**: `HotelDruid-api`
+   - **Name**: `HotelDruid API`
 4. Click **Next**
 5. On **Capability config**, enable:
    - ✅ Client authentication
@@ -44,16 +44,16 @@ You now have an isolated realm for all HotelDroid identity.
 
 ## 4. Retrieve Client Credentials
 
-1. In the Clients list, click **hoteldruid-api**
+1. In the Clients list, click **HotelDruid-api**
 2. Go to the **Credentials** tab
 3. Copy the **Client Secret** (you'll need this for the proxy or app)
 
 Example curl to test credentials:
 
 ```bash
-curl -X POST http://localhost:8081/realms/hoteldruid/protocol/openid-connect/token \
+curl -X POST http://localhost:8081/realms/HotelDruid/protocol/openid-connect/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=hoteldruid-api" \
+  -d "client_id=HotelDruid-api" \
   -d "client_secret=<CLIENT_SECRET>" \
   -d "grant_type=client_credentials"
 ```
@@ -64,13 +64,13 @@ curl -X POST http://localhost:8081/realms/hoteldruid/protocol/openid-connect/tok
 2. Click **Create role**
 3. Create the following roles:
 
-   - **hoteldruid-admin**: Full access to all operations
-   - **hoteldruid-staff**: Can view bookings, manage check-ins
-   - **hoteldruid-guest**: Read-only access to own reservations
+   - **HotelDruid-admin**: Full access to all operations
+   - **HotelDruid-staff**: Can view bookings, manage check-ins
+   - **HotelDruid-guest**: Read-only access to own reservations
 
 Example (repeat for each role):
-- Name: `hoteldruid-admin`
-- Description: `Full HotelDroid access`
+- Name: `HotelDruid-admin`
+- Description: `Full HotelDruid access`
 - Click **Save**
 
 ## 6. Create Users
@@ -95,16 +95,16 @@ Repeat for additional users.
 1. In the Users list, click the user (e.g., `john.staff`)
 2. Go to the **Role mapping** tab
 3. Under **Assign roles**, click **Assign role**
-4. Filter and select `hoteldruid-admin` (or appropriate role)
+4. Filter and select `HotelDruid-admin` (or appropriate role)
 5. Click **Assign**
 
 The user now has the selected role.
 
 ## 8. Configure Scope and Role Mappings (Client)
 
-1. In the Clients list, click **hoteldruid-api**
+1. In the Clients list, click **HotelDruid-api**
 2. Go to the **Client scopes** tab
-3. Click **hoteldruid-api-dedicated**
+3. Click **HotelDruid-api-dedicated**
 4. Go to the **Mappers** tab
 5. Click **Configure a new mapper** and select **User Roles**
 6. Fill in:
@@ -120,9 +120,9 @@ This ensures role information is included in ID tokens.
 ### Get a token for a user:
 
 ```bash
-curl -X POST http://localhost:8081/realms/hoteldruid/protocol/openid-connect/token \
+curl -X POST http://localhost:8081/realms/HotelDruid/protocol/openid-connect/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=hoteldruid-api" \
+  -d "client_id=HotelDruid-api" \
   -d "client_secret=<CLIENT_SECRET>" \
   -d "grant_type=password" \
   -d "username=john.staff" \
@@ -153,7 +153,7 @@ You should see:
   "sub": "...",
   "preferred_username": "john.staff",
   "email": "john@hotel.example.com",
-  "roles": ["hoteldruid-admin"],
+  "roles": ["HotelDruid-admin"],
   "iat": 1234567890,
   "exp": 1234567900
 }
@@ -166,9 +166,9 @@ If using a reverse proxy with forward-auth (e.g., Nginx + oauth2-proxy):
 1. Deploy an oauth2-proxy sidecar or use your proxy's native OIDC module
 2. Configure it with:
    - **Provider**: `oidc`
-   - **Client ID**: `hoteldruid-api`
+   - **Client ID**: `HotelDruid-api`
    - **Client Secret**: `<CLIENT_SECRET>` (from step 4)
-   - **OIDC Issuer URL**: `http://keycloak:8080/realms/hoteldruid`
+   - **OIDC Issuer URL**: `http://keycloak:8080/realms/HotelDruid`
    - **Redirect URL**: `https://hotel.example.com/oauth2/callback`
 3. Set proxy to forward auth checks for protected paths
 4. Map required roles to allow/deny decisions
@@ -195,10 +195,10 @@ location = /auth {
 | Purpose | URL |
 |---------|-----|
 | Admin Console | `http://keycloak:8080/admin` |
-| Realm Discovery | `http://keycloak:8080/realms/hoteldruid/.well-known/openid-configuration` |
-| Token Endpoint | `http://keycloak:8080/realms/hoteldruid/protocol/openid-connect/token` |
-| Userinfo Endpoint | `http://keycloak:8080/realms/hoteldruid/protocol/openid-connect/userinfo` |
-| Logout Endpoint | `http://keycloak:8080/realms/hoteldruid/protocol/openid-connect/logout` |
+| Realm Discovery | `http://keycloak:8080/realms/HotelDruid/.well-known/openid-configuration` |
+| Token Endpoint | `http://keycloak:8080/realms/HotelDruid/protocol/openid-connect/token` |
+| Userinfo Endpoint | `http://keycloak:8080/realms/HotelDruid/protocol/openid-connect/userinfo` |
+| Logout Endpoint | `http://keycloak:8080/realms/HotelDruid/protocol/openid-connect/logout` |
 
 Use these URLs in your application or proxy configuration.
 
@@ -228,3 +228,4 @@ Use these URLs in your application or proxy configuration.
 - Configure role-based access control (RBAC) in your reverse proxy
 - Set up Keycloak backup/restore procedures
 - Document team onboarding process for adding new users/roles
+

@@ -1,6 +1,6 @@
 # Deployment Runbook
 
-This runbook describes a deployment process for containerized HotelDroid.
+This runbook describes a deployment process for containerized HotelDruid.
 
 ## 1. Select a Scenario
 
@@ -55,3 +55,4 @@ Checks include:
 - Run scenario-test as smoke and policy gate.
 - Run scenario-down after validation or on rollback.
 - Keep scenario scripts and compose overlays versioned with the repository.
+

@@ -3,7 +3,7 @@
 This document describes reproducible steps to create, export, and trust a development TLS certificate for `localhost`, and options for deploying the certificate on other developer machines or CI systems.
 
 ## Goals
-- Produce a reproducible certificate named `HotelDroid Dev Localhost`.
+- Produce a reproducible certificate named `HotelDruid Dev Localhost`.
 - Make it trusted by the browser for the current user (no admin required) or system-wide (requires admin).
 - Provide a PFX/CER export for use in CI or containerized deployments.
 
@@ -33,7 +33,7 @@ Start-Process -FilePath pwsh -ArgumentList "-NoProfile","-Command","& { . '$PWD\
 
 Notes:
 - If you want system-wide trust for all users, run the create script with `-Store LocalMachine -Trust` from an elevated PowerShell (Admin).
-- `scripts/create-dev-cert.ps1` exports `certs/hoteldroid_<thumb>.pfx` and `.cer` in the repo for reuse.
+- `scripts/create-dev-cert.ps1` exports `certs/HotelDruid_<thumb>.pfx` and `.cer` in the repo for reuse.
 
 ## Linux / macOS or cross-platform CI
 
@@ -44,18 +44,18 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout localhost.key -out localhost.crt -subj "/CN=localhost"
 
 # create pfx for Kestrel (optional)
-openssl pkcs12 -export -out hoteldroid_localhost.pfx -inkey localhost.key -in localhost.crt -passout pass:changeit
+openssl pkcs12 -export -out HotelDruid_localhost.pfx -inkey localhost.key -in localhost.crt -passout pass:changeit
 ```
 
 2. Configure Kestrel / ASP.NET Core to use the PFX via environment variables in CI or container:
 
 ```powershell
 # Windows PowerShell (example)
-$env:ASPNETCORE_Kestrel__Certificates__Default__Path = 'C:\path\to\hoteldroid_localhost.pfx'
+$env:ASPNETCORE_Kestrel__Certificates__Default__Path = 'C:\path\to\HotelDruid_localhost.pfx'
 $env:ASPNETCORE_Kestrel__Certificates__Default__Password = 'changeit'
 
 # Linux / Bash (example)
-export ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/hoteldroid_localhost.pfx
+export ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/HotelDruid_localhost.pfx
 export ASPNETCORE_Kestrel__Certificates__Default__Password=changeit
 ```
 
@@ -76,3 +76,4 @@ export ASPNETCORE_Kestrel__Certificates__Default__Password=changeit
 
 ## Next steps for automation
 - Add a CI job that creates or retrieves a PFX and sets secrets (certificate+password) for ephemeral test deployments.
+

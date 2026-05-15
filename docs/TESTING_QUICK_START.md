@@ -4,7 +4,7 @@
 
 ### Run All Tests
 ```powershell
-cd c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid
+cd c:\Users\rolfe\git\own\Villa-Annunziata\HotelDruid
 dotnet test
 ```
 
@@ -40,7 +40,7 @@ cd scripts
 ## What's Been Implemented
 
 ### 1. FileKeyValueStore Tests
-**Location**: `tests/HotelDroid.Api.Tests/Services/FileKeyValueStoreTests.cs`
+**Location**: `tests/HotelDruid.Api.Tests/Services/FileKeyValueStoreTests.cs`
 
 Tests the core storage layer:
 - ID generation (GUID-base32)
@@ -53,7 +53,7 @@ Tests the core storage layer:
 **18 Test Cases**
 
 ### 2. File System Validation Tests
-**Location**: `tests/HotelDroid.Api.Tests/Services/FileKeyValueStoreFileSystemTests.cs`
+**Location**: `tests/HotelDruid.Api.Tests/Services/FileKeyValueStoreFileSystemTests.cs`
 
 Validates actual files on disk:
 - Files created with correct structure
@@ -66,7 +66,7 @@ Validates actual files on disk:
 **14 Test Cases**
 
 ### 3. API Integration Tests
-**Location**: `tests/HotelDroid.Api.Tests/Integration/RoomsApiTests.cs`
+**Location**: `tests/HotelDruid.Api.Tests/Integration/RoomsApiTests.cs`
 
 Tests HTTP endpoints:
 - POST /api/rooms (create)
@@ -81,7 +81,7 @@ Tests HTTP endpoints:
 **10 Test Cases**
 
 ### 4. Event Logging Infrastructure
-**Location**: `src/HotelDroid.Api/Services/ISystemEventLogger.cs`
+**Location**: `src/HotelDruid.Api/Services/ISystemEventLogger.cs`
 
 Structured event logging:
 - ISystemEventLogger interface
@@ -91,7 +91,7 @@ Structured event logging:
 - TestEventCapture for test assertions
 
 ### 5. Test Helpers & Setup
-**Location**: `tests/HotelDroid.Api.Tests/TestSetup.cs`
+**Location**: `tests/HotelDruid.Api.Tests/TestSetup.cs`
 
 Utilities for test infrastructure:
 - TestFixture (DI setup)
@@ -110,7 +110,7 @@ PowerShell script for test execution:
 - Artifact directory management
 
 ### 7. Test Dashboard Generator
-**Location**: `tests/HotelDroid.Api.Tests/Reporting/TestDashboardGenerator.cs`
+**Location**: `tests/HotelDruid.Api.Tests/Reporting/TestDashboardGenerator.cs`
 
 Report generation:
 - HTML dashboard with stats and visual indicators
@@ -164,7 +164,7 @@ Complete reference guide:
 Each test creates a temporary directory structure:
 
 ```
-C:\Users\{user}\AppData\Local\Temp\hoteldruid-test-{guid}/
+C:\Users\{user}\AppData\Local\Temp\HotelDruid-test-{guid}/
 ├── collections/
 │   ├── rooms/
 │   │   ├── _index.json                    ← Index file
@@ -207,7 +207,7 @@ Events are logged as structured JSON:
 
 **Splunk**:
 ```spl
-source="hoteldruid" | spath path=EventType | stats count by EventType, OperationType
+source="HotelDruid" | spath path=EventType | stats count by EventType, OperationType
 ```
 
 **ELK Stack**:
@@ -222,7 +222,7 @@ source="hoteldruid" | spath path=EventType | stats count by EventType, Operation
 
 **Windows Event Log**:
 ```powershell
-Get-EventLog -LogName Application -Source HotelDroid | 
+Get-EventLog -LogName Application -Source HotelDruid | 
   Where-Object { $_.Message -match 'DATA_OPERATION' }
 ```
 
@@ -261,9 +261,9 @@ cat artifacts/test-results/results.json
 
 ```
 =================================================
-HotelDroid API - Test Suite
+HotelDruid API - Test Suite
 =================================================
-Repository: c:\Users\rolfe\git\own\Villa-Annunziata\hotelDroid
+Repository: c:\Users\rolfe\git\own\Villa-Annunziata\HotelDruid
 Configuration: Debug
 
 Running tests...
@@ -292,7 +292,7 @@ Results:
 - Restart Visual Studio
 - Manually clean temp directories:
 ```powershell
-Remove-Item C:\Users\$env:USERNAME\AppData\Local\Temp\hoteldruid-test-* -Recurse
+Remove-Item C:\Users\$env:USERNAME\AppData\Local\Temp\HotelDruid-test-* -Recurse
 ```
 
 ### "Permission denied" writing to Event Log
@@ -352,3 +352,4 @@ The test infrastructure is now ready to support ongoing development:
 5. **Monitor SIEM events**: Track system behavior in production
 
 For questions about specific tests, see `docs/TEST_INFRASTRUCTURE.md` for detailed reference.
+

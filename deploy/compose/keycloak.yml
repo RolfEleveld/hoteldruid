@@ -1,7 +1,7 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.1
-    container_name: hoteldroid-keycloak
+    container_name: HotelDruid-keycloak
     command: start
     depends_on:
       keycloak-db:
@@ -22,7 +22,7 @@ services:
 
   keycloak-db:
     image: postgres:16-alpine
-    container_name: hoteldroid-keycloak-db
+    container_name: HotelDruid-keycloak-db
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
       POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
@@ -38,3 +38,4 @@ services:
 
 volumes:
   keycloak_data:
+

@@ -1,13 +1,13 @@
-# HotelDroid
+# HotelDruid
 
-HotelDroid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
+HotelDruid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
 
 ## Project Summary
 
-- Frontend: `src/HotelDroid.Client`
-- Backend: `src/HotelDroid.Api`
-- Shared contracts: `src/HotelDroid.Shared`
-- Migration tooling: `tools/HotelDroid.Migration`
+- Frontend: `src/HotelDruid.Client`
+- Backend: `src/HotelDruid.Api`
+- Shared contracts: `src/HotelDruid.Shared`
+- Migration tooling: `tools/HotelDruid.Migration`
 
 ## Build, Deploy, Test
 
@@ -46,4 +46,5 @@ For scenario orchestration and run-books, see:
 
 - `deploy/scenarios/README.md`
 - `docs/deployment-runbook.md`
+
 
