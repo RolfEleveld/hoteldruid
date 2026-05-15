@@ -666,20 +666,51 @@ public interface IBookingTransactionRepository
 | **Per-booking transactions** | Transparency | Full stay history visible |
 | **Atomic writes** | Crash safety | No partial file corruption |
 
----
 
-## 14. Future Considerations (Not Phase 1)
+## Container Deployment Profiles (Neutral)
 
-**Scalability Options** (when/if needed):
-- SQLite backend (instead of files) — drop-in replacement via same repository interfaces
-- Multi-instance deployment — would need distributed locking or message queue
-- Cloud migration — ledger + snapshots make this natural
+For hosted, publicly accessible deployments, the architecture is intentionally
+provider-neutral. The application does not hardcode a single reverse proxy,
+certificate automation provider, or identity provider. Those are deployment
+profile choices selected by administrators.
 
-**Features** (Phases 2+):
-- Export/import ZIP packages (canonical format)
-- i18n (en, es, it)
-- Advanced billing logic
-- Integration APIs
+**Profile dimensions:**
+- Reverse proxy mode: `nginx`, `caddy`, `traefik`, or platform ingress
+- TLS mode: `self-signed` (internal only), `acme`, or externally managed certs
+- Access mode: `private` (internal network) or `public`
+- Auth mode: `keycloak-oidc`, another OIDC provider, or enterprise SSO gateway
+
+**Security baseline:**
+- Public profiles should require authentication and authorization.
+- No public profile should be documented as anonymous by default.
+
+**Recommended scenario set:**
+- Internal validation: `self-signed + private + auth optional by policy`
+- Public production: `acme + public + keycloak-oidc`
+- Enterprise production: `external cert + public + keycloak-oidc`
+
+**Why Keycloak is a strong option:**
+- Centralized user, role, and realm management
+- Standard OIDC/OAuth2 support for app and proxy integration
+- SSO/MFA support for hardened public access
+- Scales well in containerized deployments
+
+### Scalable Container Topology
+
+```mermaid
+flowchart LR
+  U[Users / Browsers] --> RP[Reverse Proxy or Ingress]
+  RP --> API[HotelDroid API + Blazor Static Assets]
+  API --> DATA[(Persistent Volume / Data Store)]
+  RP --> IDP[Keycloak / OIDC Provider]
+  API --> IDP
+```
+
+**Scalability notes:**
+- Run multiple API replicas behind a reverse proxy/ingress.
+- Keep identity and TLS termination outside application code.
+- Persist data on durable volumes and plan for backup/restore workflows.
+- Add health checks and readiness probes at proxy and API layers.
 
 ---
 
@@ -697,6 +728,22 @@ public interface IBookingTransactionRepository
 - Integration tests for file I/O
 - HTTP client tests for API endpoints
 - Manual testing with Postman
+
+---
+
+## 16. Future Considerations
+
+**Scalability Options** (when/if needed):
+- SQLite backend (instead of files) — drop-in replacement via same repository interfaces
+- Multi-instance deployment — would need distributed locking or message queue
+- Cloud migration — ledger + snapshots make this natural
+
+**Features** (Phases 2+):
+- Export/import ZIP packages (canonical format)
+- i18n (en, es, it)
+- Advanced billing logic
+- Integration APIs
+
 
 ---
 

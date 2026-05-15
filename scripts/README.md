@@ -7,6 +7,9 @@ This folder contains all automation scripts for building, deploying, and testing
 - **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/hoteldroid-package.zip`).
 - **deploy.ps1**: Deploy the package locally, as a per-user install (`-User`), or to a specified target (`-Target <path>`). For per-user installs it creates or trusts the localhost certificate, writes install metadata, creates Start Menu shortcuts, and generates the uninstall script and registry entry.
 - **test.ps1**: Run all unit and integration tests, generate reports.
+- **scenario-up.ps1**: Bring up a selected deployment scenario with admin-provided compose files.
+- **scenario-test.ps1**: Run health and optional auth-gate checks for a deployed scenario.
+- **scenario-down.ps1**: Tear down a scenario stack with optional volume/orphan cleanup.
 
 ## Usage
 
@@ -15,6 +18,9 @@ This folder contains all automation scripts for building, deploying, and testing
 - **Install for current user**: `./deploy.ps1 -User` (optionally add `-Target <path>` and `-Force`)
 - **Deploy to custom/remote**: `./deploy.ps1 -Target "C:\DeployPath"`
 - **Test**: `./test.ps1` (optionally add `-OpenDashboard` or `-Filter`)
+- **Scenario up**: `./scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/proxy.yml")`
+- **Scenario test**: `./scenario-test.ps1 -BaseUrl "https://hotel.example.com" -RequireAuth`
+- **Scenario down**: `./scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/proxy.yml") -RemoveVolumes`
 
 ## Conventions
 

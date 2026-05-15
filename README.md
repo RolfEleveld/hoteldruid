@@ -1,76 +1,49 @@
-# HotelDruid — Blazor WebAssembly + ASP.NET Core migration
+# HotelDroid
 
-This repository contains the migration of HotelDruid toward a Blazor WebAssembly frontend with a thin ASP.NET Core API backend. The legacy PHP application is retained under `hoteldruid/` for reference and incremental migration.
+HotelDroid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
 
-Summary
+## Project Summary
 
-- Frontend: Blazor WebAssembly (`src/HotelDroid.Client`).
-- Backend: ASP.NET Core minimal API (`src/HotelDroid.Api`).
-- Persistence plan: file-backed key-value store (collections as directories, documents as JSON).
-- Packaging & deployment: PowerShell scripts under `scripts/` produce a per-user package and provide local HTTPS dev helpers.
+- Frontend: `src/HotelDroid.Client`
+- Backend: `src/HotelDroid.Api`
+- Shared contracts: `src/HotelDroid.Shared`
+- Migration tooling: `tools/HotelDroid.Migration`
 
-Quick Start — developer
+## Build, Deploy, Test
 
-Prerequisites
-
-- .NET 8/10 SDK installed (use the version in `global.json` if present).
-- PowerShell (Windows) or pwsh on other platforms for the included scripts.
-
-Build, package and run locally
+PowerShell scripts use a convention-over-configuration workflow:
 
 ```powershell
-# 1) Create a package (build + publish + zip)
-.\scripts\pack-and-deploy.ps1 -PackageOnly -Force
+# Build + publish + package
+.\scripts\build.ps1
 
-# 2) Per-user install (no admin required)
-.\scripts\deploy-user.ps1 -Force
+# Deploy locally (default) or per-user install
+.\scripts\deploy.ps1
+.\scripts\deploy.ps1 -User
 
-# 3) Run the API locally (the script binds HTTPS using a dev cert if available)
-.\scripts\deploy-api-local.ps1
-
-# 4) Validate uninstall/cleanup
-.\scripts\validate-cleanup.ps1
+# Run all tests
+.\scripts\test.ps1
 ```
 
-Notes
+See `scripts/README.md` for script parameters and details.
 
-- `deploy-user.ps1` extracts the package into `%LocalAppData%\HotelDroid`, creates a CurrentUser dev certificate (if needed), writes `install-meta.json`, and registers an HKCU uninstall entry.
-- To perform a system-wide install use `pack-and-deploy.ps1 -Deploy` and run as Administrator (this writes HKLM uninstall entries).
+## Deployment Profiles (Short Form)
 
-Project layout (root-level)
+Hosted deployment guidance is provider-neutral. Administrators choose reverse proxy,
+TLS, and identity settings through deployment profiles rather than application code.
 
-```
-src/
-  ├─ HotelDroid.Api/         # ASP.NET Core minimal API
-  ├─ HotelDroid.Client/      # Blazor WebAssembly client
-  └─ HotelDroid.Shared/      # DTOs + shared models
-hoteldruid/                  # Legacy PHP application (kept for reference)
-scripts/                     # Packaging, deploy and cert helper scripts
-artifacts/                   # Build outputs and packages (ignored by default)
-README.md                    # This file (updated for Blazor+API)
-```
+- Reverse proxy: `nginx`, `caddy`, `traefik`, or platform ingress
+- TLS: `self-signed` (private/internal), `acme`, or externally managed certs
+- Identity: `keycloak-oidc` (recommended for public deployments) or enterprise SSO
 
-Contributing & committing
+Recommended scenarios:
 
-- Keep build artifacts out of source control. Add `artifacts/`, `bin/`, and `obj/` to `.gitignore` before committing new code.
-- Prefer PRs that implement a single feature (API + matching Blazor UI).
+1. Internal validation: self-signed + private network
+2. Public production: ACME + Keycloak OIDC
+3. Enterprise production: external cert + Keycloak OIDC
 
-Development tips
+For scenario orchestration and run-books, see:
 
-- Run the API and Blazor client together by publishing the client to the API `wwwroot` (scripts automate this in the packaging step).
-- For local HTTPS testing the scripts create a CurrentUser `localhost` cert and bind Kestrel when a thumbprint is provided.
-
-Troubleshooting
-
-- If a dev cert exists but is not trusted, run: `.\scripts\create-dev-cert.ps1 -TrustCurrentUser`
-- If an install leaves artifacts behind, run: `.\scripts\validate-cleanup.ps1`
-
-More information
-
-- Packaging and deploy scripts: `scripts/pack-and-deploy.ps1`, `scripts/deploy-user.ps1`, `scripts/deploy-api-local.ps1`.
-
-If you want, I can now:
-
-- Add `artifacts/` to `.gitignore` and commit the change.
-- Scaffold the KV store library and basic `clients`/`bookings` endpoints and run a local build.
+- `deploy/scenarios/README.md`
+- `docs/deployment-runbook.md`
 
