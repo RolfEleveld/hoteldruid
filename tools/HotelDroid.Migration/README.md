@@ -51,4 +51,4 @@ dotnet run --project tools/HotelDroid.Migration -- \
 
 Missing columns in older HotelDruid versions are gracefully skipped — no errors.
 The exported zip format matches the existing PHP Exporter and Blazor ImportService.
-Tests run as part of the standard dotnet test hotelDroid.sln (no external DB needed).
+Tests run as part of the standard dotnet test HotelDroid.slnx (no external DB needed).
