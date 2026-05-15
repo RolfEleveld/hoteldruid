@@ -612,5 +612,4 @@ public interface IBookingTransactionRepository
 ## References
 
 - [Architecture Decision Log](ARCHITECTURE.md) (this file)
-- [Blazor Migration Tracker](BLazor-migration-tracker.md)
 - Implementation code in `src/HotelDroid.Api/`

@@ -38,11 +38,11 @@ $content = @"
 
 📍 WHERE TO START?
 ═════════════════════════════════════════════════════════════════════════
-  New User?     → Read: DEPLOYMENT_QUICK_REFERENCE.md (5 min)
-  Admin?        → Read: DEPLOYMENT_CONFIG_GUIDE.md (20 min)
-  Automation?   → Read: DEPLOYMENT_WORKFLOWS.md (30 min)
-  Technical?    → Read: IMPLEMENTATION_SUMMARY.md (15 min)
-  Lost?         → Read: INDEX.md (navigation guide)
+  New User?     → Read: README.md (5 min)
+  Admin?        → Read: README_DEPLOYMENT.md (20 min)
+  Automation?   → Read: scripts/*.ps1 (30 min)
+  Technical?    → Read: ARCHITECTURE.md (15 min)
+  Testing?      → Read: docs/TESTING_QUICK_START.md
 
 🔑 KEY FILES
 ═════════════════════════════════════════════════════════════════════════
@@ -52,12 +52,12 @@ $content = @"
     • hoteldruid-settings-manager.ps1 .... Settings management
   
   DOCUMENTATION:
-    • AT_A_GLANCE.md ...................... Visual summary (you are here!)
-    • DEPLOYMENT_QUICK_REFERENCE.md ....... Quick commands
-    • DEPLOYMENT_CONFIG_GUIDE.md .......... Complete guide
-    • DEPLOYMENT_WORKFLOWS.md ............ Automation scripts
-    • IMPLEMENTATION_SUMMARY.md ........... Technical details
-    • INDEX.md ........................... Navigation hub
+    • README.md .......................... Project overview
+    • README_DEPLOYMENT.md ............... Desktop deployment guide
+    • ARCHITECTURE.md .................... API/Blazor architecture
+    • docs/TESTING_QUICK_START.md ........ Quick test commands
+    • docs/TEST_INFRASTRUCTURE.md ........ Test infrastructure details
+    • docs/cert-deployment.md ............ Dev certificate setup
 
 💾 SETTINGS STORAGE
 ═════════════════════════════════════════════════════════════════════════

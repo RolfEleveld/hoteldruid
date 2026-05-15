@@ -47,7 +47,6 @@ src/
 hoteldruid/                  # Legacy PHP application (kept for reference)
 scripts/                     # Packaging, deploy and cert helper scripts
 artifacts/                   # Build outputs and packages (ignored by default)
-BLazor-migration-tracker.md  # Migration tracker and status
 README.md                    # This file (updated for Blazor+API)
 ```
 
@@ -68,7 +67,6 @@ Troubleshooting
 
 More information
 
-- Migration status and next steps: `BLazor-migration-tracker.md`.
 - Packaging and deploy scripts: `scripts/pack-and-deploy.ps1`, `scripts/deploy-user.ps1`, `scripts/deploy-api-local.ps1`.
 
 If you want, I can now:
