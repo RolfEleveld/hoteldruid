@@ -36,6 +36,10 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">@((selected == null) ? "New Item" : "Edit Item")</h5>
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning" role="alert">@validationMessage</div>
+                    }
                     <div class="mb-3"><label class="form-label">Asset ID</label><input class="form-control" @bind="edit.AssetId" /></div>
                     <div class="mb-3"><label class="form-label">Room ID</label><input class="form-control" @bind="edit.RoomId" /></div>
                     <div class="mb-3"><label class="form-label">Warehouse ID</label><input class="form-control" @bind="edit.WarehouseId" /></div>
@@ -73,28 +77,76 @@
     private List<InventoryDto>? rows;
     private InventoryDto? selected;
     private InventoryEditModel edit = new();
+    private string? validationMessage;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load() => rows = await InventoryApi.GetInventoryAsync();
 
-    private void Select(InventoryDto r) { selected = r; edit = InventoryEditModel.FromDto(r); }
-    private void AddNew() { selected = null; edit = new InventoryEditModel(); }
+    private void Select(InventoryDto r)
+    {
+        validationMessage = null;
+        selected = r;
+        edit = InventoryEditModel.FromDto(r);
+    }
+
+    private void AddNew()
+    {
+        validationMessage = null;
+        selected = null;
+        edit = new InventoryEditModel();
+    }
 
     private async Task Save()
     {
+        validationMessage = null;
         var dto = edit.ToDto();
         if (selected == null) await InventoryApi.CreateInventoryAsync(dto);
-        else await InventoryApi.UpdateInventoryAsync(selected.Id, dto);
+        else
+        {
+            if (!TryResolveSelectedId(out var selectedId))
+            {
+                return;
+            }
+
+            await InventoryApi.UpdateInventoryAsync(selectedId, dto);
+        }
+
         await Load();
     }
 
     private async Task Delete()
     {
+        validationMessage = null;
         if (selected == null) return;
-        await InventoryApi.DeleteInventoryAsync(selected.Id);
+
+        if (!TryResolveSelectedId(out var selectedId))
+        {
+            return;
+        }
+
+        await InventoryApi.DeleteInventoryAsync(selectedId);
         selected = null;
         await Load();
+    }
+
+    private bool TryResolveSelectedId(out string selectedId)
+    {
+        selectedId = string.Empty;
+        if (selected == null || string.IsNullOrWhiteSpace(selected.Id))
+        {
+            validationMessage = "Unable to continue: the selected inventory item has no valid ID.";
+            return false;
+        }
+
+        if (rows?.Any(r => string.Equals(r.Id, selected.Id, StringComparison.Ordinal)) != true)
+        {
+            validationMessage = "The selected inventory item is no longer available. Refresh and try again.";
+            return false;
+        }
+
+        selectedId = selected.Id;
+        return true;
     }
 
     private class InventoryEditModel

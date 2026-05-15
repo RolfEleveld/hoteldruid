@@ -36,6 +36,10 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">@((selected == null) ? "New Warehouse" : "Edit Warehouse")</h5>
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning" role="alert">@validationMessage</div>
+                    }
                     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" @bind="edit.Name" /></div>
                     <div class="mb-3"><label class="form-label">Code</label><input class="form-control" @bind="edit.Code" /></div>
                     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" @bind="edit.Description"></textarea></div>
@@ -74,6 +78,7 @@
     private List<WarehouseDto>? items;
     private WarehouseDto? selected;
     private WarehouseEditModel edit = new();
+    private string? validationMessage;
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -82,23 +87,70 @@
         items = await WarehouseApi.GetWarehousesAsync();
     }
 
-    private void Select(WarehouseDto w) { selected = w; edit = WarehouseEditModel.FromDto(w); }
-    private void AddNew() { selected = null; edit = new WarehouseEditModel(); }
+    private void Select(WarehouseDto w)
+    {
+        validationMessage = null;
+        selected = w;
+        edit = WarehouseEditModel.FromDto(w);
+    }
+
+    private void AddNew()
+    {
+        validationMessage = null;
+        selected = null;
+        edit = new WarehouseEditModel();
+    }
 
     private async Task Save()
     {
+        validationMessage = null;
         var dto = edit.ToDto();
         if (selected == null) await WarehouseApi.CreateWarehouseAsync(dto);
-        else await WarehouseApi.UpdateWarehouseAsync(selected.Id, dto);
+        else
+        {
+            if (!TryResolveSelectedId(out var selectedId))
+            {
+                return;
+            }
+
+            await WarehouseApi.UpdateWarehouseAsync(selectedId, dto);
+        }
+
         await Load();
     }
 
     private async Task Delete()
     {
+        validationMessage = null;
         if (selected == null) return;
-        await WarehouseApi.DeleteWarehouseAsync(selected.Id);
+
+        if (!TryResolveSelectedId(out var selectedId))
+        {
+            return;
+        }
+
+        await WarehouseApi.DeleteWarehouseAsync(selectedId);
         selected = null;
         await Load();
+    }
+
+    private bool TryResolveSelectedId(out string selectedId)
+    {
+        selectedId = string.Empty;
+        if (selected == null || string.IsNullOrWhiteSpace(selected.Id))
+        {
+            validationMessage = "Unable to continue: the selected warehouse has no valid ID.";
+            return false;
+        }
+
+        if (items?.Any(w => string.Equals(w.Id, selected.Id, StringComparison.Ordinal)) != true)
+        {
+            validationMessage = "The selected warehouse is no longer available. Refresh and try again.";
+            return false;
+        }
+
+        selectedId = selected.Id;
+        return true;
     }
 
     private class WarehouseEditModel
