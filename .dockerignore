@@ -10,11 +10,6 @@
 **/*.user
 **/*.lscache
 
-# PHP / legacy (should not exist on blazor branch but just in case)
-hoteldruid/
-mysql/
-vc_runtime_dlls/
-
 # Test results
 **/TestResults/
 

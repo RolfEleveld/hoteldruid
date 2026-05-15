@@ -1,18 +1,11 @@
 # PHP / legacy directories (removed from blazor branch — ignore local remnants)
 hoteldruid/
 mysql/
-vc_runtime_dlls/
 boot.out
 index.out
-phpdesktop-custom-settings.json
 setup-hoteldruid.ps1
-setup-phpdesktop.ps1
-start-hoteldruid-desktop.ps1
-hoteldruid-settings-manager.ps1
-deploy-hoteldruid-config.ps1
 .env
 windows
-phpdesktop
 logs
 dati
 hoteldruid/logs
@@ -39,9 +32,6 @@ hoteldruid*.exe
 
 # Easy PHP runtime services
 EasyPHP*.exe 
-phpdesktop*.zip
-vcredist_x64.exe
-vcredist_x86.exe
 out
 
 # Generated export packages
@@ -160,8 +150,6 @@ IMPLEMENTATION_ROOMS_WIDGET.md
 IMPLEMENTATION_SUMMARY.md
 INLINE_MESSAGE_SYSTEM.md
 MODERNIZATION_SUMMARY.md
-QUICKSTART-PHPDESKTOP.md
-README-PHPDESKTOP.md
 README_EXPORT_IMPORT.md
 ROOM_API_SPECIFICATION.md
 TESTING_ROOMS_WIDGET.md
