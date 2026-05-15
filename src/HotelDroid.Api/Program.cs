@@ -340,7 +340,7 @@ app.MapPost("/api/assets", async (AssetDto request, IKeyValueStore store) =>
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateAsset").WithOpenApi();
+}).WithName("CreateAsset");
 
 app.MapGet("/api/assets/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -349,7 +349,7 @@ app.MapGet("/api/assets/{id}", async (string id, IKeyValueStore store) =>
         return Results.NotFound();
 
     return Results.Ok(new AssetDto(id, asset.Name ?? "", asset.Code, asset.Description, asset.CreatedAt));
-}).WithName("GetAsset").WithOpenApi();
+}).WithName("GetAsset");
 
 app.MapGet("/api/assets", async (IKeyValueStore store, string? name) =>
 {
@@ -376,7 +376,7 @@ app.MapGet("/api/assets", async (IKeyValueStore store, string? name) =>
     }
 
     return Results.Ok(result);
-}).WithName("ListAssets").WithOpenApi();
+}).WithName("ListAssets");
 
 app.MapPut("/api/assets/{id}", async (string id, AssetDto request, IKeyValueStore store) =>
 {
@@ -397,7 +397,7 @@ app.MapPut("/api/assets/{id}", async (string id, AssetDto request, IKeyValueStor
 
     await store.UpdateAsync("assets", id, storage);
     return Results.Ok(new AssetDto(id, request.Name, request.Code, request.Description, storage.CreatedAt));
-}).WithName("UpdateAsset").WithOpenApi();
+}).WithName("UpdateAsset");
 
 app.MapDelete("/api/assets/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -407,7 +407,7 @@ app.MapDelete("/api/assets/{id}", async (string id, IKeyValueStore store) =>
 
     await store.DeleteAsync("assets", id);
     return Results.NoContent();
-}).WithName("DeleteAsset").WithOpenApi();
+}).WithName("DeleteAsset");
 
 // --- Warehouses (magazzini) ---
 
@@ -428,14 +428,14 @@ app.MapPost("/api/warehouses", async (WarehouseDto request, IKeyValueStore store
 
     var id = await store.CreateAsync("warehouses", request.Name, storage);
     return Results.Created($"/api/warehouses/{id}", new WarehouseDto(id, request.Name, request.Code, request.Description, request.FloorNumber, request.HouseNumber, storage.CreatedAt));
-}).WithName("CreateWarehouse").WithOpenApi();
+}).WithName("CreateWarehouse");
 
 app.MapGet("/api/warehouses/{id}", async (string id, IKeyValueStore store) =>
 {
     var w = await store.GetAsync<WarehouseStorageModel>("warehouses", id);
     if (w is null) return Results.NotFound();
     return Results.Ok(new WarehouseDto(id, w.Name, w.Code, w.Description, w.FloorNumber, w.HouseNumber, w.CreatedAt));
-}).WithName("GetWarehouse").WithOpenApi();
+}).WithName("GetWarehouse");
 
 app.MapGet("/api/warehouses", async (IKeyValueStore store, string? name) =>
 {
@@ -458,7 +458,7 @@ app.MapGet("/api/warehouses", async (IKeyValueStore store, string? name) =>
         list.Add(new WarehouseDto(id2, w.Name, w.Code, w.Description, w.FloorNumber, w.HouseNumber, w.CreatedAt));
     }
     return Results.Ok(list);
-}).WithName("ListWarehouses").WithOpenApi();
+}).WithName("ListWarehouses");
 
 app.MapPut("/api/warehouses/{id}", async (string id, WarehouseDto request, IKeyValueStore store) =>
 {
@@ -478,7 +478,7 @@ app.MapPut("/api/warehouses/{id}", async (string id, WarehouseDto request, IKeyV
 
     await store.UpdateAsync("warehouses", id, storage);
     return Results.Ok(new WarehouseDto(id, request.Name, request.Code, request.Description, request.FloorNumber, request.HouseNumber, storage.CreatedAt));
-}).WithName("UpdateWarehouse").WithOpenApi();
+}).WithName("UpdateWarehouse");
 
 app.MapDelete("/api/warehouses/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -486,7 +486,7 @@ app.MapDelete("/api/warehouses/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("warehouses", id);
     return Results.NoContent();
-}).WithName("DeleteWarehouse").WithOpenApi();
+}).WithName("DeleteWarehouse");
 
 // --- Inventory relations (relinventario) ---
 
@@ -510,14 +510,14 @@ app.MapPost("/api/inventory", async (InventoryDto request, IKeyValueStore store)
 
     var id = await store.CreateAsync("inventory", Guid.NewGuid().ToString("N"), storage);
     return Results.Created($"/api/inventory/{id}", new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
-}).WithName("CreateInventory").WithOpenApi();
+}).WithName("CreateInventory");
 
 app.MapGet("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
 {
     var inv = await store.GetAsync<InventoryStorageModel>("inventory", id);
     if (inv is null) return Results.NotFound();
     return Results.Ok(new InventoryDto(id, inv.AssetId, inv.RoomId, inv.WarehouseId, inv.Quantity, inv.MinQuantityDefault, inv.RequiredOnCheckin, inv.CreatedAt));
-}).WithName("GetInventory").WithOpenApi();
+}).WithName("GetInventory");
 
 app.MapGet("/api/inventory", async (IKeyValueStore store, string? assetId, string? roomId, string? warehouseId) =>
 {
@@ -537,7 +537,7 @@ app.MapGet("/api/inventory", async (IKeyValueStore store, string? assetId, strin
         list.Add(new InventoryDto(id, item.AssetId, item.RoomId, item.WarehouseId, item.Quantity, item.MinQuantityDefault, item.RequiredOnCheckin, item.CreatedAt));
     }
     return Results.Ok(list);
-}).WithName("ListInventory").WithOpenApi();
+}).WithName("ListInventory");
 
 app.MapPut("/api/inventory/{id}", async (string id, InventoryDto request, IKeyValueStore store) =>
 {
@@ -557,7 +557,7 @@ app.MapPut("/api/inventory/{id}", async (string id, InventoryDto request, IKeyVa
 
     await store.UpdateAsync("inventory", id, storage);
     return Results.Ok(new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
-}).WithName("UpdateInventory").WithOpenApi();
+}).WithName("UpdateInventory");
 
 app.MapDelete("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -565,7 +565,7 @@ app.MapDelete("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("inventory", id);
     return Results.NoContent();
-}).WithName("DeleteInventory").WithOpenApi();
+}).WithName("DeleteInventory");
 
 // --- Export/Import API endpoints ---
 
@@ -582,7 +582,7 @@ app.MapPost("/api/export/create", async (ExportRequest? request, IExportService 
     ));
 })
 .WithName("CreateExport")
-.WithOpenApi();
+;
 
 app.MapGet("/api/export/{exportId}/status", async (string exportId, IExportService exportService) =>
 {
@@ -597,7 +597,7 @@ app.MapGet("/api/export/{exportId}/status", async (string exportId, IExportServi
     }
 })
 .WithName("GetExportStatus")
-.WithOpenApi();
+;
 
 app.MapGet("/api/export/{exportId}/download", async (string exportId, IExportService exportService) =>
 {
@@ -612,7 +612,7 @@ app.MapGet("/api/export/{exportId}/download", async (string exportId, IExportSer
     }
 })
 .WithName("DownloadExport")
-.WithOpenApi();
+;
 
 app.MapGet("/api/export/list", async (IExportService exportService, int limit = 20, int offset = 0) =>
 {
@@ -620,7 +620,7 @@ app.MapGet("/api/export/list", async (IExportService exportService, int limit = 
     return Results.Ok(new { exports = exports, total = exports.Count });
 })
 .WithName("ListExports")
-.WithOpenApi();
+;
 
 app.MapPost("/api/import/validate", async (IFormFile file, IImportService importService) =>
 {
@@ -638,7 +638,7 @@ app.MapPost("/api/import/validate", async (IFormFile file, IImportService import
     }
 })
 .WithName("ValidateImport")
-.WithOpenApi();
+;
 
 app.MapGet("/api/import/{packageId}/preview", async (string packageId, IImportService importService) =>
 {
@@ -653,7 +653,7 @@ app.MapGet("/api/import/{packageId}/preview", async (string packageId, IImportSe
     }
 })
 .WithName("GetImportPreview")
-.WithOpenApi();
+;
 
 app.MapPost("/api/import/{packageId}/execute", async (string packageId, ImportExecuteRequest request, IImportService importService) =>
 {
@@ -668,7 +668,7 @@ app.MapPost("/api/import/{packageId}/execute", async (string packageId, ImportEx
     }
 })
 .WithName("ExecuteImport")
-.WithOpenApi();
+;
 
 app.MapGet("/api/import/{importId}/status", async (string importId, IImportService importService) =>
 {
@@ -683,7 +683,7 @@ app.MapGet("/api/import/{importId}/status", async (string importId, IImportServi
     }
 })
 .WithName("GetImportStatus")
-.WithOpenApi();
+;
 
 // --- Nations (nazioni) ---
 
@@ -702,14 +702,14 @@ app.MapPost("/api/nations", async (NationDto request, IKeyValueStore store) =>
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateNation").WithOpenApi();
+}).WithName("CreateNation");
 
 app.MapGet("/api/nations/{id}", async (string id, IKeyValueStore store) =>
 {
     var n = await store.GetAsync<NationStorageModel>("nations", id);
     if (n is null) return Results.NotFound();
     return Results.Ok(new NationDto(id, n.Name, n.Code, n.Code2, n.Code3, n.CreatedAt));
-}).WithName("GetNation").WithOpenApi();
+}).WithName("GetNation");
 
 app.MapGet("/api/nations", async (IKeyValueStore store, string? name) =>
 {
@@ -726,7 +726,7 @@ app.MapGet("/api/nations", async (IKeyValueStore store, string? name) =>
     var list = new List<NationDto>();
     foreach (var n in all) { var nname = n.Name ?? ""; var nid = idx.TryGetValue(nname, out var i) ? i : ""; list.Add(new NationDto(nid, n.Name, n.Code, n.Code2, n.Code3, n.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListNations").WithOpenApi();
+}).WithName("ListNations");
 
 app.MapPut("/api/nations/{id}", async (string id, NationDto request, IKeyValueStore store) =>
 {
@@ -736,7 +736,7 @@ app.MapPut("/api/nations/{id}", async (string id, NationDto request, IKeyValueSt
     var storage = new NationStorageModel { Name = request.Name, Code = request.Code, Code2 = request.Code2, Code3 = request.Code3, CreatedAt = request.CreatedAt ?? DateTime.UtcNow };
     await store.UpdateAsync("nations", id, storage);
     return Results.Ok(new NationDto(id, request.Name, request.Code, request.Code2, request.Code3, storage.CreatedAt));
-}).WithName("UpdateNation").WithOpenApi();
+}).WithName("UpdateNation");
 
 app.MapDelete("/api/nations/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -744,7 +744,7 @@ app.MapDelete("/api/nations/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("nations", id);
     return Results.NoContent();
-}).WithName("DeleteNation").WithOpenApi();
+}).WithName("DeleteNation");
 
 // --- Regions (regioni) ---
 
@@ -763,14 +763,14 @@ app.MapPost("/api/regions", async (RegionDto request, IKeyValueStore store) =>
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateRegion").WithOpenApi();
+}).WithName("CreateRegion");
 
 app.MapGet("/api/regions/{id}", async (string id, IKeyValueStore store) =>
 {
     var r = await store.GetAsync<RegionStorageModel>("regions", id);
     if (r is null) return Results.NotFound();
     return Results.Ok(new RegionDto(id, r.Name, r.Code, r.Code2, r.Code3, r.CreatedAt));
-}).WithName("GetRegion").WithOpenApi();
+}).WithName("GetRegion");
 
 app.MapGet("/api/regions", async (IKeyValueStore store, string? name) =>
 {
@@ -787,7 +787,7 @@ app.MapGet("/api/regions", async (IKeyValueStore store, string? name) =>
     var list = new List<RegionDto>();
     foreach (var r in all) { var rname = r.Name ?? ""; var rid = idx.TryGetValue(rname, out var i) ? i : ""; list.Add(new RegionDto(rid, r.Name, r.Code, r.Code2, r.Code3, r.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListRegions").WithOpenApi();
+}).WithName("ListRegions");
 
 app.MapPut("/api/regions/{id}", async (string id, RegionDto request, IKeyValueStore store) =>
 {
@@ -797,7 +797,7 @@ app.MapPut("/api/regions/{id}", async (string id, RegionDto request, IKeyValueSt
     var storage = new RegionStorageModel { Name = request.Name, Code = request.Code, Code2 = request.Code2, Code3 = request.Code3, CreatedAt = request.CreatedAt ?? DateTime.UtcNow };
     await store.UpdateAsync("regions", id, storage);
     return Results.Ok(new RegionDto(id, request.Name, request.Code, request.Code2, request.Code3, storage.CreatedAt));
-}).WithName("UpdateRegion").WithOpenApi();
+}).WithName("UpdateRegion");
 
 app.MapDelete("/api/regions/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -805,7 +805,7 @@ app.MapDelete("/api/regions/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("regions", id);
     return Results.NoContent();
-}).WithName("DeleteRegion").WithOpenApi();
+}).WithName("DeleteRegion");
 
 // --- Cities (citta) ---
 
@@ -824,14 +824,14 @@ app.MapPost("/api/cities", async (CityDto request, IKeyValueStore store) =>
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateCity").WithOpenApi();
+}).WithName("CreateCity");
 
 app.MapGet("/api/cities/{id}", async (string id, IKeyValueStore store) =>
 {
     var c = await store.GetAsync<CityStorageModel>("cities", id);
     if (c is null) return Results.NotFound();
     return Results.Ok(new CityDto(id, c.Name, c.Code, c.Code2, c.Code3, c.CreatedAt));
-}).WithName("GetCity").WithOpenApi();
+}).WithName("GetCity");
 
 app.MapGet("/api/cities", async (IKeyValueStore store, string? name) =>
 {
@@ -848,7 +848,7 @@ app.MapGet("/api/cities", async (IKeyValueStore store, string? name) =>
     var list = new List<CityDto>();
     foreach (var c in all) { var cname = c.Name ?? ""; var cid = idx.TryGetValue(cname, out var i) ? i : ""; list.Add(new CityDto(cid, c.Name, c.Code, c.Code2, c.Code3, c.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListCities").WithOpenApi();
+}).WithName("ListCities");
 
 app.MapPut("/api/cities/{id}", async (string id, CityDto request, IKeyValueStore store) =>
 {
@@ -858,7 +858,7 @@ app.MapPut("/api/cities/{id}", async (string id, CityDto request, IKeyValueStore
     var storage = new CityStorageModel { Name = request.Name, Code = request.Code, Code2 = request.Code2, Code3 = request.Code3, CreatedAt = request.CreatedAt ?? DateTime.UtcNow };
     await store.UpdateAsync("cities", id, storage);
     return Results.Ok(new CityDto(id, request.Name, request.Code, request.Code2, request.Code3, storage.CreatedAt));
-}).WithName("UpdateCity").WithOpenApi();
+}).WithName("UpdateCity");
 
 app.MapDelete("/api/cities/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -866,7 +866,7 @@ app.MapDelete("/api/cities/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("cities", id);
     return Results.NoContent();
-}).WithName("DeleteCity").WithOpenApi();
+}).WithName("DeleteCity");
 
 // --- Identity Document Types (documentiid) ---
 
@@ -885,14 +885,14 @@ app.MapPost("/api/identity-document-types", async (IdentityDocumentTypeDto reque
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateIdentityDocumentType").WithOpenApi();
+}).WithName("CreateIdentityDocumentType");
 
 app.MapGet("/api/identity-document-types/{id}", async (string id, IKeyValueStore store) =>
 {
     var d = await store.GetAsync<IdentityDocumentTypeStorageModel>("identity_document_types", id);
     if (d is null) return Results.NotFound();
     return Results.Ok(new IdentityDocumentTypeDto(id, d.Name, d.Code, d.Code2, d.Code3, d.CreatedAt));
-}).WithName("GetIdentityDocumentType").WithOpenApi();
+}).WithName("GetIdentityDocumentType");
 
 app.MapGet("/api/identity-document-types", async (IKeyValueStore store, string? name) =>
 {
@@ -909,7 +909,7 @@ app.MapGet("/api/identity-document-types", async (IKeyValueStore store, string? 
     var list = new List<IdentityDocumentTypeDto>();
     foreach (var d in all) { var dname = d.Name ?? ""; var did = idx.TryGetValue(dname, out var i) ? i : ""; list.Add(new IdentityDocumentTypeDto(did, d.Name, d.Code, d.Code2, d.Code3, d.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListIdentityDocumentTypes").WithOpenApi();
+}).WithName("ListIdentityDocumentTypes");
 
 app.MapPut("/api/identity-document-types/{id}", async (string id, IdentityDocumentTypeDto request, IKeyValueStore store) =>
 {
@@ -919,7 +919,7 @@ app.MapPut("/api/identity-document-types/{id}", async (string id, IdentityDocume
     var storage = new IdentityDocumentTypeStorageModel { Name = request.Name, Code = request.Code, Code2 = request.Code2, Code3 = request.Code3, CreatedAt = request.CreatedAt ?? DateTime.UtcNow };
     await store.UpdateAsync("identity_document_types", id, storage);
     return Results.Ok(new IdentityDocumentTypeDto(id, request.Name, request.Code, request.Code2, request.Code3, storage.CreatedAt));
-}).WithName("UpdateIdentityDocumentType").WithOpenApi();
+}).WithName("UpdateIdentityDocumentType");
 
 app.MapDelete("/api/identity-document-types/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -927,7 +927,7 @@ app.MapDelete("/api/identity-document-types/{id}", async (string id, IKeyValueSt
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("identity_document_types", id);
     return Results.NoContent();
-}).WithName("DeleteIdentityDocumentType").WithOpenApi();
+}).WithName("DeleteIdentityDocumentType");
 
 // --- Family Relationships (parentele) ---
 
@@ -946,14 +946,14 @@ app.MapPost("/api/family-relationships", async (FamilyRelationshipDto request, I
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateFamilyRelationship").WithOpenApi();
+}).WithName("CreateFamilyRelationship");
 
 app.MapGet("/api/family-relationships/{id}", async (string id, IKeyValueStore store) =>
 {
     var f = await store.GetAsync<FamilyRelationshipStorageModel>("family_relationships", id);
     if (f is null) return Results.NotFound();
     return Results.Ok(new FamilyRelationshipDto(id, f.Name, f.Code, f.Code2, f.Code3, f.CreatedAt));
-}).WithName("GetFamilyRelationship").WithOpenApi();
+}).WithName("GetFamilyRelationship");
 
 app.MapGet("/api/family-relationships", async (IKeyValueStore store, string? name) =>
 {
@@ -970,7 +970,7 @@ app.MapGet("/api/family-relationships", async (IKeyValueStore store, string? nam
     var list = new List<FamilyRelationshipDto>();
     foreach (var f in all) { var fname = f.Name ?? ""; var fid = idx.TryGetValue(fname, out var i) ? i : ""; list.Add(new FamilyRelationshipDto(fid, f.Name, f.Code, f.Code2, f.Code3, f.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListFamilyRelationships").WithOpenApi();
+}).WithName("ListFamilyRelationships");
 
 app.MapPut("/api/family-relationships/{id}", async (string id, FamilyRelationshipDto request, IKeyValueStore store) =>
 {
@@ -980,7 +980,7 @@ app.MapPut("/api/family-relationships/{id}", async (string id, FamilyRelationshi
     var storage = new FamilyRelationshipStorageModel { Name = request.Name, Code = request.Code, Code2 = request.Code2, Code3 = request.Code3, CreatedAt = request.CreatedAt ?? DateTime.UtcNow };
     await store.UpdateAsync("family_relationships", id, storage);
     return Results.Ok(new FamilyRelationshipDto(id, request.Name, request.Code, request.Code2, request.Code3, storage.CreatedAt));
-}).WithName("UpdateFamilyRelationship").WithOpenApi();
+}).WithName("UpdateFamilyRelationship");
 
 app.MapDelete("/api/family-relationships/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -988,7 +988,7 @@ app.MapDelete("/api/family-relationships/{id}", async (string id, IKeyValueStore
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("family_relationships", id);
     return Results.NoContent();
-}).WithName("DeleteFamilyRelationship").WithOpenApi();
+}).WithName("DeleteFamilyRelationship");
 
 // --- Cash Registers (casse) ---
 
@@ -1014,14 +1014,14 @@ app.MapPost("/api/cash-registers", async (CashRegisterDto request, IKeyValueStor
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateCashRegister").WithOpenApi();
+}).WithName("CreateCashRegister");
 
 app.MapGet("/api/cash-registers/{id}", async (string id, IKeyValueStore store) =>
 {
     var cr = await store.GetAsync<CashRegisterStorageModel>("cash_registers", id);
     if (cr is null) return Results.NotFound();
     return Results.Ok(new CashRegisterDto(id, cr.Name, cr.Status, cr.Code, cr.Description, cr.CreatedAt));
-}).WithName("GetCashRegister").WithOpenApi();
+}).WithName("GetCashRegister");
 
 app.MapGet("/api/cash-registers", async (IKeyValueStore store, string? name) =>
 {
@@ -1043,7 +1043,7 @@ app.MapGet("/api/cash-registers", async (IKeyValueStore store, string? name) =>
         list.Add(new CashRegisterDto(crid2, cr.Name, cr.Status, cr.Code, cr.Description, cr.CreatedAt));
     }
     return Results.Ok(list);
-}).WithName("ListCashRegisters").WithOpenApi();
+}).WithName("ListCashRegisters");
 
 app.MapPut("/api/cash-registers/{id}", async (string id, CashRegisterDto request, IKeyValueStore store) =>
 {
@@ -1061,7 +1061,7 @@ app.MapPut("/api/cash-registers/{id}", async (string id, CashRegisterDto request
     };
     await store.UpdateAsync("cash_registers", id, storage);
     return Results.Ok(new CashRegisterDto(id, storage.Name, storage.Status, storage.Code, storage.Description, storage.CreatedAt));
-}).WithName("UpdateCashRegister").WithOpenApi();
+}).WithName("UpdateCashRegister");
 
 app.MapDelete("/api/cash-registers/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -1069,7 +1069,7 @@ app.MapDelete("/api/cash-registers/{id}", async (string id, IKeyValueStore store
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("cash_registers", id);
     return Results.NoContent();
-}).WithName("DeleteCashRegister").WithOpenApi();
+}).WithName("DeleteCashRegister");
 
 // --- User Groups (gruppi) ---
 
@@ -1088,14 +1088,14 @@ app.MapPost("/api/user-groups", async (UserGroupDto request, IKeyValueStore stor
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateUserGroup").WithOpenApi();
+}).WithName("CreateUserGroup");
 
 app.MapGet("/api/user-groups/{id}", async (string id, IKeyValueStore store) =>
 {
     var ug = await store.GetAsync<UserGroupStorageModel>("user_groups", id);
     if (ug is null) return Results.NotFound();
     return Results.Ok(new UserGroupDto(id, ug.Name));
-}).WithName("GetUserGroup").WithOpenApi();
+}).WithName("GetUserGroup");
 
 app.MapGet("/api/user-groups", async (IKeyValueStore store, string? name) =>
 {
@@ -1112,7 +1112,7 @@ app.MapGet("/api/user-groups", async (IKeyValueStore store, string? name) =>
     var list = new List<UserGroupDto>();
     foreach (var ug in all) { var ugName = ug.Name ?? ""; var ugid2 = idx.TryGetValue(ugName, out var i) ? i : ""; list.Add(new UserGroupDto(ugid2, ug.Name)); }
     return Results.Ok(list);
-}).WithName("ListUserGroups").WithOpenApi();
+}).WithName("ListUserGroups");
 
 app.MapPut("/api/user-groups/{id}", async (string id, UserGroupDto request, IKeyValueStore store) =>
 {
@@ -1122,7 +1122,7 @@ app.MapPut("/api/user-groups/{id}", async (string id, UserGroupDto request, IKey
     var storage = new UserGroupStorageModel { Name = request.Name };
     await store.UpdateAsync("user_groups", id, storage);
     return Results.Ok(new UserGroupDto(id, request.Name));
-}).WithName("UpdateUserGroup").WithOpenApi();
+}).WithName("UpdateUserGroup");
 
 app.MapDelete("/api/user-groups/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -1130,7 +1130,7 @@ app.MapDelete("/api/user-groups/{id}", async (string id, IKeyValueStore store) =
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("user_groups", id);
     return Results.NoContent();
-}).WithName("DeleteUserGroup").WithOpenApi();
+}).WithName("DeleteUserGroup");
 
 // --- Users (utenti) ---
 // SECURITY: Password and Salt are NEVER returned in any UserDto response.
@@ -1165,14 +1165,14 @@ app.MapPost("/api/users", async (UserWriteDto request, IKeyValueStore store) =>
     {
         return Results.Conflict(new { error = ex.Message });
     }
-}).WithName("CreateUser").WithOpenApi();
+}).WithName("CreateUser");
 
 app.MapGet("/api/users/{id}", async (string id, IKeyValueStore store) =>
 {
     var u = await store.GetAsync<UserStorageModel>("users", id);
     if (u is null) return Results.NotFound();
     return Results.Ok(new UserDto(id, u.Username, u.PasswordType, u.CreatedAt));
-}).WithName("GetUser").WithOpenApi();
+}).WithName("GetUser");
 
 app.MapGet("/api/users", async (IKeyValueStore store, string? username) =>
 {
@@ -1189,7 +1189,7 @@ app.MapGet("/api/users", async (IKeyValueStore store, string? username) =>
     var list = new List<UserDto>();
     foreach (var u in all) { var uname = u.Username ?? ""; var uid2 = idx.TryGetValue(uname, out var i) ? i : ""; list.Add(new UserDto(uid2, u.Username, u.PasswordType, u.CreatedAt)); }
     return Results.Ok(list);
-}).WithName("ListUsers").WithOpenApi();
+}).WithName("ListUsers");
 
 app.MapPut("/api/users/{id}", async (string id, UserWriteDto request, IKeyValueStore store) =>
 {
@@ -1208,7 +1208,7 @@ app.MapPut("/api/users/{id}", async (string id, UserWriteDto request, IKeyValueS
     };
     await store.UpdateAsync("users", id, storage);
     return Results.Ok(new UserDto(id, storage.Username, storage.PasswordType, storage.CreatedAt));
-}).WithName("UpdateUser").WithOpenApi();
+}).WithName("UpdateUser");
 
 app.MapDelete("/api/users/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -1216,7 +1216,7 @@ app.MapDelete("/api/users/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("users", id);
     return Results.NoContent();
-}).WithName("DeleteUser").WithOpenApi();
+}).WithName("DeleteUser");
 
 app.MapPost("/api/users/{id}/change-password", async (string id, Microsoft.AspNetCore.Http.HttpContext ctx, IKeyValueStore store) =>
 {
@@ -1243,7 +1243,7 @@ app.MapPost("/api/users/{id}/change-password", async (string id, Microsoft.AspNe
     existing.Salt = salt;
     await store.UpdateAsync("users", id, existing);
     return Results.Ok(new { message = "Password updated" });
-}).WithName("ChangeUserPassword").WithOpenApi();
+}).WithName("ChangeUserPassword");
 
 // --- Settings (personalizza) ---
 // Key format in store: "{userId}_{key}". Settings are scoped per user.
@@ -1275,7 +1275,7 @@ app.MapPost("/api/settings", async (SettingDto request, IKeyValueStore store) =>
         return Results.Created($"/api/settings/{request.UserId}/{request.Key}",
             new SettingDto(storage.Key, storage.UserId, storage.StringValue, storage.NumericValue));
     }
-}).WithName("UpsertSetting").WithOpenApi();
+}).WithName("UpsertSetting");
 
 app.MapGet("/api/settings/{userId:int}/{key}", async (int userId, string key, IKeyValueStore store) =>
 {
@@ -1283,14 +1283,14 @@ app.MapGet("/api/settings/{userId:int}/{key}", async (int userId, string key, IK
     var s = await store.GetByNameAsync<SettingStorageModel>("settings", compositeKey);
     if (s is null) return Results.NotFound();
     return Results.Ok(new SettingDto(s.Key, s.UserId, s.StringValue, s.NumericValue));
-}).WithName("GetSetting").WithOpenApi();
+}).WithName("GetSetting");
 
 app.MapGet("/api/settings", async (IKeyValueStore store, int? userId) =>
 {
     var all = await store.ListAsync<SettingStorageModel>("settings");
     var filtered = userId.HasValue ? all.Where(s => s.UserId == userId.Value) : all;
     return Results.Ok(filtered.Select(s => new SettingDto(s.Key, s.UserId, s.StringValue, s.NumericValue)).ToList());
-}).WithName("ListSettings").WithOpenApi();
+}).WithName("ListSettings");
 
 app.MapPut("/api/settings/{userId:int}/{key}", async (int userId, string key, SettingDto request, IKeyValueStore store) =>
 {
@@ -1307,7 +1307,7 @@ app.MapPut("/api/settings/{userId:int}/{key}", async (int userId, string key, Se
     };
     await store.UpdateAsync("settings", id, storage);
     return Results.Ok(new SettingDto(key, userId, storage.StringValue, storage.NumericValue));
-}).WithName("UpdateSetting").WithOpenApi();
+}).WithName("UpdateSetting");
 
 app.MapDelete("/api/settings/{userId:int}/{key}", async (int userId, string key, IKeyValueStore store) =>
 {
@@ -1316,7 +1316,7 @@ app.MapDelete("/api/settings/{userId:int}/{key}", async (int userId, string key,
     if (!idx.TryGetValue(compositeKey, out var id)) return Results.NotFound();
     await store.DeleteAsync("settings", id);
     return Results.NoContent();
-}).WithName("DeleteSetting").WithOpenApi();
+}).WithName("DeleteSetting");
 
 // SPA fallback: route unmatched requests to index.html for Blazor client-side routing
 
@@ -1356,14 +1356,14 @@ app.MapPost("/api/clients", async (ClientFullDto request, IKeyValueStore store) 
     var key = $"{request.LastName}_{DateTime.UtcNow.Ticks}";
     var id = await store.CreateAsync("clients", key, storage);
     return Results.Created($"/api/clients/{id}", ToClientFullDto(id, storage));
-}).WithName("CreateClient").WithOpenApi();
+}).WithName("CreateClient");
 
 app.MapGet("/api/clients/{id}", async (string id, IKeyValueStore store) =>
 {
     var c = await store.GetAsync<ClientStorageModel>("clients", id);
     if (c is null) return Results.NotFound();
     return Results.Ok(ToClientFullDto(id, c));
-}).WithName("GetClient").WithOpenApi();
+}).WithName("GetClient");
 
 app.MapGet("/api/clients", async (IKeyValueStore store, string? lastName) =>
 {
@@ -1377,7 +1377,7 @@ app.MapGet("/api/clients", async (IKeyValueStore store, string? lastName) =>
         result.Add(ToClientFullDto(kvp.Value, c));
     }
     return Results.Ok(result);
-}).WithName("ListClients").WithOpenApi();
+}).WithName("ListClients");
 
 app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyValueStore store) =>
 {
@@ -1404,7 +1404,7 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
     };
     await store.UpdateAsync("clients", id, storage);
     return Results.Ok(ToClientFullDto(id, storage));
-}).WithName("UpdateClient").WithOpenApi();
+}).WithName("UpdateClient");
 
 app.MapDelete("/api/clients/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -1412,7 +1412,7 @@ app.MapDelete("/api/clients/{id}", async (string id, IKeyValueStore store) =>
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("clients", id);
     return Results.NoContent();
-}).WithName("DeleteClient").WithOpenApi();
+}).WithName("DeleteClient");
 
 // --- Client Data (relclienti) ---
 
@@ -1434,7 +1434,7 @@ app.MapPost("/api/client-data", async (ClientDataDto request, IKeyValueStore sto
     var key = $"{request.ClientId}_{request.Number}_{DateTime.UtcNow.Ticks}";
     var id = await store.CreateAsync("client_data", key, storage);
     return Results.Created($"/api/client-data/{id}", ToClientDataDto(id, storage));
-}).WithName("CreateClientData").WithOpenApi();
+}).WithName("CreateClientData");
 
 app.MapGet("/api/client-data", async (IKeyValueStore store, string? clientId) =>
 {
@@ -1448,7 +1448,7 @@ app.MapGet("/api/client-data", async (IKeyValueStore store, string? clientId) =>
         result.Add(ToClientDataDto(kvp.Value, d));
     }
     return Results.Ok(result);
-}).WithName("ListClientData").WithOpenApi();
+}).WithName("ListClientData");
 
 app.MapPut("/api/client-data/{id}", async (string id, ClientDataDto request, IKeyValueStore store) =>
 {
@@ -1463,7 +1463,7 @@ app.MapPut("/api/client-data/{id}", async (string id, ClientDataDto request, IKe
     };
     await store.UpdateAsync("client_data", id, storage);
     return Results.Ok(ToClientDataDto(id, storage));
-}).WithName("UpdateClientData").WithOpenApi();
+}).WithName("UpdateClientData");
 
 app.MapDelete("/api/client-data/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -1471,7 +1471,7 @@ app.MapDelete("/api/client-data/{id}", async (string id, IKeyValueStore store) =
     if (!exists) return Results.NotFound();
     await store.DeleteAsync("client_data", id);
     return Results.NoContent();
-}).WithName("DeleteClientData").WithOpenApi();
+}).WithName("DeleteClientData");
 
 // --- User Privileges (privilegi) ---
 
@@ -1500,7 +1500,7 @@ app.MapPost("/api/user-privileges", async (UserPrivilegeDto request, IKeyValueSt
     };
     var id = await store.CreateAsync("user_privileges", key, storage);
     return Results.Created($"/api/user-privileges/{request.UserId}/{request.Year}", ToUserPrivilegeDto(id, storage));
-}).WithName("CreateUserPrivilege").WithOpenApi();
+}).WithName("CreateUserPrivilege");
 
 app.MapGet("/api/user-privileges/{userId:int}/{year:int}", async (int userId, int year, IKeyValueStore store) =>
 {
@@ -1510,7 +1510,7 @@ app.MapGet("/api/user-privileges/{userId:int}/{year:int}", async (int userId, in
     var p = await store.GetAsync<UserPrivilegeStorageModel>("user_privileges", id);
     if (p is null) return Results.NotFound();
     return Results.Ok(ToUserPrivilegeDto(id, p));
-}).WithName("GetUserPrivilege").WithOpenApi();
+}).WithName("GetUserPrivilege");
 
 app.MapGet("/api/user-privileges", async (IKeyValueStore store, int? userId, int? year) =>
 {
@@ -1526,7 +1526,7 @@ app.MapGet("/api/user-privileges", async (IKeyValueStore store, int? userId, int
         result.Add(ToUserPrivilegeDto(pid, p));
     }
     return Results.Ok(result);
-}).WithName("ListUserPrivileges").WithOpenApi();
+}).WithName("ListUserPrivileges");
 
 app.MapPut("/api/user-privileges/{userId:int}/{year:int}", async (int userId, int year, UserPrivilegeDto request, IKeyValueStore store) =>
 {
@@ -1547,7 +1547,7 @@ app.MapPut("/api/user-privileges/{userId:int}/{year:int}", async (int userId, in
     };
     await store.UpdateAsync("user_privileges", id, storage);
     return Results.Ok(ToUserPrivilegeDto(id, storage));
-}).WithName("UpdateUserPrivilege").WithOpenApi();
+}).WithName("UpdateUserPrivilege");
 
 app.MapDelete("/api/user-privileges/{userId:int}/{year:int}", async (int userId, int year, IKeyValueStore store) =>
 {
@@ -1556,7 +1556,7 @@ app.MapDelete("/api/user-privileges/{userId:int}/{year:int}", async (int userId,
     if (!idx.TryGetValue(key, out var id)) return Results.NotFound();
     await store.DeleteAsync("user_privileges", id);
     return Results.NoContent();
-}).WithName("DeleteUserPrivilege").WithOpenApi();
+}).WithName("DeleteUserPrivilege");
 
 // --- User Relations (relutenti) ---
 
@@ -1579,7 +1579,7 @@ app.MapPost("/api/user-relations", async (UserRelationDto request, IKeyValueStor
     };
     var id = await store.CreateAsync("user_relations", key, storage);
     return Results.Created($"/api/user-relations/{request.UserId}", ToUserRelationDto(id, storage));
-}).WithName("CreateUserRelation").WithOpenApi();
+}).WithName("CreateUserRelation");
 
 app.MapGet("/api/user-relations/{userId:int}", async (int userId, IKeyValueStore store) =>
 {
@@ -1589,7 +1589,7 @@ app.MapGet("/api/user-relations/{userId:int}", async (int userId, IKeyValueStore
     var r = await store.GetAsync<UserRelationStorageModel>("user_relations", id);
     if (r is null) return Results.NotFound();
     return Results.Ok(ToUserRelationDto(id, r));
-}).WithName("GetUserRelation").WithOpenApi();
+}).WithName("GetUserRelation");
 
 app.MapPut("/api/user-relations/{userId:int}", async (int userId, UserRelationDto request, IKeyValueStore store) =>
 {
@@ -1606,7 +1606,7 @@ app.MapPut("/api/user-relations/{userId:int}", async (int userId, UserRelationDt
     };
     await store.UpdateAsync("user_relations", id, storage);
     return Results.Ok(ToUserRelationDto(id, storage));
-}).WithName("UpdateUserRelation").WithOpenApi();
+}).WithName("UpdateUserRelation");
 
 app.MapDelete("/api/user-relations/{userId:int}", async (int userId, IKeyValueStore store) =>
 {
@@ -1615,7 +1615,7 @@ app.MapDelete("/api/user-relations/{userId:int}", async (int userId, IKeyValueSt
     if (!idx.TryGetValue(key, out var id)) return Results.NotFound();
     await store.DeleteAsync("user_relations", id);
     return Results.NoContent();
-}).WithName("DeleteUserRelation").WithOpenApi();
+}).WithName("DeleteUserRelation");
 
 // --- Group Memberships (relgruppi) ---
 
@@ -1635,7 +1635,7 @@ app.MapPost("/api/group-memberships", async (GroupMembershipDto request, IKeyVal
     };
     var id = await store.CreateAsync("group_memberships", key, storage);
     return Results.Created($"/api/group-memberships/{request.UserId}/{request.GroupId}", ToGroupMembershipDto(id, storage));
-}).WithName("CreateGroupMembership").WithOpenApi();
+}).WithName("CreateGroupMembership");
 
 app.MapGet("/api/group-memberships", async (IKeyValueStore store, int? userId) =>
 {
@@ -1649,7 +1649,7 @@ app.MapGet("/api/group-memberships", async (IKeyValueStore store, int? userId) =
         result.Add(ToGroupMembershipDto(kvp.Value, m));
     }
     return Results.Ok(result);
-}).WithName("ListGroupMemberships").WithOpenApi();
+}).WithName("ListGroupMemberships");
 
 app.MapDelete("/api/group-memberships/{userId:int}/{groupId:int}", async (int userId, int groupId, IKeyValueStore store) =>
 {
@@ -1658,7 +1658,7 @@ app.MapDelete("/api/group-memberships/{userId:int}/{groupId:int}", async (int us
     if (!idx.TryGetValue(key, out var id)) return Results.NotFound();
     await store.DeleteAsync("group_memberships", id);
     return Results.NoContent();
-}).WithName("DeleteGroupMembership").WithOpenApi();
+}).WithName("DeleteGroupMembership");
 
 // --- Layer 3: Years (anni) ---
 
@@ -1674,7 +1674,7 @@ app.MapGet("/api/years", async (IKeyValueStore store) =>
         result.Add(new YearDto(yr, ym.PeriodType));
     }
     return Results.Ok(result.OrderBy(y => y.Year));
-}).WithName("ListYears").WithOpenApi();
+}).WithName("ListYears");
 
 app.MapGet("/api/years/{year:int}", async (int year, IKeyValueStore store) =>
 {
@@ -1683,7 +1683,7 @@ app.MapGet("/api/years/{year:int}", async (int year, IKeyValueStore store) =>
     var ym = await store.GetAsync<YearStorageModel>("years", id);
     if (ym is null) return Results.NotFound();
     return Results.Ok(new YearDto(year, ym.PeriodType));
-}).WithName("GetYear").WithOpenApi();
+}).WithName("GetYear");
 
 app.MapPost("/api/years", async (YearDto request, IKeyValueStore store) =>
 {
@@ -1693,7 +1693,7 @@ app.MapPost("/api/years", async (YearDto request, IKeyValueStore store) =>
     var storage = new YearStorageModel { PeriodType = request.PeriodType ?? "variable" };
     await store.CreateAsync("years", key, storage);
     return Results.Created($"/api/years/{request.Year}", new YearDto(request.Year, storage.PeriodType));
-}).WithName("CreateYear").WithOpenApi();
+}).WithName("CreateYear");
 
 app.MapPut("/api/years/{year:int}", async (int year, YearDto request, IKeyValueStore store) =>
 {
@@ -1703,7 +1703,7 @@ app.MapPut("/api/years/{year:int}", async (int year, YearDto request, IKeyValueS
     var storage = new YearStorageModel { PeriodType = request.PeriodType ?? "variable" };
     await store.UpdateAsync("years", id, storage);
     return Results.Ok(new YearDto(year, storage.PeriodType));
-}).WithName("UpdateYear").WithOpenApi();
+}).WithName("UpdateYear");
 
 app.MapDelete("/api/years/{year:int}", async (int year, IKeyValueStore store) =>
 {
@@ -1712,7 +1712,7 @@ app.MapDelete("/api/years/{year:int}", async (int year, IKeyValueStore store) =>
     if (!idx.TryGetValue(key, out var id)) return Results.NotFound();
     await store.DeleteAsync("years", id);
     return Results.NoContent();
-}).WithName("DeleteYear").WithOpenApi();
+}).WithName("DeleteYear");
 
 // --- Layer 3: Periods (periodi{year}) ---
 
@@ -1738,14 +1738,14 @@ app.MapGet("/api/periods", async (IKeyValueStore store, int? year) =>
         result.Add(ToPeriodDto(kvp.Value, p));
     }
     return Results.Ok(result);
-}).WithName("ListPeriods").WithOpenApi();
+}).WithName("ListPeriods");
 
 app.MapGet("/api/periods/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var p = await store.GetAsync<PeriodStorageModel>("periods", id);
     if (p is null || p.Year != year) return Results.NotFound();
     return Results.Ok(ToPeriodDto(id, p));
-}).WithName("GetPeriod").WithOpenApi();
+}).WithName("GetPeriod");
 
 app.MapPost("/api/periods", async (PeriodDto request, IKeyValueStore store) =>
 {
@@ -1769,7 +1769,7 @@ app.MapPost("/api/periods", async (PeriodDto request, IKeyValueStore store) =>
     };
     var id = await store.CreateAsync("periods", key, storage);
     return Results.Created($"/api/periods/{request.Year}/{id}", ToPeriodDto(id, storage));
-}).WithName("CreatePeriod").WithOpenApi();
+}).WithName("CreatePeriod");
 
 app.MapPut("/api/periods/{year:int}/{id}", async (int year, string id, PeriodDto request, IKeyValueStore store) =>
 {
@@ -1793,7 +1793,7 @@ app.MapPut("/api/periods/{year:int}/{id}", async (int year, string id, PeriodDto
     };
     await store.UpdateAsync("periods", id, storage);
     return Results.Ok(ToPeriodDto(id, storage));
-}).WithName("UpdatePeriod").WithOpenApi();
+}).WithName("UpdatePeriod");
 
 app.MapDelete("/api/periods/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -1801,7 +1801,7 @@ app.MapDelete("/api/periods/{year:int}/{id}", async (int year, string id, IKeyVa
     if (p is null || p.Year != year) return Results.NotFound();
     await store.DeleteAsync("periods", id);
     return Results.NoContent();
-}).WithName("DeletePeriod").WithOpenApi();
+}).WithName("DeletePeriod");
 
 // --- Layer 3: Tariffs (ntariffe{year}) ---
 
@@ -1821,14 +1821,14 @@ app.MapGet("/api/tariffs", async (IKeyValueStore store, int? year) =>
         result.Add(ToTariffDto(kvp.Value, t));
     }
     return Results.Ok(result);
-}).WithName("ListTariffs").WithOpenApi();
+}).WithName("ListTariffs");
 
 app.MapGet("/api/tariffs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var t = await store.GetAsync<TariffStorageModel>("tariffs", id);
     if (t is null || t.Year != year) return Results.NotFound();
     return Results.Ok(ToTariffDto(id, t));
-}).WithName("GetTariff").WithOpenApi();
+}).WithName("GetTariff");
 
 app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
 {
@@ -1842,7 +1842,7 @@ app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
     };
     var id = await store.CreateAsync("tariffs", key, storage);
     return Results.Created($"/api/tariffs/{request.Year}/{id}", ToTariffDto(id, storage));
-}).WithName("CreateTariff").WithOpenApi();
+}).WithName("CreateTariff");
 
 app.MapPut("/api/tariffs/{year:int}/{id}", async (int year, string id, TariffDto request, IKeyValueStore store) =>
 {
@@ -1856,7 +1856,7 @@ app.MapPut("/api/tariffs/{year:int}/{id}", async (int year, string id, TariffDto
     };
     await store.UpdateAsync("tariffs", id, storage);
     return Results.Ok(ToTariffDto(id, storage));
-}).WithName("UpdateTariff").WithOpenApi();
+}).WithName("UpdateTariff");
 
 app.MapDelete("/api/tariffs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -1864,7 +1864,7 @@ app.MapDelete("/api/tariffs/{year:int}/{id}", async (int year, string id, IKeyVa
     if (t is null || t.Year != year) return Results.NotFound();
     await store.DeleteAsync("tariffs", id);
     return Results.NoContent();
-}).WithName("DeleteTariff").WithOpenApi();
+}).WithName("DeleteTariff");
 
 // --- Layer 3: Assignment Rules (regole{year}) ---
 
@@ -1884,14 +1884,14 @@ app.MapGet("/api/assignment-rules", async (IKeyValueStore store, int? year) =>
         result.Add(ToAssignmentRuleDto(kvp.Value, r));
     }
     return Results.Ok(result);
-}).WithName("ListAssignmentRules").WithOpenApi();
+}).WithName("ListAssignmentRules");
 
 app.MapGet("/api/assignment-rules/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var r = await store.GetAsync<AssignmentRuleStorageModel>("assignment_rules", id);
     if (r is null || r.Year != year) return Results.NotFound();
     return Results.Ok(ToAssignmentRuleDto(id, r));
-}).WithName("GetAssignmentRule").WithOpenApi();
+}).WithName("GetAssignmentRule");
 
 app.MapPost("/api/assignment-rules", async (AssignmentRuleDto request, IKeyValueStore store) =>
 {
@@ -1905,7 +1905,7 @@ app.MapPost("/api/assignment-rules", async (AssignmentRuleDto request, IKeyValue
     };
     var id = await store.CreateAsync("assignment_rules", key, storage);
     return Results.Created($"/api/assignment-rules/{request.Year}/{id}", ToAssignmentRuleDto(id, storage));
-}).WithName("CreateAssignmentRule").WithOpenApi();
+}).WithName("CreateAssignmentRule");
 
 app.MapPut("/api/assignment-rules/{year:int}/{id}", async (int year, string id, AssignmentRuleDto request, IKeyValueStore store) =>
 {
@@ -1919,7 +1919,7 @@ app.MapPut("/api/assignment-rules/{year:int}/{id}", async (int year, string id, 
     };
     await store.UpdateAsync("assignment_rules", id, storage);
     return Results.Ok(ToAssignmentRuleDto(id, storage));
-}).WithName("UpdateAssignmentRule").WithOpenApi();
+}).WithName("UpdateAssignmentRule");
 
 app.MapDelete("/api/assignment-rules/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -1927,7 +1927,7 @@ app.MapDelete("/api/assignment-rules/{year:int}/{id}", async (int year, string i
     if (r is null || r.Year != year) return Results.NotFound();
     await store.DeleteAsync("assignment_rules", id);
     return Results.NoContent();
-}).WithName("DeleteAssignmentRule").WithOpenApi();
+}).WithName("DeleteAssignmentRule");
 
 app.MapFallbackToFile("index.html");
 
@@ -1948,14 +1948,14 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, int? year) =>
         result.Add(ToBookingDto(kvp.Value, b));
     }
     return Results.Ok(result);
-}).WithName("ListBookings").WithOpenApi();
+}).WithName("ListBookings");
 
 app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
     return Results.Ok(ToBookingDto(id, b));
-}).WithName("GetBooking").WithOpenApi();
+}).WithName("GetBooking");
 
 app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store) =>
 {
@@ -1964,7 +1964,7 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store) =>
     var storage = new BookingStorageModel { Year = request.Year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
     var id = await store.CreateAsync("bookings", key, storage);
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
-}).WithName("CreateBooking").WithOpenApi();
+}).WithName("CreateBooking");
 
 app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store) =>
 {
@@ -1973,7 +1973,7 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     var storage = new BookingStorageModel { Year = year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
     await store.UpdateAsync("bookings", id, storage);
     return Results.Ok(ToBookingDto(id, storage));
-}).WithName("UpdateBooking").WithOpenApi();
+}).WithName("UpdateBooking");
 
 app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -1981,7 +1981,7 @@ app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyV
     if (b is null || b.Year != year) return Results.NotFound();
     await store.DeleteAsync("bookings", id);
     return Results.NoContent();
-}).WithName("DeleteBooking").WithOpenApi();
+}).WithName("DeleteBooking");
 
 app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, IKeyValueStore store) =>
 {
@@ -1993,7 +1993,7 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     await store.CreateAsync("cancelled_bookings", cancelKey, cancelled);
     await store.DeleteAsync("bookings", id);
     return Results.NoContent();
-}).WithName("CancelBooking").WithOpenApi();
+}).WithName("CancelBooking");
 
 // --- Layer 4: BookingCosts (costiprenotazione{year}) ---
 
@@ -2012,14 +2012,14 @@ app.MapGet("/api/booking-costs", async (IKeyValueStore store, int? year) =>
         result.Add(ToBookingCostDto(kvp.Value, c));
     }
     return Results.Ok(result);
-}).WithName("ListBookingCosts").WithOpenApi();
+}).WithName("ListBookingCosts");
 
 app.MapGet("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year) return Results.NotFound();
     return Results.Ok(ToBookingCostDto(id, c));
-}).WithName("GetBookingCost").WithOpenApi();
+}).WithName("GetBookingCost");
 
 app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store) =>
 {
@@ -2028,7 +2028,7 @@ app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore 
     var storage = new BookingCostStorageModel { Year = request.Year, BookingId = request.BookingId, TariffId = request.TariffId, Amount = request.Amount, Description = request.Description };
     var id = await store.CreateAsync("booking_costs", key, storage);
     return Results.Created($"/api/booking-costs/{request.Year}/{id}", ToBookingCostDto(id, storage));
-}).WithName("CreateBookingCost").WithOpenApi();
+}).WithName("CreateBookingCost");
 
 app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store) =>
 {
@@ -2037,7 +2037,7 @@ app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, Boo
     var storage = new BookingCostStorageModel { Year = year, BookingId = request.BookingId, TariffId = request.TariffId, Amount = request.Amount, Description = request.Description };
     await store.UpdateAsync("booking_costs", id, storage);
     return Results.Ok(ToBookingCostDto(id, storage));
-}).WithName("UpdateBookingCost").WithOpenApi();
+}).WithName("UpdateBookingCost");
 
 app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2045,7 +2045,7 @@ app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, 
     if (c is null || c.Year != year) return Results.NotFound();
     await store.DeleteAsync("booking_costs", id);
     return Results.NoContent();
-}).WithName("DeleteBookingCost").WithOpenApi();
+}).WithName("DeleteBookingCost");
 
 // --- Layer 4: BookingGuests (ospiti{year}) ---
 
@@ -2064,14 +2064,14 @@ app.MapGet("/api/booking-guests", async (IKeyValueStore store, int? year) =>
         result.Add(ToBookingGuestDto(kvp.Value, g));
     }
     return Results.Ok(result);
-}).WithName("ListBookingGuests").WithOpenApi();
+}).WithName("ListBookingGuests");
 
 app.MapGet("/api/booking-guests/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var g = await store.GetAsync<BookingGuestStorageModel>("booking_guests", id);
     if (g is null || g.Year != year) return Results.NotFound();
     return Results.Ok(ToBookingGuestDto(id, g));
-}).WithName("GetBookingGuest").WithOpenApi();
+}).WithName("GetBookingGuest");
 
 app.MapPost("/api/booking-guests", async (BookingGuestDto request, IKeyValueStore store) =>
 {
@@ -2080,7 +2080,7 @@ app.MapPost("/api/booking-guests", async (BookingGuestDto request, IKeyValueStor
     var storage = new BookingGuestStorageModel { Year = request.Year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber };
     var id = await store.CreateAsync("booking_guests", key, storage);
     return Results.Created($"/api/booking-guests/{request.Year}/{id}", ToBookingGuestDto(id, storage));
-}).WithName("CreateBookingGuest").WithOpenApi();
+}).WithName("CreateBookingGuest");
 
 app.MapPut("/api/booking-guests/{year:int}/{id}", async (int year, string id, BookingGuestDto request, IKeyValueStore store) =>
 {
@@ -2089,7 +2089,7 @@ app.MapPut("/api/booking-guests/{year:int}/{id}", async (int year, string id, Bo
     var storage = new BookingGuestStorageModel { Year = year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber };
     await store.UpdateAsync("booking_guests", id, storage);
     return Results.Ok(ToBookingGuestDto(id, storage));
-}).WithName("UpdateBookingGuest").WithOpenApi();
+}).WithName("UpdateBookingGuest");
 
 app.MapDelete("/api/booking-guests/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2097,7 +2097,7 @@ app.MapDelete("/api/booking-guests/{year:int}/{id}", async (int year, string id,
     if (g is null || g.Year != year) return Results.NotFound();
     await store.DeleteAsync("booking_guests", id);
     return Results.NoContent();
-}).WithName("DeleteBookingGuest").WithOpenApi();
+}).WithName("DeleteBookingGuest");
 
 // --- Layer 4: CancelledBookings (prenotazioniannullate{year}) - read-only + DELETE ---
 
@@ -2116,14 +2116,14 @@ app.MapGet("/api/cancelled-bookings", async (IKeyValueStore store, int? year) =>
         result.Add(ToCancelledBookingDto(kvp.Value, cb));
     }
     return Results.Ok(result);
-}).WithName("ListCancelledBookings").WithOpenApi();
+}).WithName("ListCancelledBookings");
 
 app.MapGet("/api/cancelled-bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var cb = await store.GetAsync<CancelledBookingStorageModel>("cancelled_bookings", id);
     if (cb is null || cb.Year != year) return Results.NotFound();
     return Results.Ok(ToCancelledBookingDto(id, cb));
-}).WithName("GetCancelledBooking").WithOpenApi();
+}).WithName("GetCancelledBooking");
 
 app.MapDelete("/api/cancelled-bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2131,7 +2131,7 @@ app.MapDelete("/api/cancelled-bookings/{year:int}/{id}", async (int year, string
     if (cb is null || cb.Year != year) return Results.NotFound();
     await store.DeleteAsync("cancelled_bookings", id);
     return Results.NoContent();
-}).WithName("DeleteCancelledBooking").WithOpenApi();
+}).WithName("DeleteCancelledBooking");
 
 // --- Layer 4: Expenses (spese{year}) ---
 
@@ -2150,14 +2150,14 @@ app.MapGet("/api/expenses", async (IKeyValueStore store, int? year) =>
         result.Add(ToExpenseDto(kvp.Value, e));
     }
     return Results.Ok(result);
-}).WithName("ListExpenses").WithOpenApi();
+}).WithName("ListExpenses");
 
 app.MapGet("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var e = await store.GetAsync<ExpenseStorageModel>("expenses", id);
     if (e is null || e.Year != year) return Results.NotFound();
     return Results.Ok(ToExpenseDto(id, e));
-}).WithName("GetExpense").WithOpenApi();
+}).WithName("GetExpense");
 
 app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store) =>
 {
@@ -2166,7 +2166,7 @@ app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store) =>
     var storage = new ExpenseStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("expenses", key, storage);
     return Results.Created($"/api/expenses/{request.Year}/{id}", ToExpenseDto(id, storage));
-}).WithName("CreateExpense").WithOpenApi();
+}).WithName("CreateExpense");
 
 app.MapPut("/api/expenses/{year:int}/{id}", async (int year, string id, ExpenseDto request, IKeyValueStore store) =>
 {
@@ -2175,7 +2175,7 @@ app.MapPut("/api/expenses/{year:int}/{id}", async (int year, string id, ExpenseD
     var storage = new ExpenseStorageModel { Year = year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date };
     await store.UpdateAsync("expenses", id, storage);
     return Results.Ok(ToExpenseDto(id, storage));
-}).WithName("UpdateExpense").WithOpenApi();
+}).WithName("UpdateExpense");
 
 app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2183,7 +2183,7 @@ app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyV
     if (e is null || e.Year != year) return Results.NotFound();
     await store.DeleteAsync("expenses", id);
     return Results.NoContent();
-}).WithName("DeleteExpense").WithOpenApi();
+}).WithName("DeleteExpense");
 
 // --- Layer 4: MoneyHistory (movimenticassa{year}) - append-only, no PUT ---
 
@@ -2202,14 +2202,14 @@ app.MapGet("/api/money-history", async (IKeyValueStore store, int? year) =>
         result.Add(ToMoneyHistoryDto(kvp.Value, m));
     }
     return Results.Ok(result);
-}).WithName("ListMoneyHistory").WithOpenApi();
+}).WithName("ListMoneyHistory");
 
 app.MapGet("/api/money-history/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var m = await store.GetAsync<MoneyHistoryStorageModel>("money_history", id);
     if (m is null || m.Year != year) return Results.NotFound();
     return Results.Ok(ToMoneyHistoryDto(id, m));
-}).WithName("GetMoneyHistory").WithOpenApi();
+}).WithName("GetMoneyHistory");
 
 app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore store) =>
 {
@@ -2218,7 +2218,7 @@ app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore
     var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("money_history", key, storage);
     return Results.Created($"/api/money-history/{request.Year}/{id}", ToMoneyHistoryDto(id, storage));
-}).WithName("CreateMoneyHistory").WithOpenApi();
+}).WithName("CreateMoneyHistory");
 
 app.MapDelete("/api/money-history/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2226,7 +2226,7 @@ app.MapDelete("/api/money-history/{year:int}/{id}", async (int year, string id, 
     if (m is null || m.Year != year) return Results.NotFound();
     await store.DeleteAsync("money_history", id);
     return Results.NoContent();
-}).WithName("DeleteMoneyHistory").WithOpenApi();
+}).WithName("DeleteMoneyHistory");
 
 // --- Layer 5: Messages (messaggi) ---
 
@@ -2245,14 +2245,14 @@ app.MapGet("/api/messages", async (IKeyValueStore store, string? userId, string?
         result.Add(ToMessageDto(kvp.Value, m));
     }
     return Results.Ok(result);
-}).WithName("ListMessages").WithOpenApi();
+}).WithName("ListMessages");
 
 app.MapGet("/api/messages/{id}", async (string id, IKeyValueStore store) =>
 {
     var m = await store.GetAsync<MessageStorageModel>("messages", id);
     if (m is null) return Results.NotFound();
     return Results.Ok(ToMessageDto(id, m));
-}).WithName("GetMessage").WithOpenApi();
+}).WithName("GetMessage");
 
 app.MapPost("/api/messages", async (MessageDto request, IKeyValueStore store) =>
 {
@@ -2270,7 +2270,7 @@ app.MapPost("/api/messages", async (MessageDto request, IKeyValueStore store) =>
     };
     var id = await store.CreateAsync("messages", name, storage);
     return Results.Created($"/api/messages/{id}", ToMessageDto(id, storage));
-}).WithName("CreateMessage").WithOpenApi();
+}).WithName("CreateMessage");
 
 app.MapPut("/api/messages/{id}/read", async (string id, IKeyValueStore store) =>
 {
@@ -2280,7 +2280,7 @@ app.MapPut("/api/messages/{id}/read", async (string id, IKeyValueStore store) =>
     m.SeenAt = DateTime.UtcNow;
     await store.UpdateAsync("messages", id, m);
     return Results.Ok(ToMessageDto(id, m));
-}).WithName("MarkMessageRead").WithOpenApi();
+}).WithName("MarkMessageRead");
 
 app.MapPut("/api/messages/{id}/archive", async (string id, IKeyValueStore store) =>
 {
@@ -2289,7 +2289,7 @@ app.MapPut("/api/messages/{id}/archive", async (string id, IKeyValueStore store)
     m.Status = "archived";
     await store.UpdateAsync("messages", id, m);
     return Results.Ok(ToMessageDto(id, m));
-}).WithName("ArchiveMessage").WithOpenApi();
+}).WithName("ArchiveMessage");
 
 app.MapDelete("/api/messages/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -2297,7 +2297,7 @@ app.MapDelete("/api/messages/{id}", async (string id, IKeyValueStore store) =>
     if (m is null) return Results.NotFound();
     await store.DeleteAsync("messages", id);
     return Results.NoContent();
-}).WithName("DeleteMessage").WithOpenApi();
+}).WithName("DeleteMessage");
 
 // --- Layer 5: ContractTemplates (contratti) ---
 
@@ -2318,7 +2318,7 @@ app.MapGet("/api/contract-templates", async (IKeyValueStore store, string? type)
         result.Add(ToContractTemplateDto(kvp.Value, ct));
     }
     return Results.Ok(result);
-}).WithName("ListContractTemplates").WithOpenApi();
+}).WithName("ListContractTemplates");
 
 app.MapGet("/api/contract-templates/{type}/{number:int}", async (string type, int number, IKeyValueStore store) =>
 {
@@ -2329,7 +2329,7 @@ app.MapGet("/api/contract-templates/{type}/{number:int}", async (string type, in
     var ct = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", ctId);
     if (ct is null) return Results.NotFound();
     return Results.Ok(ToContractTemplateDto(key, ct));
-}).WithName("GetContractTemplate").WithOpenApi();
+}).WithName("GetContractTemplate");
 
 app.MapPost("/api/contract-templates", async (ContractTemplateDto request, IKeyValueStore store) =>
 {
@@ -2346,7 +2346,7 @@ app.MapPost("/api/contract-templates", async (ContractTemplateDto request, IKeyV
     var storage = new ContractTemplateStorageModel { Type = request.Type, Number = number, Content = request.Content };
     await store.CreateAsync("contract_templates", key, storage);
     return Results.Created($"/api/contract-templates/{request.Type}/{number}", ToContractTemplateDto(key, storage));
-}).WithName("CreateContractTemplate").WithOpenApi();
+}).WithName("CreateContractTemplate");
 
 app.MapPut("/api/contract-templates/{type}/{number:int}", async (string type, int number, ContractTemplateDto request, IKeyValueStore store) =>
 {
@@ -2360,7 +2360,7 @@ app.MapPut("/api/contract-templates/{type}/{number:int}", async (string type, in
     ct.Content = request.Content ?? ct.Content;
     await store.UpdateAsync("contract_templates", ctPutId, ct);
     return Results.Ok(ToContractTemplateDto(key, ct));
-}).WithName("UpdateContractTemplate").WithOpenApi();
+}).WithName("UpdateContractTemplate");
 
 app.MapDelete("/api/contract-templates/{type}/{number:int}", async (string type, int number, IKeyValueStore store) =>
 {
@@ -2370,7 +2370,7 @@ app.MapDelete("/api/contract-templates/{type}/{number:int}", async (string type,
     if (!ctDelIdx.TryGetValue(key, out var ctDelId)) return Results.NotFound();
     await store.DeleteAsync("contract_templates", ctDelId);
     return Results.NoContent();
-}).WithName("DeleteContractTemplate").WithOpenApi();
+}).WithName("DeleteContractTemplate");
 
 // --- Layer 5: ExternalIntegrations (interconnessioni) ---
 
@@ -2389,14 +2389,14 @@ app.MapGet("/api/external-integrations", async (IKeyValueStore store, int? year,
         result.Add(ToExternalIntegrationDto(kvp.Value, ei));
     }
     return Results.Ok(result);
-}).WithName("ListExternalIntegrations").WithOpenApi();
+}).WithName("ListExternalIntegrations");
 
 app.MapGet("/api/external-integrations/{id}", async (string id, IKeyValueStore store) =>
 {
     var ei = await store.GetAsync<ExternalIntegrationStorageModel>("external_integrations", id);
     if (ei is null) return Results.NotFound();
     return Results.Ok(ToExternalIntegrationDto(id, ei));
-}).WithName("GetExternalIntegration").WithOpenApi();
+}).WithName("GetExternalIntegration");
 
 app.MapPost("/api/external-integrations", async (ExternalIntegrationDto request, IKeyValueStore store) =>
 {
@@ -2415,7 +2415,7 @@ app.MapPost("/api/external-integrations", async (ExternalIntegrationDto request,
     };
     var id = await store.CreateAsync("external_integrations", name, storage);
     return Results.Created($"/api/external-integrations/{id}", ToExternalIntegrationDto(id, storage));
-}).WithName("CreateExternalIntegration").WithOpenApi();
+}).WithName("CreateExternalIntegration");
 
 app.MapPut("/api/external-integrations/{id}", async (string id, ExternalIntegrationDto request, IKeyValueStore store) =>
 {
@@ -2429,7 +2429,7 @@ app.MapPut("/api/external-integrations/{id}", async (string id, ExternalIntegrat
     ei.Year = request.Year ?? ei.Year;
     await store.UpdateAsync("external_integrations", id, ei);
     return Results.Ok(ToExternalIntegrationDto(id, ei));
-}).WithName("UpdateExternalIntegration").WithOpenApi();
+}).WithName("UpdateExternalIntegration");
 
 app.MapDelete("/api/external-integrations/{id}", async (string id, IKeyValueStore store) =>
 {
@@ -2437,7 +2437,7 @@ app.MapDelete("/api/external-integrations/{id}", async (string id, IKeyValueStor
     if (ei is null) return Results.NotFound();
     await store.DeleteAsync("external_integrations", id);
     return Results.NoContent();
-}).WithName("DeleteExternalIntegration").WithOpenApi();
+}).WithName("DeleteExternalIntegration");
 
 // --- Layer 5: Sessions (sessioni) ---
 
@@ -2458,7 +2458,7 @@ app.MapGet("/api/sessions", async (IKeyValueStore store, int? userId) =>
         result.Add(ToSessionDto(kvp.Value, s));
     }
     return Results.Ok(result);
-}).WithName("ListSessions").WithOpenApi();
+}).WithName("ListSessions");
 
 app.MapGet("/api/sessions/{sessionId}", async (string sessionId, IKeyValueStore store) =>
 {
@@ -2468,7 +2468,7 @@ app.MapGet("/api/sessions/{sessionId}", async (string sessionId, IKeyValueStore 
     var s = await store.GetAsync<SessionStorageModel>("sessions", sessId);
     if (s is null) return Results.NotFound();
     return Results.Ok(ToSessionDto(key, s));
-}).WithName("GetSession").WithOpenApi();
+}).WithName("GetSession");
 
 app.MapPost("/api/sessions", async (SessionDto request, IKeyValueStore store) =>
 {
@@ -2484,7 +2484,7 @@ app.MapPost("/api/sessions", async (SessionDto request, IKeyValueStore store) =>
     };
     await store.CreateAsync("sessions", key, storage);
     return Results.Created($"/api/sessions/{key}", ToSessionDto(key, storage));
-}).WithName("CreateSession").WithOpenApi();
+}).WithName("CreateSession");
 
 app.MapPut("/api/sessions/{sessionId}/touch", async (string sessionId, IKeyValueStore store) =>
 {
@@ -2496,7 +2496,7 @@ app.MapPut("/api/sessions/{sessionId}/touch", async (string sessionId, IKeyValue
     s.LastAccess = DateTime.UtcNow;
     await store.UpdateAsync("sessions", touchId, s);
     return Results.Ok(ToSessionDto(key, s));
-}).WithName("TouchSession").WithOpenApi();
+}).WithName("TouchSession");
 
 app.MapDelete("/api/sessions/{sessionId}", async (string sessionId, IKeyValueStore store) =>
 {
@@ -2505,7 +2505,7 @@ app.MapDelete("/api/sessions/{sessionId}", async (string sessionId, IKeyValueSto
     if (!delSessIdx.TryGetValue(key, out var delSessId)) return Results.NotFound();
     await store.DeleteAsync("sessions", delSessId);
     return Results.NoContent();
-}).WithName("DeleteSession").WithOpenApi();
+}).WithName("DeleteSession");
 
 app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
 {
@@ -2517,7 +2517,7 @@ app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
         if (s?.UserId == userId) await store.DeleteAsync("sessions", kvp.Value);
     }
     return Results.NoContent();
-}).WithName("DeleteSessionsForUser").WithOpenApi();
+}).WithName("DeleteSessionsForUser");
 
 app.Run();
 
