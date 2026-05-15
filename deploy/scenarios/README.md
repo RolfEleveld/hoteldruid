@@ -30,14 +30,22 @@ Use the scenario scripts in `scripts/`:
 
 ```powershell
 # Bring a scenario up
-./scripts/scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml") -EnvFile "deploy/scenarios/public-acme-keycloak.env"
+./scripts/scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml", "deploy/compose/keycloak.yml") -EnvFile "deploy/scenarios/public-acme-keycloak.env"
 
 # Run checks
 ./scripts/scenario-test.ps1 -BaseUrl "https://hotel.example.com" -RequireAuth
 
 # Tear down
-./scripts/scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml") -RemoveVolumes
+./scripts/scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/my-proxy.yml", "deploy/compose/keycloak.yml") -RemoveVolumes
 ```
+
+Included starter templates:
+
+- `deploy/compose/my-proxy.yml`
+- `deploy/compose/keycloak.yml`
+- `deploy/scenarios/public-acme-keycloak.env`
+
+Customize these templates before production use.
 
 ## Notes
 
