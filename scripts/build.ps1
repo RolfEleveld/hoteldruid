@@ -36,30 +36,30 @@ $clientOut = Join-Path $root 'artifacts\client'
 $apiOut    = Join-Path $root 'artifacts\api'
 
 function Ensure-Dir([string]$d) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null } }
-function Reset-ProjectIntermediates([string]$projectPath, [string]$configuration) {
-    $projectDir = Join-Path $root $projectPath
-    $objDir = Join-Path $projectDir (Join-Path 'obj' $configuration)
-    $binDir = Join-Path $projectDir (Join-Path 'bin' $configuration)
-
-    if (Test-Path $objDir) {
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $objDir
-    }
-
-    if (Test-Path $binDir) {
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $binDir
-    }
-}
 
 # 0. Optional clean
 if ($Clean) {
-    Write-Host "Cleaning artifacts..." -ForegroundColor Cyan
+    Write-Host "Cleaning previous build outputs..." -ForegroundColor Cyan
+    $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $clientOut, $apiOut
-}
+    if (Test-Path $packagePath) {
+        Remove-Item -Force -ErrorAction SilentlyContinue $packagePath
+    }
 
-# Clear stale intermediates before restore so publish can reuse the restored assets.
-Reset-ProjectIntermediates 'src\HotelDruid.Shared' $Configuration
-Reset-ProjectIntermediates 'src\HotelDruid.Client' $Configuration
-Reset-ProjectIntermediates 'src\HotelDruid.Api' $Configuration
+    Push-Location $root
+    try {
+        $cleanProjects = @(
+            'src/HotelDruid.Shared/HotelDruid.Shared.csproj',
+            'src/HotelDruid.Client/HotelDruid.Client.csproj',
+            'src/HotelDruid.Api/HotelDruid.Api.csproj'
+        )
+
+        foreach ($project in $cleanProjects) {
+            dotnet clean $project -c $Configuration --nologo
+            if ($LASTEXITCODE -ne 0) { throw "dotnet clean failed for $project (exit $LASTEXITCODE)" }
+        }
+    } finally { Pop-Location }
+}
 
 # 1. Restore
 Write-Host "`n[1/4] Restoring packages..." -ForegroundColor Cyan
