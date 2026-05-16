@@ -16,6 +16,7 @@ PowerShell scripts use a convention-over-configuration workflow:
 ```powershell
 # Build + publish + package
 .\scripts\build.ps1
+.\scripts\build.ps1 -Clean
 
 # Deploy locally (default) or per-user install
 .\scripts\deploy.ps1
@@ -23,7 +24,10 @@ PowerShell scripts use a convention-over-configuration workflow:
 
 # Run all tests
 .\scripts\test.ps1
+.\scripts\test.ps1 -Clean
 ```
+
+`-Clean` removes old outputs and runs a full clean/rebuild path before build or test execution.
 
 See `scripts/README.md` for script parameters and details.
 

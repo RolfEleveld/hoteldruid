@@ -17,7 +17,7 @@ This folder contains all automation scripts for building, deploying, and testing
 - **Deploy locally**: `./deploy.ps1` (optionally add `-Publish`, `-CertThumbprint`, `-OpenBrowser`)
 - **Install for current user**: `./deploy.ps1 -User` (optionally add `-Target <path>` and `-Force`)
 - **Deploy to custom/remote**: `./deploy.ps1 -Target "C:\DeployPath"`
-- **Test**: `./test.ps1` (optionally add `-OpenDashboard` or `-Filter`)
+- **Test**: `./test.ps1` (optionally add `-Clean`, `-OpenDashboard`, or `-Filter`)
 - **Scenario up**: `./scenario-up.ps1 -Scenario public-acme-keycloak -ComposeFiles @("docker-compose.yml", "deploy/compose/proxy.yml")`
 - **Scenario test**: `./scenario-test.ps1 -BaseUrl "https://hotel.example.com" -RequireAuth`
 - **Scenario down**: `./scenario-down.ps1 -ComposeFiles @("docker-compose.yml", "deploy/compose/proxy.yml") -RemoveVolumes`
@@ -31,6 +31,8 @@ This folder contains all automation scripts for building, deploying, and testing
 ## Notes
 
 - All scripts require PowerShell 7+.
+- `build.ps1 -Clean` removes prior build artifacts, runs `dotnet clean` on source projects, and then performs a full rebuild/package.
+- `test.ps1 -Clean` removes previous test result artifacts, runs `dotnet clean` on test projects, and then rebuilds/runs all tests.
 - For production or distribution, use `build.ps1` then `deploy.ps1 -Target <path>`.
 - For local development, use `build.ps1` then `deploy.ps1`.
 - For running tests, use `test.ps1`.
