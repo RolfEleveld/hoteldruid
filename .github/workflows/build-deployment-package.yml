@@ -9,9 +9,14 @@ on:
       - blazor
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-deployment-package:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,3 +39,26 @@ jobs:
           name: hoteldruid-deployment-package-${{ github.run_number }}
           path: deployment-package/
           retention-days: 14
+
+      - name: Build release archive
+        if: github.event_name != 'pull_request'
+        run: |
+          Compress-Archive -Path ./deployment-package/* -DestinationPath ./hoteldruid-deployment-package.zip -Force
+        shell: pwsh
+
+      - name: Publish latest blazor release asset
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'blazor-latest'
+          $title = 'Blazor Latest Deployment Package'
+          $notes = "Automated deployment package from commit $env:GITHUB_SHA"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag ./hoteldruid-deployment-package.zip --clobber
+            gh release edit $tag --title $title --notes $notes --target $env:GITHUB_SHA
+          } else {
+            gh release create $tag ./hoteldruid-deployment-package.zip --title $title --notes $notes --target $env:GITHUB_SHA
+          }
+        shell: pwsh

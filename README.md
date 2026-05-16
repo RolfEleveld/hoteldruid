@@ -53,10 +53,15 @@ For scenario orchestration and run-books, see:
 
 ## Deployment Package (CI Artifacts)
 
-On every push or pull request targeting the `blazor` branch, a deployment package is built automatically from `./scripts/build.ps1` and attached as a downloadable artifact in the GitHub Actions run (see the Artifacts section in the Actions tab).
+On every push or pull request targeting the `blazor` branch, a deployment package is built automatically from `./scripts/build.ps1`.
+
+For easier discovery on the repository main page, push builds also publish/update a Release asset under the `blazor-latest` tag.
+You can download the package from either:
+1. Releases (`blazor-latest`) on the repository home page
+2. The Artifacts section in the matching GitHub Actions run
 
 **How to deploy:**
-1. Download the latest deployment package artifact from the GitHub Actions run for the `blazor` branch.
+1. Download the latest package from the `blazor-latest` Release, or from a `blazor` workflow run artifact.
 2. Unzip the package.
 3. Run the included `deploy.ps1` script (see usage below).
 4. For more details, see the rest of this README and the `scripts/README.md`.
