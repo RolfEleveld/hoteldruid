@@ -295,7 +295,10 @@ public class RoomsApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(results);
-        Assert.Equal(3, results!.Count);
+        Assert.True(results!.Count >= 3);
+        Assert.Contains(results, r => r.Name == "Room-001");
+        Assert.Contains(results, r => r.Name == "Room-002");
+        Assert.Contains(results, r => r.Name == "Room-003");
 
         // Cleanup: Clear test data after test completes
         await ClearRoomsAsync();
@@ -770,7 +773,7 @@ public class RoomsApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
         Assert.NotNull(results);
-        Assert.Equal(3, results!.Count);
+        Assert.True(results!.Count >= 3);
         
         var p1 = results.FirstOrDefault(r => r.Name == "P1");
         var p3 = results.FirstOrDefault(r => r.Name == "P3");

@@ -27,7 +27,7 @@ $testProjects = @(
     'tests/HotelDruid.Migration.Tests/HotelDruid.Migration.Tests.csproj'
 )
 foreach ($proj in $testProjects) {
-    dotnet test $proj -c $Configuration --logger "trx;LogFileName=$artifactDir/$(Split-Path $proj -Leaf).trx" --results-directory $artifactDir --no-build
+    dotnet test $proj -c $Configuration --logger "trx;LogFileName=$artifactDir/$(Split-Path $proj -Leaf).trx" --results-directory $artifactDir
 }
 Write-Host "Test results in $artifactDir"
 if ($OpenDashboard) {
