@@ -51,4 +51,21 @@ For scenario orchestration and run-books, see:
 - `deploy/scenarios/README.md`
 - `docs/deployment-runbook.md`
 
+## Deployment Package (CI Artifacts)
+
+On every push or pull request targeting the `blazor` branch, a deployment package is built automatically from `./scripts/build.ps1` and attached as a downloadable artifact in the GitHub Actions run (see the Artifacts section in the Actions tab).
+
+**How to deploy:**
+1. Download the latest deployment package artifact from the GitHub Actions run for the `blazor` branch.
+2. Unzip the package.
+3. Run the included `deploy.ps1` script (see usage below).
+4. For more details, see the rest of this README and the `scripts/README.md`.
+
+The deployment package includes:
+- Build outputs produced under `artifacts/` (including `HotelDruid-package.zip`)
+- The deployment script: `scripts/deploy.ps1`
+- This `README.md` for reference
+
+For advanced scenarios, see the full repository and documentation.
+
 

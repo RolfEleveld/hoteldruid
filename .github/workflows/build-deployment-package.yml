@@ -1,0 +1,36 @@
+name: Build and Publish Deployment Package
+
+on:
+  push:
+    branches:
+      - blazor
+  pull_request:
+    branches:
+      - blazor
+  workflow_dispatch:
+
+jobs:
+  build-deployment-package:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run build script
+        run: ./scripts/build.ps1
+        shell: pwsh
+
+      - name: Collect deployment artifacts
+        run: |
+          New-Item -ItemType Directory -Path ./deployment-package -Force | Out-Null
+          Copy-Item -Recurse -Force ./artifacts/* ./deployment-package/
+          Copy-Item -Force ./scripts/deploy.ps1 ./deployment-package/
+          Copy-Item -Force ./README.md ./deployment-package/
+        shell: pwsh
+
+      - name: Upload deployment package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoteldruid-deployment-package-${{ github.run_number }}
+          path: deployment-package/
+          retention-days: 14
