@@ -170,25 +170,6 @@ app.UseStaticFiles(new StaticFileOptions
 // Basic root & health endpoints for quick validation
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
 // --- Mock API endpoints for early Blazor development ---
 
 app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = "2026", User = "admin", Version = "HotelDruid 3.0.7" }));
@@ -2520,8 +2501,3 @@ app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
 }).WithName("DeleteSessionsForUser");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -1,6 +1,6 @@
 @HotelDruid.Api_HostAddress = http://localhost:5097
 
-GET {{HotelDruid.Api_HostAddress}}/weatherforecast/
+GET {{HotelDruid.Api_HostAddress}}/health
 Accept: application/json
 
 ###
