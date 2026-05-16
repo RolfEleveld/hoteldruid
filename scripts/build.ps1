@@ -65,15 +65,23 @@ Reset-ProjectIntermediates 'src\HotelDruid.Api' $Configuration
 Write-Host "`n[1/4] Restoring packages..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet restore --nologo 2>&1 | Where-Object { $_ -notmatch 'up-to-date' }
-    if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed (exit $LASTEXITCODE)" }
+    # HotelDruid.slnx currently only contains folders, so restore concrete projects.
+    $restoreProjects = @(
+        'src/HotelDruid.Client/HotelDruid.Client.csproj',
+        'src/HotelDruid.Api/HotelDruid.Api.csproj'
+    )
+
+    foreach ($project in $restoreProjects) {
+        dotnet restore $project --nologo 2>&1 | Where-Object { $_ -notmatch 'up-to-date' }
+        if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed for $project (exit $LASTEXITCODE)" }
+    }
 } finally { Pop-Location }
 
 # 2. Publish Client
 Write-Host "`n[2/4] Publishing Blazor client..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo -q
+    dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish client failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
@@ -81,7 +89,7 @@ try {
 Write-Host "`n[3/4] Publishing API..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo -q
+    dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish API failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
