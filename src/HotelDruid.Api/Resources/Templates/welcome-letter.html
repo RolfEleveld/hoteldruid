@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome – {{Client.FirstName}}</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; color: #222; margin: 0; padding: 0; }
+  .page { max-width: 650px; margin: 0 auto; padding: 48px 56px; }
+  .hotel-name { font-size: 22pt; font-weight: bold; color: #4a1a6e; text-align: center; letter-spacing: 2px; }
+  .tagline { font-size: 10pt; color: #888; text-align: center; margin-bottom: 40px; }
+  .greeting { font-size: 14pt; margin-bottom: 20px; }
+  p { line-height: 1.7; margin-bottom: 14px; }
+  .stay-box { background: #f7f2fc; border-left: 4px solid #4a1a6e; padding: 16px 20px; margin: 24px 0; }
+  .stay-box table { width: 100%; border-collapse: collapse; }
+  .stay-box td { padding: 4px 8px; font-size: 11pt; }
+  .stay-box td:first-child { color: #4a1a6e; font-weight: bold; width: 140px; }
+  h2 { font-size: 11pt; color: #4a1a6e; margin: 24px 0 8px; font-variant: small-caps; letter-spacing: 1px; }
+  table.guests { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  table.guests th { background: #4a1a6e; color: #fff; padding: 5px 10px; text-align: left; }
+  table.guests td { padding: 5px 10px; border-bottom: 1px solid #e8e0f0; }
+  .signature { margin-top: 40px; }
+  .footer { margin-top: 48px; font-size: 9pt; color: #aaa; text-align: center; border-top: 1px solid #ddd; padding-top: 12px; }
+  @media print {
+    .page { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hotel-name">{{Hotel.Name}}</div>
+  <div class="tagline">{{Hotel.Address}}, {{Hotel.City}} &bull; {{Hotel.Phone}} &bull; {{Hotel.Email}}</div>
+
+  <p class="greeting">Dear {{Client.FullName}},</p>
+
+  <p>
+    We are delighted to welcome you to <strong>{{Hotel.Name}}</strong> and look forward to making your stay
+    as comfortable and enjoyable as possible.
+  </p>
+
+  <div class="stay-box">
+    <table>
+      <tr><td>Room / Unit</td><td>{{Room.Name}}</td></tr>
+      <tr><td>Arrival</td><td>{{Booking.ArrivalDate}}</td></tr>
+      <tr><td>Departure</td><td>{{Booking.DepartureDate}}</td></tr>
+      <tr><td>Duration</td><td>{{Booking.Nights}} night(s)</td></tr>
+    </table>
+  </div>
+
+  <p>
+    Your room has been prepared for your arrival. Should you require any assistance
+    before or during your stay, please do not hesitate to contact us at
+    <strong>{{Hotel.Phone}}</strong> or <strong>{{Hotel.Email}}</strong>.
+  </p>
+
+  <h2>Guests Registered</h2>
+  <table class="guests">
+    <thead><tr><th>#</th><th>Name</th><th>Nationality</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Guests -->
+      <tr>
+        <td>{{Guest.GuestNumber}}</td>
+        <td>{{Guest.FullName}}</td>
+        <td>{{Guest.Nationality}}</td>
+      </tr>
+<!-- ENDFOREACH:Guests -->
+    </tbody>
+  </table>
+
+  <p>We hope you enjoy a wonderful stay. Welcome!</p>
+
+  <div class="signature">
+    <p>With warm regards,</p>
+    <p><strong>{{Hotel.Name}} Team</strong></p>
+  </div>
+
+  <div class="footer">
+    {{Hotel.Name}} &bull; {{Hotel.Address}}, {{Hotel.City}}<br>
+    {{Hotel.Phone}} &bull; {{Hotel.Email}} &bull; VAT: {{Hotel.VatNumber}}
+  </div>
+
+</div>
+</body>
+</html>

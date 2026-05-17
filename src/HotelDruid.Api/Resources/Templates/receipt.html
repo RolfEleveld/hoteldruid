@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt – {{Booking.Id}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #222; margin: 0; padding: 0; }
+  .page { max-width: 480px; margin: 0 auto; padding: 32px 40px; }
+  .hotel-name { font-size: 16pt; font-weight: bold; color: #7b3f00; text-align: center; }
+  .hotel-sub { font-size: 9pt; color: #555; text-align: center; margin-bottom: 24px; }
+  h1 { font-size: 14pt; color: #7b3f00; text-align: center; border-top: 2px solid #7b3f00; border-bottom: 2px solid #7b3f00; padding: 8px 0; margin: 16px 0; }
+  .meta { font-size: 9pt; color: #888; text-align: center; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  td { padding: 5px 8px; font-size: 10pt; border-bottom: 1px dotted #ccc; }
+  td.label { color: #555; width: 45%; }
+  td.value { font-weight: bold; }
+  .separator { border-top: 2px solid #7b3f00; margin: 12px 0; }
+  .payment-table th { background: #7b3f00; color: #fff; padding: 5px 8px; font-size: 10pt; }
+  .payment-table td { border-bottom: 1px solid #eee; }
+  .payment-table tr:nth-child(even) td { background: #fdf6f0; }
+  .footer { margin-top: 32px; font-size: 9pt; color: #888; text-align: center; }
+  @media print {
+    .page { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hotel-name">{{Hotel.Name}}</div>
+  <div class="hotel-sub">
+    {{Hotel.Address}}, {{Hotel.City}}<br>
+    {{Hotel.Phone}} &bull; {{Hotel.Email}} &bull; VAT: {{Hotel.VatNumber}}
+  </div>
+
+  <h1>Payment Receipt</h1>
+  <div class="meta">Date: {{Document.Today}} &nbsp;|&nbsp; Booking: <strong>{{Booking.Id}}</strong></div>
+
+  <table>
+    <tr><td class="label">Guest</td><td class="value">{{Client.FullName}}</td></tr>
+    <tr><td class="label">Room</td><td class="value">{{Room.Name}}</td></tr>
+    <tr><td class="label">Arrival</td><td class="value">{{Booking.ArrivalDate}}</td></tr>
+    <tr><td class="label">Departure</td><td class="value">{{Booking.DepartureDate}}</td></tr>
+    <tr><td class="label">Nights</td><td class="value">{{Booking.Nights}}</td></tr>
+    <tr><td class="label">Total Charges</td><td class="value">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td></tr>
+  </table>
+
+  <div class="separator"></div>
+
+  <strong>Payments</strong>
+  <table class="payment-table" style="margin-top:8px;">
+    <thead><tr><th>Date</th><th>Method</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Payments -->
+      <tr>
+        <td>{{Payment.Date}}</td>
+        <td>{{Payment.Method}}</td>
+        <td>{{Payment.Description}}</td>
+        <td style="text-align:right;">{{Payment.Amount}} {{Invoice.Currency}}</td>
+      </tr>
+<!-- ENDFOREACH:Payments -->
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Thank you for your stay at {{Hotel.Name}}.<br>
+    {{Hotel.Address}}, {{Hotel.City}} &bull; {{Hotel.Phone}}
+  </div>
+
+</div>
+</body>
+</html>

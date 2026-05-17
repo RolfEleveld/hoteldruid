@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice – {{Booking.Id}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #222; margin: 0; padding: 0; }
+  .page { max-width: 750px; margin: 0 auto; padding: 32px 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2c6e35; padding-bottom: 16px; margin-bottom: 24px; }
+  .hotel-name { font-size: 20pt; font-weight: bold; color: #2c6e35; }
+  .hotel-contact { font-size: 9pt; color: #555; text-align: right; }
+  h1 { font-size: 16pt; color: #2c6e35; margin: 0 0 4px; }
+  h2 { font-size: 11pt; color: #555; font-weight: normal; margin: 24px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .meta { font-size: 9pt; color: #888; margin-bottom: 24px; }
+  .address-block { display: flex; gap: 48px; margin-bottom: 24px; }
+  .address-block div { flex: 1; font-size: 10pt; }
+  .address-block strong { display: block; margin-bottom: 4px; color: #2c6e35; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th { background: #2c6e35; color: #fff; text-align: left; padding: 6px 10px; font-size: 10pt; }
+  th.right, td.right { text-align: right; }
+  td { padding: 6px 10px; font-size: 10pt; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f4fbf5; }
+  .subtotal-row td { border-top: 1px solid #aaa; font-style: italic; }
+  .total-row td { font-weight: bold; background: #e6f4e8; border-top: 2px solid #2c6e35; }
+  .balance-row td { font-weight: bold; font-size: 13pt; background: #2c6e35; color: #fff; }
+  .footer { margin-top: 40px; font-size: 9pt; color: #888; border-top: 1px solid #ddd; padding-top: 12px; text-align: center; }
+  @media print {
+    .page { padding: 0; }
+    body { font-size: 10pt; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div>
+      <div class="hotel-name">{{Hotel.Name}}</div>
+      <div style="font-size:9pt;color:#555;">{{Hotel.Address}}, {{Hotel.City}}</div>
+      <div style="font-size:9pt;color:#555;">VAT: {{Hotel.VatNumber}}</div>
+    </div>
+    <div class="hotel-contact">
+      {{Hotel.Phone}}<br>
+      {{Hotel.Email}}
+    </div>
+  </div>
+
+  <h1>Invoice</h1>
+  <div class="meta">Date: {{Document.Today}} &nbsp;|&nbsp; Booking reference: <strong>{{Booking.Id}}</strong></div>
+
+  <div class="address-block">
+    <div>
+      <strong>Billed To</strong>
+      {{Client.FullName}}<br>
+      {{Client.Street}} {{Client.StreetNumber}}<br>
+      {{Client.PostalCode}} {{Client.City}}, {{Client.Region}}<br>
+      {{Client.Nation}}<br>
+      Tax Code: {{Client.TaxCode}}<br>
+      VAT: {{Client.VatNumber}}
+    </div>
+    <div>
+      <strong>Stay Details</strong>
+      Room: {{Room.Name}}<br>
+      Arrival: {{Booking.ArrivalDate}}<br>
+      Departure: {{Booking.DepartureDate}}<br>
+      Nights: {{Booking.Nights}}<br>
+      Guests: {{Room.Capacity}}<br>
+      Status: {{Booking.Status}}
+    </div>
+  </div>
+
+  <h2>Additional Guests</h2>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Nationality</th><th>Date of Birth</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Guests -->
+      <tr>
+        <td>{{Guest.GuestNumber}}</td>
+        <td>{{Guest.FullName}}</td>
+        <td>{{Guest.Nationality}}</td>
+        <td>{{Guest.DateOfBirth}}</td>
+      </tr>
+<!-- ENDFOREACH:Guests -->
+    </tbody>
+  </table>
+
+  <h2>Charges</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="right">Amount ({{Invoice.Currency}})</th>
+      </tr>
+    </thead>
+    <tbody>
+<!-- FOREACH:Costs -->
+      <tr>
+        <td>{{Cost.Description}}</td>
+        <td class="right">{{Cost.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:Costs -->
+      <tr class="total-row">
+        <td>Total Charges</td>
+        <td class="right">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Payments Received</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Method</th>
+        <th class="right">Amount ({{Invoice.Currency}})</th>
+      </tr>
+    </thead>
+    <tbody>
+<!-- FOREACH:Payments -->
+      <tr>
+        <td>{{Payment.Date}}</td>
+        <td>{{Payment.Description}}</td>
+        <td>{{Payment.Method}}</td>
+        <td class="right">{{Payment.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:Payments -->
+    </tbody>
+  </table>
+
+  <div style="margin-top:8px;font-size:9pt;color:#888;">
+    Note: Notes field — {{Booking.Notes}}
+  </div>
+
+  <div class="footer">
+    {{Hotel.Name}} &bull; {{Hotel.Address}}, {{Hotel.City}} &bull; {{Hotel.Phone}} &bull; {{Hotel.Email}}
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking Confirmation – {{Booking.Id}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #222; margin: 0; padding: 0; }
+  .page { max-width: 750px; margin: 0 auto; padding: 32px 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #3a6ea5; padding-bottom: 16px; margin-bottom: 24px; }
+  .hotel-name { font-size: 20pt; font-weight: bold; color: #3a6ea5; }
+  .hotel-contact { font-size: 9pt; color: #555; text-align: right; }
+  h1 { font-size: 16pt; color: #3a6ea5; margin: 0 0 4px; }
+  h2 { font-size: 11pt; color: #555; font-weight: normal; margin: 24px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .meta { font-size: 9pt; color: #888; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #3a6ea5; color: #fff; text-align: left; padding: 6px 10px; font-size: 10pt; }
+  td { padding: 6px 10px; font-size: 10pt; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .total-row td { font-weight: bold; background: #eef2f8; border-top: 2px solid #3a6ea5; }
+  .footer { margin-top: 40px; font-size: 9pt; color: #888; border-top: 1px solid #ddd; padding-top: 12px; text-align: center; }
+  @media print {
+    .page { padding: 0; }
+    body { font-size: 10pt; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div>
+      <div class="hotel-name">{{Hotel.Name}}</div>
+      <div style="font-size:9pt;color:#555;">{{Hotel.Address}}, {{Hotel.City}}</div>
+    </div>
+    <div class="hotel-contact">
+      {{Hotel.Phone}}<br>
+      {{Hotel.Email}}<br>
+      VAT: {{Hotel.VatNumber}}
+    </div>
+  </div>
+
+  <h1>Booking Confirmation</h1>
+  <div class="meta">Confirmation date: {{Document.Today}} &nbsp;|&nbsp; Booking reference: <strong>{{Booking.Id}}</strong></div>
+
+  <h2>Guest Details</h2>
+  <table>
+    <tr><td width="160"><strong>Name</strong></td><td>{{Client.FullName}}</td></tr>
+    <tr><td><strong>Address</strong></td><td>{{Client.Street}} {{Client.StreetNumber}}, {{Client.PostalCode}} {{Client.City}}, {{Client.Nation}}</td></tr>
+    <tr><td><strong>Email</strong></td><td>{{Client.Email}}</td></tr>
+    <tr><td><strong>Phone</strong></td><td>{{Client.Phone}}</td></tr>
+    <tr><td><strong>Tax Code / VAT</strong></td><td>{{Client.TaxCode}} / {{Client.VatNumber}}</td></tr>
+  </table>
+
+  <h2>Reservation Details</h2>
+  <table>
+    <tr><td width="160"><strong>Room / Unit</strong></td><td>{{Room.Name}} &nbsp;(floor {{Room.Floor}}, capacity {{Room.Capacity}})</td></tr>
+    <tr><td><strong>Arrival</strong></td><td>{{Booking.ArrivalDate}}</td></tr>
+    <tr><td><strong>Departure</strong></td><td>{{Booking.DepartureDate}}</td></tr>
+    <tr><td><strong>Nights</strong></td><td>{{Booking.Nights}}</td></tr>
+    <tr><td><strong>Status</strong></td><td>{{Booking.Status}}</td></tr>
+    <tr><td><strong>Notes</strong></td><td>{{Booking.Notes}}</td></tr>
+  </table>
+
+  <h2>Additional Guests</h2>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Guests -->
+      <tr>
+        <td>{{Guest.GuestNumber}}</td>
+        <td>{{Guest.FullName}}</td>
+        <td>{{Guest.Email}}</td>
+        <td>{{Guest.Phone}}</td>
+      </tr>
+<!-- ENDFOREACH:Guests -->
+    </tbody>
+  </table>
+
+  <h2>Cost Summary</h2>
+  <table>
+    <thead><tr><th>Description</th><th style="text-align:right;">Amount ({{Invoice.Currency}})</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Costs -->
+      <tr>
+        <td>{{Cost.Description}}</td>
+        <td style="text-align:right;">{{Cost.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:Costs -->
+      <tr class="total-row">
+        <td>Total</td>
+        <td style="text-align:right;">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    {{Hotel.Name}} &bull; {{Hotel.Address}}, {{Hotel.City}} &bull; {{Hotel.Phone}} &bull; {{Hotel.Email}}
+  </div>
+
+</div>
+</body>
+</html>

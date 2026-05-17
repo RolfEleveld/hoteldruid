@@ -14,5 +14,9 @@
     <ProjectReference Include="..\HotelDruid.Shared\HotelDruid.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Templates\*.html" />
+  </ItemGroup>
+
 </Project>
 

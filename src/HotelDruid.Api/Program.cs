@@ -158,6 +158,8 @@ builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddSingleton<CacheWarmupState>();
 builder.Services.AddSingleton<ICacheWarmupState>(sp => sp.GetRequiredService<CacheWarmupState>());
 builder.Services.AddHostedService<CacheWarmupHostedService>();
+builder.Services.AddSingleton<IDocumentRenderService, DocumentRenderService>();
+builder.Services.AddHostedService<DocumentTemplateSeeder>();
 builder.Services.AddSingleton<IEndpointQueryCache>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -2639,5 +2641,35 @@ app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
     }
     return Results.NoContent();
 }).WithName("DeleteSessionsForUser");
+
+// --- Document Rendering ---
+
+app.MapGet("/api/documents/render/{type}/{number:int}",
+    async (string type, int number, string bookingId, int year, string? format,
+           IKeyValueStore store, IDocumentRenderService renderer) =>
+    {
+        var sanitized = SanitizeContractType(type);
+        var key = $"{sanitized}_{number}";
+        var templateIdx = await store.GetIndexAsync("contract_templates");
+        if (!templateIdx.TryGetValue(key, out var templateGuid)) return Results.NotFound();
+        var template = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", templateGuid);
+        if (template is null) return Results.NotFound();
+
+        var context = await renderer.BuildContextAsync(bookingId, year, type);
+        if (context is null) return Results.NotFound();
+
+        var html = renderer.RenderHtml(template.Content ?? string.Empty, context);
+        var docFormat = (format?.ToLowerInvariant()) switch
+        {
+            "print" => DocumentFormat.Print,
+            "doc"   => DocumentFormat.Doc,
+            "eml"   => DocumentFormat.Eml,
+            _       => DocumentFormat.Html
+        };
+        var (content, contentType, filename) = renderer.ApplyFormat(html, context, docFormat);
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        return Results.File(bytes, contentType, filename);
+    }).WithName("RenderDocument");
 
 app.Run();
