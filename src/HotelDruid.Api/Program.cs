@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Net;
 using System.Text.Json.Serialization;
 using HotelDruid.Api.Services;
 using HotelDruid.Api.Services.ExportImport;
@@ -244,6 +245,35 @@ app.MapDelete("/api/system/configuration", async (ISystemConfigurationStore conf
 {
     await configurationStore.DeleteAsync();
     return Results.NoContent();
+});
+
+app.MapGet("/api/system/setup/status", async (
+    HttpContext httpContext,
+    ISystemConfigurationStore configurationStore,
+    bool? configure,
+    bool? adminMode) =>
+{
+    var config = await configurationStore.GetAsync();
+    var remoteIp = httpContext.Connection.RemoteIpAddress;
+    var isLocalRequest = remoteIp is null || IPAddress.IsLoopback(remoteIp);
+    var isAdmin = adminMode == true || isLocalRequest;
+    var configurationMissing = config is null;
+    var explicitConfigure = configure == true;
+    var requiresSetup = isAdmin && (configurationMissing || explicitConfigure);
+
+    return Results.Ok(new
+    {
+        IsAdmin = isAdmin,
+        IsLocalRequest = isLocalRequest,
+        ConfigurationMissing = configurationMissing,
+        ExplicitConfigureRequested = explicitConfigure,
+        RequiresSetup = requiresSetup,
+        Reason = explicitConfigure
+            ? "explicit-configure"
+            : configurationMissing
+                ? "missing-configuration"
+                : "configured"
+    });
 });
 
 // --- Bookings endpoints are defined in Layer 4 section below ---

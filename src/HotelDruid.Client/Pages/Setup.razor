@@ -1,0 +1,99 @@
+@page "/setup"
+@using System.Net
+@using System.Net.Http.Json
+@using HotelDruid.Shared.Configuration
+@inject HttpClient Http
+
+<PageTitle>System Setup</PageTitle>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="h3 mb-3">System Setup</h1>
+                    <p class="text-muted">
+                        Configure baseline assumptions for this installation. This page can be re-opened at any time using <strong>/setup?configure=true</strong>.
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        <div class="alert alert-success">@message</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Default Currency</label>
+                        <input class="form-control" @bind="model.DefaultCurrency" placeholder="EUR" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Default Year</label>
+                        <input type="number" class="form-control" @bind="model.DefaultYear" min="2000" max="2100" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fallback Pricing Rule</label>
+                        <input class="form-control" @bind="pricingFallback" placeholder="CurrentYear" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" @onclick="SaveAsync">Save Configuration</button>
+                        <a class="btn btn-outline-secondary" href="/">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
+    private string pricingFallback = "CurrentYear";
+    private string? message;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var existing = await Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
+            if (existing is not null)
+            {
+                model = existing;
+                if (existing.Settings is not null && existing.Settings.TryGetValue("PriceFallback", out var value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    pricingFallback = value;
+                }
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // First-time setup without existing configuration.
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        message = null;
+
+        model.Id = "system";
+        model.UpdatedUtc = DateTime.UtcNow;
+        model.Settings ??= new Dictionary<string, string>();
+        model.Settings["PriceFallback"] = pricingFallback;
+
+        var response = await Http.PutAsJsonAsync("/api/system/configuration", model);
+        if (!response.IsSuccessStatusCode)
+        {
+            error = "Failed to save configuration.";
+            return;
+        }
+
+        message = "Configuration saved successfully.";
+    }
+}

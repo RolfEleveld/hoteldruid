@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 @using HotelDruid.Client.Shared
 @inject HttpClient Http
+@inject NavigationManager Navigation
 
 <div class="landing-hero py-5 bg-light">
   <div class="container">
@@ -73,6 +74,15 @@
     {
         try
         {
+          var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+          var setupQuery = uri.Query.Contains("configure=true", StringComparison.OrdinalIgnoreCase) ? "?configure=true" : string.Empty;
+          var setup = await Http.GetFromJsonAsync<SetupStatusDto>($"/api/system/setup/status{setupQuery}");
+          if (setup?.RequiresSetup == true)
+          {
+            Navigation.NavigateTo($"/setup?reason={setup.Reason}");
+            return;
+          }
+
           var statusTask = Http.GetFromJsonAsync<StatusDto>("/api/status");
           var clientsTask = Http.GetFromJsonAsync<List<ClientDto>>("/api/clients");
           var bookingsTask = Http.GetFromJsonAsync<List<BookingDto>>("/api/bookings");
@@ -111,6 +121,12 @@
       public string? ArrivalDate { get; set; }
       public string? DepartureDate { get; set; }
       public string? Status { get; set; }
+    }
+
+    private class SetupStatusDto
+    {
+      public bool RequiresSetup { get; set; }
+      public string? Reason { get; set; }
     }
 }
 
