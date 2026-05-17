@@ -933,7 +933,99 @@ flowchart LR
 
 ---
 
-## 16. Future Considerations
+## 16. Initial Setup, Configuration, and Assumption Engine (Current)
+
+This section documents the latest implemented behavior for first-run setup, system configuration persistence, and assumption-driven self-healing.
+
+### 16.1 Configuration Persistence Model
+
+- Configuration is persisted in the same file-backed object store pattern as other entities.
+- Collection: `system_configuration`
+- Logical singleton key: `system`
+- Runtime store abstraction: `ISystemConfigurationStore`
+
+Configuration API endpoints:
+- `GET /api/system/configuration`
+- `PUT /api/system/configuration`
+- `DELETE /api/system/configuration`
+
+Export/import integration:
+- Export includes a canonical `system_configuration` table when configuration exists.
+- Import can ingest `system_configuration` and persist it into the configured data store.
+
+### 16.2 Setup State Detection and Admin Gating
+
+Setup status endpoint:
+- `GET /api/system/setup/status`
+
+Returned setup signal is based on:
+- local/admin mode detection
+- missing configuration state
+- explicit setup request (`?configure=true`)
+
+Decision intent:
+- enable guided setup for fresh deployments
+- allow explicit re-entry into setup for reconfiguration
+
+### 16.3 Setup UI Entry Point
+
+- Blazor setup page: `/setup`
+- Landing page checks setup status and redirects when setup is required.
+- Setup page allows baseline configuration of defaults and assumption settings.
+
+### 16.4 Assumption Rule Engine (Async Self-Healing)
+
+Service:
+- `IAssumptionRuleEngine` / `AssumptionRuleEngine`
+
+Current triggers:
+- missing year-scoped `periods` query result
+- missing year-scoped `tariffs` query result
+
+Current behavior:
+1. Request for missing valid year returns empty list on first read.
+2. API triggers asynchronous healing in background.
+3. Engine clones source-year data into requested year.
+4. Subsequent reads return generated data.
+
+Source year resolution order:
+1. explicit system configuration setting (`AvailabilityFallbackSourceYear` or `TariffFallbackSourceYear`)
+2. configured default year
+3. current UTC year
+4. previous year fallback
+
+Boundary condition:
+- Assumption healing does not apply to invalid entity identifiers.
+- Example: unknown room id remains `404 Not Found`.
+
+### 16.5 Flow Overview
+
+```mermaid
+flowchart TD
+  A[Client request] --> B{Setup required?}
+  B -->|Yes| C[Redirect to setup UI]
+  B -->|No| D[Normal API handling]
+
+  D --> E{Year-scoped data missing?}
+  E -->|No| F[Return stored data]
+  E -->|Yes| G[Return empty list]
+  G --> H[Trigger async assumption rule engine]
+  H --> I[Clone source year data]
+  I --> J[Persist generated year data]
+  J --> K[Next request returns generated data]
+```
+
+### 16.6 Test Coverage Snapshot
+
+Implemented regression tests cover:
+- configuration storage and CRUD endpoint behavior
+- setup-state endpoint behavior for missing/explicit configuration modes
+- configuration export/import inclusion and ingestion
+- async self-healing for `periods` and `tariffs`
+- non-healed invalid-entity paths returning `404`
+
+
+## 17. Future Considerations
 
 **Scalability Options** (when/if needed):
 - SQLite backend (instead of files) — drop-in replacement via same repository interfaces

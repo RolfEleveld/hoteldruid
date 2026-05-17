@@ -2,6 +2,52 @@
 
 HotelDruid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
 
+## Recent Updates (May 2026)
+
+The latest implementation adds a staged configuration and assumption workflow to improve first-run usability and reduce manual maintenance.
+
+### 1. System Configuration as First-Class Data
+
+- System configuration is stored in the same object store model as other entities.
+- API endpoints:
+  - `GET /api/system/configuration`
+  - `PUT /api/system/configuration`
+  - `DELETE /api/system/configuration`
+- Configuration is included in export/import workflows when present (`system_configuration`).
+
+### 2. Setup Detection and Admin Setup Flow
+
+- API setup state endpoint:
+  - `GET /api/system/setup/status`
+- Setup mode is triggered when:
+  - configuration is missing and caller is admin/local
+  - setup is explicitly requested (`?configure=true`)
+- Client setup page:
+  - `/setup`
+  - includes baseline values such as default currency/year and fallback settings
+
+### 3. Assumption Rule Engine and Async Self-Healing
+
+- New rule engine handles valid year gaps for selected year-scoped data.
+- Current self-healing scope:
+  - periods (availability-supporting windows)
+  - tariffs (pricing/supporting rates)
+- Behavior:
+  - first request for missing year returns an empty list
+  - async background healing clones from configured source year/current default
+  - subsequent requests receive generated data
+- Important boundary:
+  - invalid entities still return `404` (for example unknown room id)
+
+### 4. Regression Coverage Added
+
+- Unit and integration tests were added for:
+  - configuration persistence and API behavior
+  - setup-state detection
+  - export/import inclusion of system configuration
+  - async year-gap self-healing for periods and tariffs
+  - invariant `404` behavior for non-existent entities
+
 ## Project Summary
 
 - Frontend: `src/HotelDruid.Client`
