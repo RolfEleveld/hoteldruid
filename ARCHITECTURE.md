@@ -868,6 +868,197 @@ var stampValue = Guid.NewGuid().ToString("N");
 await File.WriteAllTextAsync(stampPath, stampValue);
 ```
 
+---
+
+## 16. Document Template Render System
+
+### 16.1 Overview
+
+The render system converts stored HTML templates into guest-facing documents by assembling a `DocumentContext` from the store and substituting tokens in the template content. A single endpoint supports four output formats without any external dependencies.
+
+**Endpoint:**
+```
+GET /api/documents/render/{type}/{number}?bookingId={id}&year={year}&format={format}
+```
+
+**Token syntax:**
+- Scalar values: `{{Namespace.Field}}` — replaced with HTML-encoded data
+- Repeating blocks: `<!-- FOREACH:ListName -->...{{Row.Field}}...<!-- ENDFOREACH:ListName -->`
+
+**Default templates** are seeded by `DocumentTemplateSeeder` (an `IHostedService`) on first startup. Existing templates are never overwritten, making the seed restore-safe.
+
+---
+
+### 16.2 Supported Template Scenarios
+
+| Template | Typical Use | Key Token Namespaces | FOREACH Lists |
+|---|---|---|---|
+| `booking-confirmation` | Printed or emailed booking confirmation sent at time of reservation | Hotel, Booking, Client, Room, Invoice | Guests, Costs |
+| `invoice` | Billing document with full charge and payment breakdown | Hotel, Booking, Client, Room, Invoice | Costs, Payments, Guests |
+| `receipt` | Simple payment receipt handed to guest after payment | Hotel, Booking, Client, Room, Invoice | Payments |
+| `welcome-letter` | Formal arrival letter left in the room or handed at check-in | Hotel, Booking, Client, Room | Guests |
+| `email-confirmation` | Email-safe HTML confirmation (inline CSS, no flex/grid) | Hotel, Booking, Client, Room, Invoice | Costs, Guests |
+
+**Token namespace reference:**
+
+| Namespace | Source | Example tokens |
+|---|---|---|
+| `Hotel` | `ISystemConfigurationStore` settings | `Hotel.Name`, `Hotel.Address`, `Hotel.City`, `Hotel.Phone`, `Hotel.Email`, `Hotel.VatNumber`, `Hotel.Currency` |
+| `Booking` | `BookingStorageModel` | `Booking.Id`, `Booking.ArrivalDate`, `Booking.DepartureDate`, `Booking.Nights`, `Booking.Status`, `Booking.Notes` |
+| `Client` | `ClientStorageModel` | `Client.FullName`, `Client.LastName`, `Client.FirstName`, `Client.Title`, `Client.Email`, `Client.Phone`, `Client.Street`, `Client.StreetNumber`, `Client.City`, `Client.PostalCode`, `Client.Nation`, `Client.TaxCode`, `Client.VatNumber` |
+| `Room` | `RoomStorageModel` | `Room.Name`, `Room.Floor`, `Room.HouseNumber`, `Room.Capacity` |
+| `Invoice` | Computed from costs | `Invoice.TotalAmount`, `Invoice.Currency` |
+| `Document` | Runtime meta | `Document.Today`, `Document.TemplateType` |
+| `Guest` (FOREACH) | `BookingGuestStorageModel` + `ClientStorageModel` | `Guest.GuestNumber`, `Guest.FullName`, `Guest.Email`, `Guest.Phone`, `Guest.Nationality`, `Guest.DateOfBirth` |
+| `Cost` (FOREACH) | `BookingCostStorageModel` | `Cost.Description`, `Cost.Amount`, `Cost.TariffId` |
+| `Payment` (FOREACH) | `MoneyHistoryStorageModel` | `Payment.Amount`, `Payment.Date`, `Payment.Method`, `Payment.Description`, `Payment.Type` |
+
+**Output formats:**
+
+| `format=` value | Content-Type | Behaviour |
+|---|---|---|
+| `html` (default) | `text/html` | Rendered HTML returned as-is |
+| `print` | `text/html` | HTML with `window.print()` injected before `</body>` — triggers browser print dialog |
+| `doc` | `application/msword` | Same HTML with Word content-type; Word/LibreOffice opens and re-renders |
+| `eml` | `message/rfc822` | RFC 2822 multipart/alternative email; open directly in any email client |
+
+---
+
+### 16.3 Component Structure
+
+```mermaid
+flowchart TD
+  EP["GET /api/documents/render/{type}/{number}\n?bookingId= &year= &format="]
+
+  subgraph Services
+    RD["DocumentRenderService\n(IDocumentRenderService)"]
+    SD["DocumentTemplateSeeder\n(IHostedService — runs on startup)"]
+  end
+
+  subgraph DataSources["Data Sources (IKeyValueStore)"]
+    KV1["contract_templates\nContractTemplateStorageModel"]
+    KV2["bookings\nBookingStorageModel"]
+    KV3["clients\nClientStorageModel"]
+    KV4["rooms\nRoomStorageModel"]
+    KV5["booking_costs\nBookingCostStorageModel"]
+    KV6["booking_guests\nBookingGuestStorageModel"]
+    KV7["money_history\nMoneyHistoryStorageModel"]
+    SC["ISystemConfigurationStore\nhotel settings"]
+  end
+
+  subgraph Context["DocumentContext (assembled per request)"]
+    C1["Hotel"]
+    C2["Booking"]
+    C3["Client"]
+    C4["Room"]
+    C5["Invoice (computed)"]
+    C6["Guests list"]
+    C7["Costs list"]
+    C8["Payments list"]
+    C9["Meta (today, type)"]
+  end
+
+  subgraph Formats["Output"]
+    F1["html · text/html"]
+    F2["print · text/html + window.print()"]
+    F3["doc · application/msword"]
+    F4["eml · message/rfc822 (RFC 2822)"]
+  end
+
+  EP -->|"load template by sanitized key"| KV1
+  EP -->|"BuildContextAsync()"| RD
+
+  RD --> KV2 & KV3 & KV4 & KV5 & KV6 & KV7 & SC
+
+  KV2 --> C2
+  KV3 --> C3 & C6
+  KV4 --> C4
+  KV5 --> C7
+  KV6 --> C6
+  KV7 --> C8
+  SC --> C1
+  C1 & C2 & C3 & C4 --> C5
+
+  RD -->|"RenderHtml()\nFOREACH expansion\n+ token substitution"| Render["rendered HTML"]
+  KV1 -->|template.Content| Render
+  C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8 & C9 --> Render
+
+  Render -->|"ApplyFormat()"| F1 & F2 & F3 & F4
+
+  SD -.->|"seeds on first startup\nnever overwrites"| KV1
+```
+
+---
+
+### 16.4 Render Request Sequence
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant EP as Render Endpoint
+  participant KV as IKeyValueStore
+  participant RD as DocumentRenderService
+  participant SC as ISystemConfigurationStore
+
+  Client->>EP: GET documents render invoice 1 bookingId abc year 2026 format doc
+
+  EP->>KV: GetIndexAsync("contract_templates")
+  KV-->>EP: { "invoice_1": "guid..." }
+  EP->>KV: Get template by id from contract_templates
+  KV-->>EP: template (Content = HTML string)
+
+  EP->>RD: BuildContextAsync("abc", 2026, "invoice")
+
+  RD->>KV: Get booking by id
+  KV-->>RD: booking (clientId, roomId, dates)
+
+  RD->>KV: Get client by id
+  KV-->>RD: client
+
+  RD->>KV: Get room by id
+  KV-->>RD: room
+
+  RD->>KV: GetIndexAsync("booking_costs") + filter by bookingId
+  KV-->>RD: costs[]
+
+  RD->>KV: GetIndexAsync("booking_guests") + filter by bookingId
+  KV-->>RD: guestLinks[] → resolve each ClientStorageModel
+  KV-->>RD: guests[]
+
+  RD->>KV: GetIndexAsync("money_history") + filter by year
+  KV-->>RD: payments[]
+
+  RD->>SC: GetAsync()
+  SC-->>RD: hotel settings (Name, Address, Currency ...)
+
+  RD-->>EP: DocumentContext
+
+  EP->>RD: RenderHtml(template.Content, context)
+  Note over RD: FOREACH Costs expands cost rows
+  Note over RD: FOREACH Guests expands guest rows
+  Note over RD: FOREACH Payments expands payment rows
+  Note over RD: Substitute all namespace field tokens
+  RD-->>EP: rendered HTML string
+
+  EP->>RD: ApplyFormat(html, context, Doc)
+  RD-->>EP: bytes application msword invoice_abc.doc
+
+  EP-->>Client: 200 application msword attachment filename invoice_abc.doc
+```
+
+---
+
+### 16.5 Seeder Behaviour
+
+`DocumentTemplateSeeder` implements `IHostedService` and runs during application startup:
+
+1. Loads the `contract_templates` index once.
+2. For each of the five known template types, checks whether the index already contains the key (e.g., `invoice_1`).
+3. If absent, reads the embedded resource (`HotelDruid.Api.Resources.Templates.{type}.html`) and calls `CreateAsync` to store it.
+4. Logs a warning if an embedded resource is missing (graceful degradation — no crash).
+
+The key sanitization matches the API endpoint: hyphens and other non-alphanumeric characters are replaced with `_`, so `booking-confirmation` → index key `booking_confirmation_1`.
+
 
 ## Container Deployment Profiles (Neutral)
 
