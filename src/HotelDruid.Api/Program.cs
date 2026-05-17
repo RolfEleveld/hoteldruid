@@ -91,7 +91,31 @@ builder.Services.AddSingleton<IKeyValueStore>(sp =>
         ?? config["DataRoot"]
         ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
     var logger = sp.GetRequiredService<ILogger<FileKeyValueStore>>();
-    return new FileKeyValueStore(dataRoot, logger);
+    
+    var baseStore = new FileKeyValueStore(dataRoot, logger);
+    
+    // Optional: wrap with caching decorator for performance
+    // Enable via configuration: "CacheKeyValueStore": true or HOTELDRUID_CACHE env var
+    var cacheEnvVar = Environment.GetEnvironmentVariable("HOTELDRUID_CACHE");
+    var enableCache = cacheEnvVar == "true" || (cacheEnvVar == null && config.GetValue<bool>("CacheKeyValueStore", false));
+    
+    if (enableCache)
+    {
+        var cacheLogger = sp.GetRequiredService<ILogger<CachedKeyValueStoreDecorator>>();
+        var maxCollections = config.GetValue<int>("CacheMaxCollections", 20);
+        var cacheExpirationMinutes = config.GetValue<int>("CacheExpirationMinutes", 5);
+        var versionCheckIntervalMs = config.GetValue<int>("CacheVersionCheckIntervalMs", 250);
+
+        return new CachedKeyValueStoreDecorator(
+            baseStore,
+            cacheLogger,
+            maxCollections,
+            cacheExpirationMinutes,
+            invalidationRootPath: dataRoot,
+            versionCheckIntervalMilliseconds: versionCheckIntervalMs);
+    }
+    
+    return baseStore;
 });
 
 // Register a simple file-backed store for development (legacy support)
@@ -127,6 +151,17 @@ builder.Services.AddScoped<IZipBuilder, ZipBuilder>();
 builder.Services.AddScoped<IApiDistributor, ApiDistributor>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddSingleton<CacheWarmupState>();
+builder.Services.AddSingleton<ICacheWarmupState>(sp => sp.GetRequiredService<CacheWarmupState>());
+builder.Services.AddHostedService<CacheWarmupHostedService>();
+builder.Services.AddSingleton<IEndpointQueryCache>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<EndpointQueryCache>>();
+    var enabled = config.GetValue<bool>("EndpointQueryCacheEnabled", true);
+    var ttlSeconds = config.GetValue<int>("EndpointQueryCacheTtlSeconds", 30);
+    return new EndpointQueryCache(logger, enabled, ttlSeconds);
+});
 
 var app = builder.Build();
 
@@ -169,6 +204,17 @@ app.UseStaticFiles(new StaticFileOptions
 
 // Basic root & health endpoints for quick validation
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }));
+app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
+{
+    warmup.IsEnabled,
+    warmup.IsInProgress,
+    warmup.IsCompleted,
+    warmup.StartedAtUtc,
+    warmup.CompletedAtUtc,
+    warmup.CollectionsProcessed,
+    warmup.DocumentsWarmed,
+    warmup.LastError
+}));
 
 // --- Mock API endpoints for early Blazor development ---
 
@@ -178,7 +224,7 @@ app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = "2026", User = "ad
 
 // --- Room API endpoints ---
 
-app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store) =>
+app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest(new { error = "Room name (ID) is required" });
@@ -201,6 +247,7 @@ app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store) =>
         };
 
         var id = await store.CreateAsync("rooms", request.Name, storage);
+        queryCache.InvalidateTag("rooms");
         return Results.Created($"/api/rooms/{id}", new RoomDto(
             id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
             request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
@@ -222,42 +269,52 @@ app.MapGet("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
         room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
 });
 
-app.MapGet("/api/rooms", async (IKeyValueStore store, string? name) =>
+app.MapGet("/api/rooms", async (IKeyValueStore store, IEndpointQueryCache queryCache, string? name) =>
 {
     if (!string.IsNullOrEmpty(name))
     {
-        // Get by name
-        var room = await store.GetByNameAsync<RoomStorageModel>("rooms", name);
-        if (room is null)
+        var roomDto = await queryCache.GetOrCreateAsync($"rooms:name:{name}", new[] { "rooms" }, async () =>
+        {
+            var room = await store.GetByNameAsync<RoomStorageModel>("rooms", name);
+            if (room is null)
+                return null;
+
+            var index = await store.GetIndexAsync("rooms");
+            var id = index.TryGetValue(name, out var roomId) ? roomId : "";
+
+            return new RoomDto(
+                id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
+                room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments);
+        });
+
+        if (roomDto is null)
             return Results.NotFound();
 
-        // Get the ID from the index
-        var index = await store.GetIndexAsync("rooms");
-        var id = index.TryGetValue(name, out var roomId) ? roomId : "";
-        
-        return Results.Ok(new RoomDto(
-            id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
-            room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
+        return Results.Ok(roomDto);
     }
 
-    // List all
-    var rooms = await store.ListAsync<RoomStorageModel>("rooms");
-    var index2 = await store.GetIndexAsync("rooms");
-    
-    var result = new List<RoomDto>();
-    foreach (var room in rooms)
+    var result = await queryCache.GetOrCreateAsync($"rooms:list", new[] { "rooms" }, async () =>
     {
-        var roomName = room.Name ?? "";
-        var roomId = index2.TryGetValue(roomName, out var id) ? id : "";
-        result.Add(new RoomDto(
-            roomId, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
-            room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
-    }
-    
+        var rooms = await store.ListAsync<RoomStorageModel>("rooms");
+        var index2 = await store.GetIndexAsync("rooms");
+
+        var computed = new List<RoomDto>();
+        foreach (var room in rooms)
+        {
+            var roomName = room.Name ?? "";
+            var roomId = index2.TryGetValue(roomName, out var id) ? id : "";
+            computed.Add(new RoomDto(
+                roomId, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
+                room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
+        }
+
+        return computed;
+    });
+
     return Results.Ok(result);
 });
 
-app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore store) =>
+app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var exists = await store.ExistsAsync("rooms", id);
     if (!exists)
@@ -282,18 +339,20 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore 
     };
 
     await store.UpdateAsync("rooms", id, storage);
+    queryCache.InvalidateTag("rooms");
     return Results.Ok(new RoomDto(
         id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
         request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
 });
 
-app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
+app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var exists = await store.ExistsAsync("rooms", id);
     if (!exists)
         return Results.NotFound();
 
     await store.DeleteAsync("rooms", id);
+    queryCache.InvalidateTag("rooms");
     return Results.NoContent();
 });
 
@@ -1916,18 +1975,25 @@ app.MapFallbackToFile("index.html");
 
 BookingDto ToBookingDto(string id, BookingStorageModel s) => new(id, s.Year, s.ClientId, s.RoomId, s.ArrivalDate, s.DepartureDate, s.Status, s.Notes);
 
-app.MapGet("/api/bookings", async (IKeyValueStore store, int? year) =>
+app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
 {
-    var idx = await store.GetIndexAsync("bookings");
-    var prefix = year.HasValue ? $"{year}_" : null;
-    var result = new List<BookingDto>();
-    foreach (var kvp in idx)
+    var key = year.HasValue ? $"bookings:list:year:{year.Value}" : "bookings:list:all";
+    var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
-        if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
-        var b = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
-        if (b is null) continue;
-        result.Add(ToBookingDto(kvp.Value, b));
-    }
+        var idx = await store.GetIndexAsync("bookings");
+        var prefix = year.HasValue ? $"{year}_" : null;
+        var computed = new List<BookingDto>();
+        foreach (var kvp in idx)
+        {
+            if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
+            var b = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+            if (b is null) continue;
+            computed.Add(ToBookingDto(kvp.Value, b));
+        }
+
+        return computed;
+    });
+
     return Results.Ok(result);
 }).WithName("ListBookings");
 
@@ -1938,33 +2004,36 @@ app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToBookingDto(id, b));
 }).WithName("GetBooking");
 
-app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store) =>
+app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new BookingStorageModel { Year = request.Year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
     var id = await store.CreateAsync("bookings", key, storage);
+    queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
 
-app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store) =>
+app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
     var storage = new BookingStorageModel { Year = year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
     await store.UpdateAsync("bookings", id, storage);
+    queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));
 }).WithName("UpdateBooking");
 
-app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
     await store.DeleteAsync("bookings", id);
+    queryCache.InvalidateTag("bookings");
     return Results.NoContent();
 }).WithName("DeleteBooking");
 
-app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, IKeyValueStore store) =>
+app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
@@ -1973,6 +2042,8 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     var cancelled = new CancelledBookingStorageModel { Year = year, ClientId = b.ClientId, RoomId = b.RoomId, ArrivalDate = b.ArrivalDate, DepartureDate = b.DepartureDate, Status = b.Status, CancelledAt = DateTime.UtcNow, Notes = b.Notes };
     await store.CreateAsync("cancelled_bookings", cancelKey, cancelled);
     await store.DeleteAsync("bookings", id);
+    queryCache.InvalidateTag("bookings");
+    queryCache.InvalidateTag("cancelled_bookings");
     return Results.NoContent();
 }).WithName("CancelBooking");
 

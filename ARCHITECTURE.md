@@ -358,7 +358,7 @@ public class Room
 
 ---
 
-## 7. Solution Structure (2026)
+## 7. Solution Structure
 
 ### Project/Folder Overview
 
@@ -569,7 +569,7 @@ public interface IBookingTransactionRepository
 
 ## 12. Implementation Phases
 
-### Phase 1A: Core Storage Layer (Days 1-2)
+### Phase 1A: Core Storage Layer
 
 **Deliverable**: Generic file-based KV store with concurrency
 
@@ -597,7 +597,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-### Phase 1B: Storage Repositories (Days 3-4)
+### Phase 1B: Storage Repositories
 
 **Deliverable**: Room repository + basic ledger
 
@@ -622,7 +622,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-### Phase 2: API Endpoints (Days 5-6)
+### Phase 2: API Endpoints
 
 **Deliverable**: REST endpoints for rooms
 
@@ -641,7 +641,7 @@ public interface IBookingTransactionRepository
 
 ---
 
-### Phase 3: Blazor UI (Days 7-8)
+### Phase 3: Blazor UI
 
 **Deliverable**: Room list and management UI
 
@@ -665,6 +665,208 @@ public interface IBookingTransactionRepository
 | **Immutable ledger** | Audit trail | Conflict resolution, compliance |
 | **Per-booking transactions** | Transparency | Full stay history visible |
 | **Atomic writes** | Crash safety | No partial file corruption |
+
+
+## 14. Current File Store Structure for Core Entities
+
+This section reflects the currently implemented on-disk layout in the API.
+
+### 14.1 Standard Collection Storage
+
+All mutable entities are persisted under `dataRoot/collections/{collectionName}` with:
+- one `_index.json` for human key to internal id lookup
+- one `{id}.json` file per document (id is GUID-base32, 26 chars)
+
+```mermaid
+flowchart TB
+  DR[dataRoot]
+  DR --> C[collections]
+  C --> R[rooms]
+  C --> B[bookings]
+  C --> P[periods]
+  C --> AR[assignment_rules]
+  C --> CB[cancelled_bookings]
+
+  R --> RI[_index.json name to id]
+  R --> RF[id.json RoomStorageModel]
+
+  B --> BI[_index.json key year_guid to id]
+  B --> BF[id.json BookingStorageModel]
+
+  P --> PI[_index.json key year_guid to id]
+  P --> PF[id.json PeriodStorageModel]
+
+  AR --> AI[_index.json key year_guid to id]
+  AR --> AF[id.json AssignmentRuleStorageModel]
+
+  CB --> CBI[_index.json key year_guid to id]
+  CB --> CBF[id.json CancelledBookingStorageModel]
+
+  DR --> BT[bookings]
+  BT --> TX[bookingId_transactions]
+  TX --> TXI[_index.json nextSequence]
+  TX --> SEQ[_seq_001.json _seq_NNN.json]
+```
+
+Key naming patterns used by year-scoped collections:
+- `bookings`: index key is `{year}_{guidN}`
+- `periods`: index key is `{year}_{guidN}`
+- `assignment_rules`: index key is `{year}_{guidN}`
+- `cancelled_bookings`: index key is `{year}_{guidN}`
+
+### 14.2 Availability and Bookings: Technical Storage Model
+
+There is no dedicated `availability` collection in the current implementation.
+Availability is derived from persisted entities at query time.
+
+Persisted inputs:
+- `rooms` collection (room master data)
+- `bookings` collection (confirmed/pending stays)
+- `periods` collection (date/rate windows)
+- `assignment_rules` collection (allocation constraints)
+
+Derived output:
+- availability result set returned by API logic/client workflow
+
+```mermaid
+flowchart LR
+  Q[Availability query]
+  Q --> RM[Load rooms collection]
+  Q --> BK[Load bookings index and bookings docs by year]
+  Q --> PD[Load periods by year]
+  Q --> RL[Load assignment_rules by year]
+
+  RM --> J[Join and evaluate]
+  BK --> J
+  PD --> J
+  RL --> J
+
+  J --> AV[Availability result]
+
+  subgraph Persisted
+    RM
+    BK
+    PD
+    RL
+  end
+
+  subgraph DerivedOnly
+    AV
+  end
+```
+
+### 14.3 Atomic Persistence and Index Update Pattern
+
+The base store writes every document atomically and keeps index files synchronized.
+
+```csharp
+var id = IdGenerator.GenerateId();
+var filePath = GetDocumentPath(collectionName, id);
+
+await AtomicWriteAsync(filePath, JsonSerializer.Serialize(document, _jsonOptions));
+
+index[name] = id;
+await SaveIndexAsync(collectionName, index);
+```
+
+---
+
+## 15. API Caching Layers and Invalidation
+
+The API currently uses three cache layers, each with different scope and invalidation semantics.
+
+### 15.1 Cache Layers Summary
+
+1. Endpoint query cache (Phase 3)
+- Scope: API response-building queries (for example list bookings by year, list rooms)
+- Keying: endpoint-specific cache key string
+- Invalidation: tag-based (`InvalidateTag("rooms")`, `InvalidateTag("bookings")`)
+- TTL: configurable (`EndpointQueryCacheTtlSeconds`)
+
+2. Key-value in-memory cache (Phase 1)
+- Scope: index and document objects per collection in process memory
+- Invalidation: collection invalidation on create/update/delete/rebuild/delete-collection
+- Bounds: collection count cap and expiration
+
+3. Cross-instance version invalidation (Phase 2)
+- Scope: coherence across multiple API processes using same data root
+- Mechanism: shared version-stamp files under `.cache-invalidation`
+- Effect: stale in-process entries are dropped on next read check
+
+### 15.2 Request Path Through Cache Layers
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API as API endpoint
+  participant EQ as EndpointQueryCache
+  participant KV as CachedKeyValueStoreDecorator
+  participant FS as FileKeyValueStore
+
+  Client->>API: GET /api/bookings?year=2026
+  API->>EQ: GetOrCreate(key bookings:list:year:2026, tag bookings)
+  alt query cache hit
+    EQ-->>API: cached DTO list
+  else query cache miss
+    API->>KV: GetIndexAsync(bookings)
+    alt kv cache miss
+      KV->>FS: read _index.json
+      FS-->>KV: index
+    end
+    API->>KV: GetAsync for each booking id
+    alt document cache miss
+      KV->>FS: read id.json files
+      FS-->>KV: documents
+    end
+    API->>EQ: store DTO list by key and tag
+  end
+  API-->>Client: 200 OK
+
+  Client->>API: POST /api/bookings
+  API->>KV: CreateAsync(bookings, key, document)
+  KV->>FS: atomic write + index update
+  API->>EQ: InvalidateTag(bookings)
+  API-->>Client: 201 Created
+```
+
+### 15.3 Cache Build-Up and Invalidation Lifecycle
+
+```mermaid
+stateDiagram-v2
+  [*] --> Empty
+  Empty --> Building: first GET cache miss
+  Building --> Warm: value stored with TTL
+  Warm --> Warm: repeated GET cache hit
+  Warm --> Expired: TTL elapsed
+  Expired --> Building: next GET
+  Warm --> Invalidated: write operation or phase2 version change
+  Invalidated --> Building: next GET repopulates
+  Building --> [*]
+```
+
+### 15.4 Minimal Invalidation Snippets
+
+Phase 3 endpoint invalidation on write:
+
+```csharp
+var id = await store.CreateAsync("bookings", key, storage);
+queryCache.InvalidateTag("bookings");
+```
+
+Phase 1 collection invalidation in key-value cache decorator:
+
+```csharp
+await _inner.UpdateAsync(collectionName, id, document);
+InvalidateCollectionCache(collectionName);
+```
+
+Phase 2 cross-instance signal write:
+
+```csharp
+var stampPath = GetVersionStampPath(collectionName);
+var stampValue = Guid.NewGuid().ToString("N");
+await File.WriteAllTextAsync(stampPath, stampValue);
+```
 
 
 ## Container Deployment Profiles (Neutral)

@@ -305,6 +305,32 @@ public class RoomsApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ListRooms_AfterMutation_ReturnsFreshData()
+    {
+        await ClearRoomsAsync();
+
+        await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(new RoomDto { Name = "Phase3-A", Capacity = 2 }), Encoding.UTF8, "application/json"));
+
+        var firstListResponse = await _client.GetAsync("/api/rooms");
+        Assert.Equal(HttpStatusCode.OK, firstListResponse.StatusCode);
+        var firstList = JsonSerializer.Deserialize<List<RoomDto>>(await firstListResponse.Content.ReadAsStringAsync());
+        Assert.NotNull(firstList);
+        Assert.Contains(firstList!, r => r.Name == "Phase3-A");
+
+        await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(new RoomDto { Name = "Phase3-B", Capacity = 3 }), Encoding.UTF8, "application/json"));
+
+        var secondListResponse = await _client.GetAsync("/api/rooms");
+        Assert.Equal(HttpStatusCode.OK, secondListResponse.StatusCode);
+        var secondList = JsonSerializer.Deserialize<List<RoomDto>>(await secondListResponse.Content.ReadAsStringAsync());
+        Assert.NotNull(secondList);
+        Assert.Contains(secondList!, r => r.Name == "Phase3-B");
+
+        await ClearRoomsAsync();
+    }
+
+    [Fact]
     public async Task UpdateRoom_WithNewData_Returns200Ok()
     {
         // Preamble: Clear any existing rooms

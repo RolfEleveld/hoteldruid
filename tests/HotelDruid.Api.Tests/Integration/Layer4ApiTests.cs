@@ -79,6 +79,26 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_ListAfterCreate_ReturnsFreshData()
+    {
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-A" }));
+
+        var first = await _client.GetAsync("/api/bookings?year=2090");
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        var firstList = await ReadAs<List<BookingDto>>(first);
+        Assert.NotNull(firstList);
+        Assert.Contains(firstList!, b => b.ClientId == "Phase3-A");
+
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-B" }));
+
+        var second = await _client.GetAsync("/api/bookings?year=2090");
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var secondList = await ReadAs<List<BookingDto>>(second);
+        Assert.NotNull(secondList);
+        Assert.Contains(secondList!, b => b.ClientId == "Phase3-B");
+    }
+
+    [Fact]
     public async Task Booking_Update_ChangesFields()
     {
         var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C003", Status = "Pending" }));
