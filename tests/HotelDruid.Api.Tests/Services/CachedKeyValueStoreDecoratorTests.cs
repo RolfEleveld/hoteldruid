@@ -32,7 +32,6 @@ public class CachedKeyValueStoreDecoratorTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        _cachedStore = null;
         _innerStore?.Dispose();
         
         if (Directory.Exists(_tempDataRoot))

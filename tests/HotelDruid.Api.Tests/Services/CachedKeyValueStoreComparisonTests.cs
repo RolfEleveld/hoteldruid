@@ -48,7 +48,6 @@ public class CachedKeyValueStoreComparisonTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         _baselineStore?.Dispose();
-        _cachedStore = null;
 
         if (Directory.Exists(_tempDataRoot1)) Directory.Delete(_tempDataRoot1, recursive: true);
         if (Directory.Exists(_tempDataRoot2)) Directory.Delete(_tempDataRoot2, recursive: true);
