@@ -1028,7 +1028,6 @@ Implemented regression tests cover:
 ## 17. Future Considerations
 
 **Scalability Options** (when/if needed):
-- SQLite backend (instead of files) — drop-in replacement via same repository interfaces
 - Multi-instance deployment — would need distributed locking or message queue
 - Cloud migration — ledger + snapshots make this natural
 
