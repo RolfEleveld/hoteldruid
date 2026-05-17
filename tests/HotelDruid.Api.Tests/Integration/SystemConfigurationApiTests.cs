@@ -14,7 +14,7 @@ public class SystemConfigurationApiTests : IAsyncLifetime
     private HttpClient _client = null!;
     private string _testDataRoot = null!;
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
         _testDataRoot = Path.Combine(Path.GetTempPath(), $"api-system-config-tests-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDataRoot);
@@ -23,7 +23,9 @@ public class SystemConfigurationApiTests : IAsyncLifetime
             .WithWebHostBuilder(builder => builder.UseSetting("DataRoot", _testDataRoot));
 
         _client = _factory.CreateClient();
-        return Task.CompletedTask;
+
+        // Ensure deterministic starting state across full-suite execution.
+        _ = await _client.DeleteAsync("/api/system/configuration");
     }
 
     public Task DisposeAsync()
