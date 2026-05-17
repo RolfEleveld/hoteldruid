@@ -1,6 +1,8 @@
 using HotelDruid.Api.Models;
+using HotelDruid.Api.Services;
 using HotelDruid.Api.Services.ExportImport;
 using HotelDruid.Shared;
+using HotelDruid.Shared.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -21,6 +23,7 @@ public class ExportImportIntegrationTests : IAsyncLifetime
     private readonly IExportService _exportService;
     private readonly IImportService _importService;
     private readonly MockFileKeyValueStore _roomsStore;
+    private readonly ISystemConfigurationStore _systemConfigurationStore;
     private readonly ILogger<ExportImportIntegrationTests> _logger;
     private readonly string _tempDirectory;
 
@@ -42,10 +45,11 @@ public class ExportImportIntegrationTests : IAsyncLifetime
 
         // Initialize services
         _roomsStore = new MockFileKeyValueStore();
+        _systemConfigurationStore = new SystemConfigurationStore(_roomsStore);
         _canonicalMapper = new CanonicalMapper(LoggingHelper.CreateLogger<CanonicalMapper>());
         _packageBuilder = new PackageBuilder(_canonicalMapper, LoggingHelper.CreateLogger<PackageBuilder>());
         _zipBuilder = new ZipBuilder(LoggingHelper.CreateLogger<ZipBuilder>(), config);
-        _apiDistributor = new ApiDistributor(_roomsStore, _canonicalMapper, LoggingHelper.CreateLogger<ApiDistributor>());
+        _apiDistributor = new ApiDistributor(_roomsStore, _systemConfigurationStore, _canonicalMapper, LoggingHelper.CreateLogger<ApiDistributor>());
         _exportService = new ExportService(_canonicalMapper, _packageBuilder, _zipBuilder, _roomsStore, LoggingHelper.CreateLogger<ExportService>());
         _importService = new ImportService(_zipBuilder, _canonicalMapper, _apiDistributor, LoggingHelper.CreateLogger<ImportService>());
     }
@@ -253,6 +257,97 @@ public class ExportImportIntegrationTests : IAsyncLifetime
         
         // Cleanup: Clear test data and temp files after test completes
         try { await _roomsStore.DeleteAsync("rooms", "room1"); } catch { }
+    }
+
+    [Fact]
+    public async Task ExportService_Includes_SystemConfiguration_When_Present()
+    {
+        var config = new SystemConfiguration
+        {
+            DefaultCurrency = "USD",
+            DefaultYear = 2026,
+            Settings = new Dictionary<string, string>
+            {
+                ["PriceFallback"] = "CurrentYear"
+            }
+        };
+        await _systemConfigurationStore.SaveAsync(config);
+
+        var exportId = await _exportService.CreateExportPackageAsync();
+
+        ExportStatusResponse? status = null;
+        for (var i = 0; i < 50; i++)
+        {
+            status = await _exportService.GetExportStatusAsync(exportId);
+            if (status.Status is "completed" or "failed")
+            {
+                break;
+            }
+
+            await Task.Delay(50);
+        }
+
+        Assert.NotNull(status);
+        Assert.Equal("completed", status!.Status);
+
+        var exportsDir = Path.Combine(_tempDirectory, "exports");
+        var zipPath = Directory.GetFiles(exportsDir, "*.zip")
+            .OrderByDescending(path => File.GetCreationTimeUtc(path))
+            .First();
+
+        var extractDir = Path.Combine(_tempDirectory, $"extract_{exportId}");
+        Directory.CreateDirectory(extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractDir);
+
+        var configPath = Path.Combine(extractDir, "data", "tables", "system_configuration.json");
+        Assert.True(File.Exists(configPath));
+
+        var json = await File.ReadAllTextAsync(configPath);
+        var exportedTable = System.Text.Json.JsonSerializer.Deserialize<CanonicalData>(json, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        });
+
+        Assert.NotNull(exportedTable);
+        Assert.Equal("system_configuration", exportedTable!.TableName);
+        Assert.True(exportedTable.RowCount >= 1);
+    }
+
+    [Fact]
+    public async Task ApiDistributor_Imports_SystemConfiguration_Table()
+    {
+        var canonicalData = new Dictionary<string, CanonicalData>
+        {
+            ["system_configuration"] = new CanonicalData(
+                TableName: "system_configuration",
+                RowCount: 1,
+                Rows: new()
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["id"] = "system",
+                        ["defaultCurrency"] = "EUR",
+                        ["defaultYear"] = 2027,
+                        ["settings"] = new Dictionary<string, string>
+                        {
+                            ["PriceFallback"] = "CurrentYear"
+                        }
+                    }
+                },
+                Columns: new())
+        };
+
+        var result = await _apiDistributor.DistributeAsync(canonicalData);
+        Assert.True(result.ByTable["system_configuration"].Success);
+        Assert.Equal(1, result.ByTable["system_configuration"].ImportedCount);
+
+        var saved = await _systemConfigurationStore.GetAsync();
+        Assert.NotNull(saved);
+        Assert.Equal("EUR", saved!.DefaultCurrency);
+        Assert.Equal(2027, saved.DefaultYear);
+        Assert.NotNull(saved.Settings);
+        Assert.Equal("CurrentYear", saved.Settings!["PriceFallback"]);
     }
 
     [Fact]

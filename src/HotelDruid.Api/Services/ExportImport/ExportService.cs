@@ -1,5 +1,6 @@
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
+using HotelDruid.Shared.Configuration;
 
 namespace HotelDruid.Api.Services.ExportImport;
 
@@ -125,6 +126,7 @@ public class ExportService : IExportService
             var assets = await _store.ListAsync<AssetDto>("assets");
             var warehouses = await _store.ListAsync<WarehouseDto>("warehouses");
             var inventory = await _store.ListAsync<InventoryDto>("inventory");
+            var systemConfigurations = await _store.ListAsync<SystemConfiguration>("system_configuration");
 
             _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows",
                 rooms.Length, assets.Count, warehouses.Count, inventory.Count);
@@ -138,6 +140,11 @@ public class ExportService : IExportService
                 ["warehouses"] = _canonicalMapper.ToCanonicalWarehouses(warehouses.ToArray()),
                 ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory.ToArray())
             };
+
+            if (systemConfigurations.Count > 0)
+            {
+                canonicalData["system_configuration"] = ToCanonicalSystemConfiguration(systemConfigurations);
+            }
 
             // Step 3: Build package
             tracker.ProgressPercent = 60;
@@ -177,6 +184,37 @@ public class ExportService : IExportService
             _logger.LogError(ex, "Error collecting rooms data");
             throw;
         }
+    }
+
+    private static CanonicalData ToCanonicalSystemConfiguration(List<SystemConfiguration> configurations)
+    {
+        var columns = new List<ColumnDefinition>
+        {
+            new("id", "string", false, "Configuration key"),
+            new("createdUtc", "string", true, "Created timestamp UTC"),
+            new("updatedUtc", "string", true, "Updated timestamp UTC"),
+            new("defaultCurrency", "string", true, "Default currency"),
+            new("defaultYear", "number", true, "Default year"),
+            new("adminEmails", "array", true, "Configured administrator emails"),
+            new("settings", "object", true, "Additional settings dictionary")
+        };
+
+        var rows = configurations.Select(c => new Dictionary<string, object?>
+        {
+            ["id"] = c.Id,
+            ["createdUtc"] = c.CreatedUtc.ToString("O"),
+            ["updatedUtc"] = c.UpdatedUtc.ToString("O"),
+            ["defaultCurrency"] = c.DefaultCurrency,
+            ["defaultYear"] = c.DefaultYear,
+            ["adminEmails"] = c.AdminEmails,
+            ["settings"] = c.Settings
+        }).ToList();
+
+        return new CanonicalData(
+            TableName: "system_configuration",
+            RowCount: rows.Count,
+            Rows: rows,
+            Columns: columns);
     }
 
     private string ExtractExportIdFromFileName(string fileName)

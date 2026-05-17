@@ -1,5 +1,7 @@
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
+using HotelDruid.Shared.Configuration;
+using System.Text.Json;
 
 namespace HotelDruid.Api.Services.ExportImport;
 
@@ -10,15 +12,18 @@ namespace HotelDruid.Api.Services.ExportImport;
 public class ApiDistributor : IApiDistributor
 {
     private readonly IKeyValueStore _store;
+    private readonly ISystemConfigurationStore _systemConfigurationStore;
     private readonly ICanonicalMapper _canonicalMapper;
     private readonly ILogger<ApiDistributor> _logger;
 
     public ApiDistributor(
         IKeyValueStore store,
+        ISystemConfigurationStore systemConfigurationStore,
         ICanonicalMapper canonicalMapper,
         ILogger<ApiDistributor> logger)
     {
         _store = store;
+        _systemConfigurationStore = systemConfigurationStore;
         _canonicalMapper = canonicalMapper;
         _logger = logger;
     }
@@ -63,6 +68,12 @@ public class ApiDistributor : IApiDistributor
                         results[normalizedTable] = invResult;
                         if (invResult.Success) totalImported += invResult.ImportedCount;
                         else if (invResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, invResult.ErrorMessage));
+                        break;
+                    case "system_configuration":
+                        var configResult = await ImportSystemConfigurationAsync(tableData);
+                        results[normalizedTable] = configResult;
+                        if (configResult.Success) totalImported += configResult.ImportedCount;
+                        else if (configResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, configResult.ErrorMessage));
                         break;
 
                     default:
@@ -245,6 +256,46 @@ public class ApiDistributor : IApiDistributor
         {
             _logger.LogError(ex, "Error importing inventory");
             return new TableImportResult(TableName: "inventory", ImportedCount: 0, Success: false, ErrorMessage: ex.Message);
+        }
+    }
+
+    private async Task<TableImportResult> ImportSystemConfigurationAsync(CanonicalData tableData)
+    {
+        try
+        {
+            if (tableData.RowCount <= 0 || tableData.Rows.Count == 0)
+            {
+                return new TableImportResult(TableName: "system_configuration", ImportedCount: 0, Success: true);
+            }
+
+            var firstRow = tableData.Rows[0];
+            var json = JsonSerializer.Serialize(firstRow);
+            var imported = JsonSerializer.Deserialize<SystemConfiguration>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (imported is null)
+            {
+                return new TableImportResult(
+                    TableName: "system_configuration",
+                    ImportedCount: 0,
+                    Success: false,
+                    ErrorMessage: "Failed to deserialize system configuration row.");
+            }
+
+            await _systemConfigurationStore.SaveAsync(imported);
+
+            return new TableImportResult(TableName: "system_configuration", ImportedCount: 1, Success: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing system configuration");
+            return new TableImportResult(
+                TableName: "system_configuration",
+                ImportedCount: 0,
+                Success: false,
+                ErrorMessage: ex.Message);
         }
     }
 }
