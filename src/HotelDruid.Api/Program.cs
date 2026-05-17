@@ -4,6 +4,7 @@ using HotelDruid.Api.Services;
 using HotelDruid.Api.Services.ExportImport;
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
+using HotelDruid.Shared.Configuration;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
@@ -123,6 +124,7 @@ builder.Services.AddSingleton<FileKvStore>();
 
 // Register Phase 1B repositories
 builder.Services.AddSingleton<IRoomRepository, RoomRepository>();
+builder.Services.AddSingleton<ISystemConfigurationStore, SystemConfigurationStore>();
 builder.Services.AddSingleton<ILedgerRepository>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -219,6 +221,30 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 // --- Mock API endpoints for early Blazor development ---
 
 app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = "2026", User = "admin", Version = "HotelDruid 3.0.7" }));
+
+app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
+{
+    var config = await configurationStore.GetAsync();
+    if (config is null)
+        return Results.NotFound();
+
+    return Results.Ok(config);
+});
+
+app.MapPut("/api/system/configuration", async (SystemConfiguration config, ISystemConfigurationStore configurationStore) =>
+{
+    if (string.IsNullOrWhiteSpace(config.Id))
+        config.Id = "system";
+
+    await configurationStore.SaveAsync(config);
+    return Results.Ok(config);
+});
+
+app.MapDelete("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
+{
+    await configurationStore.DeleteAsync();
+    return Results.NoContent();
+});
 
 // --- Bookings endpoints are defined in Layer 4 section below ---
 
