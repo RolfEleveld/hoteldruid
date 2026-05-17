@@ -126,6 +126,7 @@ builder.Services.AddSingleton<FileKvStore>();
 // Register Phase 1B repositories
 builder.Services.AddSingleton<IRoomRepository, RoomRepository>();
 builder.Services.AddSingleton<ISystemConfigurationStore, SystemConfigurationStore>();
+builder.Services.AddSingleton<IAssumptionRuleEngine, AssumptionRuleEngine>();
 builder.Services.AddSingleton<ILedgerRepository>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -1821,7 +1822,7 @@ PeriodDto ToPeriodDto(string id, PeriodStorageModel s) => new(
     s.Tariff9, s.Tariff9PerPerson, s.Tariff10, s.Tariff10PerPerson,
     s.Tariff11, s.Tariff11PerPerson, s.Tariff12, s.Tariff12PerPerson);
 
-app.MapGet("/api/periods", async (IKeyValueStore store, int? year) =>
+app.MapGet("/api/periods", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
 {
     var idx = await store.GetIndexAsync("periods");
     var prefix = year.HasValue ? $"{year}_" : null;
@@ -1833,6 +1834,12 @@ app.MapGet("/api/periods", async (IKeyValueStore store, int? year) =>
         if (p is null) continue;
         result.Add(ToPeriodDto(kvp.Value, p));
     }
+
+    if (year.HasValue && result.Count == 0)
+    {
+        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("periods", year.Value));
+    }
+
     return Results.Ok(result);
 }).WithName("ListPeriods");
 
@@ -1904,7 +1911,7 @@ app.MapDelete("/api/periods/{year:int}/{id}", async (int year, string id, IKeyVa
 TariffDto ToTariffDto(string id, TariffStorageModel s) => new(
     id, s.Year, s.ExtraCostName, s.CostType, s.BaseValue, s.PercentageValue, s.TaxPercentage, s.Category, s.NumberLimit);
 
-app.MapGet("/api/tariffs", async (IKeyValueStore store, int? year) =>
+app.MapGet("/api/tariffs", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
 {
     var idx = await store.GetIndexAsync("tariffs");
     var prefix = year.HasValue ? $"{year}_" : null;
@@ -1916,6 +1923,12 @@ app.MapGet("/api/tariffs", async (IKeyValueStore store, int? year) =>
         if (t is null) continue;
         result.Add(ToTariffDto(kvp.Value, t));
     }
+
+    if (year.HasValue && result.Count == 0)
+    {
+        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("tariffs", year.Value));
+    }
+
     return Results.Ok(result);
 }).WithName("ListTariffs");
 
