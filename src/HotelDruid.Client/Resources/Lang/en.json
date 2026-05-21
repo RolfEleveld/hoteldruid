@@ -8,6 +8,10 @@
     "import": "Import",
     "cancel": "Cancel",
     "save": "Save",
+    "apply": "Apply",
+    "showAll": "Show All",
+    "delete": "Delete",
+    "details": "Details",
     "download": "Download",
     "upload": "Upload",
     "loading": "Loading...",
@@ -80,7 +84,9 @@
   },
   "language": {
     "switcher": "Language",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "preferenceTitle": "Interface Language",
+    "preferenceDescription": "Overrides browser language for this device."
   },
   "nations": { "title": "Nations", "description": "Country reference list", "name": "Country Name", "code": "ISO Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No nations defined" },
   "regions": { "title": "Regions", "description": "Province / state reference list", "name": "Region Name", "code": "Code", "code2": "Code 2", "code3": "Code 3", "emptyList": "No regions defined" },
@@ -116,10 +122,18 @@
   "userSettings": {
     "title": "Settings",
     "description": "System and user settings",
+    "filterByUserId": "Filter by User ID",
+    "addSetting": "Add Setting",
+    "user": "User",
+    "newSetting": "New Setting",
+    "edit": "Edit",
     "key": "Setting Key",
     "userId": "User ID",
     "stringValue": "Value",
     "numericValue": "Numeric Value",
+    "numericValueShort": "Num",
+    "keyRequired": "Setting key is required.",
+    "selectToView": "Select a setting to view details",
     "emptyList": "No settings defined"
   },
   "clients": {

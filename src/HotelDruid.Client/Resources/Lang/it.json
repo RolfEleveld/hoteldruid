@@ -8,6 +8,10 @@
     "import": "Importa",
     "cancel": "Annulla",
     "save": "Salva",
+    "apply": "Applica",
+    "showAll": "Mostra tutto",
+    "delete": "Elimina",
+    "details": "Dettagli",
     "download": "Scarica",
     "upload": "Carica",
     "loading": "Caricamento...",
@@ -80,7 +84,9 @@
   },
   "language": {
     "switcher": "Lingua",
-    "selectLanguage": "Seleziona lingua"
+    "selectLanguage": "Seleziona lingua",
+    "preferenceTitle": "Lingua dell'interfaccia",
+    "preferenceDescription": "Sostituisce la lingua del browser per questo dispositivo."
   },
   "nations": { "title": "Nazioni", "description": "Lista paesi di riferimento", "name": "Nome Paese", "code": "Codice ISO", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna nazione definita" },
   "regions": { "title": "Regioni", "description": "Lista province/stati", "name": "Nome Regione", "code": "Codice", "code2": "Codice 2", "code3": "Codice 3", "emptyList": "Nessuna regione definita" },
@@ -116,10 +122,18 @@
   "userSettings": {
     "title": "Impostazioni",
     "description": "Impostazioni di sistema e utente",
+    "filterByUserId": "Filtra per ID utente",
+    "addSetting": "Aggiungi impostazione",
+    "user": "Utente",
+    "newSetting": "Nuova impostazione",
+    "edit": "Modifica",
     "key": "Chiave Impostazione",
     "userId": "ID Utente",
     "stringValue": "Valore",
     "numericValue": "Valore Numerico",
+    "numericValueShort": "Num",
+    "keyRequired": "La chiave impostazione è obbligatoria.",
+    "selectToView": "Seleziona un'impostazione per visualizzare i dettagli",
     "emptyList": "Nessuna impostazione definita"
   },
   "clients": {
