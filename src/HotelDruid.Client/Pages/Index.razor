@@ -1,63 +1,68 @@
 @page "/"
 @using System.Net.Http.Json
 @using HotelDruid.Client.Shared
+@using Microsoft.Extensions.Localization
+@using HotelDruid.Client.Localization
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Index.PageTitle"]</PageTitle>
 
 <div class="landing-hero py-5 bg-light">
   <div class="container">
     <div class="text-center mb-4">
-      <h1 class="display-5">Welcome to HotelDruid</h1>
-      <p class="lead text-muted">Hotel Management Control Center</p>
+      <h1 class="display-5">@L["Index.HeroTitle"]</h1>
+      <p class="lead text-muted">@L["Index.HeroSubtitle"]</p>
     </div>
 
     <div class="row gx-3 gy-3 features">
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Rooms" Subtitle="Apartment management" ButtonText="Manage Rooms" ButtonLink="/rooms" BorderClass="border-success" Icon="bi-house-fill" />
+        <FeatureCard Title="@L["Index.Feature.Rooms.Title"]" Subtitle="@L["Index.Feature.Rooms.Subtitle"]" ButtonText="@L["Index.Feature.Rooms.Button"]" ButtonLink="/rooms" BorderClass="border-success" Icon="bi-house-fill" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Assets" Subtitle="Asset inventory" ButtonText="Manage Assets" ButtonLink="/assets" BorderClass="border-info" Icon="bi-box-seam" />
+        <FeatureCard Title="@L["Index.Feature.Assets.Title"]" Subtitle="@L["Index.Feature.Assets.Subtitle"]" ButtonText="@L["Index.Feature.Assets.Button"]" ButtonLink="/assets" BorderClass="border-info" Icon="bi-box-seam" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Warehouses" Subtitle="Stock locations" ButtonText="Manage Warehouses" ButtonLink="/warehouses" BorderClass="border-secondary" Icon="bi-buildings" />
+        <FeatureCard Title="@L["Index.Feature.Warehouses.Title"]" Subtitle="@L["Index.Feature.Warehouses.Subtitle"]" ButtonText="@L["Index.Feature.Warehouses.Button"]" ButtonLink="/warehouses" BorderClass="border-secondary" Icon="bi-buildings" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Inventory" Subtitle="Inventory items" ButtonText="Manage Inventory" ButtonLink="/inventory" BorderClass="border-dark" Icon="bi-boxes" />
+        <FeatureCard Title="@L["Index.Feature.Inventory.Title"]" Subtitle="@L["Index.Feature.Inventory.Subtitle"]" ButtonText="@L["Index.Feature.Inventory.Button"]" ButtonLink="/inventory" BorderClass="border-dark" Icon="bi-boxes" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Reservations" Subtitle="Reservation management" ButtonText="View Reservations" ButtonLink="/bookings" BorderClass="border-primary" Icon="bi-calendar-check-fill" />
+        <FeatureCard Title="@L["Index.Feature.Reservations.Title"]" Subtitle="@L["Index.Feature.Reservations.Subtitle"]" ButtonText="@L["Index.Feature.Reservations.Button"]" ButtonLink="/bookings" BorderClass="border-primary" Icon="bi-calendar-check-fill" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Clients" Subtitle="Guest management" ButtonText="Manage Clients" ButtonLink="/clients" BorderClass="border-warning" Icon="bi-people-fill" />
+        <FeatureCard Title="@L["Index.Feature.Clients.Title"]" Subtitle="@L["Index.Feature.Clients.Subtitle"]" ButtonText="@L["Index.Feature.Clients.Button"]" ButtonLink="/clients" BorderClass="border-warning" Icon="bi-people-fill" />
       </div>
       <div class="col-6 col-md-3">
-        <FeatureCard Title="Calendar" Subtitle="Calendar view" ButtonText="View Calendar" ButtonLink="/calendar" BorderClass="border-purple" Icon="bi-calendar2-week-fill" />
+        <FeatureCard Title="@L["Index.Feature.Calendar.Title"]" Subtitle="@L["Index.Feature.Calendar.Subtitle"]" ButtonText="@L["Index.Feature.Calendar.Button"]" ButtonLink="/calendar" BorderClass="border-purple" Icon="bi-calendar2-week-fill" />
       </div>
     </div>
 
     <div class="quick-actions mt-4">
       <div class="d-flex gap-3 justify-content-center">
-        <QuickAction Text="New Reservation" Icon="bi-plus" Link="/bookings/new" ColorClass="btn-success" />
-        <QuickAction Text="Add Room" Icon="bi-door-open" Link="/rooms/new" ColorClass="btn-primary" />
-          <QuickAction Text="Add Asset" Icon="bi-box" Link="/assets" ColorClass="btn-info" />
-        <QuickAction Text="New Client" Icon="bi-person-plus" Link="/clients/new" ColorClass="btn-warning" />
-        <QuickAction Text="Report" Icon="bi-bar-chart" Link="/reports" ColorClass="btn-purple" />
+        <QuickAction Text="@L["Index.QuickAction.NewReservation"]" Icon="bi-plus" Link="/bookings/new" ColorClass="btn-success" />
+        <QuickAction Text="@L["Index.QuickAction.AddRoom"]" Icon="bi-door-open" Link="/rooms/new" ColorClass="btn-primary" />
+          <QuickAction Text="@L["Index.QuickAction.AddAsset"]" Icon="bi-box" Link="/assets" ColorClass="btn-info" />
+        <QuickAction Text="@L["Index.QuickAction.NewClient"]" Icon="bi-person-plus" Link="/clients/new" ColorClass="btn-warning" />
+        <QuickAction Text="@L["Index.QuickAction.Report"]" Icon="bi-bar-chart" Link="/reports" ColorClass="btn-purple" />
       </div>
     </div>
 
     <div class="status-row mt-5">
       <div class="row gx-3">
         <div class="col-6 col-md-3">
-          <StatusTile Title="Active Year" Value="@(status?.ActiveYear ?? "2026")" />
+          <StatusTile Title="@L["Index.Status.ActiveYear"]" Value="@(status?.ActiveYear ?? "2026")" />
         </div>
         <div class="col-6 col-md-3">
-          <StatusTile Title="Clients" Value="@(clients?.Count.ToString() ?? "0")" />
+          <StatusTile Title="@L["Index.Status.Clients"]" Value="@(clients?.Count.ToString() ?? "0")" />
         </div>
         <div class="col-6 col-md-3">
-          <StatusTile Title="Bookings" Value="@(bookings?.Count.ToString() ?? "0")" />
+          <StatusTile Title="@L["Index.Status.Bookings"]" Value="@(bookings?.Count.ToString() ?? "0")" />
         </div>
         <div class="col-6 col-md-3">
-          <StatusTile Title="Version" Value="@(status?.Version ?? "HotelDruid 3.0.7")" />
+          <StatusTile Title="@L["Index.Status.Version"]" Value="@(status?.Version ?? "HotelDruid 3.0.7")" />
         </div>
       </div>
     </div>

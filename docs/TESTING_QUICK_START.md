@@ -86,7 +86,7 @@ Tests HTTP endpoints:
 Structured event logging:
 - ISystemEventLogger interface
 - WindowsEventLogger implementation
-- SIEM-compatible JSON format
+- SIEM-compatible JSON format for application events
 - Event ID categorization (1000-5099)
 - TestEventCapture for test assertions
 
@@ -186,6 +186,11 @@ C:\Users\{user}\AppData\Local\Temp\HotelDruid-test-{guid}/
 
 ## SIEM Integration
 
+Current scope:
+- The documented support is structured application logging, not dedicated SIEM HTTP endpoints.
+- Reverse proxy and Keycloak logs are separate deployment concerns and can be shipped to the same SIEM externally.
+- End-to-end correlation fields such as trace IDs, correlation IDs, and authenticated user context across proxy, identity provider, and API are not described as implemented in the current code path.
+
 ### Event Log Format
 
 Events are logged as structured JSON:
@@ -204,6 +209,8 @@ Events are logged as structured JSON:
 ```
 
 ### SIEM Consumption
+
+These examples assume your deployment forwards Windows Event Log output, reverse proxy logs, and identity-provider logs into the same SIEM. The repository currently documents only the application event format.
 
 **Splunk**:
 ```spl
@@ -349,7 +356,7 @@ The test infrastructure is now ready to support ongoing development:
 2. **Add more endpoints**: Follow the same API test structure
 3. **Monitor test coverage**: Track what's being tested
 4. **Run regression tests**: Before each release
-5. **Monitor SIEM events**: Track system behavior in production
+5. **Monitor SIEM inputs**: Collect application logs and, where deployed, proxy and identity-provider logs
 
 For questions about specific tests, see `docs/TEST_INFRASTRUCTURE.md` for detailed reference.
 

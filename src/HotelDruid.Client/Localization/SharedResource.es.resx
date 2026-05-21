@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MainLayout.About" xml:space="preserve">
+    <value>Acerca de</value>
+  </data>
+  <data name="NotFound.Title" xml:space="preserve">
+    <value>No encontrado</value>
+  </data>
+  <data name="NotFound.Message" xml:space="preserve">
+    <value>Lo sentimos, el contenido que buscas no existe.</value>
+  </data>
+  <data name="Index.PageTitle" xml:space="preserve"><value>Inicio</value></data>
+  <data name="Index.HeroTitle" xml:space="preserve"><value>Bienvenido a HotelDruid</value></data>
+  <data name="Index.HeroSubtitle" xml:space="preserve"><value>Centro de control para la gestión hotelera</value></data>
+  <data name="Index.Feature.Rooms.Title" xml:space="preserve"><value>Habitaciones</value></data>
+  <data name="Index.Feature.Rooms.Subtitle" xml:space="preserve"><value>Gestión de apartamentos</value></data>
+  <data name="Index.Feature.Rooms.Button" xml:space="preserve"><value>Gestionar habitaciones</value></data>
+  <data name="Index.Feature.Assets.Title" xml:space="preserve"><value>Activos</value></data>
+  <data name="Index.Feature.Assets.Subtitle" xml:space="preserve"><value>Inventario de activos</value></data>
+  <data name="Index.Feature.Assets.Button" xml:space="preserve"><value>Gestionar activos</value></data>
+  <data name="Index.Feature.Warehouses.Title" xml:space="preserve"><value>Almacenes</value></data>
+  <data name="Index.Feature.Warehouses.Subtitle" xml:space="preserve"><value>Ubicaciones de stock</value></data>
+  <data name="Index.Feature.Warehouses.Button" xml:space="preserve"><value>Gestionar almacenes</value></data>
+  <data name="Index.Feature.Inventory.Title" xml:space="preserve"><value>Inventario</value></data>
+  <data name="Index.Feature.Inventory.Subtitle" xml:space="preserve"><value>Artículos de inventario</value></data>
+  <data name="Index.Feature.Inventory.Button" xml:space="preserve"><value>Gestionar inventario</value></data>
+  <data name="Index.Feature.Reservations.Title" xml:space="preserve"><value>Reservas</value></data>
+  <data name="Index.Feature.Reservations.Subtitle" xml:space="preserve"><value>Gestión de reservas</value></data>
+  <data name="Index.Feature.Reservations.Button" xml:space="preserve"><value>Ver reservas</value></data>
+  <data name="Index.Feature.Clients.Title" xml:space="preserve"><value>Clientes</value></data>
+  <data name="Index.Feature.Clients.Subtitle" xml:space="preserve"><value>Gestión de huéspedes</value></data>
+  <data name="Index.Feature.Clients.Button" xml:space="preserve"><value>Gestionar clientes</value></data>
+  <data name="Index.Feature.Calendar.Title" xml:space="preserve"><value>Calendario</value></data>
+  <data name="Index.Feature.Calendar.Subtitle" xml:space="preserve"><value>Vista de calendario</value></data>
+  <data name="Index.Feature.Calendar.Button" xml:space="preserve"><value>Ver calendario</value></data>
+  <data name="Index.QuickAction.NewReservation" xml:space="preserve"><value>Nueva reserva</value></data>
+  <data name="Index.QuickAction.AddRoom" xml:space="preserve"><value>Añadir habitación</value></data>
+  <data name="Index.QuickAction.AddAsset" xml:space="preserve"><value>Añadir activo</value></data>
+  <data name="Index.QuickAction.NewClient" xml:space="preserve"><value>Nuevo cliente</value></data>
+  <data name="Index.QuickAction.Report" xml:space="preserve"><value>Informe</value></data>
+  <data name="Index.Status.ActiveYear" xml:space="preserve"><value>Año activo</value></data>
+  <data name="Index.Status.Clients" xml:space="preserve"><value>Clientes</value></data>
+  <data name="Index.Status.Bookings" xml:space="preserve"><value>Reservas</value></data>
+  <data name="Index.Status.Version" xml:space="preserve"><value>Versión</value></data>
+</root>

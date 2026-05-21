@@ -5,7 +5,7 @@
 Comprehensive test suite with multiple layers of validation:
 - **Unit Tests**: FileKeyValueStore, IdGenerator with file system validation
 - **Integration Tests**: API endpoints with WebApplicationFactory
-- **Event Logging**: System events for SIEM integration
+- **Event Logging**: Structured application events suitable for SIEM ingestion
 - **Test Dashboard**: HTML and JSON reports for CI/CD
 
 ---
@@ -20,7 +20,7 @@ Comprehensive test suite with multiple layers of validation:
 
 ### Logging & Instrumentation
 - **ILogger**: Structured logging throughout tests
-- **ISystemEventLogger**: SIEM-compatible event logging
+- **ISystemEventLogger**: SIEM-compatible application event logging
 - **XunitLogger**: Integration between xUnit output and ILogger
 
 ---
@@ -148,6 +148,11 @@ Events are logged as JSON for SIEM consumption:
 
 ### SIEM Integration
 
+Current implementation notes:
+- The API exposes no dedicated SIEM ingestion or query endpoints.
+- `WindowsEventLogger` defines a structured JSON event format, but it is not yet wired into end-to-end request correlation across reverse proxy, Keycloak, and API.
+- Reverse proxy and Keycloak logs can still be collected separately by a SIEM platform, but that cross-system correlation must be configured in the deployment stack.
+
 The structured JSON format makes logs consumable by:
 - **Splunk**: Parse JSON events, create dashboards
 - **ELK Stack**: Elasticsearch index, Kibana visualizations
@@ -160,6 +165,8 @@ The structured JSON format makes logs consumable by:
 Get-EventLog -LogName Application -Source HotelDruid | 
   Where-Object { $_.Message -match '"OperationType":"CREATE"' }
 ```
+
+This should be read as log-format guidance, not as evidence of full distributed tracing. Correlation IDs, trace IDs, and authenticated user propagation across all layers are not documented as implemented in the current API startup path.
 
 ---
 

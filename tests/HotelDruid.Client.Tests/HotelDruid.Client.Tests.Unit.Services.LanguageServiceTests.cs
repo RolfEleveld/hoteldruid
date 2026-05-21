@@ -1,8 +1,7 @@
 using Xunit;
 using HotelDruid.Client.Services;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 
 namespace HotelDruid.Client.Tests.Unit.Services
 {
@@ -12,12 +11,12 @@ namespace HotelDruid.Client.Tests.Unit.Services
     public class LanguageServiceTests : IAsyncLifetime
     {
         private LanguageService _languageService = null!;
-        private HttpClientMock _httpClientMock = null!;
+        private FakeClientCultureService _cultureService = null!;
 
         public async Task InitializeAsync()
         {
-            _httpClientMock = new HttpClientMock();
-            _languageService = new LanguageService(_httpClientMock.GetHttpClient());
+            _cultureService = new FakeClientCultureService();
+            _languageService = new LanguageService(_cultureService);
             await _languageService.InitializeAsync();
         }
 
@@ -157,67 +156,27 @@ namespace HotelDruid.Client.Tests.Unit.Services
         }
     }
 
-    /// <summary>
-    /// Mock HttpClient for testing
-    /// </summary>
-    public class HttpClientMock : IDisposable
+    internal sealed class FakeClientCultureService : IClientCultureService
     {
-        private readonly HttpMessageHandlerMock _handler;
-        private readonly HttpClient _httpClient;
-
-        public HttpClientMock()
+        private static readonly IReadOnlyList<CultureInfo> Cultures = new[]
         {
-            _handler = new HttpMessageHandlerMock();
-            _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost/") };
-        }
-
-        public HttpClient GetHttpClient() => _httpClient;
-
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-            _handler?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Mock HTTP message handler for testing HTTP calls
-    /// </summary>
-    public class HttpMessageHandlerMock : HttpMessageHandler
-    {
-        private readonly Dictionary<string, string> _responses = new()
-        {
-            { "Resources/Lang/en.json", LoadEmbeddedResource("en.json") },
-            { "Resources/Lang/es.json", LoadEmbeddedResource("es.json") },
-            { "Resources/Lang/it.json", LoadEmbeddedResource("it.json") }
+            CultureInfo.GetCultureInfo("en"),
+            CultureInfo.GetCultureInfo("es"),
+            CultureInfo.GetCultureInfo("it")
         };
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var uri = request.RequestUri?.ToString() ?? string.Empty;
-            var matchedKey = _responses.Keys.FirstOrDefault(k => uri.EndsWith(k));
-            
-            if (matchedKey != null && _responses.TryGetValue(matchedKey, out var content))
-            {
-                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
-                {
-                    Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json")
-                });
-            }
+        public CultureInfo CurrentCulture { get; private set; } = CultureInfo.GetCultureInfo("en");
+        public IReadOnlyList<CultureInfo> SupportedCultures => Cultures;
 
-            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+        public Task InitializeAsync()
+        {
+            return Task.CompletedTask;
         }
 
-        private static string LoadEmbeddedResource(string fileName)
+        public Task SetCultureAsync(string cultureName, bool persistPreference = true)
         {
-            // Return sample JSON for testing
-            return fileName switch
-            {
-                "en.json" => @"{""language"":{""name"":""English"",""code"":""en""},""common"":{""export"":""Export"",""import"":""Import""},""rooms"":{""title"":""Top Rooms""}}",
-                "es.json" => @"{""language"":{""name"":""Español"",""code"":""es""},""common"":{""export"":""Exportar"",""import"":""Importar""},""rooms"":{""title"":""Habitaciones Principales""}}",
-                "it.json" => @"{""language"":{""name"":""Italiano"",""code"":""it""},""common"":{""export"":""Esporta"",""import"":""Importa""},""rooms"":{""title"":""Camere Principali""}}",
-                _ => "{}"
-            };
+            CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            return Task.CompletedTask;
         }
     }
 }

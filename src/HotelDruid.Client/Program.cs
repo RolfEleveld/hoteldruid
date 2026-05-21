@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using HotelDruid.Client;
+using HotelDruid.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddLocalization();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<IClientCultureService, ClientCultureService>();
+builder.Services.AddScoped<ILanguageService, LanguageService>();
 // Register Asset API client service
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssetApiService, HotelDruid.Client.Services.AssetApiService>();
 // Warehouses and Inventory services
@@ -47,5 +51,9 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IContractTemplateApiServic
 builder.Services.AddScoped<HotelDruid.Client.Services.IExternalIntegrationApiService, HotelDruid.Client.Services.ExternalIntegrationApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.ISessionApiService, HotelDruid.Client.Services.SessionApiService>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+var cultureService = host.Services.GetRequiredService<IClientCultureService>();
+await cultureService.InitializeAsync();
+
+await host.RunAsync();
 

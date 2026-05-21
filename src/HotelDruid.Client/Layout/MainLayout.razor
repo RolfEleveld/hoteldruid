@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.Extensions.Localization
+@using HotelDruid.Client.Localization
+@inject IStringLocalizer<SharedResource> L
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -6,7 +10,7 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">@L["MainLayout.About"]</a>
         </div>
 
         <article class="content px-4">
