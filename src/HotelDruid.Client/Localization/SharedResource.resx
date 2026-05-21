@@ -60,4 +60,45 @@
   <data name="Index.Status.Clients" xml:space="preserve"><value>Clients</value></data>
   <data name="Index.Status.Bookings" xml:space="preserve"><value>Bookings</value></data>
   <data name="Index.Status.Version" xml:space="preserve"><value>Version</value></data>
+  <data name="Nav.Toggle" xml:space="preserve"><value>Navigation menu</value></data>
+  <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
+  <data name="Nav.Assets" xml:space="preserve"><value>Assets</value></data>
+  <data name="Nav.Warehouses" xml:space="preserve"><value>Warehouses</value></data>
+  <data name="Nav.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="Nav.Clients" xml:space="preserve"><value>Clients</value></data>
+  <data name="Nav.ClientData" xml:space="preserve"><value>Client Data</value></data>
+  <data name="Nav.Nations" xml:space="preserve"><value>Nations</value></data>
+  <data name="Nav.Regions" xml:space="preserve"><value>Regions</value></data>
+  <data name="Nav.Cities" xml:space="preserve"><value>Cities</value></data>
+  <data name="Nav.IdentityDocumentTypes" xml:space="preserve"><value>ID Document Types</value></data>
+  <data name="Nav.FamilyRelationships" xml:space="preserve"><value>Family Relationships</value></data>
+  <data name="Nav.CashRegisters" xml:space="preserve"><value>Cash Registers</value></data>
+  <data name="Nav.UserGroups" xml:space="preserve"><value>User Groups</value></data>
+  <data name="Nav.Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Nav.Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Nav.Setup" xml:space="preserve"><value>Setup</value></data>
+  <data name="Nav.UserPrivileges" xml:space="preserve"><value>User Privileges</value></data>
+  <data name="Nav.UserPreferences" xml:space="preserve"><value>User Preferences</value></data>
+  <data name="Nav.GroupMemberships" xml:space="preserve"><value>Group Memberships</value></data>
+  <data name="Nav.Years" xml:space="preserve"><value>Years</value></data>
+  <data name="Nav.Periods" xml:space="preserve"><value>Periods</value></data>
+  <data name="Nav.Tariffs" xml:space="preserve"><value>Tariffs</value></data>
+  <data name="Nav.AssignmentRules" xml:space="preserve"><value>Assignment Rules</value></data>
+  <data name="Nav.Bookings" xml:space="preserve"><value>Bookings</value></data>
+  <data name="Nav.BookingCosts" xml:space="preserve"><value>Booking Costs</value></data>
+  <data name="Nav.BookingGuests" xml:space="preserve"><value>Booking Guests</value></data>
+  <data name="Nav.CancelledBookings" xml:space="preserve"><value>Cancelled Bookings</value></data>
+  <data name="Nav.Expenses" xml:space="preserve"><value>Expenses</value></data>
+  <data name="Nav.MoneyHistory" xml:space="preserve"><value>Money History</value></data>
+  <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="Nav.ContractTemplates" xml:space="preserve"><value>Contract Templates</value></data>
+  <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>External Integrations</value></data>
+  <data name="Nav.Sessions" xml:space="preserve"><value>Sessions</value></data>
+  <data name="Nav.Section.GuestManagement" xml:space="preserve"><value>Guest Management</value></data>
+  <data name="Nav.Section.ReferenceData" xml:space="preserve"><value>Reference Data</value></data>
+  <data name="Nav.Section.Configuration" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Nav.Section.UserManagement" xml:space="preserve"><value>User Management</value></data>
+  <data name="Nav.Section.YearOperations" xml:space="preserve"><value>YEAR OPERATIONS</value></data>
+  <data name="Nav.Section.BookingsFinance" xml:space="preserve"><value>BOOKINGS &amp; FINANCE</value></data>
+  <data name="Nav.Section.Communication" xml:space="preserve"><value>COMMUNICATION</value></data>
 </root>
