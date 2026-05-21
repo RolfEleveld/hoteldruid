@@ -2,6 +2,7 @@
 @using HotelDruid.Client.Services
 @inject IRoomApiService RoomApiService
 @inject ILanguageService LanguageService
+@implements IDisposable
 
 <div class="import-settings-panel">
     <div style="border: 1px solid #e0e0e0; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
@@ -108,6 +109,17 @@
     private bool ImportError = false;
     private IBrowserFile? SelectedFile;
 
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageService.LanguageChanged += OnLanguageChanged;
+        await LanguageService.InitializeAsync();
+    }
+
+    private void OnLanguageChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
         SelectedFile = e.File;
@@ -186,6 +198,11 @@
         {
             IsImporting = false;
         }
+    }
+
+    public void Dispose()
+    {
+        LanguageService.LanguageChanged -= OnLanguageChanged;
     }
 }
 

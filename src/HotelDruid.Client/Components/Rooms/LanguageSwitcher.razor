@@ -1,6 +1,7 @@
 @namespace HotelDruid.Client.Components.Rooms
 @using HotelDruid.Client.Services
 @inject ILanguageService LanguageService
+@implements IDisposable
 
 <div class="language-switcher" style="padding: 8px; background: #f5f5f5; border-radius: 5px; display: inline-block;">
     <label style="margin-right: 8px;">
@@ -17,6 +18,17 @@
 </div>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        LanguageService.LanguageChanged += OnLanguageServiceChanged;
+        await LanguageService.InitializeAsync();
+    }
+
+    private void OnLanguageServiceChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     private async Task OnLanguageChanged(ChangeEventArgs e)
     {
         var languageCode = e.Value?.ToString();
@@ -24,6 +36,11 @@
         {
             await LanguageService.SetLanguageAsync(languageCode);
         }
+    }
+
+    public void Dispose()
+    {
+        LanguageService.LanguageChanged -= OnLanguageServiceChanged;
     }
 }
 

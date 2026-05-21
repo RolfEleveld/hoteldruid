@@ -2,6 +2,7 @@
 @using HotelDruid.Client.Services
 @inject IWarehouseApiService WarehouseApi
 @inject ILanguageService LanguageService
+@implements IDisposable
 
 <div class="rpanels">
     <div class="rbox">
@@ -34,8 +35,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        LanguageService.LanguageChanged += OnLanguageChanged;
         await LanguageService.InitializeAsync();
         await LoadAsync();
+    }
+
+    private void OnLanguageChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadAsync()
@@ -47,6 +54,11 @@
         }
         catch { }
         finally { Loading = false; }
+    }
+
+    public void Dispose()
+    {
+        LanguageService.LanguageChanged -= OnLanguageChanged;
     }
 }
 
