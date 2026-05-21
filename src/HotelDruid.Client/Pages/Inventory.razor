@@ -2,22 +2,24 @@
 @using HotelDruid.Client.Services
 @inject IInventoryApiService InventoryApi
 
-<PageTitle>Inventory Management</PageTitle>
+@inject ILanguageService LanguageService
+
+<PageTitle>@LanguageService.GetText("inventory.title", "Inventory")</PageTitle>
 
 <div class="container-fluid inventory-manager">
     <div class="row">
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Inventory</h5>
+                    <h5 class="card-title">@LanguageService.GetText("inventory.title", "Inventory")</h5>
                     <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> Add Item</button>
                     @if (rows == null)
                     {
-                        <div>Loading...</div>
+                        <div>@LanguageService.GetText("common.loading", "Loading...")</div>
                     }
                     else if (rows.Count == 0)
                     {
-                        <div class="alert alert-info">No inventory items yet.</div>
+                        <div class="alert alert-info">@LanguageService.GetText("inventory.emptyList", "No inventory items yet.")</div>
                     }
                     else
                     {
@@ -35,7 +37,7 @@
         <div class="col-md-5">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@((selected == null) ? "New Item" : "Edit Item")</h5>
+                    <h5 class="card-title">@LanguageService.GetText("inventory.title", "Inventory")</h5>
                     @if (!string.IsNullOrWhiteSpace(validationMessage))
                     {
                         <div class="alert alert-warning" role="alert">@validationMessage</div>
@@ -45,10 +47,10 @@
                     <div class="mb-3"><label class="form-label">Warehouse ID</label><input class="form-control" @bind="edit.WarehouseId" /></div>
                     <div class="mb-3"><label class="form-label">Quantity</label><input type="number" class="form-control" @bind="edit.Quantity" /></div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        <button class="btn btn-primary" @onclick="Save">@LanguageService.GetText("common.save", "Save")</button>
                         @if (selected != null)
                         {
-                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                            <button class="btn btn-danger" @onclick="Delete">@LanguageService.GetText("common.delete", "Delete")</button>
                         }
                     </div>
                 </div>
@@ -58,7 +60,7 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Details</h5>
+                    <h5 class="card-title">@LanguageService.GetText("inventory.title", "Inventory")</h5>
                     @if (selected != null)
                     {
                         <dl class="row">

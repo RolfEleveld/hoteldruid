@@ -3,22 +3,24 @@
 @inject IMessageApiService MessageApi
 @inject HttpClient Http
 
-<PageTitle>Messages</PageTitle>
+@inject ILanguageService LanguageService
+
+<PageTitle>@LanguageService.GetText("messages.title", "Messages")</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Messages</h5>
+                    <h5 class="card-title">@LanguageService.GetText("messages.title", "Messages")</h5>
                     <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> New Message</button>
                     @if (items == null)
                     {
-                        <div>Loading...</div>
+                        <div>@LanguageService.GetText("common.loading", "Loading...")</div>
                     }
                     else if (items.Count == 0)
                     {
-                        <div class="alert alert-info">No messages yet.</div>
+                        <div class="alert alert-info">@LanguageService.GetText("messages.emptyList", "No messages yet.")</div>
                     }
                     else
                     {
@@ -38,7 +40,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@((selected == null) ? "New Message" : "Edit Message")</h5>
+                    <h5 class="card-title">@LanguageService.GetText("messages.title", "Messages")</h5>
                     <div class="mb-3">
                         <label class="form-label">Sender</label>
                         <input class="form-control" @bind="editSender" />
@@ -61,7 +63,7 @@
                         {
                             <button class="btn btn-warning" @onclick="MarkRead">Mark Read</button>
                             <button class="btn btn-secondary" @onclick="Archive">Archive</button>
-                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                            <button class="btn btn-danger" @onclick="Delete">@LanguageService.GetText("common.delete", "Delete")</button>
                         }
                     </div>
                 </div>
@@ -71,7 +73,7 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Details</h5>
+                    <h5 class="card-title">@LanguageService.GetText("messages.title", "Messages")</h5>
                     @if (selected != null)
                     {
                         <dl class="row">

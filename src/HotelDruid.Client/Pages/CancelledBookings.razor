@@ -2,7 +2,9 @@
 @using HotelDruid.Client.Services
 @inject ICancelledBookingApiService CancelledBookingApi
 
-<PageTitle>Cancelled Bookings</PageTitle>
+@inject ILanguageService LanguageService
+
+<PageTitle>@LanguageService.GetText("cancelledBookings.title", "Cancelled Bookings")</PageTitle>
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Cancelled Bookings</h5></div>
@@ -14,7 +16,7 @@
     </div>
     <div class="row">
         <div class="col-md-4 border-end">
-            @if (records is null) { <p><em>Loading...</em></p> }
+            @if (records is null) { <p><em>@LanguageService.GetText("common.loading", "Loading...")</em></p> }
             else if (records.Count == 0) { <p class="text-muted">No cancelled bookings</p> }
             else
             {
@@ -33,7 +35,7 @@
         <div class="col-md-8">
             @if (selected is not null)
             {
-                <h5 class="mt-1">Details</h5>
+                <h5 class="mt-1">@LanguageService.GetText("common.details", "Details")</h5>
                 <dl>
                     <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>Client ID</dt><dd>@selected.ClientId</dd>

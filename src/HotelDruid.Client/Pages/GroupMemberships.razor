@@ -2,7 +2,9 @@
 @using HotelDruid.Client.Services
 @inject IGroupMembershipApiService GroupMembershipApi
 
-<PageTitle>Group Memberships</PageTitle>
+@inject ILanguageService LanguageService
+
+<PageTitle>@LanguageService.GetText("groupMemberships.title", "Group Memberships")</PageTitle>
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-4 border-end">
@@ -34,8 +36,8 @@
                 <div class="mb-2"><label>User ID *</label><input class="form-control" type="number" @bind="form.UserId" /></div>
                 <div class="mb-2"><label>Group ID *</label><input class="form-control" type="number" @bind="form.GroupId" /></div>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
-                <button class="btn btn-primary me-2" @onclick="Save">Save</button>
-                <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                <button class="btn btn-primary me-2" @onclick="Save">@LanguageService.GetText("common.save", "Save")</button>
+                <button class="btn btn-secondary" @onclick="Cancel">@LanguageService.GetText("common.cancel", "Cancel")</button>
             }
         </div>
     </div>

@@ -2,22 +2,24 @@
 @using HotelDruid.Client.Services
 @inject IIdentityDocumentTypeApiService DocTypeApi
 
-<PageTitle>Identity Document Types Management</PageTitle>
+@inject ILanguageService LanguageService
+
+<PageTitle>@LanguageService.GetText("identityDocumentTypes.title", "Identity Document Types")</PageTitle>
 
 <div class="container-fluid assets-manager">
     <div class="row">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Identity Document Types</h5>
+                    <h5 class="card-title">@LanguageService.GetText("identityDocumentTypes.title", "Identity Document Types")</h5>
                     <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> Add Document Type</button>
                     @if (items == null)
                     {
-                        <div>Loading...</div>
+                        <div>@LanguageService.GetText("common.loading", "Loading...")</div>
                     }
                     else if (items.Count == 0)
                     {
-                        <div class="alert alert-info">No document types defined.</div>
+                        <div class="alert alert-info">@LanguageService.GetText("identityDocumentTypes.emptyList", "No document types defined.")</div>
                     }
                     else
                     {
@@ -35,7 +37,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@((selected == null) ? "New Document Type" : "Edit Document Type")</h5>
+                    <h5 class="card-title">@LanguageService.GetText("identityDocumentTypes.title", "Identity Document Types")</h5>
                     <div class="mb-3">
                         <label class="form-label">Document Type <span class="text-danger">*</span></label>
                         <input class="form-control" @bind="editModel.Name" />
@@ -54,10 +56,10 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">Save</button>
+                        <button class="btn btn-primary" @onclick="Save">@LanguageService.GetText("common.save", "Save")</button>
                         @if (selected != null)
                         {
-                            <button class="btn btn-danger" @onclick="Delete">Delete</button>
+                            <button class="btn btn-danger" @onclick="Delete">@LanguageService.GetText("common.delete", "Delete")</button>
                         }
                     </div>
                     @if (!string.IsNullOrEmpty(errorMessage))
@@ -71,7 +73,7 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Details</h5>
+                    <h5 class="card-title">@LanguageService.GetText("identityDocumentTypes.title", "Identity Document Types")</h5>
                     @if (selected != null)
                     {
                         <dl class="row">

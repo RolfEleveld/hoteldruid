@@ -1,7 +1,9 @@
 ﻿@page "/home"
+@using HotelDruid.Client.Services
+@inject ILanguageService LanguageService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>@LanguageService.GetText("home.title", "Home")</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>@LanguageService.GetText("home.heading", "Hello, world!")</h1>
 
-Welcome to your new app.
+@LanguageService.GetText("home.message", "Welcome to your new app.")
