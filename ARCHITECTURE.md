@@ -1107,7 +1107,7 @@ flowchart LR
 
 ---
 
-## 15. Getting Started
+## 17. Getting Started
 
 **Next Steps:**
 1. Create `src/HotelDruid.Services/` project
@@ -1124,7 +1124,7 @@ flowchart LR
 
 ---
 
-## 16. Initial Setup, Configuration, and Assumption Engine (Current)
+## 18. Initial Setup, Configuration, and Assumption Engine (Current)
 
 This section documents the latest implemented behavior for first-run setup, system configuration persistence, and assumption-driven self-healing.
 
@@ -1216,7 +1216,7 @@ Implemented regression tests cover:
 - non-healed invalid-entity paths returning `404`
 
 
-## 17. Future Considerations
+## 19. Future Considerations
 
 **Scalability Options** (when/if needed):
 - Multi-instance deployment — would need distributed locking or message queue
@@ -1230,7 +1230,7 @@ Implemented regression tests cover:
 
 ---
 
-## 18. Software Bill of Materials (SBOM)
+## 20. Software Bill of Materials (SBOM)
 
 For electronic processing, the industry-standard SBOM formats are:
 - **SPDX** — broadly used for license and compliance exchange
