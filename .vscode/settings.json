@@ -1,4 +1,6 @@
 {
+  "git.autofetch": "all",
+  "git.pruneOnFetch": true,
   "postman.settings.dotenv-detection-notification-visibility": false,
   "chat.tools.terminal.autoApprove": {
     "dotnet build": true,
