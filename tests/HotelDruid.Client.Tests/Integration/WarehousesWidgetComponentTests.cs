@@ -6,6 +6,7 @@ using HotelDruid.Client.Services;
 using Moq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using HotelDruid.Client.Tests;
 
 namespace HotelDruid.Client.Tests.Integration.Components
 {
@@ -16,6 +17,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
 
         public WarehousesWidgetComponentTests()
         {
+            Services.AddClientLocalizationTestSupport();
             _mockService = new Mock<IWarehouseApiService>();
             _mockLang = new Mock<ILanguageService>();
             _mockLang.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>())).Returns((string k, string d) => d);

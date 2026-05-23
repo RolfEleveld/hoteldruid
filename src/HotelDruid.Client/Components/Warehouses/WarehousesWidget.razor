@@ -1,20 +1,19 @@
 @namespace HotelDruid.Client.Components.Warehouses
 @using HotelDruid.Client.Services
 @inject IWarehouseApiService WarehouseApi
-@inject ILanguageService LanguageService
-@implements IDisposable
+@inject IStringLocalizer<SharedResource> L
 
 <div class="rpanels">
     <div class="rbox">
-        <div class="rheader">@LanguageService.GetText("warehouses.title","Top Warehouses")</div>
+        <div class="rheader">@L["warehouses.title", "Top Warehouses"]</div>
         <div class="rcontent">
             @if (Loading)
             {
-                <p>@LanguageService.GetText("common.loading","Loading...")</p>
+                <p>@L["common.loading", "Loading..."]</p>
             }
             else if (!Items.Any())
             {
-                <p>@LanguageService.GetText("warehouses.empty","No warehouses available")</p>
+                <p>@L["warehouses.empty", "No warehouses available"]</p>
             }
             else
             {
@@ -35,14 +34,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        LanguageService.LanguageChanged += OnLanguageChanged;
-        await LanguageService.InitializeAsync();
         await LoadAsync();
-    }
-
-    private void OnLanguageChanged()
-    {
-        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadAsync()
@@ -56,9 +48,6 @@
         finally { Loading = false; }
     }
 
-    public void Dispose()
-    {
-        LanguageService.LanguageChanged -= OnLanguageChanged;
-    }
 }
+
 
