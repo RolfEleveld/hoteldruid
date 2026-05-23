@@ -40,6 +40,13 @@ jobs:
           path: deployment-package/
           retention-days: 14
 
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoteldruid-sbom-${{ github.run_number }}
+          path: deployment-package/sbom/
+          retention-days: 14
+
       - name: Build release archive
         if: github.event_name != 'pull_request'
         run: |
@@ -57,8 +64,10 @@ jobs:
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag ./hoteldruid-deployment-package.zip --clobber
+            gh release upload $tag ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json --clobber
+            gh release upload $tag ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --clobber
             gh release edit $tag --title $title --notes $notes --target $env:GITHUB_SHA
           } else {
-            gh release create $tag ./hoteldruid-deployment-package.zip --title $title --notes $notes --target $env:GITHUB_SHA
+            gh release create $tag ./hoteldruid-deployment-package.zip ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --title $title --notes $notes --target $env:GITHUB_SHA
           }
         shell: pwsh
