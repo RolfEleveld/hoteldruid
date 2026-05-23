@@ -2,24 +2,24 @@
 @using HotelDruid.Client.Services
 @inject IUserApiService UserApi
 
-@inject ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@LanguageService.GetText("users.title", "Users")</PageTitle>
+<PageTitle>@L["users.title", "Users"]</PageTitle>
 
 <div class="container-fluid assets-manager">
     <div class="row">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("users.title", "Users")</h5>
+                    <h5 class="card-title">@L["users.title", "Users"]</h5>
                     <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> Add User</button>
                     @if (items == null)
                     {
-                        <div>@LanguageService.GetText("common.loading", "Loading...")</div>
+                        <div>@L["common.loading", "Loading..."]</div>
                     }
                     else if (items.Count == 0)
                     {
-                        <div class="alert alert-info">@LanguageService.GetText("users.emptyList", "No users defined.")</div>
+                        <div class="alert alert-info">@L["users.emptyList", "No users defined."]</div>
                     }
                     else
                     {
@@ -37,7 +37,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("users.title", "Users")</h5>
+                    <h5 class="card-title">@L["users.title", "Users"]</h5>
                     <div class="mb-3">
                         <label class="form-label">Username <span class="text-danger">*</span></label>
                         <input class="form-control" @bind="editModel.Username" />
@@ -58,10 +58,10 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">@LanguageService.GetText("common.save", "Save")</button>
+                        <button class="btn btn-primary" @onclick="Save">@L["common.save", "Save"]</button>
                         @if (selected != null)
                         {
-                            <button class="btn btn-danger" @onclick="Delete">@LanguageService.GetText("common.delete", "Delete")</button>
+                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete", "Delete"]</button>
                             <button class="btn btn-warning" @onclick="ShowChangePassword">Change Password</button>
                         }
                     </div>
@@ -83,7 +83,7 @@
                         </div>
                         <div class="d-flex gap-2">
                             <button class="btn btn-warning" @onclick="DoChangePassword">Update Password</button>
-                            <button class="btn btn-secondary" @onclick="() => showChangePassword = false">@LanguageService.GetText("common.cancel", "Cancel")</button>
+                            <button class="btn btn-secondary" @onclick="() => showChangePassword = false">@L["common.cancel", "Cancel"]</button>
                         </div>
                         @if (!string.IsNullOrEmpty(passwordMessage))
                         {
@@ -97,7 +97,7 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("users.title", "Users")</h5>
+                    <h5 class="card-title">@L["users.title", "Users"]</h5>
                     @if (selected != null)
                     {
                         <dl class="row">
@@ -204,4 +204,5 @@
         public static EditModel From(UserDto dto) => new() { Username = dto.Username ?? string.Empty, PasswordType = dto.PasswordType ?? "n" };
     }
 }
+
 

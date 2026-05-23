@@ -3,20 +3,20 @@
 @inject ISessionApiService SessionApi
 @inject HttpClient Http
 
-@inject ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@LanguageService.GetText("sessions.title", "Sessions")</PageTitle>
+<PageTitle>@L["sessions.title", "Sessions"]</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("sessions.title", "Sessions")</h5>
+                    <h5 class="card-title">@L["sessions.title", "Sessions"]</h5>
                     <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> New Session</button>
                     @if (items == null)
                     {
-                        <div>@LanguageService.GetText("common.loading", "Loading...")</div>
+                        <div>@L["common.loading", "Loading..."]</div>
                     }
                     else if (items.Count == 0)
                     {
@@ -40,7 +40,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("sessions.title", "Sessions")</h5>
+                    <h5 class="card-title">@L["sessions.title", "Sessions"]</h5>
                     @if (selected == null)
                     {
                         <div class="mb-3">
@@ -65,7 +65,7 @@
                     {
                         <div class="d-flex gap-2">
                             <button class="btn btn-warning" @onclick="Touch">Touch (Update Last Access)</button>
-                            <button class="btn btn-danger" @onclick="Delete">@LanguageService.GetText("common.delete", "Delete")</button>
+                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete", "Delete"]</button>
                         </div>
                     }
                 </div>
@@ -75,7 +75,7 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@LanguageService.GetText("sessions.title", "Sessions")</h5>
+                    <h5 class="card-title">@L["sessions.title", "Sessions"]</h5>
                     @if (selected != null)
                     {
                         <dl class="row">
@@ -150,4 +150,5 @@
         await Load();
     }
 }
+
 

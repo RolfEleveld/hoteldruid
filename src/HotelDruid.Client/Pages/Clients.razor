@@ -2,9 +2,9 @@
 @using HotelDruid.Client.Services
 @inject IClientApiService ClientApi
 
-@inject ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@LanguageService.GetText("clients.title", "Clients")</PageTitle>
+<PageTitle>@L["clients.title", "Clients"]</PageTitle>
 <div class="container-fluid assets-manager">
     <div class="row">
         <div class="col-md-3 border-end">
@@ -12,11 +12,11 @@
             <button class="btn btn-sm btn-primary mb-2" @onclick="NewClient">+ New</button>
             @if (clients is null)
             {
-                <p><em>@LanguageService.GetText("common.loading", "Loading...")</em></p>
+                <p><em>@L["common.loading", "Loading..."]</em></p>
             }
             else if (clients.Count == 0)
             {
-                <p class="text-muted">@LanguageService.GetText("clients.emptyList", "No clients registered")</p>
+                <p class="text-muted">@L["clients.emptyList", "No clients registered"]</p>
             }
             else
             {
@@ -88,14 +88,14 @@
                     <textarea class="form-control" rows="3" @bind="form.Notes"></textarea>
                 </div>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
-                <button class="btn btn-primary me-2" @onclick="Save">@LanguageService.GetText("common.save", "Save")</button>
-                <button class="btn btn-secondary" @onclick="Cancel">@LanguageService.GetText("common.cancel", "Cancel")</button>
+                <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
+                <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
             }
         </div>
         <div class="col-md-3">
             @if (selected is not null && !editing)
             {
-                <h5 class="mt-3">@LanguageService.GetText("common.details", "Details")</h5>
+                <h5 class="mt-3">@L["common.details", "Details"]</h5>
                 <dl>
                     <dt>Last Name</dt><dd>@selected.LastName</dd>
                     <dt>First Name</dt><dd>@selected.FirstName</dd>
@@ -106,7 +106,7 @@
                     <dt>Tax Code</dt><dd>@selected.TaxCode</dd>
                 </dl>
                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
-                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@LanguageService.GetText("common.delete", "Delete")</button>
+                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
             }
         </div>
     </div>
@@ -221,4 +221,5 @@
         public string? Notes { get; set; }
     }
 }
+
 
