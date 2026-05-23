@@ -5,9 +5,9 @@
 @using HotelDruid.Shared.Configuration
 @inject HttpClient Http
 
-@inject ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@LanguageService.GetText("setup.title", "Setup")</PageTitle>
+<PageTitle>@L["setup.title", "Setup"]</PageTitle>
 
 <div class="container py-4">
     <div class="row justify-content-center">
@@ -100,3 +100,4 @@
         message = "Configuration saved successfully.";
     }
 }
+

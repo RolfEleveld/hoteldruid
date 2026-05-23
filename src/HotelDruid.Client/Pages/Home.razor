@@ -1,9 +1,10 @@
-﻿@page "/home"
+@page "/home"
 @using HotelDruid.Client.Services
-@inject ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@LanguageService.GetText("home.title", "Home")</PageTitle>
+<PageTitle>@L["home.title", "Home"]</PageTitle>
 
-<h1>@LanguageService.GetText("home.heading", "Hello, world!")</h1>
+<h1>@L["home.heading", "Hello, world!"]</h1>
 
-@LanguageService.GetText("home.message", "Welcome to your new app.")
+@L["home.message", "Welcome to your new app."]
+
