@@ -7,6 +7,7 @@ using Moq;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using HotelDruid.Client.Tests;
 
 namespace HotelDruid.Client.Tests.Integration.Visual
 {
@@ -23,6 +24,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
 
         public async Task InitializeAsync()
         {
+            Services.AddClientLocalizationTestSupport();
             SetupMocks();
             Services.AddScoped(_ => _mockRoomApiService.Object);
             Services.AddScoped(_ => _mockLanguageService.Object);

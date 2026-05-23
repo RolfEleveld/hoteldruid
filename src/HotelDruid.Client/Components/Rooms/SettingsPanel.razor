@@ -1,7 +1,6 @@
 @namespace HotelDruid.Client.Components.Rooms
 @using HotelDruid.Client.Services
-@inject ILanguageService LanguageService
-@implements IDisposable
+@inject IStringLocalizer<SharedResource> L
 
 <div class="rpanels" style="margin-top: 20px;">
     <div class="rbox">
@@ -20,11 +19,11 @@
                     <div style="margin-bottom: 15px;">
                         <button class="@("settings-tab-button " + (ActiveTab == "export" ? "active" : ""))" 
                             @onclick='@(() => SetActiveTab("export"))'>
-                            @LanguageService.GetText("settings.export", "Export Rooms")
+                            @L["settings.export", "Export Rooms"]
                         </button>
                         <button class="@("settings-tab-button " + (ActiveTab == "import" ? "active" : ""))" 
                             @onclick='@(() => SetActiveTab("import"))'>
-                            @LanguageService.GetText("settings.import", "Import Rooms")
+                            @L["settings.import", "Import Rooms"]
                         </button>
                     </div>
 
@@ -52,17 +51,6 @@
     private bool IsExpanded = false;
     private string ActiveTab = "export";
 
-    protected override async Task OnInitializedAsync()
-    {
-        LanguageService.LanguageChanged += OnLanguageChanged;
-        await LanguageService.InitializeAsync();
-    }
-
-    private void OnLanguageChanged()
-    {
-        _ = InvokeAsync(StateHasChanged);
-    }
-
     private void ToggleSettings()
     {
         IsExpanded = !IsExpanded;
@@ -72,10 +60,6 @@
     {
         ActiveTab = tab;
     }
-
-    public void Dispose()
-    {
-        LanguageService.LanguageChanged -= OnLanguageChanged;
-    }
 }
+
 

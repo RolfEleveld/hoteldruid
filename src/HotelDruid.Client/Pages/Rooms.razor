@@ -4,10 +4,10 @@
 @using HotelDruid.Shared
 @inject HttpClient Http
 @inject IJSRuntime JS
-@inject HotelDruid.Client.Services.ILanguageService LanguageService
+@inject IStringLocalizer<SharedResource> L
 @implements IAsyncDisposable
 
-<PageTitle>@LanguageService.GetText("rooms.title", "Top Rooms")</PageTitle>
+<PageTitle>@L["rooms.title", "Top Rooms"]</PageTitle>
 
 <div class="container-fluid rooms-manager">
     <div class="row g-3 h-100">
@@ -15,22 +15,22 @@
         <div class="col-md-3">
             <div class="panel panel-default h-100 d-flex flex-column">
                 <div class="panel-heading">
-                    <h3 class="panel-title">@LanguageService.GetText("rooms.title", "Top Rooms")</h3>
+                    <h3 class="panel-title">@L["rooms.title", "Top Rooms"]</h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
                     <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewRoom">
-                        <span class="bi bi-plus"></span> @LanguageService.GetText("rooms.add", "Add Room")
+                        <span class="bi bi-plus"></span> @L["rooms.add", "Add Room"]
                     </button>
 
                     @if (rooms == null)
                     {
                         <div class="spinner-border spinner-border-sm" role="status">
-                            <span class="visually-hidden">@LanguageService.GetText("common.loading", "Loading...")</span>
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
                         </div>
                     }
                     else if (rooms.Count == 0)
                     {
-                        <div class="alert alert-info">@LanguageService.GetText("rooms.emptyList", "No rooms available")</div>
+                        <div class="alert alert-info">@L["rooms.emptyList", "No rooms available"]</div>
                     }
                     else
                     {
@@ -75,23 +75,23 @@
                             <div class="status-badge" title="@statusMessage">
                                 @if (isSaving)
                                 {
-                                    <span class="badge bg-warning"><span class="spinner-border spinner-border-sm me-1"></span>@LanguageService.GetText("common.saving", "Saving...")</span>
+                                    <span class="badge bg-warning"><span class="spinner-border spinner-border-sm me-1"></span>@L["common.saving", "Saving..."]</span>
                                 }
                                 else if (!string.IsNullOrEmpty(lastError))
                                 {
-                                    <span class="badge bg-danger" title="@lastError">@LanguageService.GetText("common.error", "Error")</span>
+                                    <span class="badge bg-danger" title="@lastError">@L["common.error", "Error"]</span>
                                 }
                                 else if (!string.IsNullOrEmpty(lastWarning))
                                 {
-                                    <span class="badge bg-warning" title="@lastWarning">@LanguageService.GetText("common.warning", "Warning")</span>
+                                    <span class="badge bg-warning" title="@lastWarning">@L["common.warning", "Warning"]</span>
                                 }
                                 else if (isSaved)
                                 {
-                                    <span class="badge bg-success">@LanguageService.GetText("common.saved", "Saved")</span>
+                                    <span class="badge bg-success">@L["common.saved", "Saved"]</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-info">@LanguageService.GetText("common.unsaved", "Unsaved changes")</span>
+                                    <span class="badge bg-info">@L["common.unsaved", "Unsaved changes"]</span>
                                 }
                             </div>
                         </div>
@@ -169,15 +169,15 @@
                     <div class="panel-footer">
                         <div class="btn-group w-100" role="group">
                             <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveRoom">
-                                <span class="bi bi-download"></span> @LanguageService.GetText("common.save", "Save")
+                                <span class="bi bi-download"></span> @L["common.save", "Save"]
                             </button>
                             @if (editModel.Id is not null)
                             {
                                 <button type="button" class="btn btn-info flex-grow-1" @onclick="DuplicateRoom">
-                                    <span class="bi bi-files"></span> @LanguageService.GetText("rooms.duplicate", "Duplicate")
+                                    <span class="bi bi-files"></span> @L["rooms.duplicate", "Duplicate"]
                                 </button>
                                 <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteRoom">
-                                    <span class="bi bi-trash"></span> @LanguageService.GetText("common.delete", "Delete")
+                                    <span class="bi bi-trash"></span> @L["common.delete", "Delete"]
                                 </button>
                             }
                         </div>
@@ -189,7 +189,7 @@
                 <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
                     <div class="panel-body text-center text-muted">
                         <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
-                        <p>@LanguageService.GetText("rooms.selectPrompt", "Select a room from the list or add a new one")</p>
+                        <p>@L["rooms.selectPrompt", "Select a room from the list or add a new one"]</p>
                     </div>
                 </div>
             }
@@ -200,17 +200,17 @@
             <div class="panel panel-default h-100 d-flex flex-column">
                 <div class="panel-heading">
                     <h3 class="panel-title">
-                        <span class="bi bi-diagram-2"></span> @LanguageService.GetText("rooms.neighboringRooms", "Neighboring Rooms")
+                        <span class="bi bi-diagram-2"></span> @L["rooms.neighboringRooms", "Neighboring Rooms"]
                     </h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
                     @if (editModel?.Id is null)
                     {
-                        <div class="alert alert-info">@LanguageService.GetText("rooms.selectForNeighbors", "Create or select a room to edit neighbors")</div>
+                        <div class="alert alert-info">@L["rooms.selectForNeighbors", "Create or select a room to edit neighbors"]</div>
                     }
                     else if (rooms is null || rooms.Count == 0)
                     {
-                        <div class="alert alert-info">@LanguageService.GetText("rooms.emptyList", "No rooms available")</div>
+                        <div class="alert alert-info">@L["rooms.emptyList", "No rooms available"]</div>
                     }
                     else
                     {
@@ -451,7 +451,7 @@
     {
         isSaved = false;
         hasUnsavedChanges = true;
-        statusMessage = LanguageService.GetText("common.unsaved", "Unsaved changes");
+        statusMessage = L["common.unsaved", "Unsaved changes"];
         autoSaveTimer?.Stop();
         autoSaveTimer?.Start();
     }
@@ -468,13 +468,13 @@
 
         if (string.IsNullOrWhiteSpace(editModel.Name))
         {
-            lastError = LanguageService.GetText("rooms.nameRequired", "Room name is required");
+            lastError = L["rooms.nameRequired", "Room name is required"];
             return;
         }
 
         if (editModel.Capacity <= 0)
         {
-            lastError = LanguageService.GetText("rooms.capacityRequired", "Capacity must be greater than 0");
+            lastError = L["rooms.capacityRequired", "Capacity must be greater than 0"];
             return;
         }
 
@@ -507,7 +507,7 @@
                     selectedRoom = result;
                     editModel = RoomEditModel.FromDto(result);
                     isSaved = true;
-                    statusMessage = LanguageService.GetText("common.saved", "Saved");
+                    statusMessage = L["common.saved", "Saved"];
                     await LoadRooms();
                 }
             }
@@ -516,7 +516,7 @@
                 var content = await response.Content.ReadAsStringAsync();
                 if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    lastWarning = LanguageService.GetText("rooms.exists", "Room already exists");
+                    lastWarning = L["rooms.exists", "Room already exists"];
                 }
                 else
                 {
@@ -623,4 +623,5 @@
         autoSaveTimer?.Dispose();
     }
 }
+
 

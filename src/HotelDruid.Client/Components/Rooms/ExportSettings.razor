@@ -1,32 +1,31 @@
 @namespace HotelDruid.Client.Components.Rooms
 @using HotelDruid.Client.Services
 @inject IRoomApiService RoomApiService
-@inject ILanguageService LanguageService
-@implements IDisposable
+@inject IStringLocalizer<SharedResource> L
 
 <div class="export-settings-panel">
     <div style="border: 1px solid #e0e0e0; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-        <h5 style="margin-top: 0;">@LanguageService.GetText("export.title", "Export Room Configuration")</h5>
+        <h5 style="margin-top: 0;">@L["export.title", "Export Room Configuration"]</h5>
         <p style="font-size: 0.9em; color: #666;">
-            @LanguageService.GetText("export.description", "Download your room data as a ZIP file for backup or migration")
+            @L["export.description", "Download your room data as a ZIP file for backup or migration"]
         </p>
 
         <div style="margin: 15px 0;">
             <label style="display: block; margin-bottom: 8px;">
-                @LanguageService.GetText("export.selectRooms", "Select rooms to export:")
+                @L["export.selectRooms", "Select rooms to export:"]
             </label>
             <div style="margin-left: 10px;">
                 <label>
                     <input type="radio" name="export-mode" value="all" 
                         @onchange="@((ChangeEventArgs e) => ExportMode = e.Value?.ToString() ?? "all")"
                         checked="@(ExportMode == "all")" />
-                    @LanguageService.GetText("export.selectAll", "Export All Rooms")
+                    @L["export.selectAll", "Export All Rooms"]
                 </label>
                 <label style="margin-left: 15px;">
                     <input type="radio" name="export-mode" value="custom"
                         @onchange="@((ChangeEventArgs e) => ExportMode = e.Value?.ToString() ?? "all")"
                         checked="@(ExportMode == "custom")" />
-                    @LanguageService.GetText("export.selectCustom", "Select Custom Rooms")
+                    @L["export.selectCustom", "Select Custom Rooms"]
                 </label>
             </div>
         </div>
@@ -34,7 +33,7 @@
         <div style="margin: 15px 0;">
             <label>
                 <input type="checkbox" @bind="IncludeMetadata" />
-                @LanguageService.GetText("export.includeMetadata", "Include metadata")
+                @L["export.includeMetadata", "Include metadata"]
             </label>
         </div>
 
@@ -42,11 +41,11 @@
             <button class="sbutton" @onclick="PerformExportAsync" disabled="@IsExporting">
                 @if (IsExporting)
                 {
-                    <span>@LanguageService.GetText("export.exporting", "Exporting...")</span>
+                    <span>@L["export.exporting", "Exporting..."]</span>
                 }
                 else
                 {
-                    <span>@LanguageService.GetText("export.button", "Export Now")</span>
+                    <span>@L["export.button", "Export Now"]</span>
                 }
             </button>
         </div>
@@ -63,7 +62,7 @@
         {
             <div style="margin-top: 10px;">
                 <a href="@DownloadUrl" download class="btn-link">
-                    @LanguageService.GetText("export.downloadLink", "Download your export file")
+                    @L["export.downloadLink", "Download your export file"]
                 </a>
             </div>
         }
@@ -78,23 +77,12 @@
     private string DownloadUrl = string.Empty;
     private bool ExportError = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        LanguageService.LanguageChanged += OnLanguageChanged;
-        await LanguageService.InitializeAsync();
-    }
-
-    private void OnLanguageChanged()
-    {
-        _ = InvokeAsync(StateHasChanged);
-    }
-
     private async Task PerformExportAsync()
     {
         try
         {
             IsExporting = true;
-            ExportStatus = LanguageService.GetText("export.statusInProgress", "Export in progress...");
+            ExportStatus = L["export.statusInProgress", "Export in progress..."].Value;
             ExportError = false;
             DownloadUrl = string.Empty;
 
@@ -107,12 +95,12 @@
             // Perform export
             await RoomApiService.ExportRoomsAsync(roomIds, IncludeMetadata ? "full" : "minimal");
 
-            ExportStatus = LanguageService.GetText("export.statusCompleted", "Export completed successfully");
+            ExportStatus = L["export.statusCompleted", "Export completed successfully"].Value;
             DownloadUrl = "/api/export/download"; // This would be the actual download URL
         }
         catch (Exception ex)
         {
-            ExportStatus = LanguageService.GetText("export.statusFailed", "Export failed. Please try again.");
+            ExportStatus = L["export.statusFailed", "Export failed. Please try again."].Value;
             ExportError = true;
             Console.Error.WriteLine($"Export error: {ex.Message}");
         }
@@ -122,9 +110,6 @@
         }
     }
 
-    public void Dispose()
-    {
-        LanguageService.LanguageChanged -= OnLanguageChanged;
-    }
 }
+
 

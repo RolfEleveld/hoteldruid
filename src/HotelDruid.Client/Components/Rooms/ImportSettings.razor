@@ -1,14 +1,13 @@
 @namespace HotelDruid.Client.Components.Rooms
 @using HotelDruid.Client.Services
 @inject IRoomApiService RoomApiService
-@inject ILanguageService LanguageService
-@implements IDisposable
+@inject IStringLocalizer<SharedResource> L
 
 <div class="import-settings-panel">
     <div style="border: 1px solid #e0e0e0; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-        <h5 style="margin-top: 0;">@LanguageService.GetText("import.title", "Import Room Configuration")</h5>
+        <h5 style="margin-top: 0;">@L["import.title", "Import Room Configuration"]</h5>
         <p style="font-size: 0.9em; color: #666;">
-            @LanguageService.GetText("import.description", "Upload a ZIP file containing room data to import")
+            @L["import.description", "Upload a ZIP file containing room data to import"]
         </p>
 
         <div style="margin: 15px 0;">
@@ -16,9 +15,9 @@
             {
                 <div style="border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 5px; cursor: pointer;"
                     class="drag-over-zone">
-                    <p>@LanguageService.GetText("import.dragDrop", "Drag and drop your ZIP file here")</p>
+                    <p>@L["import.dragDrop", "Drag and drop your ZIP file here"]</p>
                     <p style="font-size: 0.9em; color: #999;">
-                        @LanguageService.GetText("import.selectFile", "Select a ZIP file to import")
+                        @L["import.selectFile", "Select a ZIP file to import"]
                     </p>
                     <InputFile OnChange="@HandleFileSelected" accept=".zip" />
                 </div>
@@ -26,9 +25,9 @@
             else
             {
                 <div style="padding: 12px; background: #f0f0f0; border-radius: 5px;">
-                    <p>@LanguageService.GetText("import.fileSelected", "File selected"): @SelectedFile.Name</p>
+                    <p>@L["import.fileSelected", "File selected"]: @SelectedFile.Name</p>
                     <button class="sbutton" @onclick="ClearSelectedFile" style="margin-right: 10px;">
-                        @LanguageService.GetText("common.cancel", "Cancel")
+                        @L["common.cancel", "Cancel"]
                     </button>
                 </div>
             }
@@ -40,11 +39,11 @@
                 <button class="sbutton" @onclick="ValidateImportAsync" disabled="@IsValidating">
                     @if (IsValidating)
                     {
-                        <span>@LanguageService.GetText("import.validating", "Validating...")</span>
+                        <span>@L["import.validating", "Validating..."]</span>
                     }
                     else
                     {
-                        <span>@LanguageService.GetText("import.validate", "Validate")</span>
+                        <span>@L["import.validate", "Validate"]</span>
                     }
                 </button>
             </div>
@@ -56,13 +55,13 @@
                 class="@(ValidationPassed ? "alert-success" : "alert-error")">
                 @if (ValidationPassed)
                 {
-                    <p>@LanguageService.GetText("import.validationPassed", "Validation passed successfully")</p>
-                    <p>@LanguageService.GetText("import.importedCount", "Room(s) imported"): @ImportedCount</p>
-                    <p>@LanguageService.GetText("import.updatedCount", "Room(s) updated"): @UpdatedCount</p>
+                    <p>@L["import.validationPassed", "Validation passed successfully"]</p>
+                    <p>@L["import.importedCount", "Room(s) imported"]: @ImportedCount</p>
+                    <p>@L["import.updatedCount", "Room(s) updated"]: @UpdatedCount</p>
                 }
                 else
                 {
-                    <p>@LanguageService.GetText("import.validationFailed", "Validation failed")</p>
+                    <p>@L["import.validationFailed", "Validation failed"]</p>
                     @foreach (var error in ValidationErrors)
                     {
                         <p style="color: #d32f2f;">- @error</p>
@@ -75,7 +74,7 @@
         {
             <div style="margin: 15px 0;">
                 <button class="sbutton" @onclick="ExecuteImportAsync" disabled="@IsImporting">
-                    @LanguageService.GetText("import.execute", "Execute Import")
+                    @L["import.execute", "Execute Import"]
                 </button>
             </div>
         }
@@ -83,7 +82,7 @@
         @if (IsImporting)
         {
             <div style="padding: 10px; background: #fff3cd; border-radius: 3px; margin-top: 10px;">
-                @LanguageService.GetText("import.statusInProgress", "Import in progress...")
+                @L["import.statusInProgress", "Import in progress..."]
             </div>
         }
 
@@ -108,17 +107,6 @@
     private string ImportStatus = string.Empty;
     private bool ImportError = false;
     private IBrowserFile? SelectedFile;
-
-    protected override async Task OnInitializedAsync()
-    {
-        LanguageService.LanguageChanged += OnLanguageChanged;
-        await LanguageService.InitializeAsync();
-    }
-
-    private void OnLanguageChanged()
-    {
-        _ = InvokeAsync(StateHasChanged);
-    }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
@@ -179,18 +167,18 @@
 
             if (result.Status == "success")
             {
-                ImportStatus = LanguageService.GetText("import.statusCompleted", "Import completed successfully");
+                ImportStatus = L["import.statusCompleted", "Import completed successfully"].Value;
                 ImportError = false;
             }
             else
             {
-                ImportStatus = result.ErrorMessage ?? LanguageService.GetText("import.statusFailed", "Import failed. Please try again.");
+                ImportStatus = result.ErrorMessage ?? L["import.statusFailed", "Import failed. Please try again."].Value;
                 ImportError = true;
             }
         }
         catch (Exception ex)
         {
-            ImportStatus = LanguageService.GetText("import.statusFailed", "Import failed. Please try again.");
+            ImportStatus = L["import.statusFailed", "Import failed. Please try again."].Value;
             ImportError = true;
             Console.Error.WriteLine($"Import error: {ex.Message}");
         }
@@ -200,9 +188,6 @@
         }
     }
 
-    public void Dispose()
-    {
-        LanguageService.LanguageChanged -= OnLanguageChanged;
-    }
 }
+
 

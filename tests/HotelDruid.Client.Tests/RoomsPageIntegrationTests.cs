@@ -10,6 +10,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Moq;
+using HotelDruid.Client.Tests;
 
 namespace HotelDruid.Client.Tests.Integration.Pages
 {
@@ -44,6 +45,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
 
         public RoomsPageIntegrationTests()
         {
+            Services.AddClientLocalizationTestSupport();
             _mockJsRuntime = new Mock<IJSRuntime>();
             Services.AddScoped(_ => _mockJsRuntime.Object);
             var mockHttp = new HttpClient(new RoomsPageMockHandler()) { BaseAddress = new Uri("http://localhost/") };
