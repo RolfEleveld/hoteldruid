@@ -19,7 +19,6 @@ namespace HotelDruid.Client.Tests.Integration.Visual
     public class RoomsWidgetVisualTests : TestContext, IAsyncLifetime
     {
         private Mock<IRoomApiService> _mockRoomApiService = null!;
-        private Mock<ILanguageService> _mockLanguageService = null!;
         private string _snapshotDirectory = null!;
 
         public async Task InitializeAsync()
@@ -27,7 +26,6 @@ namespace HotelDruid.Client.Tests.Integration.Visual
             Services.AddClientLocalizationTestSupport();
             SetupMocks();
             Services.AddScoped(_ => _mockRoomApiService.Object);
-            Services.AddScoped(_ => _mockLanguageService.Object);
 
             _snapshotDirectory = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
@@ -50,23 +48,6 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         private void SetupMocks()
         {
             _mockRoomApiService = new Mock<IRoomApiService>();
-            _mockLanguageService = new Mock<ILanguageService>();
-
-            _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string key, string defaultValue) => 
-                    GetLocalizedString(key, defaultValue)
-                );
-
-            _mockLanguageService.Setup(x => x.AvailableLanguages)
-                .Returns(new List<LanguageOption>
-                {
-                    new() { Code = "en", Name = "English" },
-                    new() { Code = "es", Name = "Español" },
-                    new() { Code = "it", Name = "Italiano" }
-                });
-
-            _mockLanguageService.Setup(x => x.CurrentLanguage)
-                .Returns("en");
 
             _mockRoomApiService.Setup(x => x.GetRoomsAsync())
                 .Returns(Task.FromResult(new List<RoomDto>
@@ -98,10 +79,6 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         [Fact]
         public async Task RoomsWidget_WithSpanishLanguage_HTMLSnapshot()
         {
-            // Arrange - Change language to Spanish
-            _mockLanguageService.Setup(x => x.CurrentLanguage)
-                .Returns("es");
-
             var component = RenderComponent<RoomsWidget>();
             await Task.Delay(200);
 
@@ -117,10 +94,6 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         [Fact]
         public async Task RoomsWidget_WithItalianLanguage_HTMLSnapshot()
         {
-            // Arrange - Change language to Italian
-            _mockLanguageService.Setup(x => x.CurrentLanguage)
-                .Returns("it");
-
             var component = RenderComponent<RoomsWidget>();
             await Task.Delay(200);
 
@@ -262,23 +235,6 @@ Purpose: Visual verification of complete RoomsWidget integration
             Assert.NotEmpty(markup);
             Assert.Contains("room", markup.ToLower());
             Assert.Contains("settings", markup.ToLower());
-        }
-
-        private static string GetLocalizedString(string key, string defaultValue)
-        {
-            // Simple translation lookup for testing
-            var translations = new Dictionary<string, string>
-            {
-                { "rooms.title", "Top Rooms" },
-                { "rooms.description", "View and manage your hotel rooms" },
-                { "settings.title", "Settings & Management" },
-                { "settings.description", "Export and import room configurations" },
-                { "export.title", "Export Room Configuration" },
-                { "import.title", "Import Room Configuration" },
-                { "common.loading", "Loading..." }
-            };
-
-            return translations.TryGetValue(key, out var value) ? value : defaultValue;
         }
 
         private async Task SaveSnapshot(string filePath, string content)

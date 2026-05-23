@@ -13,16 +13,12 @@ namespace HotelDruid.Client.Tests.Integration.Components
     public class InventoryWidgetComponentTests : TestContext
     {
         private Mock<IInventoryApiService> _mockService;
-        private Mock<ILanguageService> _mockLang;
 
         public InventoryWidgetComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
             _mockService = new Mock<IInventoryApiService>();
-            _mockLang = new Mock<ILanguageService>();
-            _mockLang.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>())).Returns((string k, string d) => d);
             Services.AddScoped(_ => _mockService.Object);
-            Services.AddScoped(_ => _mockLang.Object);
 
             _mockService.Setup(x => x.GetInventoryAsync()).Returns(Task.FromResult(new List<InventoryDto>
             {

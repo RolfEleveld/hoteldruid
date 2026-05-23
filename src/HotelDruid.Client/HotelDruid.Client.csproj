@@ -17,9 +17,5 @@
     <ProjectReference Include="..\HotelDruid.Shared\HotelDruid.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Lang\*.json" />
-  </ItemGroup>
-
 </Project>
 

@@ -13,16 +13,12 @@ namespace HotelDruid.Client.Tests.Integration.Components
     public class WarehousesWidgetComponentTests : TestContext
     {
         private Mock<IWarehouseApiService> _mockService;
-        private Mock<ILanguageService> _mockLang;
 
         public WarehousesWidgetComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
             _mockService = new Mock<IWarehouseApiService>();
-            _mockLang = new Mock<ILanguageService>();
-            _mockLang.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>())).Returns((string k, string d) => d);
             Services.AddScoped(_ => _mockService.Object);
-            Services.AddScoped(_ => _mockLang.Object);
 
             _mockService.Setup(x => x.GetWarehousesAsync()).Returns(Task.FromResult(new List<WarehouseDto>
             {

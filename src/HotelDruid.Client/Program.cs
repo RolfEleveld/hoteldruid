@@ -10,7 +10,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddLocalization();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IClientCultureService, ClientCultureService>();
-builder.Services.AddScoped<ILanguageService, LanguageService>();
 // Register Asset API client service
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssetApiService, HotelDruid.Client.Services.AssetApiService>();
 // Warehouses and Inventory services

@@ -19,35 +19,17 @@ namespace HotelDruid.Client.Tests.Integration.Components
     public class RoomsWidgetComponentTests : TestContext
     {
         private Mock<IRoomApiService> _mockRoomApiService = null!;
-        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public RoomsWidgetComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
             SetupMocks();
             Services.AddScoped(_ => _mockRoomApiService.Object);
-            Services.AddScoped(_ => _mockLanguageService.Object);
         }
 
         private void SetupMocks()
         {
             _mockRoomApiService = new Mock<IRoomApiService>();
-            _mockLanguageService = new Mock<ILanguageService>();
-
-            // Setup default mock behavior
-            _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string key, string defaultValue) => defaultValue);
-
-            _mockLanguageService.Setup(x => x.AvailableLanguages)
-                .Returns(new List<LanguageOption>
-                {
-                    new() { Code = "en", Name = "English" },
-                    new() { Code = "es", Name = "Español" },
-                    new() { Code = "it", Name = "Italiano" }
-                });
-
-            _mockLanguageService.Setup(x => x.CurrentLanguage)
-                .Returns("en");
 
             _mockRoomApiService.Setup(x => x.GetRoomsAsync())
                 .Returns(Task.FromResult(new List<RoomDto>
@@ -119,23 +101,17 @@ namespace HotelDruid.Client.Tests.Integration.Components
     /// </summary>
     public class SettingsPanelComponentTests : TestContext
     {
-        private Mock<ILanguageService> _mockLanguageService;
         private Mock<IRoomApiService> _mockRoomApiService;
 
         public SettingsPanelComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
-            _mockLanguageService = new Mock<ILanguageService>();
-            _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string key, string defaultValue) => defaultValue);
-
             _mockRoomApiService = new Mock<IRoomApiService>();
             _mockRoomApiService.Setup(x => x.GetRoomsAsync())
                 .ReturnsAsync(new List<RoomDto>());
             _mockRoomApiService.Setup(x => x.ValidateImportAsync(It.IsAny<Stream>()))
                 .ReturnsAsync(new ImportValidationResponse(true, new List<string>(), new List<string>(), 0, 0));
 
-            Services.AddScoped(_ => _mockLanguageService.Object);
             Services.AddScoped(_ => _mockRoomApiService.Object);
         }
 
@@ -215,23 +191,17 @@ namespace HotelDruid.Client.Tests.Integration.Components
     public class ExportSettingsComponentTests : TestContext
     {
         private Mock<IRoomApiService> _mockRoomApiService = null!;
-        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public ExportSettingsComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
             SetupMocks();
             Services.AddScoped(_ => _mockRoomApiService.Object);
-            Services.AddScoped(_ => _mockLanguageService.Object);
         }
 
         private void SetupMocks()
         {
             _mockRoomApiService = new Mock<IRoomApiService>();
-            _mockLanguageService = new Mock<ILanguageService>();
-
-            _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string key, string defaultValue) => defaultValue);
 
             _mockRoomApiService.Setup(x => x.GetRoomsAsync())
                 .Returns(Task.FromResult(new List<RoomDto>
@@ -290,23 +260,17 @@ namespace HotelDruid.Client.Tests.Integration.Components
     public class ImportSettingsComponentTests : TestContext
     {
         private Mock<IRoomApiService> _mockRoomApiService = null!;
-        private Mock<ILanguageService> _mockLanguageService = null!;
 
         public ImportSettingsComponentTests()
         {
             Services.AddClientLocalizationTestSupport();
             SetupMocks();
             Services.AddScoped(_ => _mockRoomApiService.Object);
-            Services.AddScoped(_ => _mockLanguageService.Object);
         }
 
         private void SetupMocks()
         {
             _mockRoomApiService = new Mock<IRoomApiService>();
-            _mockLanguageService = new Mock<ILanguageService>();
-
-            _mockLanguageService.Setup(x => x.GetText(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string key, string defaultValue) => defaultValue);
 
             _mockRoomApiService.Setup(x => x.ValidateImportAsync(It.IsAny<Stream>()))
                 .ReturnsAsync(new ImportValidationResponse(
@@ -358,8 +322,6 @@ namespace HotelDruid.Client.Tests.Integration.Components
     /// </summary>
     public class LanguageSwitcherComponentTests : TestContext
     {
-        private Mock<ILanguageService> _mockLanguageService;
-
         public LanguageSwitcherComponentTests()
         {
             Services.AddClientLocalizationTestSupport();

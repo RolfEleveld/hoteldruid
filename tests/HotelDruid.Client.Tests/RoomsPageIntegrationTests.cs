@@ -53,9 +53,6 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             var mockRoomApi = new Mock<HotelDruid.Client.Services.IRoomApiService>();
             mockRoomApi.Setup(s => s.GetRoomsAsync()).Returns(System.Threading.Tasks.Task.FromResult(new System.Collections.Generic.List<HotelDruid.Client.Services.RoomDto>()));
             Services.AddScoped<HotelDruid.Client.Services.IRoomApiService>(_ => mockRoomApi.Object);
-            var mockLang = new Mock<HotelDruid.Client.Services.ILanguageService>();
-            mockLang.Setup(l => l.GetText(It.IsAny<string>(), It.IsAny<string>())).Returns<string, string>((k, d) => string.IsNullOrEmpty(d) ? k : d);
-            Services.AddScoped<HotelDruid.Client.Services.ILanguageService>(_ => mockLang.Object);
         }
 
         // Helper: render and click "Add Room" so the editor form becomes visible

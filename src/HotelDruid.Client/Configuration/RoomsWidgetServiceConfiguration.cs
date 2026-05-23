@@ -13,9 +13,6 @@ namespace HotelDruid.Client.Configuration
         /// </summary>
         public static IServiceCollection AddRoomsWidgetServices(this IServiceCollection services)
         {
-            // Register language service as singleton for application-wide access
-            services.AddSingleton<ILanguageService, LanguageService>();
-
             // Register room API service as scoped
             services.AddScoped<IRoomApiService, RoomApiService>();
 
