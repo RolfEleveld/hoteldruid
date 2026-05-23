@@ -1228,6 +1228,153 @@ Implemented regression tests cover:
 - Advanced billing logic
 - Integration APIs
 
+---
+
+## 18. Software Bill of Materials (SBOM)
+
+For electronic processing, the industry-standard SBOM formats are:
+- **SPDX** — broadly used for license and compliance exchange
+- **CycloneDX** — broadly used for application security and dependency analysis
+
+For this project, **CycloneDX JSON** is a practical format to embed in documentation because it is both machine-readable and easy to inspect in a fenced code block. The canonical SBOM should still be generated as a build artifact in CI/CD; the embedded example below is an architecture-level snapshot of the current solution structure and direct dependencies.
+
+### 18.1 Embedded CycloneDX Example
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "serialNumber": "urn:uuid:4d4d7d56-2d69-4d6f-bf70-eef0ea7d7d0b",
+  "metadata": {
+    "timestamp": "2026-05-23T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "HotelDruid",
+      "version": "1.0.0",
+      "description": "Blazor WebAssembly frontend with ASP.NET Core API backend for hotel management.",
+      "components": [
+        {
+          "type": "framework",
+          "name": ".NET",
+          "version": "10.0.203",
+          "purl": "pkg:generic/dotnet-sdk@10.0.203"
+        },
+        {
+          "type": "container",
+          "name": "mcr.microsoft.com/dotnet/sdk",
+          "version": "10.0",
+          "purl": "pkg:oci/dotnet/sdk@10.0?repository_url=mcr.microsoft.com"
+        },
+        {
+          "type": "container",
+          "name": "mcr.microsoft.com/dotnet/aspnet",
+          "version": "10.0",
+          "purl": "pkg:oci/dotnet/aspnet@10.0?repository_url=mcr.microsoft.com"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/hoteldruid.api@1.0.0",
+      "name": "HotelDruid.Api",
+      "version": "1.0.0",
+      "purl": "pkg:generic/hoteldruid.api@1.0.0",
+      "properties": [
+        {
+          "name": "targetFramework",
+          "value": "net10.0"
+        }
+      ]
+    },
+    {
+      "type": "application",
+      "bom-ref": "pkg:generic/hoteldruid.client@1.0.0",
+      "name": "HotelDruid.Client",
+      "version": "1.0.0",
+      "purl": "pkg:generic/hoteldruid.client@1.0.0",
+      "properties": [
+        {
+          "name": "targetFramework",
+          "value": "net10.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:generic/hoteldruid.shared@1.0.0",
+      "name": "HotelDruid.Shared",
+      "version": "1.0.0",
+      "purl": "pkg:generic/hoteldruid.shared@1.0.0",
+      "properties": [
+        {
+          "name": "targetFramework",
+          "value": "net10.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.2",
+      "name": "Microsoft.AspNetCore.OpenApi",
+      "version": "10.0.2",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.2",
+      "name": "Microsoft.AspNetCore.Components.WebAssembly",
+      "version": "10.0.2",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.DevServer@10.0.2",
+      "name": "Microsoft.AspNetCore.Components.WebAssembly.DevServer",
+      "version": "10.0.2",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.DevServer@10.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.Localization@10.0.0",
+      "name": "Microsoft.Extensions.Localization",
+      "version": "10.0.0",
+      "purl": "pkg:nuget/Microsoft.Extensions.Localization@10.0.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:generic/hoteldruid.api@1.0.0",
+      "dependsOn": [
+        "pkg:generic/hoteldruid.shared@1.0.0",
+        "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.2"
+      ]
+    },
+    {
+      "ref": "pkg:generic/hoteldruid.client@1.0.0",
+      "dependsOn": [
+        "pkg:generic/hoteldruid.shared@1.0.0",
+        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.2",
+        "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.DevServer@10.0.2",
+        "pkg:nuget/Microsoft.Extensions.Localization@10.0.0"
+      ]
+    },
+    {
+      "ref": "pkg:generic/hoteldruid.shared@1.0.0",
+      "dependsOn": []
+    }
+  ]
+}
+```
+
+### 18.2 Architectural Guidance
+
+- Keep the authoritative SBOM as a generated file published with build artifacts, not only as documentation text.
+- Regenerate the SBOM whenever package references, target frameworks, base container images, or deployable components change.
+- If license and compliance exchange becomes the primary requirement, emit an SPDX document in addition to CycloneDX.
+
 
 ---
 

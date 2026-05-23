@@ -4,7 +4,7 @@ This folder contains all automation scripts for building, deploying, and testing
 
 ## Scripts Overview
 
-- **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/HotelDruid-package.zip`).
+- **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/HotelDruid-package.zip`) and CycloneDX SBOM JSON artifacts under `artifacts/sbom/`.
 - **deploy.ps1**: Deploy the package locally, as a per-user install (`-User`), or to a specified target (`-Target <path>`). For per-user installs it creates or trusts the localhost certificate, writes install metadata, creates Start Menu shortcuts, and generates the uninstall script and registry entry.
 - **test.ps1**: Run all unit and integration tests, generate reports.
 - **scenario-up.ps1**: Bring up a selected deployment scenario with admin-provided compose files.
@@ -32,6 +32,7 @@ This folder contains all automation scripts for building, deploying, and testing
 
 - All scripts require PowerShell 7+.
 - `build.ps1 -Clean` removes prior build artifacts, runs `dotnet clean` on source projects, and then performs a full rebuild/package.
+- `build.ps1` also generates CycloneDX SBOM files for `HotelDruid.Api` and `HotelDruid.Client` under `artifacts/sbom/`.
 - `test.ps1 -Clean` removes previous test result artifacts, runs `dotnet clean` on test projects, and then rebuilds/runs all tests.
 - For production or distribution, use `build.ps1` then `deploy.ps1 -Target <path>`.
 - For local development, use `build.ps1` then `deploy.ps1`.

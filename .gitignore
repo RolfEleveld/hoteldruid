@@ -22,6 +22,8 @@ hoteldruid/dati
 
 # Temporary publish staging folders
 /_client_publish/
+/.tools/
+/.tmp-tools/
 
 # Published Blazor client embedded in API wwwroot — fully generated, never commit
 src/HotelDruid.Api/wwwroot/

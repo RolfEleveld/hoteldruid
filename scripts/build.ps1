@@ -5,13 +5,15 @@
 .DESCRIPTION
   Restores packages, publishes the Blazor client and the API, copies client files
   into the API wwwroot, then reads the static asset manifest to create non-fingerprinted
-  file aliases. This lets UseStaticFiles() serve dotnet.js, dotnet.native.js, etc.
-  without needing MapStaticAssets() or a slow double-publish.
+    file aliases. It also generates CycloneDX SBOM artifacts for the deployable
+    projects. This lets UseStaticFiles() serve dotnet.js, dotnet.native.js, etc.
+    without needing MapStaticAssets() or a slow double-publish.
 
 
     Artifacts land in:
         artifacts\client\  - raw Blazor client publish output
         artifacts\api\     - API publish output (with client embedded in wwwroot)
+        artifacts\sbom\    - CycloneDX SBOM JSON files
         artifacts\HotelDruid-package.zip - deployable package (always created)
 
 
@@ -34,14 +36,48 @@ $ErrorActionPreference = 'Stop'
 $root      = Join-Path $PSScriptRoot '..'
 $clientOut = Join-Path $root 'artifacts\client'
 $apiOut    = Join-Path $root 'artifacts\api'
+$sbomOut   = Join-Path $root 'artifacts\sbom'
+$toolPath  = Join-Path $root '.tools\cyclonedx'
+$toolExe   = Join-Path $toolPath 'dotnet-CycloneDX.exe'
 
 function Ensure-Dir([string]$d) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null } }
+
+function Ensure-CycloneDxTool {
+    Ensure-Dir $toolPath
+
+    if (Test-Path $toolExe) {
+        return
+    }
+
+    Write-Host "Installing CycloneDX .NET tool..." -ForegroundColor Cyan
+    dotnet tool install --tool-path $toolPath cyclonedx --version 6.2.0 --ignore-failed-sources
+    if ($LASTEXITCODE -ne 0) { throw "dotnet tool install failed for cyclonedx (exit $LASTEXITCODE)" }
+}
+
+function New-Sbom([string]$projectPath, [string]$fileName, [string]$componentName) {
+    $arguments = @(
+        $projectPath
+        '--output', $sbomOut
+        '--filename', $fileName
+        '--output-format', 'Json'
+        '--configuration', $Configuration
+        '--disable-package-restore'
+        '--include-project-references'
+        '--exclude-test-projects'
+        '--no-serial-number'
+        '--set-name', $componentName
+    )
+
+    & $toolExe @arguments
+
+    if ($LASTEXITCODE -ne 0) { throw "CycloneDX generation failed for $projectPath (exit $LASTEXITCODE)" }
+}
 
 # 0. Optional clean
 if ($Clean) {
     Write-Host "Cleaning previous build outputs..." -ForegroundColor Cyan
     $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $clientOut, $apiOut
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $clientOut, $apiOut, $sbomOut
     if (Test-Path $packagePath) {
         Remove-Item -Force -ErrorAction SilentlyContinue $packagePath
     }
@@ -62,7 +98,7 @@ if ($Clean) {
 }
 
 # 1. Restore
-Write-Host "`n[1/4] Restoring packages..." -ForegroundColor Cyan
+Write-Host "`n[1/6] Restoring packages..." -ForegroundColor Cyan
 Push-Location $root
 try {
     # HotelDruid.slnx currently only contains folders, so restore concrete projects.
@@ -78,7 +114,7 @@ try {
 } finally { Pop-Location }
 
 # 2. Publish Client
-Write-Host "`n[2/4] Publishing Blazor client..." -ForegroundColor Cyan
+Write-Host "`n[2/6] Publishing Blazor client..." -ForegroundColor Cyan
 Push-Location $root
 try {
     dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo
@@ -86,7 +122,7 @@ try {
 } finally { Pop-Location }
 
 # 3. Publish API
-Write-Host "`n[3/4] Publishing API..." -ForegroundColor Cyan
+Write-Host "`n[3/6] Publishing API..." -ForegroundColor Cyan
 Push-Location $root
 try {
     dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo
@@ -94,7 +130,7 @@ try {
 } finally { Pop-Location }
 
 # 4. Embed client into API wwwroot + create non-fingerprinted aliases
-Write-Host "`n[4/4] Embedding client into API wwwroot..." -ForegroundColor Cyan
+Write-Host "`n[4/6] Embedding client into API wwwroot..." -ForegroundColor Cyan
 
 $wwwroot   = Join-Path $apiOut 'wwwroot'
 $clientWww = Join-Path $clientOut 'wwwroot'
@@ -159,16 +195,33 @@ if (Test-Path $manifestPath) {
     Write-Warning "Client manifest not found at $manifestPath - dotnet.js aliases NOT created."
 }
 
-Write-Host "`nBuild complete ($Configuration)." -ForegroundColor Green
-Write-Host "   API artifacts : $apiOut"
-Write-Host "   Client in     : $wwwroot"
-Write-Host "`nRun the app with:"
-Write-Host "   .\scripts\deploy.ps1" -ForegroundColor Yellow
+# 5. Generate SBOM artifacts
+Write-Host "`n[5/6] Generating SBOM artifacts..." -ForegroundColor Cyan
+Ensure-Dir $sbomOut
+Ensure-CycloneDxTool
 
-# 5. Create deployment package (zip)
+New-Sbom -projectPath (Join-Path $root 'src/HotelDruid.Api/HotelDruid.Api.csproj') `
+    -fileName 'HotelDruid.Api.sbom.cdx.json' `
+    -componentName 'HotelDruid.Api'
+
+New-Sbom -projectPath (Join-Path $root 'src/HotelDruid.Client/HotelDruid.Client.csproj') `
+    -fileName 'HotelDruid.Client.sbom.cdx.json' `
+    -componentName 'HotelDruid.Client'
+
+Write-Host "   SBOM artifacts: $sbomOut" -ForegroundColor DarkGray
+
+# 6. Create deployment package (zip)
+Write-Host "`n[6/6] Creating deployment package..." -ForegroundColor Cyan
 $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 if (Test-Path $packagePath) { Remove-Item $packagePath -Force }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($apiOut, $packagePath)
 Write-Host "Created deployment package: $packagePath" -ForegroundColor Green
+
+Write-Host "`nBuild complete ($Configuration)." -ForegroundColor Green
+Write-Host "   API artifacts : $apiOut"
+Write-Host "   Client in     : $wwwroot"
+Write-Host "   SBOM artifacts: $sbomOut"
+Write-Host "`nRun the app with:"
+Write-Host "   .\scripts\deploy.ps1" -ForegroundColor Yellow
 
