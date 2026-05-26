@@ -92,4 +92,26 @@
   <data name="Nav.Section.YearOperations" xml:space="preserve"><value>OPERACIONES ANUALES</value></data>
   <data name="Nav.Section.BookingsFinance" xml:space="preserve"><value>RESERVAS Y FINANZAS</value></data>
   <data name="Nav.Section.Communication" xml:space="preserve"><value>COMUNICACIÓN</value></data>
+  <data name="Setup.PageTitle" xml:space="preserve"><value>Configuración</value></data>
+  <data name="Setup.Header" xml:space="preserve"><value>Configuración del sistema</value></data>
+  <data name="Setup.DescriptionPrefix" xml:space="preserve"><value>Configura los supuestos base de esta instalación. Esta página se puede volver a abrir en cualquier momento usando</value></data>
+  <data name="Setup.DescriptionSuffix" xml:space="preserve"><value>.</value></data>
+  <data name="Setup.SystemCurrency.Label" xml:space="preserve"><value>Moneda del sistema</value></data>
+  <data name="Setup.SystemCurrency.Placeholder" xml:space="preserve"><value>EUR</value></data>
+  <data name="Setup.SystemCurrency.Help" xml:space="preserve"><value>Todos los totales del sistema se calculan en esta moneda. La conversión de moneda no se aplica automáticamente; usa gestión manual de tipos de cambio cuando sea necesario.</value></data>
+  <data name="Setup.DefaultYear.Label" xml:space="preserve"><value>Año predeterminado</value></data>
+  <data name="Setup.Fallback.Label" xml:space="preserve"><value>Regla de tarifa alternativa</value></data>
+  <data name="Setup.Fallback.Help" xml:space="preserve"><value>Cuando faltan datos de tarifa para el año seleccionado, elige si el sistema sugiere precios del último año de tarifa disponible o no hace ninguna sugerencia y requiere confirmación manual.</value></data>
+  <data name="Setup.Fallback.Option.LatestAvailableYear" xml:space="preserve"><value>Sugerir último año disponible</value></data>
+  <data name="Setup.Fallback.Option.NoSuggestion" xml:space="preserve"><value>Sin sugerencia de precio (requiere confirmación manual)</value></data>
+  <data name="Setup.Storage.Label" xml:space="preserve"><value>Ubicación de almacenamiento de datos</value></data>
+  <data name="Setup.Storage.SourcePrefix" xml:space="preserve"><value>Origen:</value></data>
+  <data name="Setup.Storage.Source.Unknown" xml:space="preserve"><value>desconocido</value></data>
+  <data name="Setup.Storage.HelpPrefix" xml:space="preserve"><value>Para sobrescribir esta ruta entre reinicios (incluyendo contenedores/unidades mapeadas), inyecta</value></data>
+  <data name="Setup.Storage.HelpMiddle" xml:space="preserve"><value>(preferido) o</value></data>
+  <data name="Setup.Storage.HelpSuffix" xml:space="preserve"><value>en la configuración del host.</value></data>
+  <data name="Setup.Button.Save" xml:space="preserve"><value>Guardar configuración</value></data>
+  <data name="Setup.Button.BackHome" xml:space="preserve"><value>Volver al inicio</value></data>
+  <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configuración guardada correctamente.</value></data>
+  <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Error al guardar la configuración.</value></data>
 </root>

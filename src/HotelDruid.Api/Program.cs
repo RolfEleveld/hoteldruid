@@ -16,6 +16,17 @@ using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var dataRootFromEnvironment = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT");
+var dataRootFromConfiguration = builder.Configuration["DataRoot"];
+var resolvedDataRoot = dataRootFromEnvironment
+    ?? dataRootFromConfiguration
+    ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
+var resolvedDataRootSource = dataRootFromEnvironment is not null
+    ? "environment:HOTELDRUID_DATAROOT"
+    : dataRootFromConfiguration is not null
+        ? "configuration:DataRoot"
+        : "default:TempPath/hoteldruid";
+
 // Optional: bind Kestrel to a LocalMachine certificate when a thumbprint is provided
 var certThumbprint = Environment.GetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Thumbprint");
 certThumbprint = certThumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase);
@@ -91,14 +102,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddSingleton<ILogger>(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger("HotelDruid.Api"));
 builder.Services.AddSingleton<IKeyValueStore>(sp =>
 {
-    // Read dataRoot lazily so tests can override it via configuration
     var config = sp.GetRequiredService<IConfiguration>();
-    var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT") 
-        ?? config["DataRoot"]
-        ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
     var logger = sp.GetRequiredService<ILogger<FileKeyValueStore>>();
     
-    var baseStore = new FileKeyValueStore(dataRoot, logger);
+    var baseStore = new FileKeyValueStore(resolvedDataRoot, logger);
     
     // Optional: wrap with caching decorator for performance
     // Enable via configuration: "CacheKeyValueStore": true or HOTELDRUID_CACHE env var
@@ -117,7 +124,7 @@ builder.Services.AddSingleton<IKeyValueStore>(sp =>
             cacheLogger,
             maxCollections,
             cacheExpirationMinutes,
-            invalidationRootPath: dataRoot,
+                invalidationRootPath: resolvedDataRoot,
             versionCheckIntervalMilliseconds: versionCheckIntervalMs);
     }
     
@@ -133,21 +140,13 @@ builder.Services.AddSingleton<ISystemConfigurationStore, SystemConfigurationStor
 builder.Services.AddSingleton<IAssumptionRuleEngine, AssumptionRuleEngine>();
 builder.Services.AddSingleton<ILedgerRepository>(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT")
-        ?? config["DataRoot"]
-        ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
     var logger = sp.GetRequiredService<ILogger<LedgerRepository>>();
-    return new LedgerRepository(dataRoot, logger);
+    return new LedgerRepository(resolvedDataRoot, logger);
 });
 builder.Services.AddSingleton<IBookingTransactionRepository>(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var dataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT")
-        ?? config["DataRoot"]
-        ?? Path.Combine(Path.GetTempPath(), "hoteldruid");
     var logger = sp.GetRequiredService<ILogger<BookingTransactionRepository>>();
-    return new BookingTransactionRepository(dataRoot, logger);
+    return new BookingTransactionRepository(resolvedDataRoot, logger);
 });
 
 // Register export/import services
@@ -350,6 +349,14 @@ app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configu
 
     return Results.Ok(config);
 });
+
+app.MapGet("/api/system/storage", () => Results.Ok(new
+{
+    DataRoot = resolvedDataRoot,
+    Source = resolvedDataRootSource,
+    EnvironmentVariable = "HOTELDRUID_DATAROOT",
+    ConfigurationKey = "DataRoot"
+}));
 
 app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore) =>
 {

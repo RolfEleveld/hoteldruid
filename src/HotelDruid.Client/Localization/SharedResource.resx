@@ -98,4 +98,26 @@
   <data name="Nav.Section.YearOperations" xml:space="preserve"><value>YEAR OPERATIONS</value></data>
   <data name="Nav.Section.BookingsFinance" xml:space="preserve"><value>BOOKINGS &amp; FINANCE</value></data>
   <data name="Nav.Section.Communication" xml:space="preserve"><value>COMMUNICATION</value></data>
+  <data name="Setup.PageTitle" xml:space="preserve"><value>Setup</value></data>
+  <data name="Setup.Header" xml:space="preserve"><value>System Setup</value></data>
+  <data name="Setup.DescriptionPrefix" xml:space="preserve"><value>Configure baseline assumptions for this installation. This page can be re-opened at any time using</value></data>
+  <data name="Setup.DescriptionSuffix" xml:space="preserve"><value>.</value></data>
+  <data name="Setup.SystemCurrency.Label" xml:space="preserve"><value>System Currency</value></data>
+  <data name="Setup.SystemCurrency.Placeholder" xml:space="preserve"><value>EUR</value></data>
+  <data name="Setup.SystemCurrency.Help" xml:space="preserve"><value>All system totals are calculated in this currency. Currency conversion is not applied automatically; use manual exchange-rate handling where needed.</value></data>
+  <data name="Setup.DefaultYear.Label" xml:space="preserve"><value>Default Year</value></data>
+  <data name="Setup.Fallback.Label" xml:space="preserve"><value>Fallback Pricing Rule</value></data>
+  <data name="Setup.Fallback.Help" xml:space="preserve"><value>When tariff data is missing for the selected year, choose whether the system suggests prices from the latest available tariff year or makes no suggestion and requires manual pricing confirmation.</value></data>
+  <data name="Setup.Fallback.Option.LatestAvailableYear" xml:space="preserve"><value>Suggest Latest Available Year</value></data>
+  <data name="Setup.Fallback.Option.NoSuggestion" xml:space="preserve"><value>No Price Suggestion (Manual Confirmation Required)</value></data>
+  <data name="Setup.Storage.Label" xml:space="preserve"><value>Data Storage Location</value></data>
+  <data name="Setup.Storage.SourcePrefix" xml:space="preserve"><value>Source:</value></data>
+  <data name="Setup.Storage.Source.Unknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="Setup.Storage.HelpPrefix" xml:space="preserve"><value>To override this path across restarts (including containers/mapped drives), inject</value></data>
+  <data name="Setup.Storage.HelpMiddle" xml:space="preserve"><value>(preferred) or</value></data>
+  <data name="Setup.Storage.HelpSuffix" xml:space="preserve"><value>in host configuration.</value></data>
+  <data name="Setup.Button.Save" xml:space="preserve"><value>Save Configuration</value></data>
+  <data name="Setup.Button.BackHome" xml:space="preserve"><value>Back to Home</value></data>
+  <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configuration saved successfully.</value></data>
+  <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Failed to save configuration.</value></data>
 </root>

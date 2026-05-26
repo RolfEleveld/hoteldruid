@@ -7,16 +7,16 @@
 
 @inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@L["setup.title", "Setup"]</PageTitle>
+<PageTitle>@L["Setup.PageTitle"]</PageTitle>
 
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h1 class="h3 mb-3">System Setup</h1>
+                    <h1 class="h3 mb-3">@L["Setup.Header"]</h1>
                     <p class="text-muted">
-                        Configure baseline assumptions for this installation. This page can be re-opened at any time using <strong>/setup?configure=true</strong>.
+                        @L["Setup.DescriptionPrefix"] <strong>/setup?configure=true</strong>@L["Setup.DescriptionSuffix"]
                     </p>
 
                     @if (!string.IsNullOrWhiteSpace(message))
@@ -30,29 +30,40 @@
                     }
 
                     <div class="mb-3">
-                        <label class="form-label">Default Currency</label>
-                        <input class="form-control" @bind="model.DefaultCurrency" placeholder="EUR" />
+                        <label class="form-label">@L["Setup.SystemCurrency.Label"]</label>
+                        <input class="form-control" @bind="model.DefaultCurrency" placeholder="@L["Setup.SystemCurrency.Placeholder"]" />
+                        <div class="form-text">@L["Setup.SystemCurrency.Help"]</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Default Year</label>
+                        <label class="form-label">@L["Setup.DefaultYear.Label"]</label>
                         <input type="number" class="form-control" @bind="model.DefaultYear" min="2000" max="2100" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Fallback Pricing Rule</label>
+                        <label class="form-label">@L["Setup.Fallback.Label"]</label>
                         <select class="form-select" @bind="pricingFallback">
-                            @foreach (var option in PricingFallbackOptions)
+                            @foreach (var optionValue in PricingFallbackOptions)
                             {
-                                <option value="@option.Key">@option.Value</option>
+                                <option value="@optionValue">@GetPricingFallbackLabel(optionValue)</option>
                             }
                         </select>
-                        <div class="form-text">When tariff data is missing for the selected year, choose whether the system suggests prices from the latest available tariff year or makes no suggestion and requires manual pricing confirmation.</div>
+                        <div class="form-text">@L["Setup.Fallback.Help"]</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">@L["Setup.Storage.Label"]</label>
+                        <input class="form-control" value="@storageInfo?.DataRoot" readonly />
+                        <div class="form-text">
+                            @L["Setup.Storage.SourcePrefix"] <strong>@(storageInfo?.Source ?? L["Setup.Storage.Source.Unknown"])</strong>.
+                            @L["Setup.Storage.HelpPrefix"]
+                            <code>HOTELDRUID_DATAROOT</code> @L["Setup.Storage.HelpMiddle"] <code>DataRoot</code> @L["Setup.Storage.HelpSuffix"]
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="SaveAsync">Save Configuration</button>
-                        <a class="btn btn-outline-secondary" href="/">Back to Home</a>
+                        <button class="btn btn-primary" @onclick="SaveAsync">@L["Setup.Button.Save"]</button>
+                        <a class="btn btn-outline-secondary" href="/">@L["Setup.Button.BackHome"]</a>
                     </div>
                 </div>
             </div>
@@ -61,13 +72,32 @@
 </div>
 
 @code {
+    private sealed class StorageInfoResponse
+    {
+        public string DataRoot { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string EnvironmentVariable { get; set; } = string.Empty;
+        public string ConfigurationKey { get; set; } = string.Empty;
+    }
+
     private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
     private string pricingFallback = "LatestAvailableYear";
-    private static readonly IReadOnlyDictionary<string, string> PricingFallbackOptions = new Dictionary<string, string>
+    private StorageInfoResponse? storageInfo;
+    private static readonly IReadOnlyList<string> PricingFallbackOptions =
+    [
+        "LatestAvailableYear",
+        "NoSuggestion"
+    ];
+
+    private string GetPricingFallbackLabel(string optionValue)
     {
-        ["LatestAvailableYear"] = "Suggest Latest Available Year",
-        ["NoSuggestion"] = "No Price Suggestion (Manual Confirmation Required)"
-    };
+        return optionValue switch
+        {
+            "LatestAvailableYear" => L["Setup.Fallback.Option.LatestAvailableYear"],
+            "NoSuggestion" => L["Setup.Fallback.Option.NoSuggestion"],
+            _ => optionValue
+        };
+    }
 
     private string? message;
     private string? error;
@@ -76,6 +106,8 @@
     {
         try
         {
+            storageInfo = await Http.GetFromJsonAsync<StorageInfoResponse>("/api/system/storage");
+
             var existing = await Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
             if (existing is not null)
             {
@@ -105,11 +137,11 @@
         var response = await Http.PutAsJsonAsync("/api/system/configuration", model);
         if (!response.IsSuccessStatusCode)
         {
-            error = "Failed to save configuration.";
+            error = L["Setup.Error.SaveFailed"];
             return;
         }
 
-        message = "Configuration saved successfully.";
+        message = L["Setup.Message.SaveSuccess"];
     }
 
     private static string NormalizePricingFallback(string? value)
@@ -119,7 +151,7 @@
             return "LatestAvailableYear";
         }
 
-        return PricingFallbackOptions.ContainsKey(value) ? value : "LatestAvailableYear";
+        return PricingFallbackOptions.Contains(value, StringComparer.Ordinal) ? value : "LatestAvailableYear";
     }
 }
 
