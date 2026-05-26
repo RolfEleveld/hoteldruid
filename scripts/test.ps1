@@ -13,7 +13,9 @@ param(
     [switch]$OpenDashboard,
     [switch]$Clean,
     [string]$Filter = "",
-    [string]$Configuration = "Debug"
+    [string]$Configuration = "Debug",
+    [switch]$RunSmoke,
+    [string]$SmokeBaseUrl = "https://localhost:5001"
 )
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -58,6 +60,15 @@ foreach ($proj in $testProjects) {
     dotnet @testArgs
     if ($LASTEXITCODE -ne 0) { throw "dotnet test failed for $proj (exit $LASTEXITCODE)" }
 }
+
+if ($RunSmoke) {
+    Write-Host "Running smoke tests against $SmokeBaseUrl..." -ForegroundColor Cyan
+    & (Join-Path $scriptDir 'scenario-test.ps1') -BaseUrl $SmokeBaseUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Smoke tests failed (exit $LASTEXITCODE)"
+    }
+}
+
 Write-Host "Test results in $artifactDir"
 if ($OpenDashboard) {
     # Optionally open a dashboard/report if available

@@ -128,7 +128,11 @@ src/HotelDruid.Api/wwwroot/*.gz
 
 # Vendored third-party libraries managed by LibMan
 /src/HotelDruid.Api/wwwroot/lib/
-/src/HotelDruid.Client/wwwroot/lib/
+/src/HotelDruid.Client/wwwroot/lib/*
+!/src/HotelDruid.Client/wwwroot/lib/bootstrap/
+!/src/HotelDruid.Client/wwwroot/lib/bootstrap/dist/
+!/src/HotelDruid.Client/wwwroot/lib/bootstrap/dist/css/
+!/src/HotelDruid.Client/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css
 
 # Ignore any precompressed assets under wwwroot (restored at build time)
 src/HotelDruid.Api/wwwroot/**/*.br

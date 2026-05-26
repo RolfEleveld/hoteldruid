@@ -27,7 +27,8 @@ param(
     [switch]$OpenBrowser,
     [string]$Target = '',
     [switch]$User,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$SkipSmokeTest
 )
 
 Set-StrictMode -Version Latest
@@ -286,6 +287,14 @@ $env:ASPNETCORE_Kestrel__Certificates__Default__Thumbprint = $CertThumbprint
 Push-Location $artifactsApi
 try {
     Start-Process 'dotnet' "HotelDruid.Api.dll --urls=http://*:$HttpPort;https://*:$HttpsPort" -NoNewWindow
+
+    if (-not $SkipSmokeTest) {
+        & "$PSScriptRoot\scenario-test.ps1" -BaseUrl "https://localhost:$HttpsPort"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Post-deploy smoke test failed (exit $LASTEXITCODE)."
+        }
+    }
+
     if ($OpenBrowser) {
         Start-Process "https://localhost:$HttpsPort/"
     }

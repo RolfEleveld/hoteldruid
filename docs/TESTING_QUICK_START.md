@@ -25,14 +25,20 @@ dotnet test --filter "ClassName=LedgerApiTests"
 
 ### Use Test Runner Script
 ```powershell
-cd scripts
-.\run-tests.ps1
+cd c:\Users\rolfe\git\hotelDruid
+.\scripts\test.ps1
 
 # With specific filter
-.\run-tests.ps1 -Filter "FileKeyValueStore"
+.\scripts\test.ps1 -Filter "FileKeyValueStore"
 
 # In Release configuration
-.\run-tests.ps1 -Configuration Release
+.\scripts\test.ps1 -Configuration Release
+
+# Include post-deploy smoke tests (requires running app)
+.\scripts\test.ps1 -RunSmoke -SmokeBaseUrl "https://localhost:5001"
+
+# Deploy includes smoke tests by default
+.\scripts\deploy.ps1 -Publish
 ```
 
 ---

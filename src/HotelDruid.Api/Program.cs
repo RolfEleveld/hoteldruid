@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Net;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using HotelDruid.Api.Services;
 using HotelDruid.Api.Services.ExportImport;
 using HotelDruid.Api.Models;
@@ -171,6 +172,48 @@ builder.Services.AddSingleton<IEndpointQueryCache>(sp =>
 
 var app = builder.Build();
 
+var configuredMinCacheHours = builder.Configuration.GetValue<int>("StaticAssetCaching:MinHours", 8);
+var configuredMaxCacheHours = builder.Configuration.GetValue<int>("StaticAssetCaching:MaxHours", 20);
+configuredMinCacheHours = Math.Clamp(configuredMinCacheHours, 1, 23);
+configuredMaxCacheHours = Math.Clamp(configuredMaxCacheHours, 1, 23);
+if (configuredMaxCacheHours < configuredMinCacheHours)
+{
+    (configuredMinCacheHours, configuredMaxCacheHours) = (configuredMaxCacheHours, configuredMinCacheHours);
+}
+
+var randomizedStaticAssetCacheHours = Random.Shared.Next(configuredMinCacheHours, configuredMaxCacheHours + 1);
+var randomizedStaticAssetMaxAge = TimeSpan.FromHours(randomizedStaticAssetCacheHours);
+var fingerprintedAssetMaxAge = TimeSpan.FromDays(30);
+
+void PrepareStaticResponse(StaticFileResponseContext context)
+{
+    var headers = context.Context.Response.Headers;
+    var path = context.Context.Request.Path.Value ?? string.Empty;
+
+    if (path.Equals("/", StringComparison.OrdinalIgnoreCase) ||
+        path.EndsWith("/index.html", StringComparison.OrdinalIgnoreCase) ||
+        path.Equals("/index.html", StringComparison.OrdinalIgnoreCase))
+    {
+        headers.CacheControl = "no-cache, no-store, must-revalidate";
+        headers.Pragma = "no-cache";
+        headers.Expires = "0";
+        return;
+    }
+
+    var fileName = Path.GetFileName(path);
+    var isFingerprintedAsset = Regex.IsMatch(fileName, @"\.[a-z0-9]{8,}\.", RegexOptions.IgnoreCase);
+
+    if (isFingerprintedAsset)
+    {
+        headers.CacheControl = $"public, max-age={(int)fingerprintedAssetMaxAge.TotalSeconds}, immutable";
+        return;
+    }
+
+    headers.CacheControl = $"public, max-age={(int)randomizedStaticAssetMaxAge.TotalSeconds}, must-revalidate";
+}
+
+Console.WriteLine($"Static asset browser cache max-age for non-fingerprinted assets: {randomizedStaticAssetCacheHours}h (configured range {configuredMinCacheHours}-{configuredMaxCacheHours}h)");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -191,7 +234,8 @@ staticContentTypeProvider.Mappings[".br"]  = "application/octet-stream";
 
 var staticFileOptions = new StaticFileOptions
 {
-    ContentTypeProvider = staticContentTypeProvider
+    ContentTypeProvider = staticContentTypeProvider,
+    OnPrepareResponse = PrepareStaticResponse
 };
 
 app.UseDefaultFiles();
@@ -205,7 +249,8 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(app.Environment.ContentRootPath),
     RequestPath = string.Empty,
-    ContentTypeProvider = staticContentTypeProvider
+    ContentTypeProvider = staticContentTypeProvider,
+    OnPrepareResponse = PrepareStaticResponse
 });
 
 // Basic root & health endpoints for quick validation
