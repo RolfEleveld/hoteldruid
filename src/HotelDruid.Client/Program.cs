@@ -10,6 +10,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddLocalization();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IClientCultureService, ClientCultureService>();
+builder.Services.AddScoped<IActiveYearService, ActiveYearService>();
 // Register Asset API client service
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssetApiService, HotelDruid.Client.Services.AssetApiService>();
 // Warehouses and Inventory services
@@ -53,6 +54,8 @@ builder.Services.AddScoped<HotelDruid.Client.Services.ISessionApiService, HotelD
 var host = builder.Build();
 var cultureService = host.Services.GetRequiredService<IClientCultureService>();
 await cultureService.InitializeAsync();
+var activeYearService = host.Services.GetRequiredService<IActiveYearService>();
+await activeYearService.InitializeAsync();
 
 await host.RunAsync();
 

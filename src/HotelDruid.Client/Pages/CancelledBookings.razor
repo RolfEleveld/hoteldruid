@@ -1,6 +1,7 @@
 @page "/cancelled-bookings"
 @using HotelDruid.Client.Services
 @inject ICancelledBookingApiService CancelledBookingApi
+@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -59,7 +60,11 @@
     private string errorMsg = "";
     private int? filterYear;
 
-    protected override async Task OnInitializedAsync() => await LoadAll();
+    protected override async Task OnInitializedAsync()
+    {
+        filterYear = ActiveYearService.CurrentYear;
+        await LoadAll();
+    }
 
     private async Task LoadAll() => records = await CancelledBookingApi.ListAsync(filterYear);
     private async Task ApplyFilter() => await LoadAll();

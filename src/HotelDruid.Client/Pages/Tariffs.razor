@@ -1,6 +1,7 @@
 @page "/tariffs"
 @using HotelDruid.Client.Services
 @inject ITariffApiService TariffApi
+@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -80,7 +81,11 @@
     private int? filterYear;
     private FormModel form = new();
 
-    protected override async Task OnInitializedAsync() => await LoadAll();
+    protected override async Task OnInitializedAsync()
+    {
+        filterYear = ActiveYearService.CurrentYear;
+        await LoadAll();
+    }
 
     private async Task LoadAll() => records = await TariffApi.ListAsync(filterYear);
     private async Task ApplyFilter() => await LoadAll();

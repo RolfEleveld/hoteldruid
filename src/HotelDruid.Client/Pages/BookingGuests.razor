@@ -1,6 +1,7 @@
 @page "/booking-guests"
 @using HotelDruid.Client.Services
 @inject IBookingGuestApiService BookingGuestApi
+@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -75,12 +76,16 @@
     private int? filterYear;
     private FormModel form = new();
 
-    protected override async Task OnInitializedAsync() => await LoadAll();
+    protected override async Task OnInitializedAsync()
+    {
+        filterYear = ActiveYearService.CurrentYear;
+        await LoadAll();
+    }
 
     private async Task LoadAll() => records = await BookingGuestApi.ListAsync(filterYear);
     private async Task ApplyFilter() => await LoadAll();
 
-    private void NewRecord() { form = new() { Year = filterYear ?? DateTime.Now.Year }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(BookingGuestClientDto r) { selected = r; editing = false; }
     private void EditSelected()
     {

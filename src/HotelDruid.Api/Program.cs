@@ -269,7 +269,7 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 
 // --- Mock API endpoints for early Blazor development ---
 
-app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = "2026", User = "admin", Version = "HotelDruid 3.0.7" }));
+app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = DateTime.UtcNow.Year.ToString(), User = "admin", Version = "HotelDruid 3.0.7" }));
 
 app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
 {

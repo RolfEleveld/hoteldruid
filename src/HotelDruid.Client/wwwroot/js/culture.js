@@ -29,6 +29,30 @@ window.hotelDruidCulture = {
         }
     },
 
+    getStoredYear: function (storageKey) {
+        try {
+            const value = window.localStorage.getItem(storageKey);
+            if (!value) {
+                return null;
+            }
+
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+        catch {
+            return null;
+        }
+    },
+
+    setStoredYear: function (storageKey, year) {
+        try {
+            window.localStorage.setItem(storageKey, String(year));
+        }
+        catch {
+            // Ignore unavailable storage.
+        }
+    },
+
     setDocumentLanguage: function (cultureName) {
         if (!cultureName) {
             return;

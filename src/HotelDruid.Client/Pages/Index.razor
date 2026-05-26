@@ -3,8 +3,10 @@
 @using HotelDruid.Client.Shared
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
+@using HotelDruid.Client.Services
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject IActiveYearService ActiveYearService
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Index.PageTitle"]</PageTitle>
@@ -53,7 +55,7 @@
     <div class="status-row mt-5">
       <div class="row gx-3">
         <div class="col-6 col-md-3">
-          <StatusTile Title="@L["Index.Status.ActiveYear"]" Value="@(status?.ActiveYear ?? "2026")" />
+          <StatusTile Title="@L["Index.Status.ActiveYear"]" Value="@activeYearDisplay" />
         </div>
         <div class="col-6 col-md-3">
           <StatusTile Title="@L["Index.Status.Clients"]" Value="@(clients?.Count.ToString() ?? "0")" />
@@ -74,11 +76,13 @@
     private StatusDto? status;
     private List<ClientDto>? clients;
     private List<BookingDto>? bookings;
+    private string activeYearDisplay = DateTime.Now.Year.ToString();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+          activeYearDisplay = ActiveYearService.CurrentYear.ToString();
           var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
           var setupQuery = uri.Query.Contains("configure=true", StringComparison.OrdinalIgnoreCase) ? "?configure=true" : string.Empty;
           var setup = await Http.GetFromJsonAsync<SetupStatusDto>($"/api/system/setup/status{setupQuery}");

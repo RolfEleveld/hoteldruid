@@ -11,6 +11,7 @@ internal static class TestLocalizationSupport
     {
         services.AddSingleton(typeof(IStringLocalizer<>), typeof(TestStringLocalizer<>));
         services.AddScoped<IClientCultureService, TestClientCultureService>();
+        services.AddScoped<IActiveYearService, TestActiveYearService>();
         return services;
     }
 }
@@ -69,6 +70,22 @@ internal sealed class TestClientCultureService : IClientCultureService
     {
         CurrentCulture = Cultures.FirstOrDefault(c => c.Name.Equals(cultureName, StringComparison.OrdinalIgnoreCase))
             ?? CultureInfo.GetCultureInfo("en");
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class TestActiveYearService : IActiveYearService
+{
+    public int CurrentYear { get; private set; } = DateTime.Now.Year;
+
+    public Task InitializeAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task SetActiveYearAsync(int year, bool persistPreference = true)
+    {
+        CurrentYear = year;
         return Task.CompletedTask;
     }
 }
