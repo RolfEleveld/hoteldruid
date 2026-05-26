@@ -82,35 +82,7 @@ public class SystemConfigurationApiTests : IAsyncLifetime
         Assert.NotNull(loaded.Settings);
         Assert.Equal("LatestAvailableYear", loaded.Settings!["PriceFallback"]);
         Assert.True(loaded.Settings.ContainsKey("LastUpdatedBy"));
-        Assert.True(loaded.Settings.ContainsKey("LastUpdatedTokenId"));
-    }
-
-    [Fact]
-    public async Task TokenIdentity_CanBeSaved_AndListed()
-    {
-        var token = new TokenIdentityConfiguration
-        {
-            TokenId = "tok_test_identity",
-            DisplayName = "Front Desk A",
-            IsEnabled = true,
-            AllowedMethods = new List<string> { "GET", "POST" },
-            AllowedPathPrefixes = new List<string> { "/api/bookings" }
-        };
-
-        var putResponse = await _client.PutAsync("/api/system/token-identities/tok_test_identity", JsonContent(token));
-        Assert.Equal(HttpStatusCode.OK, putResponse.StatusCode);
-
-        var listResponse = await _client.GetAsync("/api/system/token-identities");
-        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
-
-        var payload = await listResponse.Content.ReadAsStringAsync();
-        var listed = JsonSerializer.Deserialize<List<TokenIdentityConfiguration>>(payload, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
-
-        Assert.NotNull(listed);
-        Assert.Contains(listed!, t => t.TokenId == "tok_test_identity" && t.DisplayName == "Front Desk A");
+        Assert.True(loaded.Settings.ContainsKey("LastUpdatedTraceId"));
     }
 
     [Fact]

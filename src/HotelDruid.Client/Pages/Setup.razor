@@ -1,7 +1,6 @@
 @page "/setup"
 @using System.Net
 @using System.Net.Http.Json
-@using System.Linq
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared.Configuration
 @inject HttpClient Http
@@ -51,84 +50,6 @@
                         <div class="form-text">When tariff data is missing for the selected year, choose whether the system suggests prices from the latest available tariff year or makes no suggestion and requires manual pricing confirmation.</div>
                     </div>
 
-                    <div class="mb-3">
-                        <h5 class="mb-2">Token Identity & Permissions</h5>
-                        @if (currentToken is not null)
-                        {
-                            <div class="alert alert-secondary py-2 px-3 mb-2">
-                                <div><strong>Current Token:</strong> @currentToken.TokenId</div>
-                                <div><strong>Assigned Name:</strong> @(string.IsNullOrWhiteSpace(currentToken.DisplayName) ? "(unassigned)" : currentToken.DisplayName)</div>
-                            </div>
-                        }
-
-                        @if (tokenIdentities.Count == 0)
-                        {
-                            <p class="text-muted small mb-2">No token identities configured yet.</p>
-                        }
-                        else
-                        {
-                            <div class="table-responsive mb-2">
-                                <table class="table table-sm table-bordered align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Token</th>
-                                            <th>Name</th>
-                                            <th>Methods</th>
-                                            <th>Paths</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in tokenIdentities)
-                                        {
-                                            <tr>
-                                                <td><code>@item.TokenId</code></td>
-                                                <td>@item.DisplayName</td>
-                                                <td>@string.Join(", ", item.AllowedMethods)</td>
-                                                <td>@string.Join(", ", item.AllowedPathPrefixes)</td>
-                                                <td><button class="btn btn-sm btn-outline-primary" @onclick="() => EditToken(item)">Edit</button></td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-
-                        <div class="border rounded p-3 bg-light-subtle">
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <label class="form-label">Token ID</label>
-                                    <input class="form-control" @bind="tokenEdit.TokenId" placeholder="tok_..." />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Display Name</label>
-                                    <input class="form-control" @bind="tokenEdit.DisplayName" placeholder="Front Desk 1" />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Enabled</label>
-                                    <select class="form-select" @bind="tokenEnabled">
-                                        <option value="true">Enabled</option>
-                                        <option value="false">Disabled</option>
-                                    </select>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Allowed Methods (comma separated)</label>
-                                    <input class="form-control" @bind="allowedMethodsText" placeholder="GET, POST, PUT" />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label">Allowed URL Prefixes (comma separated)</label>
-                                    <input class="form-control" @bind="allowedPathsText" placeholder="/api/bookings, /api/booking-costs" />
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2 mt-2">
-                                <button class="btn btn-outline-primary btn-sm" @onclick="SaveTokenAsync">Save Token</button>
-                                <button class="btn btn-outline-danger btn-sm" @onclick="DeleteTokenAsync" disabled="@string.IsNullOrWhiteSpace(tokenEdit.TokenId)">Delete Token</button>
-                                <button class="btn btn-outline-secondary btn-sm" @onclick="UseCurrentToken">Use Current Token</button>
-                            </div>
-                            <div class="form-text mt-2">If methods or paths are left empty, that dimension remains unrestricted for the token.</div>
-                        </div>
-                    </div>
-
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" @onclick="SaveAsync">Save Configuration</button>
                         <a class="btn btn-outline-secondary" href="/">Back to Home</a>
@@ -148,13 +69,6 @@
         ["NoSuggestion"] = "No Price Suggestion (Manual Confirmation Required)"
     };
 
-    private CurrentTokenIdentity? currentToken;
-    private List<TokenIdentityConfiguration> tokenIdentities = new();
-    private TokenIdentityConfiguration tokenEdit = new();
-    private string allowedMethodsText = "";
-    private string allowedPathsText = "";
-    private string tokenEnabled = "true";
-
     private string? message;
     private string? error;
 
@@ -162,9 +76,6 @@
     {
         try
         {
-            currentToken = await Http.GetFromJsonAsync<CurrentTokenIdentity>("/api/system/token-identities/current");
-            tokenIdentities = await Http.GetFromJsonAsync<List<TokenIdentityConfiguration>>("/api/system/token-identities") ?? new();
-
             var existing = await Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
             if (existing is not null)
             {
@@ -201,88 +112,6 @@
         message = "Configuration saved successfully.";
     }
 
-    private async Task SaveTokenAsync()
-    {
-        if (string.IsNullOrWhiteSpace(tokenEdit.TokenId))
-        {
-            error = "Token ID is required.";
-            return;
-        }
-
-        error = null;
-        var payload = new TokenIdentityConfiguration
-        {
-            TokenId = tokenEdit.TokenId.Trim(),
-            DisplayName = string.IsNullOrWhiteSpace(tokenEdit.DisplayName) ? null : tokenEdit.DisplayName.Trim(),
-            IsEnabled = string.Equals(tokenEnabled, "true", StringComparison.OrdinalIgnoreCase),
-            AllowedMethods = ParseCsv(allowedMethodsText).Select(v => v.ToUpperInvariant()).ToList(),
-            AllowedPathPrefixes = ParseCsv(allowedPathsText)
-        };
-
-        var response = await Http.PutAsJsonAsync($"/api/system/token-identities/{payload.TokenId}", payload);
-        if (!response.IsSuccessStatusCode)
-        {
-            error = "Failed to save token identity.";
-            return;
-        }
-
-        tokenIdentities = await Http.GetFromJsonAsync<List<TokenIdentityConfiguration>>("/api/system/token-identities") ?? new();
-        message = "Token identity saved successfully.";
-    }
-
-    private async Task DeleteTokenAsync()
-    {
-        if (string.IsNullOrWhiteSpace(tokenEdit.TokenId))
-        {
-            return;
-        }
-
-        error = null;
-        var response = await Http.DeleteAsync($"/api/system/token-identities/{tokenEdit.TokenId.Trim()}");
-        if (!response.IsSuccessStatusCode)
-        {
-            error = "Failed to delete token identity.";
-            return;
-        }
-
-        tokenIdentities = await Http.GetFromJsonAsync<List<TokenIdentityConfiguration>>("/api/system/token-identities") ?? new();
-        tokenEdit = new();
-        allowedMethodsText = "";
-        allowedPathsText = "";
-        tokenEnabled = "true";
-        message = "Token identity deleted successfully.";
-    }
-
-    private void EditToken(TokenIdentityConfiguration item)
-    {
-        tokenEdit = new TokenIdentityConfiguration
-        {
-            TokenId = item.TokenId,
-            DisplayName = item.DisplayName,
-            IsEnabled = item.IsEnabled,
-            AllowedMethods = item.AllowedMethods?.ToList() ?? new(),
-            AllowedPathPrefixes = item.AllowedPathPrefixes?.ToList() ?? new()
-        };
-
-        tokenEnabled = item.IsEnabled ? "true" : "false";
-        allowedMethodsText = string.Join(", ", tokenEdit.AllowedMethods);
-        allowedPathsText = string.Join(", ", tokenEdit.AllowedPathPrefixes);
-    }
-
-    private void UseCurrentToken()
-    {
-        if (currentToken is null)
-        {
-            return;
-        }
-
-        tokenEdit.TokenId = currentToken.TokenId;
-        if (string.IsNullOrWhiteSpace(tokenEdit.DisplayName))
-        {
-            tokenEdit.DisplayName = currentToken.DisplayName;
-        }
-    }
-
     private static string NormalizePricingFallback(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -291,20 +120,6 @@
         }
 
         return PricingFallbackOptions.ContainsKey(value) ? value : "LatestAvailableYear";
-    }
-
-    private static List<string> ParseCsv(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return new();
-        }
-
-        return value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
     }
 }
 
