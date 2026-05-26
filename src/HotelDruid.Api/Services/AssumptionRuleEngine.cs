@@ -55,11 +55,17 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
             return;
         }
 
-        var sourceYear = await ResolveSourceYearAsync(year, "TariffFallbackSourceYear");
-        var source = target.Where(t => t.Year == sourceYear).ToList();
+        var sourceYear = await ResolveTariffSourceYearAsync(year, target);
+        if (sourceYear is null)
+        {
+            _logger.LogInformation("Tariff auto-fill skipped for requested year {Year} because PriceFallback is configured to NoSuggestion", year);
+            return;
+        }
+
+        var source = target.Where(t => t.Year == sourceYear.Value).ToList();
         if (source.Count == 0)
         {
-            _logger.LogInformation("No source tariffs found for fallback year {SourceYear}", sourceYear);
+            _logger.LogInformation("No source tariffs found for fallback year {SourceYear}", sourceYear.Value);
             return;
         }
 
@@ -81,7 +87,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
             await _store.CreateAsync("tariffs", key, clone);
         }
 
-        _logger.LogInformation("Healed {Count} missing tariffs for year {Year} using source year {SourceYear}", source.Count, year, sourceYear);
+        _logger.LogInformation("Healed {Count} missing tariffs for year {Year} using source year {SourceYear}", source.Count, year, sourceYear.Value);
     }
 
     private async Task HealPeriodsAsync(int year)
@@ -195,5 +201,54 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
         }
 
         return requestedYear - 1;
+    }
+
+    private async Task<int?> ResolveTariffSourceYearAsync(int requestedYear, List<TariffStorageModel> availableTariffs)
+    {
+        var config = await _configurationStore.GetAsync();
+
+        if (config?.Settings != null
+            && config.Settings.TryGetValue("TariffFallbackSourceYear", out var configuredValue)
+            && int.TryParse(configuredValue, out var configuredYear)
+            && configuredYear > 1900
+            && configuredYear < 2200
+            && configuredYear != requestedYear)
+        {
+            return configuredYear;
+        }
+
+        var pricingFallback = "LatestAvailableYear";
+        if (config?.Settings != null
+            && config.Settings.TryGetValue("PriceFallback", out var configuredRule)
+            && !string.IsNullOrWhiteSpace(configuredRule))
+        {
+            pricingFallback = configuredRule.Trim();
+        }
+
+        if (pricingFallback.Equals("NoSuggestion", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // Default behavior: pick the most recent available tariff year, preferring years <= requested year.
+        var allAvailableYears = availableTariffs
+            .Select(t => t.Year)
+            .Where(y => y > 1900 && y < 2200 && y != requestedYear)
+            .Distinct()
+            .OrderBy(y => y)
+            .ToList();
+
+        var notBeyondRequested = allAvailableYears.Where(y => y <= requestedYear).ToList();
+        if (notBeyondRequested.Count > 0)
+        {
+            return notBeyondRequested[^1];
+        }
+
+        if (allAvailableYears.Count > 0)
+        {
+            return allAvailableYears[^1];
+        }
+
+        return null;
     }
 }

@@ -86,26 +86,41 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MissingTariffsYear_UsesPriceFallbackCurrentYear_WhenConfigured()
+    public async Task MissingTariffsYear_UsesPriceFallbackLatestAvailableYear_WhenConfigured()
     {
         var currentYear = DateTime.UtcNow.Year;
-        var requestedYear = currentYear + 1;
+        var sourceYear1 = currentYear - 1;
+        var sourceYear2 = currentYear;
+        var requestedYear = currentYear + 3;
 
         var configResponse = await _client.PutAsJsonAsync("/api/system/configuration", new SystemConfiguration
         {
             Id = "system",
-            DefaultYear = currentYear - 2,
             Settings = new Dictionary<string, string>
             {
-                ["PriceFallback"] = "CurrentYear"
+                ["PriceFallback"] = "LatestAvailableYear"
             }
         });
         Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
 
+        var createOlderTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        {
+            Id = (string?)null,
+            Year = sourceYear1,
+            ExtraCostName = "Breakfast",
+            CostType = "fixed",
+            BaseValue = 18.0,
+            PercentageValue = (double?)null,
+            TaxPercentage = 10.0,
+            Category = "meal",
+            NumberLimit = (int?)null
+        });
+        Assert.Equal(HttpStatusCode.Created, createOlderTariffResponse.StatusCode);
+
         var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
         {
             Id = (string?)null,
-            Year = currentYear,
+            Year = sourceYear2,
             ExtraCostName = "Cleaning",
             CostType = "fixed",
             BaseValue = 20.0,
@@ -134,6 +149,45 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
 
         Assert.NotEmpty(healed);
         Assert.All(healed, t => Assert.Equal(requestedYear, t.Year));
+    }
+
+    [Fact]
+    public async Task MissingTariffsYear_DoesNotAutoFill_WhenPriceFallbackNoSuggestion()
+    {
+        var currentYear = DateTime.UtcNow.Year;
+        var requestedYear = currentYear + 2;
+
+        var configResponse = await _client.PutAsJsonAsync("/api/system/configuration", new SystemConfiguration
+        {
+            Id = "system",
+            Settings = new Dictionary<string, string>
+            {
+                ["PriceFallback"] = "NoSuggestion"
+            }
+        });
+        Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
+
+        var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        {
+            Id = (string?)null,
+            Year = currentYear,
+            ExtraCostName = "Parking",
+            CostType = "fixed",
+            BaseValue = 15.0,
+            PercentageValue = (double?)null,
+            TaxPercentage = 10.0,
+            Category = "service",
+            NumberLimit = (int?)null
+        });
+        Assert.Equal(HttpStatusCode.Created, createTariffResponse.StatusCode);
+
+        for (var i = 0; i < 8; i++)
+        {
+            var read = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}");
+            Assert.NotNull(read);
+            Assert.Empty(read!);
+            await Task.Delay(50);
+        }
     }
 
     [Fact]

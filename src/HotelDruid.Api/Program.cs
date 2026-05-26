@@ -1,5 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 using System.Net;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using HotelDruid.Api.Services;
@@ -238,6 +240,80 @@ var staticFileOptions = new StaticFileOptions
     OnPrepareResponse = PrepareStaticResponse
 };
 
+const string TokenIdentityCollection = "token_identities";
+const string ActorTokenContextItem = "ActorTokenId";
+const string ActorDisplayContextItem = "ActorDisplayName";
+
+static string HashTokenMaterial(string material)
+{
+    var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(material));
+    return Convert.ToHexString(bytes).ToLowerInvariant();
+}
+
+static string ResolveTokenId(HttpContext context)
+{
+    var authHeader = context.Request.Headers.Authorization.ToString();
+    if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        var tokenValue = authHeader["Bearer ".Length..].Trim();
+        if (!string.IsNullOrWhiteSpace(tokenValue))
+        {
+            return $"tok_{HashTokenMaterial(tokenValue)[..24]}";
+        }
+    }
+
+    var explicitToken = context.Request.Headers["X-Client-Token"].ToString();
+    if (!string.IsNullOrWhiteSpace(explicitToken))
+    {
+        return $"tok_{HashTokenMaterial(explicitToken.Trim())[..24]}";
+    }
+
+    var browserFingerprint = $"{context.Connection.RemoteIpAddress}|{context.Request.Headers.UserAgent}";
+    return $"tok_{HashTokenMaterial(browserFingerprint)[..24]}";
+}
+
+static async Task<TokenIdentityConfiguration?> GetTokenIdentityAsync(IKeyValueStore store, string tokenId)
+{
+    var index = await store.GetIndexAsync(TokenIdentityCollection);
+    if (!index.TryGetValue(tokenId, out var documentId))
+    {
+        return null;
+    }
+
+    return await store.GetAsync<TokenIdentityConfiguration>(TokenIdentityCollection, documentId);
+}
+
+static bool IsTokenAuthorizedForRequest(TokenIdentityConfiguration identity, HttpContext context)
+{
+    if (!identity.IsEnabled)
+    {
+        return false;
+    }
+
+    var methodRestrictions = identity.AllowedMethods ?? new List<string>();
+    var pathRestrictions = identity.AllowedPathPrefixes ?? new List<string>();
+
+    var methodAllowed = methodRestrictions.Count == 0
+        || methodRestrictions.Any(m => string.Equals(m, context.Request.Method, StringComparison.OrdinalIgnoreCase));
+
+    var pathAllowed = pathRestrictions.Count == 0
+        || pathRestrictions.Any(prefix =>
+            !string.IsNullOrWhiteSpace(prefix)
+            && context.Request.Path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));
+
+    return methodAllowed && pathAllowed;
+}
+
+static string ResolveActorDisplayName(TokenIdentityConfiguration? identity)
+{
+    if (!string.IsNullOrWhiteSpace(identity?.DisplayName))
+    {
+        return identity.DisplayName!.Trim();
+    }
+
+    return "admin";
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles(staticFileOptions);
 
@@ -251,6 +327,44 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = string.Empty,
     ContentTypeProvider = staticContentTypeProvider,
     OnPrepareResponse = PrepareStaticResponse
+});
+
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    var store = context.RequestServices.GetRequiredService<IKeyValueStore>();
+    var tokenId = ResolveTokenId(context);
+    var identity = await GetTokenIdentityAsync(store, tokenId);
+
+    context.Items[ActorTokenContextItem] = tokenId;
+    context.Items[ActorDisplayContextItem] = ResolveActorDisplayName(identity);
+
+    // Keep token-management endpoints reachable to local admin instances even when the token is not registered yet.
+    if (context.Request.Path.StartsWithSegments("/api/system/token-identities", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    if (identity is not null && !IsTokenAuthorizedForRequest(identity, context))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Token is not authorized for this method/path.",
+            tokenId,
+            method = context.Request.Method,
+            path = context.Request.Path.Value
+        });
+        return;
+    }
+
+    await next();
 });
 
 // Basic root & health endpoints for quick validation
@@ -269,7 +383,12 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 
 // --- Mock API endpoints for early Blazor development ---
 
-app.MapGet("/api/status", () => Results.Ok(new { ActiveYear = DateTime.UtcNow.Year.ToString(), User = "admin", Version = "HotelDruid 3.0.7" }));
+app.MapGet("/api/status", (HttpContext httpContext) => Results.Ok(new
+{
+    ActiveYear = DateTime.UtcNow.Year.ToString(),
+    User = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin",
+    Version = "HotelDruid 3.0.7"
+}));
 
 app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
 {
@@ -280,13 +399,106 @@ app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configu
     return Results.Ok(config);
 });
 
-app.MapPut("/api/system/configuration", async (SystemConfiguration config, ISystemConfigurationStore configurationStore) =>
+app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore) =>
 {
     if (string.IsNullOrWhiteSpace(config.Id))
         config.Id = "system";
 
+    config.UpdatedUtc = DateTime.UtcNow;
+    config.Settings ??= new Dictionary<string, string>();
+    config.Settings["LastUpdatedBy"] = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin";
+    config.Settings["LastUpdatedTokenId"] = httpContext.Items.TryGetValue(ActorTokenContextItem, out var token) ? token?.ToString() ?? "unknown" : "unknown";
+
     await configurationStore.SaveAsync(config);
     return Results.Ok(config);
+});
+
+app.MapGet("/api/system/token-identities/current", async (HttpContext httpContext, IKeyValueStore store) =>
+{
+    var tokenId = ResolveTokenId(httpContext);
+    var identity = await GetTokenIdentityAsync(store, tokenId);
+    return Results.Ok(new CurrentTokenIdentity
+    {
+        TokenId = tokenId,
+        DisplayName = identity?.DisplayName,
+        IsAssigned = identity is not null
+    });
+});
+
+app.MapGet("/api/system/token-identities", async (IKeyValueStore store) =>
+{
+    var identities = await store.ListAsync<TokenIdentityConfiguration>(TokenIdentityCollection);
+    var ordered = identities
+        .OrderBy(i => i.DisplayName ?? i.TokenId)
+        .ThenBy(i => i.TokenId)
+        .ToList();
+    return Results.Ok(ordered);
+});
+
+app.MapPut("/api/system/token-identities/{tokenId}", async (string tokenId, TokenIdentityConfiguration request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(tokenId))
+    {
+        return Results.BadRequest(new { error = "TokenId is required." });
+    }
+
+    var normalizedTokenId = tokenId.Trim();
+    var existing = await GetTokenIdentityAsync(store, normalizedTokenId);
+    var now = DateTime.UtcNow;
+
+    var payload = new TokenIdentityConfiguration
+    {
+        TokenId = normalizedTokenId,
+        DisplayName = request.DisplayName,
+        IsEnabled = request.IsEnabled,
+        AllowedMethods = (request.AllowedMethods ?? new List<string>())
+            .Where(m => !string.IsNullOrWhiteSpace(m))
+            .Select(m => m.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList(),
+        AllowedPathPrefixes = (request.AllowedPathPrefixes ?? new List<string>())
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList(),
+        CreatedUtc = existing?.CreatedUtc ?? now,
+        UpdatedUtc = now
+    };
+
+    if (existing is null)
+    {
+        await store.CreateAsync(TokenIdentityCollection, normalizedTokenId, payload);
+    }
+    else
+    {
+        var index = await store.GetIndexAsync(TokenIdentityCollection);
+        if (!index.TryGetValue(normalizedTokenId, out var documentId))
+        {
+            return Results.NotFound(new { error = "Token identity not found in index." });
+        }
+
+        await store.UpdateAsync(TokenIdentityCollection, documentId, payload);
+    }
+
+    return Results.Ok(payload);
+});
+
+app.MapDelete("/api/system/token-identities/{tokenId}", async (string tokenId, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(tokenId))
+    {
+        return Results.BadRequest(new { error = "TokenId is required." });
+    }
+
+    var normalizedTokenId = tokenId.Trim();
+    var index = await store.GetIndexAsync(TokenIdentityCollection);
+    if (!index.TryGetValue(normalizedTokenId, out var documentId))
+    {
+        return Results.NotFound();
+    }
+
+    await store.DeleteAsync(TokenIdentityCollection, documentId);
+    return Results.NoContent();
 });
 
 app.MapDelete("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
