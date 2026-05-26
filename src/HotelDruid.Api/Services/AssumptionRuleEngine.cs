@@ -143,6 +143,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
     private async Task<int> ResolveSourceYearAsync(int requestedYear, string explicitSettingKey)
     {
         var config = await _configurationStore.GetAsync();
+        var currentYear = DateTime.UtcNow.Year;
 
         if (config?.Settings != null
             && config.Settings.TryGetValue(explicitSettingKey, out var configuredValue)
@@ -154,12 +155,40 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
             return configuredYear;
         }
 
+        if (explicitSettingKey.Equals("TariffFallbackSourceYear", StringComparison.Ordinal)
+            && config?.Settings != null
+            && config.Settings.TryGetValue("PriceFallback", out var pricingFallbackRule)
+            && !string.IsNullOrWhiteSpace(pricingFallbackRule))
+        {
+            var normalizedRule = pricingFallbackRule.Trim();
+
+            if (normalizedRule.Equals("DefaultYear", StringComparison.OrdinalIgnoreCase)
+                && config.DefaultYear is int configuredDefaultYear
+                && configuredDefaultYear > 1900
+                && configuredDefaultYear < 2200
+                && configuredDefaultYear != requestedYear)
+            {
+                return configuredDefaultYear;
+            }
+
+            if (normalizedRule.Equals("PreviousYear", StringComparison.OrdinalIgnoreCase)
+                && requestedYear - 1 > 1900)
+            {
+                return requestedYear - 1;
+            }
+
+            // CurrentYear is the default behavior for pricing fallback.
+            if (currentYear != requestedYear)
+            {
+                return currentYear;
+            }
+        }
+
         if (config?.DefaultYear is int defaultYear && defaultYear != requestedYear)
         {
             return defaultYear;
         }
 
-        var currentYear = DateTime.UtcNow.Year;
         if (currentYear != requestedYear)
         {
             return currentYear;

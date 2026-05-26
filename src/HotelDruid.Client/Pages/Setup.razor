@@ -41,7 +41,13 @@
 
                     <div class="mb-3">
                         <label class="form-label">Fallback Pricing Rule</label>
-                        <input class="form-control" @bind="pricingFallback" placeholder="CurrentYear" />
+                        <select class="form-select" @bind="pricingFallback">
+                            @foreach (var option in PricingFallbackOptions)
+                            {
+                                <option value="@option.Key">@option.Value</option>
+                            }
+                        </select>
+                        <div class="form-text">Used when pricing data is missing for a selected year.</div>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -57,6 +63,13 @@
 @code {
     private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
     private string pricingFallback = "CurrentYear";
+    private static readonly IReadOnlyDictionary<string, string> PricingFallbackOptions = new Dictionary<string, string>
+    {
+        ["CurrentYear"] = "Use Current Year",
+        ["DefaultYear"] = "Use Default Year",
+        ["PreviousYear"] = "Use Previous Year"
+    };
+
     private string? message;
     private string? error;
 
@@ -70,7 +83,7 @@
                 model = existing;
                 if (existing.Settings is not null && existing.Settings.TryGetValue("PriceFallback", out var value) && !string.IsNullOrWhiteSpace(value))
                 {
-                    pricingFallback = value;
+                    pricingFallback = NormalizePricingFallback(value);
                 }
             }
         }
@@ -88,7 +101,7 @@
         model.Id = "system";
         model.UpdatedUtc = DateTime.UtcNow;
         model.Settings ??= new Dictionary<string, string>();
-        model.Settings["PriceFallback"] = pricingFallback;
+        model.Settings["PriceFallback"] = NormalizePricingFallback(pricingFallback);
 
         var response = await Http.PutAsJsonAsync("/api/system/configuration", model);
         if (!response.IsSuccessStatusCode)
@@ -98,6 +111,16 @@
         }
 
         message = "Configuration saved successfully.";
+    }
+
+    private static string NormalizePricingFallback(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "CurrentYear";
+        }
+
+        return PricingFallbackOptions.ContainsKey(value) ? value : "CurrentYear";
     }
 }
 

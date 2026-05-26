@@ -86,6 +86,57 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MissingTariffsYear_UsesPriceFallbackCurrentYear_WhenConfigured()
+    {
+        var currentYear = DateTime.UtcNow.Year;
+        var requestedYear = currentYear + 1;
+
+        var configResponse = await _client.PutAsJsonAsync("/api/system/configuration", new SystemConfiguration
+        {
+            Id = "system",
+            DefaultYear = currentYear - 2,
+            Settings = new Dictionary<string, string>
+            {
+                ["PriceFallback"] = "CurrentYear"
+            }
+        });
+        Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
+
+        var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        {
+            Id = (string?)null,
+            Year = currentYear,
+            ExtraCostName = "Cleaning",
+            CostType = "fixed",
+            BaseValue = 20.0,
+            PercentageValue = (double?)null,
+            TaxPercentage = 10.0,
+            Category = "service",
+            NumberLimit = (int?)null
+        });
+        Assert.Equal(HttpStatusCode.Created, createTariffResponse.StatusCode);
+
+        var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}");
+        Assert.NotNull(firstRead);
+        Assert.Empty(firstRead!);
+
+        List<TariffDto> healed = new();
+        for (var i = 0; i < 20; i++)
+        {
+            healed = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}") ?? new();
+            if (healed.Count > 0)
+            {
+                break;
+            }
+
+            await Task.Delay(50);
+        }
+
+        Assert.NotEmpty(healed);
+        Assert.All(healed, t => Assert.Equal(requestedYear, t.Year));
+    }
+
+    [Fact]
     public async Task MissingPeriodsYear_ReturnsEmptyThenSelfHealsFromFallbackYear()
     {
         var configResponse = await _client.PutAsJsonAsync("/api/system/configuration", new SystemConfiguration
