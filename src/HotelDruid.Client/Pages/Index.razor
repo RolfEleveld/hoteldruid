@@ -58,6 +58,15 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reservations.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.Bookings", bookings?.Count ?? 0]</p>
+            @if (bookings is { Count: > 0 })
+            {
+              <ul class="list-group list-group-flush mb-3">
+                @foreach (var booking in bookings.OrderByDescending(b => b.Id).Take(GetWidgetVisibleCount("reservations")))
+                {
+                  <li class="list-group-item px-0 py-1 small">#@booking.Id @booking.Status</li>
+                }
+              </ul>
+            }
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
               <a class="btn btn-outline-primary btn-sm" href="/bookings">@L["Index.Feature.Reservations.Button"]</a>
@@ -72,6 +81,15 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Clients.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.Clients", clients?.Count ?? 0]</p>
+            @if (clients is { Count: > 0 })
+            {
+              <ul class="list-group list-group-flush mb-3">
+                @foreach (var client in clients.OrderByDescending(c => c.Id).Take(GetWidgetVisibleCount("clients")))
+                {
+                  <li class="list-group-item px-0 py-1 small">@client.Name</li>
+                }
+              </ul>
+            }
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-warning btn-sm" href="/clients/new">@L["Index.QuickAction.NewClient"]</a>
               <a class="btn btn-outline-warning btn-sm" href="/clients">@L["Index.Feature.Clients.Button"]</a>
@@ -97,7 +115,7 @@
             else
             {
               <ul class="list-group list-group-flush actionable-room-list mb-3">
-                @foreach (var room in availableRooms.Take(roomsToDisplayCount))
+                @foreach (var room in availableRooms.Take(GetWidgetVisibleCount("rooms")))
                 {
                   var isSelected = selectedRoomId == room.Id;
                   <li class="list-group-item px-0 py-2">
@@ -220,11 +238,12 @@
     private string? openMenuWidgetId;
     private string? openRoomMenuId;
     private string? selectedRoomId;
-    private int roomsToDisplayCount = 3;
+    private static readonly int[] WidgetVisibleCountOptions = [3, 5, 7, 10, 15];
 
     private const string HotelNameSettingKey = "HotelName";
     private const string WidgetSizeDefaultsSettingKey = "DashboardWidgetSizesDefault";
     private const string RoomsDisplayCountDefaultsSettingKey = "DashboardRoomsToDisplayDefault";
+    private const string WidgetVisibleCountsDefaultsSettingKey = "DashboardWidgetVisibleCountsDefault";
 
     private readonly Dictionary<string, string> widgetSizes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -235,6 +254,17 @@
       ["inventory"] = "1x1",
       ["warehouses"] = "1x1",
       ["reports"] = "1x1"
+    };
+
+    private readonly Dictionary<string, int> widgetVisibleCounts = new(StringComparer.OrdinalIgnoreCase)
+    {
+      ["reservations"] = 3,
+      ["clients"] = 3,
+      ["rooms"] = 3,
+      ["calendar"] = 3,
+      ["inventory"] = 3,
+      ["warehouses"] = 3,
+      ["reports"] = 3
     };
 
     protected override async Task OnInitializedAsync()
@@ -300,9 +330,16 @@
           }
         }
 
-        if (prefs?.RoomsToDisplayCount is >= 1 and <= 6)
+        if (prefs?.WidgetVisibleCounts is not null)
         {
-          roomsToDisplayCount = prefs.RoomsToDisplayCount;
+          foreach (var item in prefs.WidgetVisibleCounts)
+          {
+            if (widgetVisibleCounts.ContainsKey(item.Key)
+                && WidgetVisibleCountOptions.Contains(item.Value))
+            {
+              widgetVisibleCounts[item.Key] = item.Value;
+            }
+          }
         }
 
         StateHasChanged();
@@ -361,54 +398,54 @@
           builder.OpenElement(26, "div");
           builder.AddAttribute(27, "class", "dropdown-divider");
           builder.CloseElement();
+        }
 
-          builder.OpenElement(28, "div");
-          builder.AddAttribute(29, "class", "dropdown-header");
-          builder.AddContent(30, L["DashboardRooms.Menu.VisibleCount"]);
-          builder.CloseElement();
+        builder.OpenElement(28, "div");
+        builder.AddAttribute(29, "class", "dropdown-header");
+        builder.AddContent(30, L["DashboardRooms.Menu.VisibleCount"]);
+        builder.CloseElement();
 
-          for (var count = 1; count <= 6; count++)
-          {
-            var localCount = count;
-            builder.OpenElement(31 + count, "button");
-            builder.AddAttribute(32 + count, "class", "dropdown-item");
-            builder.AddAttribute(33 + count, "onclick", EventCallback.Factory.Create(this, () => SetRoomsToDisplay(localCount)));
-            builder.AddContent(34 + count, localCount.ToString());
-            builder.CloseElement();
-          }
-
-          builder.OpenElement(40, "div");
-          builder.AddAttribute(41, "class", "dropdown-divider");
+        foreach (var count in WidgetVisibleCountOptions)
+        {
+          var localCount = count;
+          builder.OpenElement(31 + count, "button");
+          builder.AddAttribute(32 + count, "class", "dropdown-item");
+          builder.AddAttribute(33 + count, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localCount)));
+          builder.AddContent(34 + count, localCount.ToString());
           builder.CloseElement();
         }
 
-        builder.OpenElement(42, "div");
-        builder.AddAttribute(43, "class", "dropdown-header");
-        builder.AddContent(44, L["Dashboard.Widget.Size.Header"]);
+        builder.OpenElement(47, "div");
+        builder.AddAttribute(48, "class", "dropdown-divider");
         builder.CloseElement();
 
-        builder.OpenElement(45, "button");
-        builder.AddAttribute(46, "class", "dropdown-item");
-        builder.AddAttribute(47, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x1")));
-        builder.AddContent(48, L["Dashboard.Widget.Size.1x1"]);
+        builder.OpenElement(49, "div");
+        builder.AddAttribute(50, "class", "dropdown-header");
+        builder.AddContent(51, L["Dashboard.Widget.Size.Header"]);
         builder.CloseElement();
 
-        builder.OpenElement(49, "button");
-        builder.AddAttribute(50, "class", "dropdown-item");
-        builder.AddAttribute(51, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x1")));
-        builder.AddContent(52, L["Dashboard.Widget.Size.2x1"]);
+        builder.OpenElement(52, "button");
+        builder.AddAttribute(53, "class", "dropdown-item");
+        builder.AddAttribute(54, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x1")));
+        builder.AddContent(55, L["Dashboard.Widget.Size.1x1"]);
         builder.CloseElement();
 
-        builder.OpenElement(53, "button");
-        builder.AddAttribute(54, "class", "dropdown-item");
-        builder.AddAttribute(55, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x2")));
-        builder.AddContent(56, L["Dashboard.Widget.Size.1x2"]);
+        builder.OpenElement(56, "button");
+        builder.AddAttribute(57, "class", "dropdown-item");
+        builder.AddAttribute(58, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x1")));
+        builder.AddContent(59, L["Dashboard.Widget.Size.2x1"]);
         builder.CloseElement();
 
-        builder.OpenElement(57, "button");
-        builder.AddAttribute(58, "class", "dropdown-item");
-        builder.AddAttribute(59, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x2")));
-        builder.AddContent(60, L["Dashboard.Widget.Size.2x2"]);
+        builder.OpenElement(60, "button");
+        builder.AddAttribute(61, "class", "dropdown-item");
+        builder.AddAttribute(62, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x2")));
+        builder.AddContent(63, L["Dashboard.Widget.Size.1x2"]);
+        builder.CloseElement();
+
+        builder.OpenElement(64, "button");
+        builder.AddAttribute(65, "class", "dropdown-item");
+        builder.AddAttribute(66, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x2")));
+        builder.AddContent(67, L["Dashboard.Widget.Size.2x2"]);
         builder.CloseElement();
 
         builder.CloseElement();
@@ -450,9 +487,14 @@
       openRoomMenuId = null;
     }
 
-    private void SetRoomsToDisplay(int count)
+    private void SetWidgetVisibleCount(string widgetId, int count)
     {
-      roomsToDisplayCount = count;
+      if (!widgetVisibleCounts.ContainsKey(widgetId) || !WidgetVisibleCountOptions.Contains(count))
+      {
+        return;
+      }
+
+      widgetVisibleCounts[widgetId] = count;
       SavePreferencesAsync();
     }
 
@@ -487,7 +529,7 @@
         var prefs = new DashboardPreferences
         {
           WidgetSizes = widgetSizes,
-          RoomsToDisplayCount = roomsToDisplayCount
+          WidgetVisibleCounts = widgetVisibleCounts
         };
 
         var json = JsonSerializer.Serialize(prefs);
@@ -531,9 +573,25 @@
 
       if (settings.TryGetValue(RoomsDisplayCountDefaultsSettingKey, out var roomCountValue)
           && int.TryParse(roomCountValue, out var parsedCount)
-          && parsedCount is >= 1 and <= 6)
+          && WidgetVisibleCountOptions.Contains(parsedCount))
       {
-        roomsToDisplayCount = parsedCount;
+        widgetVisibleCounts["rooms"] = parsedCount;
+      }
+
+      if (settings.TryGetValue(WidgetVisibleCountsDefaultsSettingKey, out var widgetVisibleCountDefaults)
+          && !string.IsNullOrWhiteSpace(widgetVisibleCountDefaults))
+      {
+        var visibleCounts = JsonSerializer.Deserialize<Dictionary<string, int>>(widgetVisibleCountDefaults);
+        if (visibleCounts is not null)
+        {
+          foreach (var pair in visibleCounts)
+          {
+            if (widgetVisibleCounts.ContainsKey(pair.Key) && WidgetVisibleCountOptions.Contains(pair.Value))
+            {
+              widgetVisibleCounts[pair.Key] = pair.Value;
+            }
+          }
+        }
       }
     }
 
@@ -585,7 +643,10 @@
       widgetSizes["inventory"] = "1x1";
       widgetSizes["warehouses"] = "1x1";
       widgetSizes["reports"] = "1x1";
-      roomsToDisplayCount = 3;
+      foreach (var key in widgetVisibleCounts.Keys.ToList())
+      {
+        widgetVisibleCounts[key] = 3;
+      }
 
       SavePreferencesAsync();
       await SaveSystemDefaultsAsync();
@@ -603,7 +664,8 @@
       systemConfiguration.Settings ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
       systemConfiguration.Settings[HotelNameSettingKey] = hotelName;
       systemConfiguration.Settings[WidgetSizeDefaultsSettingKey] = JsonSerializer.Serialize(widgetSizes);
-      systemConfiguration.Settings[RoomsDisplayCountDefaultsSettingKey] = roomsToDisplayCount.ToString();
+      systemConfiguration.Settings[RoomsDisplayCountDefaultsSettingKey] = GetWidgetVisibleCount("rooms").ToString();
+      systemConfiguration.Settings[WidgetVisibleCountsDefaultsSettingKey] = JsonSerializer.Serialize(widgetVisibleCounts);
       systemConfiguration.UpdatedUtc = DateTime.UtcNow;
 
       await Http.PutAsJsonAsync("/api/system/configuration", systemConfiguration);
@@ -620,6 +682,11 @@
         : status!.BuildNumber!;
 
       return $"{versionLabel} (build {buildNumber})";
+    }
+
+    private int GetWidgetVisibleCount(string widgetId)
+    {
+      return widgetVisibleCounts.TryGetValue(widgetId, out var count) ? count : 3;
     }
 
     private void GoToAddRoom()
@@ -692,7 +759,7 @@
     private sealed class DashboardPreferences
     {
       public Dictionary<string, string>? WidgetSizes { get; set; }
-      public int RoomsToDisplayCount { get; set; }
+      public Dictionary<string, int>? WidgetVisibleCounts { get; set; }
     }
 }
 
