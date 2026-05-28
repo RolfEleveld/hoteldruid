@@ -74,6 +74,17 @@
   <data name="DashboardRooms.Menu.ManageRoom" xml:space="preserve"><value>Manage Room</value></data>
   <data name="DashboardRooms.Menu.DeleteRoom" xml:space="preserve"><value>Delete Room</value></data>
   <data name="DashboardRooms.Menu.VisibleCount" xml:space="preserve"><value>Rooms To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Reservations" xml:space="preserve"><value>Reservations To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Clients" xml:space="preserve"><value>Clients To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Rooms" xml:space="preserve"><value>Rooms To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Calendar" xml:space="preserve"><value>Years To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Inventory" xml:space="preserve"><value>Inventory Items To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Warehouses" xml:space="preserve"><value>Warehouses To Display</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Reports" xml:space="preserve"><value>Reports To Display</value></data>
+  <data name="Dashboard.Widget.Menu.AddYear" xml:space="preserve"><value>Add Year</value></data>
+  <data name="Dashboard.Widget.Menu.AddInventoryItem" xml:space="preserve"><value>Add Inventory Item</value></data>
+  <data name="Dashboard.Widget.Menu.AddWarehouse" xml:space="preserve"><value>Add Warehouse</value></data>
+  <data name="Dashboard.Widget.Menu.AddReportTemplate" xml:space="preserve"><value>Add Report Template</value></data>
   <data name="DashboardRooms.Detail.Floor" xml:space="preserve"><value>Floor</value></data>
   <data name="DashboardRooms.Detail.House" xml:space="preserve"><value>House</value></data>
   <data name="DashboardRooms.Detail.Priority" xml:space="preserve"><value>Priority</value></data>

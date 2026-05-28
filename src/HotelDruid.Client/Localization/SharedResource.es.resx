@@ -68,6 +68,17 @@
   <data name="DashboardRooms.Menu.ManageRoom" xml:space="preserve"><value>Gestionar habitación</value></data>
   <data name="DashboardRooms.Menu.DeleteRoom" xml:space="preserve"><value>Eliminar habitación</value></data>
   <data name="DashboardRooms.Menu.VisibleCount" xml:space="preserve"><value>Habitaciones a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Reservations" xml:space="preserve"><value>Reservas a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Clients" xml:space="preserve"><value>Clientes a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Rooms" xml:space="preserve"><value>Habitaciones a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Calendar" xml:space="preserve"><value>Anos a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Inventory" xml:space="preserve"><value>Articulos de inventario a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Warehouses" xml:space="preserve"><value>Almacenes a mostrar</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Reports" xml:space="preserve"><value>Informes a mostrar</value></data>
+  <data name="Dashboard.Widget.Menu.AddYear" xml:space="preserve"><value>Anadir ano</value></data>
+  <data name="Dashboard.Widget.Menu.AddInventoryItem" xml:space="preserve"><value>Anadir articulo de inventario</value></data>
+  <data name="Dashboard.Widget.Menu.AddWarehouse" xml:space="preserve"><value>Anadir almacen</value></data>
+  <data name="Dashboard.Widget.Menu.AddReportTemplate" xml:space="preserve"><value>Anadir plantilla de informe</value></data>
   <data name="DashboardRooms.Detail.Floor" xml:space="preserve"><value>Planta</value></data>
   <data name="DashboardRooms.Detail.House" xml:space="preserve"><value>Casa</value></data>
   <data name="DashboardRooms.Detail.Priority" xml:space="preserve"><value>Prioridad</value></data>

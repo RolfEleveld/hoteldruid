@@ -54,7 +54,7 @@
     <div class="row gx-3 gy-3 features dashboard-widgets">
       <div class="@GetWidgetColumnClass("reservations")">
         <div class="card feature-card border-primary dashboard-widget h-100">
-          @WidgetHeader("reservations", "bi-calendar-check-fill", L["Index.Feature.Reservations.Title"])
+          @WidgetHeader("reservations", "bi-calendar-check-fill", L["Index.Feature.Reservations.Title"], "Dashboard.Widget.VisibleCount.Reservations", "Index.QuickAction.NewReservation", "/bookings/new")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reservations.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.Bookings", bookings?.Count ?? 0]</p>
@@ -77,7 +77,7 @@
 
       <div class="@GetWidgetColumnClass("clients")">
         <div class="card feature-card border-warning dashboard-widget h-100">
-          @WidgetHeader("clients", "bi-people-fill", L["Index.Feature.Clients.Title"])
+          @WidgetHeader("clients", "bi-people-fill", L["Index.Feature.Clients.Title"], "Dashboard.Widget.VisibleCount.Clients", "Index.QuickAction.NewClient", "/clients/new")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Clients.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.Clients", clients?.Count ?? 0]</p>
@@ -100,7 +100,7 @@
 
       <div class="@GetWidgetColumnClass("rooms")">
         <div class="card feature-card border-success dashboard-widget h-100">
-          @WidgetHeader("rooms", "bi-house-fill", L["DashboardRooms.Title"])
+          @WidgetHeader("rooms", "bi-house-fill", L["DashboardRooms.Title"], "Dashboard.Widget.VisibleCount.Rooms", "DashboardRooms.Menu.AddRoom", "/rooms")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["DashboardRooms.Subtitle"]</p>
 
@@ -164,7 +164,7 @@
 
       <div class="@GetWidgetColumnClass("calendar")">
         <div class="card feature-card border-purple dashboard-widget h-100">
-          @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"])
+          @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"], "Dashboard.Widget.VisibleCount.Calendar", "Dashboard.Widget.Menu.AddYear", "/years")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Calendar.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.ActiveYear", activeYearDisplay]</p>
@@ -177,7 +177,7 @@
 
       <div class="@GetWidgetColumnClass("inventory")">
         <div class="card feature-card border-dark dashboard-widget h-100">
-          @WidgetHeader("inventory", "bi-boxes", L["Index.Feature.Inventory.Title"])
+          @WidgetHeader("inventory", "bi-boxes", L["Index.Feature.Inventory.Title"], "Dashboard.Widget.VisibleCount.Inventory", "Dashboard.Widget.Menu.AddInventoryItem", "/inventory")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Inventory.Subtitle"]</p>
             <div class="d-flex gap-2 mt-auto">
@@ -189,7 +189,7 @@
 
       <div class="@GetWidgetColumnClass("warehouses")">
         <div class="card feature-card border-secondary dashboard-widget h-100">
-          @WidgetHeader("warehouses", "bi-buildings", L["Index.Feature.Warehouses.Title"])
+          @WidgetHeader("warehouses", "bi-buildings", L["Index.Feature.Warehouses.Title"], "Dashboard.Widget.VisibleCount.Warehouses", "Dashboard.Widget.Menu.AddWarehouse", "/warehouses")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Warehouses.Subtitle"]</p>
             <div class="d-flex gap-2 mt-auto">
@@ -201,7 +201,7 @@
 
       <div class="@GetWidgetColumnClass("reports")">
         <div class="card feature-card border-info dashboard-widget h-100">
-          @WidgetHeader("reports", "bi-bar-chart", L["Index.Feature.Reports.Title"])
+          @WidgetHeader("reports", "bi-bar-chart", L["Index.Feature.Reports.Title"], "Dashboard.Widget.VisibleCount.Reports", "Dashboard.Widget.Menu.AddReportTemplate", "/contract-templates")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reports.Subtitle"]</p>
             <div class="d-flex gap-2 mt-auto">
@@ -350,7 +350,7 @@
       }
     }
 
-    private RenderFragment WidgetHeader(string widgetId, string icon, string title) => builder =>
+    private RenderFragment WidgetHeader(string widgetId, string icon, string title, string visibleCountHeaderKey, string? addActionLabelKey = null, string? addActionRoute = null) => builder =>
     {
       builder.OpenElement(0, "div");
       builder.AddAttribute(1, "class", "card-header d-flex justify-content-between align-items-start");
@@ -381,71 +381,78 @@
         builder.OpenElement(16, "div");
         builder.AddAttribute(17, "class", "dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown");
 
-        if (widgetId == "rooms")
+        if (!string.IsNullOrWhiteSpace(addActionLabelKey) && !string.IsNullOrWhiteSpace(addActionRoute))
         {
           builder.OpenElement(18, "button");
           builder.AddAttribute(19, "class", "dropdown-item");
-          builder.AddAttribute(20, "onclick", EventCallback.Factory.Create(this, GoToAddRoom));
-          builder.AddContent(21, L["DashboardRooms.Menu.AddRoom"]);
+          builder.AddAttribute(20, "onclick", EventCallback.Factory.Create(this, () => GoToRoute(addActionRoute)));
+          builder.AddContent(21, L[addActionLabelKey]);
           builder.CloseElement();
 
-          builder.OpenElement(22, "button");
-          builder.AddAttribute(23, "class", "dropdown-item");
-          builder.AddAttribute(24, "onclick", EventCallback.Factory.Create(this, GoToRoomLayout));
-          builder.AddContent(25, L["DashboardRooms.Menu.SetLayout"]);
-          builder.CloseElement();
-
-          builder.OpenElement(26, "div");
-          builder.AddAttribute(27, "class", "dropdown-divider");
+          builder.OpenElement(22, "div");
+          builder.AddAttribute(23, "class", "dropdown-divider");
           builder.CloseElement();
         }
 
-        builder.OpenElement(28, "div");
-        builder.AddAttribute(29, "class", "dropdown-header");
-        builder.AddContent(30, L["DashboardRooms.Menu.VisibleCount"]);
+        if (widgetId == "rooms")
+        {
+          builder.OpenElement(24, "button");
+          builder.AddAttribute(25, "class", "dropdown-item");
+          builder.AddAttribute(26, "onclick", EventCallback.Factory.Create(this, GoToRoomLayout));
+          builder.AddContent(27, L["DashboardRooms.Menu.SetLayout"]);
+          builder.CloseElement();
+
+          builder.OpenElement(28, "div");
+          builder.AddAttribute(29, "class", "dropdown-divider");
+          builder.CloseElement();
+        }
+
+        builder.OpenElement(30, "div");
+        builder.AddAttribute(31, "class", "dropdown-header");
+        builder.AddContent(32, L[visibleCountHeaderKey]);
         builder.CloseElement();
 
         foreach (var count in WidgetVisibleCountOptions)
         {
           var localCount = count;
-          builder.OpenElement(31 + count, "button");
-          builder.AddAttribute(32 + count, "class", "dropdown-item");
-          builder.AddAttribute(33 + count, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localCount)));
-          builder.AddContent(34 + count, localCount.ToString());
+          builder.OpenElement(40 + count, "button");
+          builder.AddAttribute(41 + count, "class", "dropdown-item");
+          builder.AddAttribute(42 + count, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localCount)));
+          builder.AddContent(43 + count, localCount.ToString());
           builder.CloseElement();
         }
 
-        builder.OpenElement(47, "div");
-        builder.AddAttribute(48, "class", "dropdown-divider");
+        builder.OpenElement(56, "div");
+        builder.AddAttribute(57, "class", "dropdown-divider");
         builder.CloseElement();
 
-        builder.OpenElement(49, "div");
-        builder.AddAttribute(50, "class", "dropdown-header");
-        builder.AddContent(51, L["Dashboard.Widget.Size.Header"]);
+        builder.OpenElement(58, "div");
+        builder.AddAttribute(59, "class", "dropdown-header");
+        builder.AddContent(60, L["Dashboard.Widget.Size.Header"]);
         builder.CloseElement();
 
-        builder.OpenElement(52, "button");
-        builder.AddAttribute(53, "class", "dropdown-item");
-        builder.AddAttribute(54, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x1")));
-        builder.AddContent(55, L["Dashboard.Widget.Size.1x1"]);
+        builder.OpenElement(61, "button");
+        builder.AddAttribute(62, "class", "dropdown-item");
+        builder.AddAttribute(63, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x1")));
+        builder.AddContent(64, L["Dashboard.Widget.Size.1x1"]);
         builder.CloseElement();
 
-        builder.OpenElement(56, "button");
-        builder.AddAttribute(57, "class", "dropdown-item");
-        builder.AddAttribute(58, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x1")));
-        builder.AddContent(59, L["Dashboard.Widget.Size.2x1"]);
+        builder.OpenElement(65, "button");
+        builder.AddAttribute(66, "class", "dropdown-item");
+        builder.AddAttribute(67, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x1")));
+        builder.AddContent(68, L["Dashboard.Widget.Size.2x1"]);
         builder.CloseElement();
 
-        builder.OpenElement(60, "button");
-        builder.AddAttribute(61, "class", "dropdown-item");
-        builder.AddAttribute(62, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x2")));
-        builder.AddContent(63, L["Dashboard.Widget.Size.1x2"]);
+        builder.OpenElement(69, "button");
+        builder.AddAttribute(70, "class", "dropdown-item");
+        builder.AddAttribute(71, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x2")));
+        builder.AddContent(72, L["Dashboard.Widget.Size.1x2"]);
         builder.CloseElement();
 
-        builder.OpenElement(64, "button");
-        builder.AddAttribute(65, "class", "dropdown-item");
-        builder.AddAttribute(66, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x2")));
-        builder.AddContent(67, L["Dashboard.Widget.Size.2x2"]);
+        builder.OpenElement(73, "button");
+        builder.AddAttribute(74, "class", "dropdown-item");
+        builder.AddAttribute(75, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x2")));
+        builder.AddContent(76, L["Dashboard.Widget.Size.2x2"]);
         builder.CloseElement();
 
         builder.CloseElement();
@@ -689,10 +696,10 @@
       return widgetVisibleCounts.TryGetValue(widgetId, out var count) ? count : 3;
     }
 
-    private void GoToAddRoom()
+    private void GoToRoute(string route)
     {
       openMenuWidgetId = null;
-      Navigation.NavigateTo("/rooms");
+      Navigation.NavigateTo(route);
     }
 
     private void GoToRoomLayout()

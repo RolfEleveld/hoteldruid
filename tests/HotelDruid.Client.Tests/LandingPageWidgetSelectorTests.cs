@@ -86,6 +86,28 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
 public class LandingPageWidgetSelectorTests : TestContext
 {
+    private static readonly string[] ExpectedVisibleCountHeaderKeys =
+    [
+        "Dashboard.Widget.VisibleCount.Reservations",
+        "Dashboard.Widget.VisibleCount.Clients",
+        "Dashboard.Widget.VisibleCount.Rooms",
+        "Dashboard.Widget.VisibleCount.Calendar",
+        "Dashboard.Widget.VisibleCount.Inventory",
+        "Dashboard.Widget.VisibleCount.Warehouses",
+        "Dashboard.Widget.VisibleCount.Reports"
+    ];
+
+    private static readonly string[] ExpectedAddActionKeys =
+    [
+        "Index.QuickAction.NewReservation",
+        "Index.QuickAction.NewClient",
+        "DashboardRooms.Menu.AddRoom",
+        "Dashboard.Widget.Menu.AddYear",
+        "Dashboard.Widget.Menu.AddInventoryItem",
+        "Dashboard.Widget.Menu.AddWarehouse",
+        "Dashboard.Widget.Menu.AddReportTemplate"
+    ];
+
     public LandingPageWidgetSelectorTests()
     {
         Services.AddClientLocalizationTestSupport();
@@ -108,6 +130,38 @@ public class LandingPageWidgetSelectorTests : TestContext
         Services.AddScoped(_ => client);
 
         JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
+    [Fact]
+    public void WidgetMenus_ShouldShow_EntitySpecificVisibleHeader_AndAddAction()
+    {
+        var component = RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
+            Assert.Equal(7, menuButtons.Count);
+        });
+
+        for (var i = 0; i < ExpectedVisibleCountHeaderKeys.Length; i++)
+        {
+            var buttons = component.FindAll("button[title='Dashboard.Widget.Menu']");
+            buttons[i].Click();
+
+            component.WaitForAssertion(() =>
+            {
+                var headers = component.FindAll(".dropdown-menu.show .dropdown-header")
+                    .Select(x => x.TextContent.Trim())
+                    .ToList();
+
+                var items = component.FindAll(".dropdown-menu.show .dropdown-item")
+                    .Select(x => x.TextContent.Trim())
+                    .ToList();
+
+                Assert.Contains(ExpectedVisibleCountHeaderKeys[i], headers);
+                Assert.Contains(ExpectedAddActionKeys[i], items);
+            });
+        }
     }
 
     [Fact]
