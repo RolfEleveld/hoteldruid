@@ -78,6 +78,16 @@
   <data name="Dashboard.Widget.Size.2x1" xml:space="preserve"><value>2x1</value></data>
   <data name="Dashboard.Widget.Size.1x2" xml:space="preserve"><value>1x2</value></data>
   <data name="Dashboard.Widget.Size.2x2" xml:space="preserve"><value>2x2</value></data>
+  <data name="Dashboard.Settings.Menu" xml:space="preserve"><value>Configuración del panel</value></data>
+  <data name="Dashboard.Settings.EditHotelName" xml:space="preserve"><value>Editar nombre del hotel</value></data>
+  <data name="Dashboard.Settings.SaveDefaults" xml:space="preserve"><value>Guardar diseño actual como predeterminado</value></data>
+  <data name="Dashboard.Settings.ResetDefaults" xml:space="preserve"><value>Restablecer diseño predeterminado</value></data>
+  <data name="Dashboard.Settings.Save" xml:space="preserve"><value>Guardar</value></data>
+  <data name="Dashboard.Settings.Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="Dashboard.Count.Bookings" xml:space="preserve"><value>Reservas: {0}</value></data>
+  <data name="Dashboard.Count.Clients" xml:space="preserve"><value>Clientes: {0}</value></data>
+  <data name="Dashboard.Count.ActiveYear" xml:space="preserve"><value>Año activo: {0}</value></data>
+  <data name="Dashboard.Version.Label" xml:space="preserve"><value>Versión</value></data>
   <data name="Nav.Toggle" xml:space="preserve"><value>Menú de navegación</value></data>
   <data name="Nav.Home" xml:space="preserve"><value>Inicio</value></data>
   <data name="Nav.Assets" xml:space="preserve"><value>Activos</value></data>
@@ -124,6 +134,9 @@
   <data name="Setup.DescriptionPrefix" xml:space="preserve"><value>Configura los supuestos base de esta instalación. Esta página se puede volver a abrir en cualquier momento usando</value></data>
   <data name="Setup.DescriptionSuffix" xml:space="preserve"><value>.</value></data>
   <data name="Setup.SystemCurrency.Label" xml:space="preserve"><value>Moneda del sistema</value></data>
+  <data name="Setup.HotelName.Label" xml:space="preserve"><value>Nombre del hotel</value></data>
+  <data name="Setup.HotelName.Placeholder" xml:space="preserve"><value>Bienvenido a HotelDruid</value></data>
+  <data name="Setup.HotelName.Help" xml:space="preserve"><value>Este nombre aparece en la parte superior del panel y puede cambiarse luego desde la configuración del panel.</value></data>
   <data name="Setup.SystemCurrency.Placeholder" xml:space="preserve"><value>EUR</value></data>
   <data name="Setup.SystemCurrency.Help" xml:space="preserve"><value>Todos los totales del sistema se calculan en esta moneda. La conversión de moneda no se aplica automáticamente; usa gestión manual de tipos de cambio cuando sea necesario.</value></data>
   <data name="Setup.DefaultYear.Label" xml:space="preserve"><value>Año predeterminado</value></data>

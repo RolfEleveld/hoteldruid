@@ -1,6 +1,21 @@
 /* Small landing page overrides to match legacy inizio.php look */
 .landing-hero { background: #ffffff; }
 .landing-hero .display-5 { font-weight: 600; }
+.hero-title-button {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hero-title-button:hover,
+.hero-title-button:focus {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.hotel-name-input {
+  min-width: 280px;
+}
+
 .feature-card { border-radius: 12px; box-shadow: 0 6px 18px rgba(10,10,10,0.06); }
 .feature-card .card-body { padding: 1.25rem; }
 .border-purple { border: .25rem solid #9b5de5 !important; }

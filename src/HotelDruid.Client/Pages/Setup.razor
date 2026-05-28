@@ -1,6 +1,7 @@
 @page "/setup"
 @using System.Net
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Web
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared.Configuration
 @inject HttpClient Http
@@ -28,6 +29,12 @@
                     {
                         <div class="alert alert-danger">@error</div>
                     }
+
+                    <div class="mb-3">
+                        <label class="form-label">@L["Setup.HotelName.Label"]</label>
+                        <input class="form-control" @bind="hotelName" placeholder="@L["Setup.HotelName.Placeholder"]" />
+                        <div class="form-text">@L["Setup.HotelName.Help"]</div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label">@L["Setup.SystemCurrency.Label"]</label>
@@ -81,6 +88,7 @@
     }
 
     private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
+    private string hotelName = "Welcome to HotelDruid";
     private string pricingFallback = "LatestAvailableYear";
     private StorageInfoResponse? storageInfo;
     private static readonly IReadOnlyList<string> PricingFallbackOptions =
@@ -112,6 +120,13 @@
             if (existing is not null)
             {
                 model = existing;
+                if (existing.Settings is not null
+                    && existing.Settings.TryGetValue("HotelName", out var configuredHotelName)
+                    && !string.IsNullOrWhiteSpace(configuredHotelName))
+                {
+                    hotelName = configuredHotelName;
+                }
+
                 if (existing.Settings is not null && existing.Settings.TryGetValue("PriceFallback", out var value) && !string.IsNullOrWhiteSpace(value))
                 {
                     pricingFallback = NormalizePricingFallback(value);
@@ -132,6 +147,7 @@
         model.Id = "system";
         model.UpdatedUtc = DateTime.UtcNow;
         model.Settings ??= new Dictionary<string, string>();
+        model.Settings["HotelName"] = string.IsNullOrWhiteSpace(hotelName) ? "Welcome to HotelDruid" : hotelName.Trim();
         model.Settings["PriceFallback"] = NormalizePricingFallback(pricingFallback);
 
         var response = await Http.PutAsJsonAsync("/api/system/configuration", model);

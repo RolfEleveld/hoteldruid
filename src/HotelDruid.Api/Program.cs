@@ -334,12 +334,23 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 
 // --- Mock API endpoints for early Blazor development ---
 
-app.MapGet("/api/status", (HttpContext httpContext) => Results.Ok(new
+app.MapGet("/api/status", (HttpContext httpContext) =>
 {
-    ActiveYear = DateTime.UtcNow.Year.ToString(),
-    User = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin",
-    Version = "HotelDruid 3.0.7"
-}));
+    var buildNumber = Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER")
+        ?? Environment.GetEnvironmentVariable("GITHUB_RUN_NUMBER")
+        ?? Environment.GetEnvironmentVariable("CI_PIPELINE_IID")
+        ?? Environment.GetEnvironmentVariable("HOTELDRUID_BUILD_NUMBER")
+        ?? "local";
+
+    return Results.Ok(new
+    {
+        ActiveYear = DateTime.UtcNow.Year.ToString(),
+        User = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin",
+        Version = "HotelDruid 3.0.7",
+        VersionLabel = "HotelDruid 3.0.7. Blazor",
+        BuildNumber = buildNumber
+    });
+});
 
 app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configurationStore) =>
 {
