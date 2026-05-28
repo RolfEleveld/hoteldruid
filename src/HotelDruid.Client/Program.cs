@@ -14,6 +14,7 @@ builder.Services.AddScoped<IActiveYearService, ActiveYearService>();
 // Register Asset API client service
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssetApiService, HotelDruid.Client.Services.AssetApiService>();
 // Warehouses and Inventory services
+builder.Services.AddScoped<HotelDruid.Client.Services.IRoomApiService, HotelDruid.Client.Services.RoomApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IWarehouseApiService, HotelDruid.Client.Services.WarehouseApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IInventoryApiService, HotelDruid.Client.Services.InventoryApiService>();
 // Reference data services

@@ -1,10 +1,13 @@
 @page "/"
 @using System.Net.Http.Json
+@using System.Text.Json
 @using HotelDruid.Client.Shared
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
 @using HotelDruid.Client.Services
 @inject HttpClient Http
+@inject IRoomApiService RoomApiService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IActiveYearService ActiveYearService
 @inject IStringLocalizer<SharedResource> L
@@ -18,37 +21,143 @@
       <p class="lead text-muted">@L["Index.HeroSubtitle"]</p>
     </div>
 
-    <div class="row gx-3 gy-3 features">
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Rooms.Title"]" Subtitle="@L["Index.Feature.Rooms.Subtitle"]" ButtonText="@L["Index.Feature.Rooms.Button"]" ButtonLink="/rooms" BorderClass="border-success" Icon="bi-house-fill" />
+    <div class="row gx-3 gy-3 features dashboard-widgets">
+      <div class="@GetWidgetColumnClass("reservations")">
+        <div class="card feature-card border-primary dashboard-widget h-100">
+          @WidgetHeader("reservations", "bi-calendar-check-fill", L["Index.Feature.Reservations.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Reservations.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
+              <a class="btn btn-outline-primary btn-sm" href="/bookings">@L["Index.Feature.Reservations.Button"]</a>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Assets.Title"]" Subtitle="@L["Index.Feature.Assets.Subtitle"]" ButtonText="@L["Index.Feature.Assets.Button"]" ButtonLink="/assets" BorderClass="border-info" Icon="bi-box-seam" />
-      </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Warehouses.Title"]" Subtitle="@L["Index.Feature.Warehouses.Subtitle"]" ButtonText="@L["Index.Feature.Warehouses.Button"]" ButtonLink="/warehouses" BorderClass="border-secondary" Icon="bi-buildings" />
-      </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Inventory.Title"]" Subtitle="@L["Index.Feature.Inventory.Subtitle"]" ButtonText="@L["Index.Feature.Inventory.Button"]" ButtonLink="/inventory" BorderClass="border-dark" Icon="bi-boxes" />
-      </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Reservations.Title"]" Subtitle="@L["Index.Feature.Reservations.Subtitle"]" ButtonText="@L["Index.Feature.Reservations.Button"]" ButtonLink="/bookings" BorderClass="border-primary" Icon="bi-calendar-check-fill" />
-      </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Clients.Title"]" Subtitle="@L["Index.Feature.Clients.Subtitle"]" ButtonText="@L["Index.Feature.Clients.Button"]" ButtonLink="/clients" BorderClass="border-warning" Icon="bi-people-fill" />
-      </div>
-      <div class="col-6 col-md-3">
-        <FeatureCard Title="@L["Index.Feature.Calendar.Title"]" Subtitle="@L["Index.Feature.Calendar.Subtitle"]" ButtonText="@L["Index.Feature.Calendar.Button"]" ButtonLink="/calendar" BorderClass="border-purple" Icon="bi-calendar2-week-fill" />
-      </div>
-    </div>
 
-    <div class="quick-actions mt-4">
-      <div class="d-flex gap-3 justify-content-center">
-        <QuickAction Text="@L["Index.QuickAction.NewReservation"]" Icon="bi-plus" Link="/bookings/new" ColorClass="btn-success" />
-        <QuickAction Text="@L["Index.QuickAction.AddRoom"]" Icon="bi-door-open" Link="/rooms/new" ColorClass="btn-primary" />
-          <QuickAction Text="@L["Index.QuickAction.AddAsset"]" Icon="bi-box" Link="/assets" ColorClass="btn-info" />
-        <QuickAction Text="@L["Index.QuickAction.NewClient"]" Icon="bi-person-plus" Link="/clients/new" ColorClass="btn-warning" />
-        <QuickAction Text="@L["Index.QuickAction.Report"]" Icon="bi-bar-chart" Link="/reports" ColorClass="btn-purple" />
+      <div class="@GetWidgetColumnClass("clients")">
+        <div class="card feature-card border-warning dashboard-widget h-100">
+          @WidgetHeader("clients", "bi-people-fill", L["Index.Feature.Clients.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Clients.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-warning btn-sm" href="/clients/new">@L["Index.QuickAction.NewClient"]</a>
+              <a class="btn btn-outline-warning btn-sm" href="/clients">@L["Index.Feature.Clients.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("rooms")">
+        <div class="card feature-card border-success dashboard-widget h-100">
+          @WidgetHeader("rooms", "bi-house-fill", L["DashboardRooms.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["DashboardRooms.Subtitle"]</p>
+
+            @if (roomsLoading)
+            {
+              <p class="small text-muted">@L["DashboardRooms.Loading"]</p>
+            }
+            else if (!availableRooms.Any())
+            {
+              <p class="small text-muted">@L["DashboardRooms.Empty"]</p>
+            }
+            else
+            {
+              <ul class="list-group list-group-flush actionable-room-list mb-3">
+                @foreach (var room in availableRooms.Take(roomsToDisplayCount))
+                {
+                  var isSelected = selectedRoomId == room.Id;
+                  <li class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                      <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => ToggleRoomDetails(room.Id)">
+                        <span class="fw-semibold">@room.Name</span>
+                        <span class="text-muted small d-block">@L["DashboardRooms.RoomCapacity", room.Capacity]</span>
+                      </button>
+
+                      <div class="position-relative">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-menu-button"
+                                title="@L["DashboardRooms.RoomMenu"]" @onclick="() => ToggleRoomMenu(room.Id)">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+
+                        @if (openRoomMenuId == room.Id)
+                        {
+                          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
+                            <button class="dropdown-item" @onclick="() => ToggleRoomDetails(room.Id)">@L["DashboardRooms.Menu.ViewDetails"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToRoomManagement(room.Id)">@L["DashboardRooms.Menu.ManageRoom"]</button>
+                            <button class="dropdown-item text-danger" @onclick="() => DeleteRoomAsync(room.Id)">@L["DashboardRooms.Menu.DeleteRoom"]</button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+
+                    @if (isSelected)
+                    {
+                      <div class="room-details mt-2">
+                        <div class="small text-muted">@L["DashboardRooms.Detail.Floor"]: @(room.FloorNumber?.ToString() ?? "-")</div>
+                        <div class="small text-muted">@L["DashboardRooms.Detail.House"]: @(string.IsNullOrWhiteSpace(room.HouseNumber) ? "-" : room.HouseNumber)</div>
+                        <div class="small text-muted">@L["DashboardRooms.Detail.Priority"]: @room.Priority</div>
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-outline-success btn-sm" href="/rooms">@L["DashboardRooms.AllRooms"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("calendar")">
+        <div class="card feature-card border-purple dashboard-widget h-100">
+          @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Calendar.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-outline-dark btn-sm" href="/calendar">@L["Index.Feature.Calendar.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("inventory")">
+        <div class="card feature-card border-dark dashboard-widget h-100">
+          @WidgetHeader("inventory", "bi-boxes", L["Index.Feature.Inventory.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Inventory.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-outline-dark btn-sm" href="/inventory">@L["Index.Feature.Inventory.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("warehouses")">
+        <div class="card feature-card border-secondary dashboard-widget h-100">
+          @WidgetHeader("warehouses", "bi-buildings", L["Index.Feature.Warehouses.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Warehouses.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-outline-secondary btn-sm" href="/warehouses">@L["Index.Feature.Warehouses.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("reports")">
+        <div class="card feature-card border-info dashboard-widget h-100">
+          @WidgetHeader("reports", "bi-bar-chart", L["Index.Feature.Reports.Title"])
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.Reports.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-outline-info btn-sm" href="/reports">@L["Index.Feature.Reports.Button"]</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -76,7 +185,24 @@
     private StatusDto? status;
     private List<ClientDto>? clients;
     private List<BookingDto>? bookings;
+    private List<RoomDto> availableRooms = new();
+    private bool roomsLoading;
     private string activeYearDisplay = DateTime.Now.Year.ToString();
+    private string? openMenuWidgetId;
+    private string? openRoomMenuId;
+    private string? selectedRoomId;
+    private int roomsToDisplayCount = 3;
+
+    private readonly Dictionary<string, string> widgetSizes = new(StringComparer.OrdinalIgnoreCase)
+    {
+      ["reservations"] = "1x1",
+      ["clients"] = "1x1",
+      ["rooms"] = "2x1",
+      ["calendar"] = "1x1",
+      ["inventory"] = "1x1",
+      ["warehouses"] = "1x1",
+      ["reports"] = "1x1"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,11 +227,272 @@
           status = statusTask.Result;
           clients = clientsTask.Result;
           bookings = bookingsTask.Result;
+
+          await LoadRoomsAsync();
         }
         catch
         {
           // API may not be running during early development — ignore
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+      if (!firstRender)
+      {
+        return;
+      }
+
+      try
+      {
+        var json = await JS.InvokeAsync<string?>("localStorage.getItem", "hoteldruid.dashboard.preferences");
+        if (string.IsNullOrWhiteSpace(json))
+        {
+          return;
+        }
+
+        var prefs = JsonSerializer.Deserialize<DashboardPreferences>(json);
+        if (prefs?.WidgetSizes is not null)
+        {
+          foreach (var item in prefs.WidgetSizes)
+          {
+            if (widgetSizes.ContainsKey(item.Key))
+            {
+              widgetSizes[item.Key] = item.Value;
+            }
+          }
+        }
+
+        if (prefs?.RoomsToDisplayCount is >= 1 and <= 6)
+        {
+          roomsToDisplayCount = prefs.RoomsToDisplayCount;
+        }
+
+        StateHasChanged();
+      }
+      catch
+      {
+        // Ignore local storage failures.
+      }
+    }
+
+    private RenderFragment WidgetHeader(string widgetId, string icon, string title) => builder =>
+    {
+      builder.OpenElement(0, "div");
+      builder.AddAttribute(1, "class", "card-header d-flex justify-content-between align-items-start");
+
+      builder.OpenElement(2, "h5");
+      builder.AddAttribute(3, "class", "mb-0");
+      builder.OpenElement(4, "i");
+      builder.AddAttribute(5, "class", $"bi {icon} me-2");
+      builder.CloseElement();
+      builder.AddContent(6, title);
+      builder.CloseElement();
+
+      builder.OpenElement(7, "div");
+      builder.AddAttribute(8, "class", "position-relative");
+
+      builder.OpenElement(9, "button");
+      builder.AddAttribute(10, "type", "button");
+      builder.AddAttribute(11, "class", "btn btn-sm btn-outline-secondary widget-menu-button");
+      builder.AddAttribute(12, "title", L["Dashboard.Widget.Menu"]);
+      builder.AddAttribute(13, "onclick", EventCallback.Factory.Create(this, () => ToggleWidgetMenu(widgetId)));
+      builder.OpenElement(14, "i");
+      builder.AddAttribute(15, "class", "bi bi-three-dots-vertical");
+      builder.CloseElement();
+      builder.CloseElement();
+
+      if (openMenuWidgetId == widgetId)
+      {
+        builder.OpenElement(16, "div");
+        builder.AddAttribute(17, "class", "dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown");
+
+        if (widgetId == "rooms")
+        {
+          builder.OpenElement(18, "button");
+          builder.AddAttribute(19, "class", "dropdown-item");
+          builder.AddAttribute(20, "onclick", EventCallback.Factory.Create(this, GoToAddRoom));
+          builder.AddContent(21, L["DashboardRooms.Menu.AddRoom"]);
+          builder.CloseElement();
+
+          builder.OpenElement(22, "button");
+          builder.AddAttribute(23, "class", "dropdown-item");
+          builder.AddAttribute(24, "onclick", EventCallback.Factory.Create(this, GoToRoomLayout));
+          builder.AddContent(25, L["DashboardRooms.Menu.SetLayout"]);
+          builder.CloseElement();
+
+          builder.OpenElement(26, "div");
+          builder.AddAttribute(27, "class", "dropdown-divider");
+          builder.CloseElement();
+
+          builder.OpenElement(28, "div");
+          builder.AddAttribute(29, "class", "dropdown-header");
+          builder.AddContent(30, L["DashboardRooms.Menu.VisibleCount"]);
+          builder.CloseElement();
+
+          for (var count = 1; count <= 6; count++)
+          {
+            var localCount = count;
+            builder.OpenElement(31 + count, "button");
+            builder.AddAttribute(32 + count, "class", "dropdown-item");
+            builder.AddAttribute(33 + count, "onclick", EventCallback.Factory.Create(this, () => SetRoomsToDisplay(localCount)));
+            builder.AddContent(34 + count, localCount.ToString());
+            builder.CloseElement();
+          }
+
+          builder.OpenElement(40, "div");
+          builder.AddAttribute(41, "class", "dropdown-divider");
+          builder.CloseElement();
+        }
+
+        builder.OpenElement(42, "div");
+        builder.AddAttribute(43, "class", "dropdown-header");
+        builder.AddContent(44, L["Dashboard.Widget.Size.Header"]);
+        builder.CloseElement();
+
+        builder.OpenElement(45, "button");
+        builder.AddAttribute(46, "class", "dropdown-item");
+        builder.AddAttribute(47, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x1")));
+        builder.AddContent(48, L["Dashboard.Widget.Size.1x1"]);
+        builder.CloseElement();
+
+        builder.OpenElement(49, "button");
+        builder.AddAttribute(50, "class", "dropdown-item");
+        builder.AddAttribute(51, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x1")));
+        builder.AddContent(52, L["Dashboard.Widget.Size.2x1"]);
+        builder.CloseElement();
+
+        builder.OpenElement(53, "button");
+        builder.AddAttribute(54, "class", "dropdown-item");
+        builder.AddAttribute(55, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "1x2")));
+        builder.AddContent(56, L["Dashboard.Widget.Size.1x2"]);
+        builder.CloseElement();
+
+        builder.OpenElement(57, "button");
+        builder.AddAttribute(58, "class", "dropdown-item");
+        builder.AddAttribute(59, "onclick", EventCallback.Factory.Create(this, () => SetWidgetSize(widgetId, "2x2")));
+        builder.AddContent(60, L["Dashboard.Widget.Size.2x2"]);
+        builder.CloseElement();
+
+        builder.CloseElement();
+      }
+
+      builder.CloseElement();
+      builder.CloseElement();
+    };
+
+    private string GetWidgetColumnClass(string widgetId)
+    {
+      var size = widgetSizes.TryGetValue(widgetId, out var value) ? value : "1x1";
+      return size switch
+      {
+        "2x1" => "col-12 col-md-6 col-lg-6",
+        "1x2" => "col-12 col-md-6 col-lg-3 widget-tall",
+        "2x2" => "col-12 col-md-6 col-lg-6 widget-tall",
+        _ => "col-12 col-md-6 col-lg-3"
+      };
+    }
+
+    private void ToggleWidgetMenu(string widgetId)
+    {
+      openMenuWidgetId = openMenuWidgetId == widgetId ? null : widgetId;
+      openRoomMenuId = null;
+    }
+
+    private void ToggleRoomMenu(string roomId)
+    {
+      openRoomMenuId = openRoomMenuId == roomId ? null : roomId;
+      openMenuWidgetId = null;
+    }
+
+    private void ToggleRoomDetails(string roomId)
+    {
+      selectedRoomId = selectedRoomId == roomId ? null : roomId;
+      openRoomMenuId = null;
+    }
+
+    private void SetRoomsToDisplay(int count)
+    {
+      roomsToDisplayCount = count;
+      SavePreferencesAsync();
+    }
+
+    private void SetWidgetSize(string widgetId, string size)
+    {
+      widgetSizes[widgetId] = size;
+      SavePreferencesAsync();
+    }
+
+    private async Task LoadRoomsAsync()
+    {
+      try
+      {
+        roomsLoading = true;
+        var rooms = await RoomApiService.GetRoomsAsync();
+        availableRooms = rooms
+          .Where(r => r.HasBeds)
+          .OrderBy(r => r.Priority)
+          .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+          .ToList();
+      }
+      finally
+      {
+        roomsLoading = false;
+      }
+    }
+
+    private async void SavePreferencesAsync()
+    {
+      try
+      {
+        var prefs = new DashboardPreferences
+        {
+          WidgetSizes = widgetSizes,
+          RoomsToDisplayCount = roomsToDisplayCount
+        };
+
+        var json = JsonSerializer.Serialize(prefs);
+        await JS.InvokeVoidAsync("localStorage.setItem", "hoteldruid.dashboard.preferences", json);
+      }
+      catch
+      {
+        // Ignore local storage failures.
+      }
+    }
+
+    private void GoToAddRoom()
+    {
+      openMenuWidgetId = null;
+      Navigation.NavigateTo("/rooms");
+    }
+
+    private void GoToRoomLayout()
+    {
+      openMenuWidgetId = null;
+      Navigation.NavigateTo("/rooms");
+    }
+
+    private void GoToRoomManagement(string roomId)
+    {
+      openRoomMenuId = null;
+      Navigation.NavigateTo($"/rooms?selectedId={roomId}");
+    }
+
+    private async Task DeleteRoomAsync(string roomId)
+    {
+      openRoomMenuId = null;
+
+      var response = await Http.DeleteAsync($"/api/rooms/{roomId}");
+      if (!response.IsSuccessStatusCode)
+      {
+        return;
+      }
+
+      availableRooms.RemoveAll(r => r.Id == roomId);
+      if (selectedRoomId == roomId)
+      {
+        selectedRoomId = null;
+      }
     }
 
     private class StatusDto
@@ -136,6 +523,12 @@
     {
       public bool RequiresSetup { get; set; }
       public string? Reason { get; set; }
+    }
+
+    private sealed class DashboardPreferences
+    {
+      public Dictionary<string, string>? WidgetSizes { get; set; }
+      public int RoomsToDisplayCount { get; set; }
     }
 }
 

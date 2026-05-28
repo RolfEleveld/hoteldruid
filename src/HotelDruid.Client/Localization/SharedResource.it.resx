@@ -42,6 +42,9 @@
   <data name="Index.Feature.Calendar.Title" xml:space="preserve"><value>Calendario</value></data>
   <data name="Index.Feature.Calendar.Subtitle" xml:space="preserve"><value>Vista calendario</value></data>
   <data name="Index.Feature.Calendar.Button" xml:space="preserve"><value>Visualizza calendario</value></data>
+  <data name="Index.Feature.Reports.Title" xml:space="preserve"><value>Report</value></data>
+  <data name="Index.Feature.Reports.Subtitle" xml:space="preserve"><value>Informazioni operative ed esportazioni</value></data>
+  <data name="Index.Feature.Reports.Button" xml:space="preserve"><value>Visualizza report</value></data>
   <data name="Index.QuickAction.NewReservation" xml:space="preserve"><value>Nuova prenotazione</value></data>
   <data name="Index.QuickAction.AddRoom" xml:space="preserve"><value>Aggiungi camera</value></data>
   <data name="Index.QuickAction.AddAsset" xml:space="preserve"><value>Aggiungi bene</value></data>
@@ -51,6 +54,30 @@
   <data name="Index.Status.Clients" xml:space="preserve"><value>Clienti</value></data>
   <data name="Index.Status.Bookings" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="Index.Status.Version" xml:space="preserve"><value>Versione</value></data>
+  <data name="DashboardRooms.Title" xml:space="preserve"><value>Camere disponibili</value></data>
+  <data name="DashboardRooms.Subtitle" xml:space="preserve"><value>Azioni rapide per la disponibilita camere</value></data>
+  <data name="DashboardRooms.WidgetMenu" xml:space="preserve"><value>Opzioni widget</value></data>
+  <data name="DashboardRooms.Loading" xml:space="preserve"><value>Caricamento camere...</value></data>
+  <data name="DashboardRooms.Empty" xml:space="preserve"><value>Nessuna camera disponibile al momento.</value></data>
+  <data name="DashboardRooms.RoomCapacity" xml:space="preserve"><value>Capacita: {0}</value></data>
+  <data name="DashboardRooms.RoomMenu" xml:space="preserve"><value>Azioni camera</value></data>
+  <data name="DashboardRooms.Menu.AddRoom" xml:space="preserve"><value>Aggiungi camera</value></data>
+  <data name="DashboardRooms.Menu.SetLayout" xml:space="preserve"><value>Imposta layout camere</value></data>
+  <data name="DashboardRooms.Menu.Refresh" xml:space="preserve"><value>Aggiorna</value></data>
+  <data name="DashboardRooms.Menu.ViewDetails" xml:space="preserve"><value>Visualizza dettagli</value></data>
+  <data name="DashboardRooms.Menu.ManageRoom" xml:space="preserve"><value>Gestisci camera</value></data>
+  <data name="DashboardRooms.Menu.DeleteRoom" xml:space="preserve"><value>Elimina camera</value></data>
+  <data name="DashboardRooms.Menu.VisibleCount" xml:space="preserve"><value>Camere da visualizzare</value></data>
+  <data name="DashboardRooms.Detail.Floor" xml:space="preserve"><value>Piano</value></data>
+  <data name="DashboardRooms.Detail.House" xml:space="preserve"><value>Edificio</value></data>
+  <data name="DashboardRooms.Detail.Priority" xml:space="preserve"><value>Priorita</value></data>
+  <data name="DashboardRooms.AllRooms" xml:space="preserve"><value>Tutte le camere</value></data>
+  <data name="Dashboard.Widget.Menu" xml:space="preserve"><value>Opzioni widget</value></data>
+  <data name="Dashboard.Widget.Size.Header" xml:space="preserve"><value>Dimensione widget</value></data>
+  <data name="Dashboard.Widget.Size.1x1" xml:space="preserve"><value>1x1</value></data>
+  <data name="Dashboard.Widget.Size.2x1" xml:space="preserve"><value>2x1</value></data>
+  <data name="Dashboard.Widget.Size.1x2" xml:space="preserve"><value>1x2</value></data>
+  <data name="Dashboard.Widget.Size.2x2" xml:space="preserve"><value>2x2</value></data>
   <data name="Nav.Toggle" xml:space="preserve"><value>Menu di navigazione</value></data>
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
   <data name="Nav.Assets" xml:space="preserve"><value>Beni</value></data>
