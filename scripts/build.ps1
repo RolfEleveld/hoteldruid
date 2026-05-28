@@ -42,6 +42,34 @@ $toolExe   = Join-Path $toolPath 'dotnet-CycloneDX.exe'
 
 function Ensure-Dir([string]$d) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null } }
 
+function Stop-LockingApiHost {
+    $apiDll = Join-Path $apiOut 'HotelDruid.Api.dll'
+    $apiOutPattern = [regex]::Escape($apiOut)
+    $apiDllPattern = [regex]::Escape($apiDll)
+    $apiEntryPattern = [regex]::Escape('HotelDruid.Api.dll')
+
+    $dotnetProcesses = Get-CimInstance Win32_Process -Filter "Name='dotnet.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            $cmd = $_.CommandLine
+            $cmd -and ($cmd -match $apiOutPattern -or $cmd -match $apiDllPattern -or $cmd -match $apiEntryPattern)
+        }
+
+    if (-not $dotnetProcesses) {
+        return
+    }
+
+    Write-Host "Stopping running API process(es) that lock artifacts..." -ForegroundColor Yellow
+    foreach ($process in $dotnetProcesses) {
+        try {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            Wait-Process -Id $process.ProcessId -ErrorAction SilentlyContinue
+            Write-Host "  Stopped dotnet process $($process.ProcessId)" -ForegroundColor DarkGray
+        } catch {
+            Write-Warning "Unable to stop dotnet process $($process.ProcessId): $($_.Exception.Message)"
+        }
+    }
+}
+
 function Ensure-CycloneDxTool {
     Ensure-Dir $toolPath
 
@@ -123,6 +151,7 @@ try {
 
 # 3. Publish API
 Write-Host "`n[3/6] Publishing API..." -ForegroundColor Cyan
+Stop-LockingApiHost
 Push-Location $root
 try {
     dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo
