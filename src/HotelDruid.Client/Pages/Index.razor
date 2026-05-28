@@ -2,7 +2,6 @@
 @using System.Net.Http.Json
 @using System.Text.Json
 @using HotelDruid.Shared.Configuration
-@using HotelDruid.Client.Shared
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
 @using HotelDruid.Client.Services
@@ -17,13 +16,26 @@
 
 <div class="landing-hero py-5 bg-light">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="mb-4">
       <div class="text-start">
         @if (!isEditingHotelName)
         {
-          <button type="button" class="btn btn-link display-5 p-0 hero-title-button" @onclick="BeginEditHotelName">
-            @hotelName
-          </button>
+          <div class="d-flex align-items-start gap-2">
+            <h1 class="display-5 mb-0">@hotelName</h1>
+            <div class="position-relative">
+              <button type="button" class="btn btn-outline-secondary btn-sm widget-menu-button" title="@L["Dashboard.Settings.Menu"]" @onclick="ToggleDashboardSettingsMenu">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              @if (isDashboardSettingsMenuOpen)
+              {
+                <div class="dropdown-menu show shadow-sm dashboard-dropdown dashboard-dropdown-start">
+                  <button class="dropdown-item" @onclick="BeginEditHotelName">@L["Dashboard.Settings.EditHotelName"]</button>
+                  <button class="dropdown-item" @onclick="SaveCurrentLayoutAsDefaultAsync">@L["Dashboard.Settings.SaveDefaults"]</button>
+                  <button class="dropdown-item" @onclick="ResetLayoutToDefaultAsync">@L["Dashboard.Settings.ResetDefaults"]</button>
+                </div>
+              }
+            </div>
+          </div>
         }
         else
         {
@@ -34,20 +46,6 @@
           </div>
         }
         <p class="lead text-muted">@L["Index.HeroSubtitle"]</p>
-      </div>
-
-      <div class="position-relative">
-        <button type="button" class="btn btn-outline-secondary btn-sm widget-menu-button" title="@L["Dashboard.Settings.Menu"]" @onclick="ToggleDashboardSettingsMenu">
-          <i class="bi bi-three-dots-vertical"></i>
-        </button>
-        @if (isDashboardSettingsMenuOpen)
-        {
-          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-            <button class="dropdown-item" @onclick="BeginEditHotelName">@L["Dashboard.Settings.EditHotelName"]</button>
-            <button class="dropdown-item" @onclick="SaveCurrentLayoutAsDefaultAsync">@L["Dashboard.Settings.SaveDefaults"]</button>
-            <button class="dropdown-item" @onclick="ResetLayoutToDefaultAsync">@L["Dashboard.Settings.ResetDefaults"]</button>
-          </div>
-        }
       </div>
     </div>
 
@@ -212,19 +210,11 @@
       </div>
     </div>
 
-    <div class="status-row mt-5">
-      <div class="row gx-3">
-        <div class="col-12 col-md-6 col-lg-4">
-          <StatusTile Title="@L["Dashboard.Version.Label"]" Value="@GetBuildLabel()" />
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
 @code {
 
-    private StatusDto? status;
     private SystemConfiguration? systemConfiguration;
     private List<ClientDto>? clients;
     private List<BookingDto>? bookings;
@@ -281,14 +271,12 @@
             return;
           }
 
-          var statusTask = Http.GetFromJsonAsync<StatusDto>("/api/status");
           var clientsTask = Http.GetFromJsonAsync<List<ClientDto>>("/api/clients");
           var bookingsTask = Http.GetFromJsonAsync<List<BookingDto>>("/api/bookings");
           var configTask = Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
 
-          await Task.WhenAll(statusTask, clientsTask, bookingsTask, configTask);
+          await Task.WhenAll(clientsTask, bookingsTask, configTask);
 
-          status = statusTask.Result;
           clients = clientsTask.Result;
           bookings = bookingsTask.Result;
           systemConfiguration = configTask.Result;
@@ -678,19 +666,6 @@
       await Http.PutAsJsonAsync("/api/system/configuration", systemConfiguration);
     }
 
-    private string GetBuildLabel()
-    {
-      var versionLabel = string.IsNullOrWhiteSpace(status?.VersionLabel)
-        ? "HotelDruid 3.0.7. Blazor"
-        : status!.VersionLabel!;
-
-      var buildNumber = string.IsNullOrWhiteSpace(status?.BuildNumber)
-        ? "local"
-        : status!.BuildNumber!;
-
-      return $"{versionLabel} (build {buildNumber})";
-    }
-
     private int GetWidgetVisibleCount(string widgetId)
     {
       return widgetVisibleCounts.TryGetValue(widgetId, out var count) ? count : 3;
@@ -729,15 +704,6 @@
       {
         selectedRoomId = null;
       }
-    }
-
-    private class StatusDto
-    {
-      public string? ActiveYear { get; set; }
-      public string? User { get; set; }
-      public string? Version { get; set; }
-      public string? VersionLabel { get; set; }
-      public string? BuildNumber { get; set; }
     }
 
     private class ClientDto

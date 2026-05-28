@@ -1,7 +1,9 @@
 ﻿@inherits LayoutComponentBase
+@using System.Net.Http.Json
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
 @inject IStringLocalizer<SharedResource> L
+@inject HttpClient Http
 
 <div class="page">
     <div class="sidebar">
@@ -12,5 +14,43 @@
         <article class="content px-4">
             @Body
         </article>
+        <footer class="global-footer px-4">
+            <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
+        </footer>
     </main>
 </div>
+
+@code {
+    private StatusDto? status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            status = await Http.GetFromJsonAsync<StatusDto>("/api/status");
+        }
+        catch
+        {
+            // Ignore footer status fetch failures.
+        }
+    }
+
+    private string GetBuildLabel()
+    {
+        var versionLabel = string.IsNullOrWhiteSpace(status?.VersionLabel)
+            ? "HotelDruid 3.0.7. Blazor"
+            : status!.VersionLabel!;
+
+        var buildNumber = string.IsNullOrWhiteSpace(status?.BuildNumber)
+            ? "local"
+            : status!.BuildNumber!;
+
+        return $"{versionLabel} (build {buildNumber})";
+    }
+
+    private sealed class StatusDto
+    {
+        public string? VersionLabel { get; set; }
+        public string? BuildNumber { get; set; }
+    }
+}

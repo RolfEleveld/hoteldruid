@@ -1,16 +1,6 @@
 /* Small landing page overrides to match legacy inizio.php look */
 .landing-hero { background: #ffffff; }
 .landing-hero .display-5 { font-weight: 600; }
-.hero-title-button {
-  color: inherit;
-  text-decoration: none;
-}
-
-.hero-title-button:hover,
-.hero-title-button:focus {
-  color: inherit;
-  text-decoration: underline;
-}
 
 .hotel-name-input {
   min-width: 280px;
@@ -36,6 +26,11 @@
   right: 0;
   top: 34px;
   z-index: 20;
+}
+
+.dashboard-dropdown-start {
+  left: 0;
+  right: auto;
 }
 
 .widget-menu-button {
