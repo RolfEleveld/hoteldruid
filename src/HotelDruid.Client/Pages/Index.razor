@@ -101,25 +101,70 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["DashboardRooms.Subtitle"]</p>
 
+            <div class="room-widget-toolbar mb-2">
+              <input class="form-control form-control-sm"
+                     placeholder="@L["DashboardRooms.FilterPlaceholder"]"
+                     @bind="roomsSearch"
+                     @bind:event="oninput" />
+              <div class="d-flex gap-2 mt-2">
+                <select class="form-select form-select-sm" value="@roomSortMode" @onchange="OnRoomSortModeChanged">
+                  <option value="@RoomSortMode.Priority">@L["DashboardRooms.Sort.Priority"]</option>
+                  <option value="@RoomSortMode.Name">@L["DashboardRooms.Sort.Name"]</option>
+                  <option value="@RoomSortMode.Capacity">@L["DashboardRooms.Sort.Capacity"]</option>
+                  <option value="@RoomSortMode.Floor">@L["DashboardRooms.Sort.Floor"]</option>
+                </select>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        title="@L["DashboardRooms.ToggleCompact"]"
+                        @onclick="ToggleCompactRoomsView">
+                  @if (compactRoomsView)
+                  {
+                    <span>@L["DashboardRooms.Compact.On"]</span>
+                  }
+                  else
+                  {
+                    <span>@L["DashboardRooms.Compact.Off"]</span>
+                  }
+                </button>
+              </div>
+              <div class="form-check mt-2 mb-0">
+                <input class="form-check-input" type="checkbox" id="rooms-show-without-beds" checked="@showRoomsWithoutBeds" @onchange="OnShowRoomsWithoutBedsChanged" />
+                <label class="form-check-label small" for="rooms-show-without-beds">
+                  @L["DashboardRooms.IncludeWithoutBeds"]
+                </label>
+              </div>
+            </div>
+
             @if (roomsLoading)
             {
               <p class="small text-muted">@L["DashboardRooms.Loading"]</p>
             }
-            else if (!availableRooms.Any())
-            {
-              <p class="small text-muted">@L["DashboardRooms.Empty"]</p>
-            }
             else
             {
-              <ul class="list-group list-group-flush actionable-room-list mb-3">
-                @foreach (var room in availableRooms.Take(GetWidgetVisibleCount("rooms")))
+              var visibleRooms = GetVisibleRooms();
+
+              if (!visibleRooms.Any())
+              {
+                <p class="small text-muted">@L["DashboardRooms.FilterEmpty"]</p>
+              }
+              else
+              {
+                <ul class="list-group list-group-flush actionable-room-list mb-3">
+                  @foreach (var room in visibleRooms.Take(GetWidgetVisibleCount("rooms")))
                 {
                   var isSelected = selectedRoomId == room.Id;
                   <li class="list-group-item px-0 py-2">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                       <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => ToggleRoomDetails(room.Id)">
                         <span class="fw-semibold">@room.Name</span>
-                        <span class="text-muted small d-block">@L["DashboardRooms.RoomCapacity", room.Capacity]</span>
+                        @if (compactRoomsView)
+                        {
+                          <span class="text-muted small d-block">@BuildCompactRoomSummary(room)</span>
+                        }
+                        else
+                        {
+                          <span class="text-muted small d-block">@L["DashboardRooms.RoomCapacity", room.Capacity]</span>
+                        }
                       </button>
 
                       <div class="position-relative">
@@ -139,7 +184,7 @@
                       </div>
                     </div>
 
-                    @if (isSelected)
+                    @if (isSelected && !compactRoomsView)
                     {
                       <div class="room-details mt-2">
                         <div class="small text-muted">@L["DashboardRooms.Detail.Floor"]: @(room.FloorNumber?.ToString() ?? "-")</div>
@@ -149,7 +194,8 @@
                     }
                   </li>
                 }
-              </ul>
+                </ul>
+              }
             }
 
             <div class="d-flex gap-2 mt-auto">
@@ -233,6 +279,14 @@
     private const string WidgetSizeDefaultsSettingKey = "DashboardWidgetSizesDefault";
     private const string RoomsDisplayCountDefaultsSettingKey = "DashboardRoomsToDisplayDefault";
     private const string WidgetVisibleCountsDefaultsSettingKey = "DashboardWidgetVisibleCountsDefault";
+    private const string RoomsSortModeDefaultsSettingKey = "DashboardRoomsSortModeDefault";
+    private const string RoomsIncludeWithoutBedsDefaultsSettingKey = "DashboardRoomsIncludeWithoutBedsDefault";
+    private const string RoomsCompactViewDefaultsSettingKey = "DashboardRoomsCompactViewDefault";
+
+    private string roomsSearch = string.Empty;
+    private RoomSortMode roomSortMode = RoomSortMode.Priority;
+    private bool showRoomsWithoutBeds = true;
+    private bool compactRoomsView = true;
 
     private readonly Dictionary<string, string> widgetSizes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -256,6 +310,14 @@
       ["reports"] = 3
     };
 
+    private enum RoomSortMode
+    {
+      Priority,
+      Name,
+      Capacity,
+      Floor
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -270,15 +332,9 @@
             return;
           }
 
-          var clientsTask = Http.GetFromJsonAsync<List<ClientDto>>("/api/clients");
-          var bookingsTask = Http.GetFromJsonAsync<List<BookingDto>>("/api/bookings");
-          var configTask = Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
-
-          await Task.WhenAll(clientsTask, bookingsTask, configTask);
-
-          clients = clientsTask.Result;
-          bookings = bookingsTask.Result;
-          systemConfiguration = configTask.Result;
+          clients = await TryGetFromJsonAsync<List<ClientDto>>("/api/clients");
+          bookings = await TryGetFromJsonAsync<List<BookingDto>>("/api/bookings");
+          systemConfiguration = await TryGetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
 
           ApplySystemDefaults();
 
@@ -288,6 +344,18 @@
         {
           // API may not be running during early development — ignore
         }
+    }
+
+    private async Task<T?> TryGetFromJsonAsync<T>(string requestUri)
+    {
+      try
+      {
+        return await Http.GetFromJsonAsync<T>(requestUri);
+      }
+      catch
+      {
+        return default;
+      }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -327,6 +395,22 @@
               widgetVisibleCounts[item.Key] = item.Value;
             }
           }
+        }
+
+        if (prefs?.RoomSortMode is not null
+            && Enum.TryParse<RoomSortMode>(prefs.RoomSortMode, ignoreCase: true, out var parsedSortMode))
+        {
+          roomSortMode = parsedSortMode;
+        }
+
+        if (prefs?.ShowRoomsWithoutBeds is not null)
+        {
+          showRoomsWithoutBeds = prefs.ShowRoomsWithoutBeds.Value;
+        }
+
+        if (prefs?.CompactRoomsView is not null)
+        {
+          compactRoomsView = prefs.CompactRoomsView.Value;
         }
 
         StateHasChanged();
@@ -481,6 +565,122 @@
       openRoomMenuId = null;
     }
 
+    private void ToggleCompactRoomsView()
+    {
+      compactRoomsView = !compactRoomsView;
+      SavePreferencesAsync();
+    }
+
+    private void OnRoomSortModeChanged(ChangeEventArgs args)
+    {
+      var value = args.Value?.ToString();
+      if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<RoomSortMode>(value, ignoreCase: true, out var parsedMode))
+      {
+        roomSortMode = parsedMode;
+        SavePreferencesAsync();
+      }
+    }
+
+    private void OnShowRoomsWithoutBedsChanged(ChangeEventArgs args)
+    {
+      showRoomsWithoutBeds = args.Value switch
+      {
+        bool boolValue => boolValue,
+        string stringValue when bool.TryParse(stringValue, out var parsed) => parsed,
+        _ => showRoomsWithoutBeds
+      };
+      SavePreferencesAsync();
+      StateHasChanged();
+    }
+
+    private List<RoomDto> GetVisibleRooms()
+    {
+      IEnumerable<RoomDto> query = availableRooms;
+      var unavailableRoomIds = GetUnavailableRoomIds(bookings, DateOnly.FromDateTime(DateTime.UtcNow));
+
+      if (!showRoomsWithoutBeds)
+      {
+        query = query.Where(r => r.HasBeds);
+      }
+
+      query = query.Where(r => !unavailableRoomIds.Contains(r.Id));
+
+      if (!string.IsNullOrWhiteSpace(roomsSearch))
+      {
+        var term = roomsSearch.Trim();
+        query = query.Where(r =>
+          (!string.IsNullOrWhiteSpace(r.Name) && r.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+          || (!string.IsNullOrWhiteSpace(r.HouseNumber) && r.HouseNumber.Contains(term, StringComparison.OrdinalIgnoreCase))
+          || (r.FloorNumber?.ToString().Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+          || r.Capacity.ToString().Contains(term, StringComparison.OrdinalIgnoreCase));
+      }
+
+      query = roomSortMode switch
+      {
+        RoomSortMode.Name => query.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase),
+        RoomSortMode.Capacity => query.OrderByDescending(r => r.Capacity).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase),
+        RoomSortMode.Floor => query.OrderBy(r => r.FloorNumber ?? int.MaxValue).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase),
+        _ => query.OrderBy(r => r.Priority).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+      };
+
+      var result = query.ToList();
+      if (selectedRoomId is not null && !result.Any(r => r.Id == selectedRoomId))
+      {
+        selectedRoomId = null;
+      }
+
+      return result;
+    }
+
+    private static HashSet<string> GetUnavailableRoomIds(IEnumerable<BookingDto>? currentBookings, DateOnly today)
+    {
+      var unavailable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+      if (currentBookings is null)
+      {
+        return unavailable;
+      }
+
+      foreach (var booking in currentBookings)
+      {
+        if (string.IsNullOrWhiteSpace(booking.RoomId)
+            || string.IsNullOrWhiteSpace(booking.ArrivalDate)
+            || string.IsNullOrWhiteSpace(booking.DepartureDate)
+            || !DateOnly.TryParse(booking.ArrivalDate, out var arrival)
+            || !DateOnly.TryParse(booking.DepartureDate, out var departure)
+            || departure <= arrival
+            || IsNonBlockingStatus(booking.Status))
+        {
+          continue;
+        }
+
+        if (arrival <= today && today < departure)
+        {
+          unavailable.Add(booking.RoomId);
+        }
+      }
+
+      return unavailable;
+    }
+
+    private static bool IsNonBlockingStatus(string? status)
+    {
+      if (string.IsNullOrWhiteSpace(status))
+      {
+        return false;
+      }
+
+      return status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+             || status.Contains("void", StringComparison.OrdinalIgnoreCase)
+             || status.Contains("deleted", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string BuildCompactRoomSummary(RoomDto room)
+    {
+      var floor = room.FloorNumber?.ToString() ?? "-";
+      var house = string.IsNullOrWhiteSpace(room.HouseNumber) ? "-" : room.HouseNumber;
+      return $"{L["DashboardRooms.RoomCapacity", room.Capacity]} · {L["DashboardRooms.Detail.Floor"]}: {floor} · {L["DashboardRooms.Detail.House"]}: {house}";
+    }
+
     private void SetWidgetVisibleCount(string widgetId, int count)
     {
       if (!widgetVisibleCounts.ContainsKey(widgetId) || !WidgetVisibleCountOptions.Contains(count))
@@ -505,9 +705,7 @@
         roomsLoading = true;
         var rooms = await RoomApiService.GetRoomsAsync();
         availableRooms = rooms
-          .Where(r => r.HasBeds)
-          .OrderBy(r => r.Priority)
-          .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+          .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
           .ToList();
       }
       finally
@@ -523,7 +721,10 @@
         var prefs = new DashboardPreferences
         {
           WidgetSizes = widgetSizes,
-          WidgetVisibleCounts = widgetVisibleCounts
+          WidgetVisibleCounts = widgetVisibleCounts,
+          RoomSortMode = roomSortMode.ToString(),
+          ShowRoomsWithoutBeds = showRoomsWithoutBeds,
+          CompactRoomsView = compactRoomsView
         };
 
         var json = JsonSerializer.Serialize(prefs);
@@ -587,6 +788,24 @@
           }
         }
       }
+
+      if (settings.TryGetValue(RoomsSortModeDefaultsSettingKey, out var roomSortSetting)
+          && Enum.TryParse<RoomSortMode>(roomSortSetting, ignoreCase: true, out var parsedRoomSort))
+      {
+        roomSortMode = parsedRoomSort;
+      }
+
+      if (settings.TryGetValue(RoomsIncludeWithoutBedsDefaultsSettingKey, out var includeWithoutBedsSetting)
+          && bool.TryParse(includeWithoutBedsSetting, out var parsedIncludeWithoutBeds))
+      {
+        showRoomsWithoutBeds = parsedIncludeWithoutBeds;
+      }
+
+      if (settings.TryGetValue(RoomsCompactViewDefaultsSettingKey, out var compactViewSetting)
+          && bool.TryParse(compactViewSetting, out var parsedCompactView))
+      {
+        compactRoomsView = parsedCompactView;
+      }
     }
 
     private void BeginEditHotelName()
@@ -641,6 +860,10 @@
       {
         widgetVisibleCounts[key] = 3;
       }
+      roomSortMode = RoomSortMode.Priority;
+      showRoomsWithoutBeds = false;
+      compactRoomsView = true;
+      roomsSearch = string.Empty;
 
       SavePreferencesAsync();
       await SaveSystemDefaultsAsync();
@@ -660,6 +883,9 @@
       systemConfiguration.Settings[WidgetSizeDefaultsSettingKey] = JsonSerializer.Serialize(widgetSizes);
       systemConfiguration.Settings[RoomsDisplayCountDefaultsSettingKey] = GetWidgetVisibleCount("rooms").ToString();
       systemConfiguration.Settings[WidgetVisibleCountsDefaultsSettingKey] = JsonSerializer.Serialize(widgetVisibleCounts);
+      systemConfiguration.Settings[RoomsSortModeDefaultsSettingKey] = roomSortMode.ToString();
+      systemConfiguration.Settings[RoomsIncludeWithoutBedsDefaultsSettingKey] = showRoomsWithoutBeds.ToString();
+      systemConfiguration.Settings[RoomsCompactViewDefaultsSettingKey] = compactRoomsView.ToString();
       systemConfiguration.UpdatedUtc = DateTime.UtcNow;
 
       await Http.PutAsJsonAsync("/api/system/configuration", systemConfiguration);
@@ -715,8 +941,9 @@
 
     private class BookingDto
     {
-      public int Id { get; set; }
+      public string? Id { get; set; }
       public int ClientId { get; set; }
+      public string? RoomId { get; set; }
       public string? ArrivalDate { get; set; }
       public string? DepartureDate { get; set; }
       public string? Status { get; set; }
@@ -732,6 +959,9 @@
     {
       public Dictionary<string, string>? WidgetSizes { get; set; }
       public Dictionary<string, int>? WidgetVisibleCounts { get; set; }
+      public string? RoomSortMode { get; set; }
+      public bool? ShowRoomsWithoutBeds { get; set; }
+      public bool? CompactRoomsView { get; set; }
     }
 }
 

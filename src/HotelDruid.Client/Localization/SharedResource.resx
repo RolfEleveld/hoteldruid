@@ -74,6 +74,16 @@
   <data name="DashboardRooms.Menu.ManageRoom" xml:space="preserve"><value>Manage Room</value></data>
   <data name="DashboardRooms.Menu.DeleteRoom" xml:space="preserve"><value>Delete Room</value></data>
   <data name="DashboardRooms.Menu.VisibleCount" xml:space="preserve"><value>Rooms To Display</value></data>
+  <data name="DashboardRooms.FilterPlaceholder" xml:space="preserve"><value>Filter rooms</value></data>
+  <data name="DashboardRooms.Sort.Priority" xml:space="preserve"><value>Sort: Priority</value></data>
+  <data name="DashboardRooms.Sort.Name" xml:space="preserve"><value>Sort: Name</value></data>
+  <data name="DashboardRooms.Sort.Capacity" xml:space="preserve"><value>Sort: Capacity</value></data>
+  <data name="DashboardRooms.Sort.Floor" xml:space="preserve"><value>Sort: Floor</value></data>
+  <data name="DashboardRooms.ToggleCompact" xml:space="preserve"><value>Toggle compact list</value></data>
+  <data name="DashboardRooms.Compact.On" xml:space="preserve"><value>Compact</value></data>
+  <data name="DashboardRooms.Compact.Off" xml:space="preserve"><value>Expanded</value></data>
+  <data name="DashboardRooms.IncludeWithoutBeds" xml:space="preserve"><value>Include rooms without beds</value></data>
+  <data name="DashboardRooms.FilterEmpty" xml:space="preserve"><value>No rooms match the current filter.</value></data>
   <data name="Dashboard.Widget.VisibleCount.Reservations" xml:space="preserve"><value>Reservations To Display</value></data>
   <data name="Dashboard.Widget.VisibleCount.Clients" xml:space="preserve"><value>Clients To Display</value></data>
   <data name="Dashboard.Widget.VisibleCount.Rooms" xml:space="preserve"><value>Rooms To Display</value></data>

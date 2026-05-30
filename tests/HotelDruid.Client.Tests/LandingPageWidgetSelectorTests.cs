@@ -13,6 +13,25 @@ namespace HotelDruid.Client.Tests.Integration.Pages;
 
 internal sealed class LandingPageMockHandler : HttpMessageHandler
 {
+    private readonly object[] bookings;
+    private readonly Dictionary<string, string> settings;
+    private readonly bool failClientsRequest;
+
+    public LandingPageMockHandler(object[]? bookings = null, Dictionary<string, string>? settings = null, bool failClientsRequest = false)
+    {
+        this.bookings = bookings ??
+        [
+            new { id = "1", clientId = 1, status = "Confirmed" },
+            new { id = "2", clientId = 2, status = "Pending" },
+            new { id = "3", clientId = 3, status = "Confirmed" },
+            new { id = "4", clientId = 4, status = "Pending" },
+            new { id = "5", clientId = 5, status = "Confirmed" }
+        ];
+
+        this.settings = settings ?? new Dictionary<string, string>();
+        this.failClientsRequest = failClientsRequest;
+    }
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
@@ -30,6 +49,14 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
         if (method == HttpMethod.Get && path.Equals("/api/clients", StringComparison.OrdinalIgnoreCase))
         {
+            if (failClientsRequest)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("{\"error\":\"simulated failure\"}", Encoding.UTF8, "application/json")
+                });
+            }
+
             return JsonResponse(new[]
             {
                 new { id = 1, name = "Client 1" },
@@ -42,14 +69,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
         if (method == HttpMethod.Get && path.Equals("/api/bookings", StringComparison.OrdinalIgnoreCase))
         {
-            return JsonResponse(new[]
-            {
-                new { id = 1, clientId = 1, status = "Confirmed" },
-                new { id = 2, clientId = 2, status = "Pending" },
-                new { id = 3, clientId = 3, status = "Confirmed" },
-                new { id = 4, clientId = 4, status = "Pending" },
-                new { id = 5, clientId = 5, status = "Confirmed" }
-            });
+            return JsonResponse(bookings);
         }
 
         if (method == HttpMethod.Get && path.Equals("/api/system/configuration", StringComparison.OrdinalIgnoreCase))
@@ -59,7 +79,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
                 id = "system",
                 defaultCurrency = "EUR",
                 defaultYear = 2026,
-                settings = new Dictionary<string, string>()
+                settings = settings
             });
         }
 
@@ -221,6 +241,159 @@ public class LandingPageWidgetSelectorTests : TestContext
         {
             var roomRows = component.FindAll(".actionable-room-list .list-group-item");
             Assert.Equal(7, roomRows.Count);
+        });
+    }
+
+    [Fact]
+    public void RoomsWidget_ShouldRenderRooms_WhenBookingsHaveNoRoomOrDates()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, false),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, false),
+            new("room-3", "Room 3", 2, 1, "A", 3, 0, true),
+            new("room-4", "Room 4", 2, 1, "A", 4, 0, false),
+            new("room-5", "Room 5", 2, 1, "A", 5, 0, true),
+            new("room-6", "Room 6", 2, 1, "A", 6, 0, false)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", clientId = 1, status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null },
+            new { id = "b-2", clientId = 2, status = "Confirmed", roomId = "", arrivalDate = "", departureDate = "" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var roomRows = component.FindAll(".actionable-room-list .list-group-item");
+            Assert.Equal(3, roomRows.Count);
+            var text = component.Markup;
+            Assert.Contains("Room 1", text);
+            Assert.Contains("Room 2", text);
+            Assert.Contains("Room 3", text);
+        });
+    }
+
+    [Fact]
+    public void RoomsWidget_ShouldHideRoom_WhenActiveReservationHasRoomAndDates()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, true),
+            new("room-3", "Room 3", 2, 1, "A", 3, 0, true),
+            new("room-4", "Room 4", 2, 1, "A", 4, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var arrival = today.AddDays(-1).ToString("yyyy-MM-dd");
+        var departure = today.AddDays(1).ToString("yyyy-MM-dd");
+
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", clientId = 1, status = "Confirmed", roomId = "room-1", arrivalDate = arrival, departureDate = departure },
+            new { id = "b-2", clientId = 2, status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var text = component.Markup;
+            Assert.DoesNotContain("Room 1", text);
+            Assert.Contains("Room 2", text);
+            Assert.Contains("Room 3", text);
+            Assert.Contains("Room 4", text);
+        });
+    }
+
+    [Fact]
+    public void RoomsWidget_ShouldRefresh_WhenIncludeWithoutBedsCheckboxChanges()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, false),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, false),
+            new("room-3", "Room 3", 2, 1, "A", 3, 0, false)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var systemSettings = new Dictionary<string, string>
+        {
+            ["DashboardRoomsIncludeWithoutBedsDefault"] = "false"
+        };
+
+        var client = new HttpClient(new LandingPageMockHandler(settings: systemSettings))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var empty = component.Markup;
+            Assert.Contains("DashboardRooms.FilterEmpty", empty);
+        });
+
+        var checkbox = component.Find("#rooms-show-without-beds");
+        checkbox.Change("true");
+
+        component.WaitForAssertion(() =>
+        {
+            var roomRows = component.FindAll(".actionable-room-list .list-group-item");
+            Assert.Equal(3, roomRows.Count);
+        });
+    }
+
+    [Fact]
+    public void RoomsWidget_ShouldRender_WhenClientsRequestFails()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, true),
+            new("room-3", "Room 3", 2, 1, "A", 3, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var client = new HttpClient(new LandingPageMockHandler(failClientsRequest: true))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var roomRows = component.FindAll(".actionable-room-list .list-group-item");
+            Assert.Equal(3, roomRows.Count);
         });
     }
 }

@@ -56,6 +56,17 @@
   background: #f8fff6;
 }
 
+.room-widget-toolbar {
+  border: 1px solid #e8ecef;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fbfcfd;
+}
+
+.room-widget-toolbar .form-check-label {
+  line-height: 1.2;
+}
+
 /* Responsive tweaks */
 @media (max-width: 576px) {
   .quick-actions .quick-action { flex: 1 1 auto; }
