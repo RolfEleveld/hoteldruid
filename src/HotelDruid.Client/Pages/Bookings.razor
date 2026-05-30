@@ -91,7 +91,13 @@
         await LoadAll();
     }
 
-    private async Task LoadAll() => records = await BookingApi.ListAsync(filterYear);
+    private async Task LoadAll()
+    {
+        records = (await BookingApi.ListAsync(filterYear))
+            .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+            .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
     private async Task ApplyFilter() => await LoadAll();
 
     private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }

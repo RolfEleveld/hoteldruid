@@ -25,8 +25,8 @@ public class BookingsPageIntegrationTests : TestContext
 
         bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
         {
-            new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking"),
-            new("b-2", 2026, "client-2", "room-2", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 3), "Pending", "Second booking")
+            new("b-2", 2026, "client-2", "room-2", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 3), "Pending", "Second booking"),
+            new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
         });
 
         Services.AddScoped(_ => bookingApi.Object);
@@ -44,8 +44,10 @@ public class BookingsPageIntegrationTests : TestContext
             items.Should().HaveCount(2);
         });
 
-        component.Markup.Should().Contain("2026 — client-1");
-        component.Markup.Should().Contain("2026-05-10 → 2026-05-12");
+        var itemsInOrder = component.FindAll(".list-group-item");
+        itemsInOrder[0].TextContent.Should().Contain("2026 — client-1");
+        itemsInOrder[0].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
+        itemsInOrder[1].TextContent.Should().Contain("2026 — client-2");
 
         component.Find("button.btn.btn-sm.btn-primary.mb-2").Click();
 
