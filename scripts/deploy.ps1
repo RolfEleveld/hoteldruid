@@ -54,6 +54,51 @@ function Ensure-Package {
     }
 }
 
+function Test-IsAdministrator {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Test-CertificateTrustedInRootStore([string]$Thumbprint, [string]$StoreLocation) {
+    $store = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root', $StoreLocation)
+    $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+    try {
+        return @($store.Certificates | Where-Object { $_.Thumbprint -eq $Thumbprint }).Count -gt 0
+    }
+    finally {
+        $store.Close()
+    }
+}
+
+function Stop-RunningApiHost {
+    $apiDll = Join-Path $artifactsApi 'HotelDruid.Api.dll'
+    $apiOutPattern = [regex]::Escape($artifactsApi)
+    $apiDllPattern = [regex]::Escape($apiDll)
+    $apiEntryPattern = [regex]::Escape('HotelDruid.Api.dll')
+
+    $dotnetProcesses = Get-CimInstance Win32_Process -Filter "Name='dotnet.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            $cmd = $_.CommandLine
+            $cmd -and ($cmd -match $apiOutPattern -or $cmd -match $apiDllPattern -or $cmd -match $apiEntryPattern)
+        }
+
+    if (-not $dotnetProcesses) {
+        return
+    }
+
+    Write-Host 'Stopping running API process(es)...' -ForegroundColor Yellow
+    foreach ($process in $dotnetProcesses) {
+        try {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            Wait-Process -Id $process.ProcessId -ErrorAction SilentlyContinue
+            Write-Host "  Stopped dotnet process $($process.ProcessId)" -ForegroundColor DarkGray
+        }
+        catch {
+            Write-Warning "Unable to stop dotnet process $($process.ProcessId): $($_.Exception.Message)"
+        }
+    }
+}
+
 function Find-CurrentUserLocalhostCert {
     $store = New-Object System.Security.Cryptography.X509Certificates.X509Store('My', 'CurrentUser')
     $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
@@ -61,6 +106,25 @@ function Find-CurrentUserLocalhostCert {
         $found = $store.Certificates |
             Where-Object { $_.Subject -like '*CN=localhost*' -or $_.DnsNameList.Value -contains 'localhost' } |
             Where-Object { $_.NotAfter -gt (Get-Date) } |
+            Sort-Object NotAfter -Descending
+        if ($found -and $found.Count -gt 0) {
+            return $found[0]
+        }
+    }
+    finally {
+        $store.Close()
+    }
+
+    return $null
+}
+
+function Find-LocalMachineLocalhostCert {
+    $store = New-Object System.Security.Cryptography.X509Certificates.X509Store('My', 'LocalMachine')
+    $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+    try {
+        $found = $store.Certificates |
+            Where-Object { $_.Subject -like '*CN=localhost*' -or $_.DnsNameList.Value -contains 'localhost' } |
+            Where-Object { $_.NotAfter -gt (Get-Date) -and $_.HasPrivateKey } |
             Sort-Object NotAfter -Descending
         if ($found -and $found.Count -gt 0) {
             return $found[0]
@@ -89,15 +153,136 @@ function Trust-CertificateForCurrentUser([System.Security.Cryptography.X509Certi
     }
 }
 
-function Get-OrCreate-LocalhostThumbprint {
-    if ($CertThumbprint) {
-        $provided = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $CertThumbprint } | Select-Object -First 1
-        if (-not $provided) {
-            throw "Certificate thumbprint $CertThumbprint was not found in Cert:\CurrentUser\My."
+function Trust-CertificateForLocalMachine([System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate) {
+    $raw = $Certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+    $cer = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList (, $raw)
+    $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root', 'LocalMachine')
+    $rootStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+    try {
+        $existing = $rootStore.Certificates | Where-Object { $_.Thumbprint -eq $cer.Thumbprint }
+        if (-not $existing) {
+            $rootStore.Add($cer)
+        }
+    }
+    finally {
+        $rootStore.Close()
+    }
+}
+
+function New-LocalMachineLocalhostCert {
+    if (-not (Test-IsAdministrator)) {
+        return $null
+    }
+
+    Write-Host 'No localhost certificate found in LocalMachine\\My. Creating one...' -ForegroundColor Cyan
+    $createdCert = New-SelfSignedCertificate \
+        -DnsName 'localhost' \
+        -CertStoreLocation 'Cert:\LocalMachine\My' \
+        -FriendlyName 'HotelDruid LocalMachine Localhost' \
+        -NotAfter (Get-Date).AddYears(2)
+
+    if (-not $createdCert) {
+        throw 'Failed to create localhost certificate in LocalMachine\\My.'
+    }
+
+    Trust-CertificateForLocalMachine -Certificate $createdCert
+    Write-Host "Created and trusted LocalMachine localhost certificate: $($createdCert.Thumbprint)" -ForegroundColor Green
+    return $createdCert
+}
+
+function Get-DotnetDevCertCandidates {
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if (-not $dotnet) {
+        return @()
+    }
+
+    try {
+        $json = & $dotnet.Source dev-certs https --check-trust-machine-readable 2>$null
+        if (-not $json) {
+            return @()
         }
 
-        Trust-CertificateForCurrentUser -Certificate $provided
-        return $CertThumbprint
+        $parsed = $json | ConvertFrom-Json
+        if ($parsed -is [System.Array]) {
+            return $parsed
+        }
+
+        if ($parsed) {
+            return @($parsed)
+        }
+    }
+    catch {
+        Write-Verbose "Unable to inspect .NET HTTPS development certificates: $_"
+    }
+
+    return @()
+}
+
+function Get-OrTrust-DotnetDevCertThumbprint {
+    $candidates = Get-DotnetDevCertCandidates
+    $trusted = $candidates | Where-Object { $_.TrustLevel -eq 'Full' } | Select-Object -First 1
+    if ($trusted) {
+        return $trusted.Thumbprint
+    }
+
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if (-not $dotnet) {
+        return $null
+    }
+
+    Write-Host '.NET HTTPS development certificate is not trusted. Trusting it for the current user...' -ForegroundColor Cyan
+    try {
+        & $dotnet.Source dev-certs https --trust | Out-Host
+    }
+    catch {
+        Write-Warning "Failed to trust the .NET HTTPS development certificate: $_"
+        return $null
+    }
+
+    $trusted = Get-DotnetDevCertCandidates | Where-Object { $_.TrustLevel -eq 'Full' } | Select-Object -First 1
+    if ($trusted) {
+        Write-Host "Using trusted .NET HTTPS development certificate: $($trusted.Thumbprint)" -ForegroundColor Green
+        return $trusted.Thumbprint
+    }
+
+    return $null
+}
+
+function Get-OrCreate-LocalhostThumbprint {
+    if ($CertThumbprint) {
+        $providedMachine = Get-ChildItem Cert:\LocalMachine\My -ErrorAction SilentlyContinue | Where-Object { $_.Thumbprint -eq $CertThumbprint } | Select-Object -First 1
+        if ($providedMachine -and $providedMachine.HasPrivateKey) {
+            Write-Host "Using certificate $CertThumbprint from LocalMachine\\My." -ForegroundColor Green
+            return $CertThumbprint
+        }
+
+        $providedUser = Get-ChildItem Cert:\CurrentUser\My -ErrorAction SilentlyContinue | Where-Object { $_.Thumbprint -eq $CertThumbprint } | Select-Object -First 1
+        if ($providedUser) {
+            Trust-CertificateForCurrentUser -Certificate $providedUser
+            Write-Host "Using certificate $CertThumbprint from CurrentUser\\My." -ForegroundColor Green
+            return $CertThumbprint
+        }
+
+        throw "Certificate thumbprint $CertThumbprint was not found in LocalMachine\\My or CurrentUser\\My."
+    }
+
+    if (Test-IsAdministrator) {
+        $existingMachineCert = Find-LocalMachineLocalhostCert
+        if ($existingMachineCert) {
+            Trust-CertificateForLocalMachine -Certificate $existingMachineCert
+            Write-Host "Using localhost certificate from LocalMachine\\My: $($existingMachineCert.Thumbprint)" -ForegroundColor Green
+            return $existingMachineCert.Thumbprint
+        }
+
+        $newMachineCert = New-LocalMachineLocalhostCert
+        if ($newMachineCert) {
+            return $newMachineCert.Thumbprint
+        }
+    }
+
+    $dotnetDevCertThumbprint = Get-OrTrust-DotnetDevCertThumbprint
+    if ($dotnetDevCertThumbprint) {
+        return $dotnetDevCertThumbprint
     }
 
     $existingCert = Find-CurrentUserLocalhostCert
@@ -291,8 +476,19 @@ $env:ASPNETCORE_Kestrel__Certificates__Default__Store = 'My'
 $env:ASPNETCORE_Kestrel__Certificates__Default__Location = 'CurrentUser'
 $env:ASPNETCORE_Kestrel__Certificates__Default__Thumbprint = $CertThumbprint
 
+$isAdmin = Test-IsAdministrator
+$trustedInLocalMachineRoot = $false
+if ($isAdmin) {
+    $trustedInLocalMachineRoot = Test-CertificateTrustedInRootStore -Thumbprint $CertThumbprint -StoreLocation 'LocalMachine'
+}
+
+if (-not $trustedInLocalMachineRoot) {
+    Write-Warning "Certificate $CertThumbprint is trusted for the current user, but not in LocalMachine Root. If Chromium still shows 'Not secure', run .\\scripts\\trust-dev-cert.ps1 once from an elevated PowerShell window."
+}
+
 Push-Location $artifactsApi
 try {
+    Stop-RunningApiHost
     Start-Process 'dotnet' "HotelDruid.Api.dll --urls=http://*:$HttpPort;https://*:$HttpsPort" -NoNewWindow
 
     if (-not $SkipSmokeTest) {
