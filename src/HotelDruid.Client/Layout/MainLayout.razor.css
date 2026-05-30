@@ -2,17 +2,127 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid #e3e8ef;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.app-header-bar {
+    min-height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.hotel-brand {
+    color: #0f172a;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    text-decoration: none;
+}
+
+.hotel-brand:hover {
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+.app-nav-toggle {
+    border: 1px solid #d4dae2;
+    border-radius: 0.65rem;
+    background: #f9fbff;
+    color: #334155;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.app-nav-toggle:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.app-header-space {
+    width: 2.75rem;
+    height: 2.75rem;
+}
+
+.hamburger-icon {
+    display: block;
+    width: 1rem;
+    height: 0.7rem;
+    border-top: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    position: relative;
+}
+
+.hamburger-icon::after {
+    content: "";
+    position: absolute;
+    top: 0.25rem;
+    left: 0;
+    right: 0;
+    border-top: 2px solid currentColor;
+}
+
+.page-body {
+    flex: 1;
+    display: block;
 }
 
 main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: calc(100vh - 4rem);
 }
 
 .content {
     flex: 1;
+}
+
+.app-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 50;
+}
+
+.app-drawer-backdrop-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.app-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(24rem, 88vw);
+    background: #ffffff;
+    box-shadow: 12px 0 36px rgba(15, 23, 42, 0.2);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    z-index: 60;
+}
+
+.app-drawer-open {
+    transform: translateX(0);
 }
 
 .global-footer {
@@ -24,72 +134,4 @@ main {
     padding-bottom: 0.5rem;
     text-align: center;
     background: #fff;
-}
-
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-}
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
-}
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
 }

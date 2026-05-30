@@ -91,11 +91,18 @@ function Trust-CertificateForCurrentUser([System.Security.Cryptography.X509Certi
 
 function Get-OrCreate-LocalhostThumbprint {
     if ($CertThumbprint) {
+        $provided = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $CertThumbprint } | Select-Object -First 1
+        if (-not $provided) {
+            throw "Certificate thumbprint $CertThumbprint was not found in Cert:\CurrentUser\My."
+        }
+
+        Trust-CertificateForCurrentUser -Certificate $provided
         return $CertThumbprint
     }
 
     $existingCert = Find-CurrentUserLocalhostCert
     if ($existingCert) {
+        Trust-CertificateForCurrentUser -Certificate $existingCert
         return $existingCert.Thumbprint
     }
 

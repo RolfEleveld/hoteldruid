@@ -20,20 +20,20 @@
       <div class="text-start">
         @if (!isEditingHotelName)
         {
-          <div class="d-flex align-items-start gap-2">
-            <h1 class="display-5 mb-0">@hotelName</h1>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <p class="lead text-muted mb-0">@L["Index.HeroSubtitle"]</p>
             <div class="position-relative">
-              <button type="button" class="btn btn-outline-secondary btn-sm widget-menu-button" title="@L["Dashboard.Settings.Menu"]" @onclick="ToggleDashboardSettingsMenu">
-                <i class="bi bi-three-dots-vertical"></i>
-              </button>
-              @if (isDashboardSettingsMenuOpen)
-              {
-                <div class="dropdown-menu show shadow-sm dashboard-dropdown dashboard-dropdown-start">
-                  <button class="dropdown-item" @onclick="BeginEditHotelName">@L["Dashboard.Settings.EditHotelName"]</button>
-                  <button class="dropdown-item" @onclick="SaveCurrentLayoutAsDefaultAsync">@L["Dashboard.Settings.SaveDefaults"]</button>
-                  <button class="dropdown-item" @onclick="ResetLayoutToDefaultAsync">@L["Dashboard.Settings.ResetDefaults"]</button>
-                </div>
-              }
+                <button type="button" class="btn btn-outline-secondary btn-sm widget-menu-button" title="@L["Dashboard.Settings.Menu"]" @onclick="ToggleDashboardSettingsMenu">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                @if (isDashboardSettingsMenuOpen)
+                {
+                  <div class="dropdown-menu show shadow-sm dashboard-dropdown dashboard-dropdown-start">
+                    <button class="dropdown-item" @onclick="BeginEditHotelName">@L["Dashboard.Settings.EditHotelName"]</button>
+                    <button class="dropdown-item" @onclick="SaveCurrentLayoutAsDefaultAsync">@L["Dashboard.Settings.SaveDefaults"]</button>
+                    <button class="dropdown-item" @onclick="ResetLayoutToDefaultAsync">@L["Dashboard.Settings.ResetDefaults"]</button>
+                  </div>
+                }
             </div>
           </div>
         }
@@ -45,7 +45,6 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEditHotelName">@L["Dashboard.Settings.Cancel"]</button>
           </div>
         }
-        <p class="lead text-muted">@L["Index.HeroSubtitle"]</p>
       </div>
     </div>
 

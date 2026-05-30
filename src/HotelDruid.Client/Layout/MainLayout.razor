@@ -6,22 +6,38 @@
 @inject HttpClient Http
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <header class="app-header">
+        <div class="app-header-bar px-4">
+            <button type="button" class="app-nav-toggle" @onclick="ToggleNav" title="@L["Nav.Toggle", "Navigation menu"]" aria-label="@L["Nav.Toggle", "Navigation menu"]">
+                <span class="hamburger-icon" aria-hidden="true"></span>
+            </button>
+            <a class="hotel-brand" href="/">@hotelName</a>
+            <span class="app-header-space" aria-hidden="true"></span>
+        </div>
+    </header>
 
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
-        <footer class="global-footer px-4">
-            <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
-        </footer>
-    </main>
+    <div class="app-drawer-backdrop @(isNavOpen ? "app-drawer-backdrop-visible" : string.Empty)" @onclick="CloseNav"></div>
+
+    <aside class="app-drawer @(isNavOpen ? "app-drawer-open" : string.Empty)" @onclick:stopPropagation="true">
+        <NavMenu OnNavigate="CloseNav" />
+    </aside>
+
+    <div class="page-body">
+        <main>
+            <article class="content px-4">
+                @Body
+            </article>
+            <footer class="global-footer px-4">
+                <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
+            </footer>
+        </main>
+    </div>
 </div>
 
 @code {
     private StatusDto? status;
+    private string hotelName = "Welcome to HotelDruid";
+    private bool isNavOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,6 +49,32 @@
         {
             // Ignore footer status fetch failures.
         }
+
+        try
+        {
+            var configuration = await Http.GetFromJsonAsync<SystemConfigurationDto>("/api/system/configuration");
+            if (configuration?.Settings is not null
+                && configuration.Settings.TryGetValue("HotelName", out var configuredHotelName)
+                && !string.IsNullOrWhiteSpace(configuredHotelName))
+            {
+                hotelName = configuredHotelName;
+            }
+        }
+        catch
+        {
+            // Keep default hotel name when configuration is unavailable.
+        }
+    }
+
+    private void ToggleNav()
+    {
+        isNavOpen = !isNavOpen;
+    }
+
+    private Task CloseNav()
+    {
+        isNavOpen = false;
+        return Task.CompletedTask;
     }
 
     private string GetBuildLabel()
@@ -52,5 +94,10 @@
     {
         public string? VersionLabel { get; set; }
         public string? BuildNumber { get; set; }
+    }
+
+    private sealed class SystemConfigurationDto
+    {
+        public Dictionary<string, string>? Settings { get; set; }
     }
 }

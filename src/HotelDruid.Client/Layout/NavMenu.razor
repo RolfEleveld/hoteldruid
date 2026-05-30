@@ -1,36 +1,30 @@
 @using HotelDruid.Client.Localization
+@using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> L
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">HotelDruid.Client</a>
-        <button title="@L["Nav.Toggle", "Navigation menu"]" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+<div class="drawer-shell">
+    <div class="drawer-title">@L["Nav.Toggle", "Navigation menu"]</div>
+    <div class="nav-scrollable" @onclick="HandleNavigate">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @L["Nav.Home", "Home"]
+                @L["Nav.Home", "Home"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="assets">
-                <span class="bi bi-box-seam-nav-menu" aria-hidden="true"></span> @L["Nav.Assets", "Assets"]
+                @L["Nav.Assets", "Assets"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="warehouses">
-                <span class="bi bi-buildings-nav-menu" aria-hidden="true"></span> @L["Nav.Warehouses", "Warehouses"]
+                @L["Nav.Warehouses", "Warehouses"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="inventory">
-                <span class="bi bi-boxes-nav-menu" aria-hidden="true"></span> @L["Nav.Inventory", "Inventory"]
+                @L["Nav.Inventory", "Inventory"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -38,12 +32,12 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="clients">
-                <span class="bi bi-person-lines-fill-nav-menu" aria-hidden="true"></span> @L["Nav.Clients", "Clients"]
+                @L["Nav.Clients", "Clients"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="client-data">
-                <span class="bi bi-card-list-nav-menu" aria-hidden="true"></span> @L["Nav.ClientData", "Client Data"]
+                @L["Nav.ClientData", "Client Data"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -51,27 +45,27 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="nations">
-                <span class="bi bi-globe-nav-menu" aria-hidden="true"></span> @L["Nav.Nations", "Nations"]
+                @L["Nav.Nations", "Nations"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="regions">
-                <span class="bi bi-map-nav-menu" aria-hidden="true"></span> @L["Nav.Regions", "Regions"]
+                @L["Nav.Regions", "Regions"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="cities">
-                <span class="bi bi-building-nav-menu" aria-hidden="true"></span> @L["Nav.Cities", "Cities"]
+                @L["Nav.Cities", "Cities"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="identity-document-types">
-                <span class="bi bi-card-text-nav-menu" aria-hidden="true"></span> @L["Nav.IdentityDocumentTypes", "ID Document Types"]
+                @L["Nav.IdentityDocumentTypes", "ID Document Types"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="family-relationships">
-                <span class="bi bi-people-nav-menu" aria-hidden="true"></span> @L["Nav.FamilyRelationships", "Family Relationships"]
+                @L["Nav.FamilyRelationships", "Family Relationships"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -79,27 +73,27 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="cash-registers">
-                <span class="bi bi-cash-register-nav-menu" aria-hidden="true"></span> @L["Nav.CashRegisters", "Cash Registers"]
+                @L["Nav.CashRegisters", "Cash Registers"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="user-groups">
-                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["Nav.UserGroups", "User Groups"]
+                @L["Nav.UserGroups", "User Groups"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="users">
-                <span class="bi bi-person-nav-menu" aria-hidden="true"></span> @L["Nav.Users", "Users"]
+                @L["Nav.Users", "Users"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="settings">
-                <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> @L["Nav.Settings", "Settings"]
+                @L["Nav.Settings", "Settings"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="setup">
-                <span class="bi bi-sliders-nav-menu" aria-hidden="true"></span> @L["Nav.Setup", "Setup"]
+                @L["Nav.Setup", "Setup"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -107,17 +101,17 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="user-privileges">
-                <span class="bi bi-shield-check-nav-menu" aria-hidden="true"></span> @L["Nav.UserPrivileges", "User Privileges"]
+                @L["Nav.UserPrivileges", "User Privileges"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="user-relations">
-                <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> @L["Nav.UserPreferences", "User Preferences"]
+                @L["Nav.UserPreferences", "User Preferences"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="group-memberships">
-                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> @L["Nav.GroupMemberships", "Group Memberships"]
+                @L["Nav.GroupMemberships", "Group Memberships"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -125,22 +119,22 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="years">
-                <span class="bi bi-calendar-nav-menu" aria-hidden="true"></span> @L["Nav.Years", "Years"]
+                @L["Nav.Years", "Years"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="periods">
-                <span class="bi bi-calendar-range-nav-menu" aria-hidden="true"></span> @L["Nav.Periods", "Periods"]
+                @L["Nav.Periods", "Periods"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="tariffs">
-                <span class="bi bi-currency-euro-nav-menu" aria-hidden="true"></span> @L["Nav.Tariffs", "Tariffs"]
+                @L["Nav.Tariffs", "Tariffs"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="assignment-rules">
-                <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> @L["Nav.AssignmentRules", "Assignment Rules"]
+                @L["Nav.AssignmentRules", "Assignment Rules"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -148,32 +142,32 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="bookings">
-                <span class="bi bi-calendar-check-nav-menu" aria-hidden="true"></span> @L["Nav.Bookings", "Bookings"]
+                @L["Nav.Bookings", "Bookings"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="booking-costs">
-                <span class="bi bi-receipt-nav-menu" aria-hidden="true"></span> @L["Nav.BookingCosts", "Booking Costs"]
+                @L["Nav.BookingCosts", "Booking Costs"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="booking-guests">
-                <span class="bi bi-people-nav-menu" aria-hidden="true"></span> @L["Nav.BookingGuests", "Booking Guests"]
+                @L["Nav.BookingGuests", "Booking Guests"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="cancelled-bookings">
-                <span class="bi bi-x-circle-nav-menu" aria-hidden="true"></span> @L["Nav.CancelledBookings", "Cancelled Bookings"]
+                @L["Nav.CancelledBookings", "Cancelled Bookings"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="expenses">
-                <span class="bi bi-wallet-nav-menu" aria-hidden="true"></span> @L["Nav.Expenses", "Expenses"]
+                @L["Nav.Expenses", "Expenses"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="money-history">
-                <span class="bi bi-cash-stack-nav-menu" aria-hidden="true"></span> @L["Nav.MoneyHistory", "Money History"]
+                @L["Nav.MoneyHistory", "Money History"]
             </NavLink>
         </div>
         <div class="nav-item px-3 mt-2">
@@ -181,35 +175,35 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="messages">
-                <span class="bi bi-chat-nav-menu" aria-hidden="true"></span> @L["Nav.Messages", "Messages"]
+                @L["Nav.Messages", "Messages"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="contract-templates">
-                <span class="bi bi-file-text-nav-menu" aria-hidden="true"></span> @L["Nav.ContractTemplates", "Contract Templates"]
+                @L["Nav.ContractTemplates", "Contract Templates"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="external-integrations">
-                <span class="bi bi-plug-nav-menu" aria-hidden="true"></span> @L["Nav.ExternalIntegrations", "External Integrations"]
+                @L["Nav.ExternalIntegrations", "External Integrations"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="sessions">
-                <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> @L["Nav.Sessions", "Sessions"]
+                @L["Nav.Sessions", "Sessions"]
             </NavLink>
         </div>
     </nav>
+    </div>
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
+    [Parameter]
+    public EventCallback OnNavigate { get; set; }
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    private Task HandleNavigate()
     {
-        collapseNavMenu = !collapseNavMenu;
+        return OnNavigate.HasDelegate ? OnNavigate.InvokeAsync() : Task.CompletedTask;
     }
 }
 
