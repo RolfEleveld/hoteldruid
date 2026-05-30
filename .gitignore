@@ -24,6 +24,7 @@ hoteldruid/dati
 /_client_publish/
 /.tools/
 /.tmp-tools/
+/.audit/
 
 # Published Blazor client embedded in API wwwroot — fully generated, never commit
 src/HotelDruid.Api/wwwroot/

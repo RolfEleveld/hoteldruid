@@ -167,6 +167,7 @@
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Error al guardar la configuración.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Cargando...</value></data>
   <data name="common.save" xml:space="preserve"><value>Guardar</value></data>
+  <data name="common.cancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="common.delete" xml:space="preserve"><value>Eliminar</value></data>
   <data name="common.saved" xml:space="preserve"><value>Guardado</value></data>
   <data name="common.saving" xml:space="preserve"><value>Guardando...</value></data>

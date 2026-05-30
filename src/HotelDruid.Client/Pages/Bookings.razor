@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Components.Web
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared
+@using ClientRecord = HotelDruid.Client.Services.ClientDto
 @inject IBookingApiService BookingApi
+@inject IClientApiService ClientApi
 @inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
@@ -10,18 +12,18 @@
 <PageTitle>@L["bookings.title", "Bookings"]</PageTitle>
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
-        <div class="col-auto"><h5 class="mb-0">Bookings</h5></div>
+        <div class="col-auto"><h5 class="mb-0">@L["bookings.header", "Bookings"]</h5></div>
         <div class="col-auto">
-            <label class="me-1">Year:</label>
+            <label class="me-1">@L["bookings.filterYear", "Year"]:</label>
             <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">Load</button>
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["bookings.load", "Load"]</button>
         </div>
     </div>
     <div class="row">
         <div class="col-md-3 border-end">
-            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ New</button>
+            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ @L["bookings.new", "New"]</button>
             @if (records is null) { <p><em>@L["common.loading", "Loading..."]</em></p> }
-            else if (records.Count == 0) { <p class="text-muted">No bookings</p> }
+            else if (records.Count == 0) { <p class="text-muted">@L["bookings.emptyList", "No bookings"]</p> }
             else
             {
                 <ul class="list-group">
@@ -39,15 +41,86 @@
         <div class="col-md-6 border-end">
             @if (editing)
             {
-                <h5 class="mt-1">@(isNew ? "New Booking" : "Edit Booking")</h5>
+                <h5 class="mt-1">@(isNew ? L["bookings.newBooking", "New Booking"] : L["bookings.editBooking", "Edit Booking"])</h5>
                 <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
-                    <div class="col-6"><label>Client ID</label><input class="form-control" @bind="form.ClientId" /></div>
-                    <div class="col-6"><label>Room ID</label><input class="form-control" @bind="form.RoomId" /></div>
-                    <div class="col-6"><label>Status</label><input class="form-control" @bind="form.Status" /></div>
-                    <div class="col-6"><label>Arrival Date</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
-                    <div class="col-6"><label>Departure Date</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
-                    <div class="col-12"><label>Notes</label><input class="form-control" @bind="form.Notes" /></div>
+                    <div class="col-6"><label>@L["bookings.year", "Year"] *</label><input class="form-control" type="number" @bind="form.Year" /></div>
+                    <div class="col-6"><label>@L["bookings.room", "Room"]</label><input class="form-control" @bind="form.RoomId" /></div>
+                    <div class="col-6"><label>@L["bookings.status", "Status"]</label><input class="form-control" @bind="form.Status" /></div>
+                    <div class="col-6"><label>@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
+                    <div class="col-6"><label>@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
+                    <div class="col-12"><label>@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
+
+                    <div class="col-12 mt-3">
+                        <h6 class="text-muted mb-2">@L["bookings.client", "Client"]</h6>
+                    </div>
+                    <div class="col-12">
+                        <label>@L["bookings.clientSearchLabel", "Find existing client"]</label>
+                        <input class="form-control"
+                               value="@clientSearch"
+                               placeholder="@L["bookings.clientSearchPlaceholder", "Type last name, first name, email, phone, or ID"]"
+                               @oninput="OnClientSearchChanged" />
+                    </div>
+
+                    @if (clientMatches.Count > 0)
+                    {
+                        <div class="col-12">
+                            <div class="list-group">
+                                @foreach (var client in clientMatches)
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectClient(client)">
+                                        <div class="fw-semibold">@ClientDisplayName(client)</div>
+                                        <small class="text-muted">@client.Email @client.Phone @client.City</small>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (selectedClient is not null)
+                    {
+                        <div class="col-12">
+                            <div class="border rounded p-2 bg-light-subtle">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">@ClientDisplayName(selectedClient)</div>
+                                        <small class="text-muted">ID: @selectedClient.Id · @selectedClient.Email · @selectedClient.Phone</small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearClientSelection">@L["bookings.clearSelection", "Clear"]</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (selectedClient is null && !creatingNewClient && !string.IsNullOrWhiteSpace(clientSearch))
+                    {
+                        <div class="col-12">
+                            <div class="text-muted small">@L["bookings.noClientMatch", "No existing client matches this search."]</div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-1" @onclick="EnableInlineClientCreate">@L["bookings.createClientInline", "Enter new client details"]</button>
+                        </div>
+                    }
+
+                    @if (creatingNewClient)
+                    {
+                        <div class="col-12 mt-2">
+                            <div class="border rounded p-3">
+                                <div class="row g-2">
+                                    <div class="col-6"><label>@L["bookings.clientLastName", "Last Name"] *</label><input class="form-control" @bind="clientForm.LastName" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientFirstName", "First Name"]</label><input class="form-control" @bind="clientForm.FirstName" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientNickname", "Nickname"]</label><input class="form-control" @bind="clientForm.Nickname" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientLanguage", "Language"]</label><input class="form-control" @bind="clientForm.Language" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientPhone", "Phone"]</label><input class="form-control" @bind="clientForm.Phone" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientEmail", "Email"]</label><input class="form-control" @bind="clientForm.Email" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientNation", "Nation"]</label><input class="form-control" @bind="clientForm.Nation" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientCity", "City"]</label><input class="form-control" @bind="clientForm.City" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientDocumentType", "Document Type"]</label><input class="form-control" @bind="clientForm.DocumentType" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientDocumentNumber", "Document Number"]</label><input class="form-control" @bind="clientForm.DocumentNumber" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientTaxCode", "Tax Code"]</label><input class="form-control" @bind="clientForm.TaxCode" /></div>
+                                    <div class="col-6"><label>@L["bookings.clientVatNumber", "VAT Number"]</label><input class="form-control" @bind="clientForm.VatNumber" /></div>
+                                    <div class="col-12"><label>@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="clientForm.Notes" /></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
                 <div class="mt-3">
@@ -61,16 +134,16 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
-                    <dt>Client ID</dt><dd>@selected.ClientId</dd>
-                    <dt>Room ID</dt><dd>@selected.RoomId</dd>
-                    <dt>Status</dt><dd>@selected.Status</dd>
-                    <dt>Arrival</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
-                    <dt>Departure</dt><dd>@FormatDate(selected.DepartureDate)</dd>
-                    <dt>Notes</dt><dd>@selected.Notes</dd>
+                    <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
+                    <dt>@L["bookings.client", "Client"]</dt><dd>@selected.ClientId</dd>
+                    <dt>@L["bookings.room", "Room"]</dt><dd>@selected.RoomId</dd>
+                    <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
+                    <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
+                    <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
+                    <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                 </dl>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
-                <button class="btn btn-sm btn-outline-warning me-1" @onclick="CancelBooking">Cancel Booking</button>
+                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["bookings.editBooking", "Edit Booking"]</button>
+                <button class="btn btn-sm btn-outline-warning me-1" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
                 <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
             }
         </div>
@@ -80,14 +153,21 @@
 @code {
     private List<BookingDto>? records;
     private BookingDto? selected;
+    private List<ClientRecord> knownClients = new();
+    private List<ClientRecord> clientMatches = new();
+    private ClientRecord? selectedClient;
+    private bool creatingNewClient;
+    private string clientSearch = string.Empty;
     private bool editing, isNew;
     private string errorMsg = "";
     private int? filterYear;
     private FormModel form = new();
+    private ClientFormModel clientForm = new();
 
     protected override async Task OnInitializedAsync()
     {
         filterYear = ActiveYearService.CurrentYear;
+        knownClients = await ClientApi.GetAllAsync();
         await LoadAll();
     }
 
@@ -100,43 +180,261 @@
     }
     private async Task ApplyFilter() => await LoadAll();
 
-    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord()
+    {
+        form = new() { Year = filterYear ?? ActiveYearService.CurrentYear };
+        isNew = true;
+        editing = true;
+        selected = null;
+        errorMsg = "";
+        ResetClientSelection();
+    }
+
     private void SelectRecord(BookingDto r) { selected = r; editing = false; }
-    private void EditSelected()
+
+    private async Task EditSelected()
     {
         if (selected is null) return;
         form = new() { Year = selected.Year, ClientId = selected.ClientId, RoomId = selected.RoomId, Status = selected.Status, ArrivalDate = selected.ArrivalDate, DepartureDate = selected.DepartureDate, Notes = selected.Notes };
-        isNew = false; editing = true; errorMsg = "";
+        isNew = false;
+        editing = true;
+        errorMsg = "";
+        await InitializeClientSelectionForEdit();
     }
 
     private async Task Save()
     {
-        if (form.Year == 0) { errorMsg = "Year is required."; return; }
-        var dto = new BookingDto(selected?.Id, form.Year, form.ClientId, form.RoomId, form.ArrivalDate, form.DepartureDate, form.Status, form.Notes);
+        if (form.Year == 0) { errorMsg = L["bookings.yearRequired", "Year is required."]; return; }
+
+        var bookingClientId = await ResolveClientIdForSave();
+        if (string.IsNullOrWhiteSpace(bookingClientId))
+        {
+            return;
+        }
+
+        var dto = new BookingDto(selected?.Id, form.Year, bookingClientId, form.RoomId, form.ArrivalDate, form.DepartureDate, form.Status, form.Notes);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
             else await BookingApi.UpdateAsync(selected!.Year, selected.Id!, dto);
             editing = false;
             await LoadAll();
+            await RefreshKnownClients();
         }
-        catch { errorMsg = "Save failed."; }
+        catch { errorMsg = L["bookings.saveFailed", "Save failed."]; }
     }
 
-    private void Cancel() { editing = false; errorMsg = ""; }
+    private void Cancel()
+    {
+        editing = false;
+        errorMsg = "";
+        ResetClientSelection();
+    }
 
     private async Task CancelBooking()
     {
         if (selected?.Id is null) return;
         try { await BookingApi.CancelAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = "Cancel failed."; }
+        catch { errorMsg = L["bookings.cancelFailed", "Cancel failed."]; }
     }
 
     private async Task DeleteSelected()
     {
         if (selected?.Id is null) return;
         try { await BookingApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = "Delete failed."; }
+        catch { errorMsg = L["bookings.deleteFailed", "Delete failed."]; }
+    }
+
+    private async Task OnClientSearchChanged(ChangeEventArgs args)
+    {
+        clientSearch = args.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(clientSearch))
+        {
+            clientMatches.Clear();
+            if (selectedClient is null)
+            {
+                form.ClientId = null;
+            }
+            return;
+        }
+
+        var term = clientSearch.Trim();
+        clientMatches = knownClients
+            .Where(c => ContainsClientSearch(c, term))
+            .OrderBy(c => c.LastName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(c => c.FirstName, StringComparer.OrdinalIgnoreCase)
+            .Take(8)
+            .ToList();
+    }
+
+    private void SelectClient(ClientRecord client)
+    {
+        selectedClient = client;
+        form.ClientId = client.Id;
+        creatingNewClient = false;
+        clientForm = new();
+        clientSearch = ClientDisplayName(client);
+        clientMatches.Clear();
+    }
+
+    private void ClearClientSelection()
+    {
+        selectedClient = null;
+        form.ClientId = null;
+        clientSearch = string.Empty;
+        clientMatches.Clear();
+    }
+
+    private void EnableInlineClientCreate()
+    {
+        creatingNewClient = true;
+        selectedClient = null;
+        form.ClientId = null;
+        clientMatches.Clear();
+    }
+
+    private async Task RefreshKnownClients()
+    {
+        knownClients = await ClientApi.GetAllAsync();
+    }
+
+    private async Task InitializeClientSelectionForEdit()
+    {
+        selectedClient = null;
+        creatingNewClient = false;
+        clientForm = new();
+        clientMatches.Clear();
+        clientSearch = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(form.ClientId))
+        {
+            return;
+        }
+
+        selectedClient = knownClients.FirstOrDefault(c => string.Equals(c.Id, form.ClientId, StringComparison.OrdinalIgnoreCase));
+        if (selectedClient is null)
+        {
+            selectedClient = await ClientApi.GetByIdAsync(form.ClientId);
+            if (selectedClient is not null)
+            {
+                knownClients.Add(selectedClient);
+            }
+        }
+
+        if (selectedClient is not null)
+        {
+            clientSearch = ClientDisplayName(selectedClient);
+        }
+    }
+
+    private async Task<string?> ResolveClientIdForSave()
+    {
+        if (!string.IsNullOrWhiteSpace(selectedClient?.Id))
+        {
+            return selectedClient.Id;
+        }
+
+        if (!string.IsNullOrWhiteSpace(form.ClientId))
+        {
+            return form.ClientId;
+        }
+
+        if (creatingNewClient)
+        {
+            if (string.IsNullOrWhiteSpace(clientForm.LastName))
+            {
+                errorMsg = L["bookings.clientLastNameRequired", "Last Name is required for a new client."];
+                return null;
+            }
+
+            try
+            {
+                var createdClientId = await ClientApi.CreateAsync(new ClientRecord(
+                    null,
+                    clientForm.LastName,
+                    clientForm.FirstName,
+                    clientForm.Nickname,
+                    null,
+                    null,
+                    clientForm.Language,
+                    null,
+                    null,
+                    null,
+                    null,
+                    clientForm.DocumentNumber,
+                    null,
+                    clientForm.DocumentType,
+                    null,
+                    null,
+                    null,
+                    null,
+                    clientForm.Nation,
+                    null,
+                    clientForm.City,
+                    null,
+                    null,
+                    null,
+                    clientForm.Phone,
+                    null,
+                    null,
+                    null,
+                    clientForm.Email,
+                    null,
+                    null,
+                    clientForm.TaxCode,
+                    clientForm.VatNumber,
+                    clientForm.Notes));
+
+                if (string.IsNullOrWhiteSpace(createdClientId))
+                {
+                    errorMsg = L["bookings.clientCreateFailed", "Failed to create client."];
+                    return null;
+                }
+
+                form.ClientId = createdClientId;
+                await RefreshKnownClients();
+                selectedClient = knownClients.FirstOrDefault(c => string.Equals(c.Id, createdClientId, StringComparison.OrdinalIgnoreCase));
+                if (selectedClient is not null)
+                {
+                    clientSearch = ClientDisplayName(selectedClient);
+                }
+
+                return createdClientId;
+            }
+            catch
+            {
+                errorMsg = L["bookings.clientCreateFailed", "Failed to create client."];
+                return null;
+            }
+        }
+
+        errorMsg = L["bookings.clientRequired", "Select an existing client or enter new client details."];
+        return null;
+    }
+
+    private void ResetClientSelection()
+    {
+        selectedClient = null;
+        creatingNewClient = false;
+        clientSearch = string.Empty;
+        clientMatches.Clear();
+        clientForm = new();
+    }
+
+    private static bool ContainsClientSearch(ClientRecord client, string term)
+    {
+        return (!string.IsNullOrWhiteSpace(client.LastName) && client.LastName.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.FirstName) && client.FirstName.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.Email) && client.Email.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.Phone) && client.Phone.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.Id) && client.Id.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ClientDisplayName(ClientRecord client)
+    {
+        var fullName = string.Join(" ", new[] { client.LastName, client.FirstName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return string.IsNullOrWhiteSpace(fullName) ? (client.Id ?? string.Empty) : fullName;
     }
 
     private class FormModel
@@ -147,6 +445,23 @@
         public string? Status { get; set; }
         public DateOnly? ArrivalDate { get; set; }
         public DateOnly? DepartureDate { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    private class ClientFormModel
+    {
+        public string? LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? Nickname { get; set; }
+        public string? Language { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Nation { get; set; }
+        public string? City { get; set; }
+        public string? DocumentType { get; set; }
+        public string? DocumentNumber { get; set; }
+        public string? TaxCode { get; set; }
+        public string? VatNumber { get; set; }
         public string? Notes { get; set; }
     }
 

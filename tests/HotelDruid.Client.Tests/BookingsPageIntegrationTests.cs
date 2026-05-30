@@ -14,6 +14,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages;
 public class BookingsPageIntegrationTests : TestContext
 {
     private readonly Mock<IBookingApiService> bookingApi = new();
+    private readonly Mock<IClientApiService> clientApi = new();
     private readonly Mock<IActiveYearService> activeYearService = new();
 
     public BookingsPageIntegrationTests()
@@ -29,7 +30,10 @@ public class BookingsPageIntegrationTests : TestContext
             new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
         });
 
+        clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>());
+
         Services.AddScoped(_ => bookingApi.Object);
+        Services.AddScoped(_ => clientApi.Object);
         Services.AddScoped(_ => activeYearService.Object);
     }
 

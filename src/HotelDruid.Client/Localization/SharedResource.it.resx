@@ -167,6 +167,7 @@
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Salvataggio configurazione non riuscito.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Caricamento...</value></data>
   <data name="common.save" xml:space="preserve"><value>Salva</value></data>
+  <data name="common.cancel" xml:space="preserve"><value>Annulla</value></data>
   <data name="common.delete" xml:space="preserve"><value>Elimina</value></data>
   <data name="common.saved" xml:space="preserve"><value>Salvato</value></data>
   <data name="common.saving" xml:space="preserve"><value>Salvataggio...</value></data>
