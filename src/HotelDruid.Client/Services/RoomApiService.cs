@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HotelDruid.Client.Services
@@ -39,7 +43,8 @@ namespace HotelDruid.Client.Services
     /// Export Request
     /// </summary>
     public record ExportRequest(
-        List<string> RoomIds,
+        bool IncludeConfigs = true,
+        bool IncludeDocs = true,
         string ExportType = "full"
     );
 
@@ -59,8 +64,8 @@ namespace HotelDruid.Client.Services
     public record ExportStatusResponse(
         string ExportId,
         string Status,
-        int? Progress = null,
-        DateTime? CompletedAt = null,
+        int? ProgressPercent = null,
+        DateTime? CreatedAt = null,
         string? DownloadUrl = null,
         string? ErrorMessage = null
     );
@@ -73,7 +78,8 @@ namespace HotelDruid.Client.Services
         List<string> Errors = null!,
         List<string> Warnings = null!,
         int RoomsToImport = 0,
-        int RoomsToUpdate = 0
+        int RoomsToUpdate = 0,
+        string? PackageId = null
     );
 
     /// <summary>
@@ -85,7 +91,8 @@ namespace HotelDruid.Client.Services
         int RoomsImported = 0,
         int RoomsUpdated = 0,
         List<string> Errors = null!,
-        string? ErrorMessage = null
+        string? ErrorMessage = null,
+        string? StatusUrl = null
     );
 
     /// <summary>
@@ -96,7 +103,7 @@ namespace HotelDruid.Client.Services
         private readonly HttpClient _httpClient;
         private const string ApiBaseUrl = "/api";
 
-        private static readonly System.Text.Json.JsonSerializerOptions _jsonOpts = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNameCaseInsensitive = true };
 
         public RoomApiService(HttpClient httpClient)
         {
@@ -112,9 +119,10 @@ namespace HotelDruid.Client.Services
             {
                 var response = await _httpClient.GetAsync($"{ApiBaseUrl}/rooms");
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
-                var rooms = System.Text.Json.JsonSerializer.Deserialize<List<RoomDto>>(content);
+                var apiRooms = JsonSerializer.Deserialize<List<ApiRoomDto>>(content, _jsonOpts);
+                var rooms = apiRooms?.Select(MapToClientDto).ToList();
                 
                 return rooms ?? new List<RoomDto>();
             }
@@ -134,9 +142,10 @@ namespace HotelDruid.Client.Services
             {
                 var response = await _httpClient.GetAsync($"{ApiBaseUrl}/rooms/{id}");
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<RoomDto>(content, _jsonOpts);
+                var apiRoom = JsonSerializer.Deserialize<ApiRoomDto>(content, _jsonOpts);
+                return apiRoom is null ? null : MapToClientDto(apiRoom);
             }
             catch (Exception ex)
             {
@@ -153,16 +162,16 @@ namespace HotelDruid.Client.Services
             try
             {
                 var content = new StringContent(
-                    System.Text.Json.JsonSerializer.Serialize(room),
+                    JsonSerializer.Serialize(MapToApiDto(room)),
                     System.Text.Encoding.UTF8,
                     "application/json"
                 );
 
                 var response = await _httpClient.PostAsync($"{ApiBaseUrl}/rooms", content);
                 response.EnsureSuccessStatusCode();
-                
+
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var result = System.Text.Json.JsonSerializer.Deserialize<RoomDto>(responseContent, _jsonOpts);
+                var result = JsonSerializer.Deserialize<ApiRoomDto>(responseContent, _jsonOpts);
                 
                 return result?.Id ?? string.Empty;
             }
@@ -180,14 +189,14 @@ namespace HotelDruid.Client.Services
         {
             try
             {
-                var request = new ExportRequest(roomIds, exportType);
+                var request = new ExportRequest(IncludeConfigs: true, IncludeDocs: true, ExportType: exportType);
                 var content = new StringContent(
-                    System.Text.Json.JsonSerializer.Serialize(request),
+                    JsonSerializer.Serialize(request),
                     System.Text.Encoding.UTF8,
                     "application/json"
                 );
 
-                var response = await _httpClient.PostAsync($"{ApiBaseUrl}/export/rooms", content);
+                var response = await _httpClient.PostAsync($"{ApiBaseUrl}/export/create", content);
                 response.EnsureSuccessStatusCode();
             }
             catch (Exception ex)
@@ -204,11 +213,11 @@ namespace HotelDruid.Client.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{ApiBaseUrl}/export/status/{exportId}");
+                var response = await _httpClient.GetAsync($"{ApiBaseUrl}/export/{exportId}/status");
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ExportStatusResponse>(content, _jsonOpts)
+                return JsonSerializer.Deserialize<ExportStatusResponse>(content, _jsonOpts)
                     ?? new ExportStatusResponse(exportId, "unknown");
             }
             catch (Exception ex)
@@ -225,15 +234,26 @@ namespace HotelDruid.Client.Services
         {
             try
             {
-                using var content = new StreamContent(zipFileStream);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
+                using var fileContent = new StreamContent(zipFileStream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
+                using var form = new MultipartFormDataContent();
+                form.Add(fileContent, "file", "rooms-import.zip");
 
-                var response = await _httpClient.PostAsync($"{ApiBaseUrl}/import/validate", content);
+                var response = await _httpClient.PostAsync($"{ApiBaseUrl}/import/validate", form);
                 response.EnsureSuccessStatusCode();
-                
+
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ImportValidationResponse>(responseContent, _jsonOpts)
-                    ?? new ImportValidationResponse(false, new(), new());
+                var api = JsonSerializer.Deserialize<ApiImportValidationResponse>(responseContent, _jsonOpts);
+                var roomTable = api?.Tables?.FirstOrDefault(t => string.Equals(t.Name, "rooms", StringComparison.OrdinalIgnoreCase));
+                var rowsToImport = roomTable?.RowCount ?? 0;
+                return new ImportValidationResponse(
+                    IsValid: api?.Valid ?? false,
+                    Errors: api?.Errors ?? new List<string>(),
+                    Warnings: new List<string>(),
+                    RoomsToImport: rowsToImport,
+                    RoomsToUpdate: 0,
+                    PackageId: api?.PackageId
+                );
             }
             catch (Exception ex)
             {
@@ -249,15 +269,35 @@ namespace HotelDruid.Client.Services
         {
             try
             {
-                using var content = new StreamContent(zipFileStream);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
+                var validation = await ValidateImportAsync(zipFileStream);
+                if (!validation.IsValid || string.IsNullOrWhiteSpace(validation.PackageId))
+                {
+                    return new ImportExecuteResponse(
+                        ImportId: string.Empty,
+                        Status: "failed",
+                        RoomsImported: 0,
+                        RoomsUpdated: 0,
+                        Errors: validation.Errors,
+                        ErrorMessage: "Import package validation failed",
+                        StatusUrl: null
+                    );
+                }
 
-                var url = $"{ApiBaseUrl}/import/execute?overwrite={overwrite}";
-                var response = await _httpClient.PostAsync(url, content);
+                var payload = new
+                {
+                    PackageId = validation.PackageId,
+                    DryRun = false,
+                    MappingOverrides = (Dictionary<string, object>?)null
+                };
+
+                var response = await _httpClient.PostAsJsonAsync(
+                    $"{ApiBaseUrl}/import/{validation.PackageId}/execute",
+                    payload,
+                    _jsonOpts);
                 response.EnsureSuccessStatusCode();
-                
+
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return System.Text.Json.JsonSerializer.Deserialize<ImportExecuteResponse>(responseContent, _jsonOpts)
+                return JsonSerializer.Deserialize<ImportExecuteResponse>(responseContent, _jsonOpts)
                     ?? new ImportExecuteResponse("", "unknown");
             }
             catch (Exception ex)
@@ -265,6 +305,73 @@ namespace HotelDruid.Client.Services
                 Console.Error.WriteLine($"Error executing import: {ex.Message}");
                 throw;
             }
+        }
+
+        private record ApiImportValidationResponse(
+            bool Valid,
+            string PackageId,
+            List<ApiTablePreview>? Tables,
+            List<string>? Errors
+        );
+
+        private record ApiTablePreview(string Name, int RowCount);
+
+        private record ApiRoomDto(
+            string? Id,
+            string? Name,
+            int Capacity,
+            string? FloorNumber,
+            string? HouseNumber,
+            int? Priority,
+            int? SecondaryPriority,
+            string? HasBeds,
+            string? NeighboringRooms,
+            string? Comments
+        );
+
+        private static RoomDto MapToClientDto(ApiRoomDto api)
+        {
+            int? floorNumber = int.TryParse(api.FloorNumber, out var parsedFloor) ? parsedFloor : null;
+            var hasBeds = string.Equals(api.HasBeds, "S", StringComparison.OrdinalIgnoreCase);
+            var neighboringRooms = string.IsNullOrWhiteSpace(api.NeighboringRooms)
+                ? null
+                : api.NeighboringRooms
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToList();
+
+            return new RoomDto(
+                Id: api.Id ?? string.Empty,
+                Name: api.Name ?? string.Empty,
+                Capacity: api.Capacity,
+                FloorNumber: floorNumber,
+                HouseNumber: api.HouseNumber,
+                Priority: api.Priority ?? 0,
+                SecondaryPriority: api.SecondaryPriority ?? 0,
+                HasBeds: hasBeds,
+                NeighboringRooms: neighboringRooms,
+                Comments: api.Comments
+            );
+        }
+
+        private static ApiRoomDto MapToApiDto(RoomDto room)
+        {
+            var hasBeds = room.HasBeds ? "S" : "N";
+            var neighboringRooms = room.NeighboringRooms is { Count: > 0 }
+                ? string.Join(",", room.NeighboringRooms)
+                : null;
+
+            return new ApiRoomDto(
+                Id: string.IsNullOrWhiteSpace(room.Id) ? null : room.Id,
+                Name: room.Name,
+                Capacity: room.Capacity,
+                FloorNumber: room.FloorNumber?.ToString(),
+                HouseNumber: room.HouseNumber,
+                Priority: room.Priority,
+                SecondaryPriority: room.SecondaryPriority,
+                HasBeds: hasBeds,
+                NeighboringRooms: neighboringRooms,
+                Comments: room.Comments
+            );
         }
     }
 }

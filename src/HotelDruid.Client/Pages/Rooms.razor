@@ -1,5 +1,6 @@
 @page "/rooms"
 @using System.Net.Http.Json
+@using System.Text.RegularExpressions
 @using System.Text.Json
 @using HotelDruid.Shared
 @inject HttpClient Http
@@ -42,7 +43,7 @@
                                     @onclick="() => SelectRoom(room)">
                                     <div class="d-flex justify-content-between">
                                         <span>@room.Name</span>
-                                        <small class="text-muted">@room.Capacity ppl</small>
+                                        <small class="text-muted">@L["rooms.capacityPeople", room.Capacity]</small>
                                     </div>
                                 </button>
                             }
@@ -63,14 +64,14 @@
                                 <h3 class="panel-title mb-0">
                                     @if (string.IsNullOrEmpty(editModel.Name))
                                     {
-                                        <span>New Room</span>
+                                        <span>@L["rooms.newRoom", "New Room"]</span>
                                     }
                                     else
                                     {
                                         <span>@editModel.Name</span>
                                     }
                                 </h3>
-                                <small class="text-muted">Manage the room</small>
+                                <small class="text-muted">@L["rooms.manageRoom", "Manage the room"]</small>
                             </div>
                             <div class="status-badge" title="@statusMessage">
                                 @if (isSaving)
@@ -109,27 +110,27 @@
                     <div class="panel-body flex-grow-1 overflow-auto">
                         <form>
                             <div class="mb-3">
-                                <label class="form-label">Room Name / ID <span class="text-danger">*</span></label>
+                                <label class="form-label">@L["rooms.nameLabel", "Room Name / ID"] <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" @bind="editModel.Name" 
                                     @bind:event="oninput" @onchange="() => OnFieldChanged()" disabled="@(editModel.Id is not null)" />
-                                <small class="form-text text-muted">Unique identifier (e.g., 101, Suite-A)</small>
+                                <small class="form-text text-muted">@L["rooms.nameHelp", "Unique identifier (e.g., 101, Suite-A)"]</small>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Capacity <span class="text-danger">*</span></label>
+                                <label class="form-label">@L["rooms.capacityLabel", "Capacity"] <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" @bind="editModel.Capacity" 
                                     @bind:event="oninput" @onchange="() => OnFieldChanged()" min="1" />
-                                <small class="form-text text-muted">Max occupants</small>
+                                <small class="form-text text-muted">@L["rooms.capacityHelp", "Max occupants"]</small>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Floor Number</label>
+                                    <label class="form-label">@L["rooms.floorNumber", "Floor Number"]</label>
                                     <input type="text" class="form-control" @bind="editModel.FloorNumber" 
                                         @bind:event="oninput" @onchange="() => OnFieldChanged()" />
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">House Number</label>
+                                    <label class="form-label">@L["rooms.houseNumber", "House Number"]</label>
                                     <input type="text" class="form-control" @bind="editModel.HouseNumber" 
                                         @bind:event="oninput" @onchange="() => OnFieldChanged()" />
                                 </div>
@@ -137,29 +138,29 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Priority</label>
+                                    <label class="form-label">@L["rooms.priorityLabel", "Priority"]</label>
                                     <input type="number" class="form-control" @bind="editModel.Priority" 
                                         @bind:event="oninput" @onchange="() => OnFieldChanged()" />
-                                    <small class="form-text text-muted">Booking priority (lower = higher)</small>
+                                    <small class="form-text text-muted">@L["rooms.priorityHelp", "Booking priority (lower = higher)"]</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Secondary Priority</label>
+                                    <label class="form-label">@L["rooms.secondaryPriorityLabel", "Secondary Priority"]</label>
                                     <input type="number" class="form-control" @bind="editModel.SecondaryPriority" 
                                         @bind:event="oninput" @onchange="() => OnFieldChanged()" />
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Has Beds</label>
+                                <label class="form-label">@L["rooms.hasBedsLabel", "Has Beds"]</label>
                                 <select class="form-select" @bind="editModel.HasBeds">
-                                    <option value="">Select...</option>
-                                    <option value="S">Yes</option>
-                                    <option value="N">No</option>
+                                    <option value="">@L["rooms.selectOption", "Select..."]</option>
+                                    <option value="S">@L["common.yes", "Yes"]</option>
+                                    <option value="N">@L["common.no", "No"]</option>
                                 </select>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Comments</label>
+                                <label class="form-label">@L["rooms.commentsLabel", "Comments"]</label>
                                 <textarea class="form-control" @bind="editModel.Comments" 
                                     @bind:event="oninput" @onchange="() => OnFieldChanged()" rows="3"></textarea>
                             </div>
@@ -168,7 +169,7 @@
 
                     <div class="panel-footer">
                         <div class="btn-group w-100" role="group">
-                            <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveRoom">
+                            <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveRoom" disabled="@isSaving">
                                 <span class="bi bi-download"></span> @L["common.save", "Save"]
                             </button>
                             @if (editModel.Id is not null)
@@ -204,39 +205,44 @@
                     </h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
-                    @if (editModel?.Id is null)
-                    {
-                        <div class="alert alert-info">@L["rooms.selectForNeighbors", "Create or select a room to edit neighbors"]</div>
-                    }
-                    else if (rooms is null || rooms.Count == 0)
+                    @if (rooms is null || rooms.Count == 0)
                     {
                         <div class="alert alert-info">@L["rooms.emptyList", "No rooms available"]</div>
+                    }
+                    else if (rooms.Count == 1)
+                    {
+                        <div class="alert alert-info">@L["rooms.selectForNeighbors", "Create or select a room to edit neighbors"]</div>
                     }
                     else
                     {
                         <div class="neighbors-matrix">
                             <div class="matrix-header">
                                 <div class="matrix-corner"></div>
-                                @foreach (var room in rooms)
+                                @for (var colIndex = 0; colIndex < rooms.Count; colIndex++)
                                 {
+                                    var room = rooms[colIndex];
                                     <div class="matrix-label-col">@room.Name</div>
                                 }
                             </div>
 
-                            @foreach (var rowRoom in rooms)
+                            @for (var rowIndex = 0; rowIndex < rooms.Count; rowIndex++)
                             {
+                                var rowRoom = rooms[rowIndex];
                                 <div class="matrix-row">
                                     <div class="matrix-label-row">@rowRoom.Name</div>
-                                    @foreach (var colRoom in rooms)
+                                    @for (var colIndex = 0; colIndex < rooms.Count; colIndex++)
                                     {
-                                        var isNeighbor = editModel.NeighboringRooms?.Split(',')
-                                            .Select(r => r.Trim())
-                                            .Contains(colRoom.Name) ?? false;
+                                        var colRoom = rooms[colIndex];
+                                        var isEditableCell = rowIndex > colIndex;
+                                        var isNeighbor = isEditableCell && AreNeighbors(rowRoom, colRoom);
 
                                         <div class="matrix-cell">
-                                            <input type="checkbox" class="form-check-input"
-                                                checked="@isNeighbor"
-                                                @onchange="e => UpdateNeighbor(rowRoom.Name, colRoom.Name, (bool)(e.Value ?? false))" />
+                                            @if (isEditableCell)
+                                            {
+                                                <input type="checkbox" class="form-check-input"
+                                                    checked="@isNeighbor"
+                                                    @onchange="e => UpdateNeighborPair(rowRoom, colRoom, (bool)(e.Value ?? false))" />
+                                            }
                                         </div>
                                     }
                                 </div>
@@ -319,8 +325,12 @@
     align-items: center;
     justify-content: center;
     border: 1px solid #ddd;
-    background-color: white;
+    background-color: #f9f9f9;
     min-height: 40px;
+}
+
+.matrix-cell:has(input[type="checkbox"]) {
+    background-color: white;
 }
 
 .matrix-cell input[type="checkbox"] {
@@ -353,7 +363,7 @@
     private bool isSaved = true;
     private string? lastError;
     private string? lastWarning;
-    private string statusMessage = "No changes";
+    private string statusMessage = string.Empty;
     private System.Timers.Timer? autoSaveTimer;
     private bool hasUnsavedChanges = false;
 
@@ -397,6 +407,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        statusMessage = L["common.noChanges", "No changes"];
         await LoadRooms();
         initAutoSaveTimer();
     }
@@ -418,11 +429,14 @@
     {
         try
         {
-            rooms = await Http.GetFromJsonAsync<List<RoomDto>>("/api/rooms") ?? new();
+            rooms = (await Http.GetFromJsonAsync<List<RoomDto>>("/api/rooms") ?? new())
+                .OrderBy(room => room.Name, NaturalRoomNameComparer.Instance)
+                .ThenBy(room => room.Id, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
         catch (Exception ex)
         {
-            lastError = $"Failed to load rooms: {ex.Message}";
+            lastError = string.Format(L["rooms.loadFailed", "Failed to load rooms: {0}"], ex.Message);
         }
     }
 
@@ -464,6 +478,9 @@
     private async Task SaveRoom()
     {
         if (editModel is null)
+            return;
+
+        if (isSaving)
             return;
 
         if (string.IsNullOrWhiteSpace(editModel.Name))
@@ -520,13 +537,13 @@
                 }
                 else
                 {
-                    lastError = $"Error saving room: {response.StatusCode}";
+                    lastError = string.Format(L["rooms.saveFailedStatus", "Error saving room: {0}"], response.StatusCode);
                 }
             }
         }
         catch (Exception ex)
         {
-            lastError = $"Failed to save room: {ex.Message}";
+            lastError = string.Format(L["rooms.saveFailed", "Failed to save room: {0}"], ex.Message);
         }
         finally
         {
@@ -577,12 +594,12 @@
             }
             else
             {
-                lastError = $"Failed to delete room: {response.StatusCode}";
+                lastError = string.Format(L["rooms.deleteFailedStatus", "Failed to delete room: {0}"], response.StatusCode);
             }
         }
         catch (Exception ex)
         {
-            lastError = $"Failed to delete room: {ex.Message}";
+            lastError = string.Format(L["rooms.deleteFailed", "Failed to delete room: {0}"], ex.Message);
         }
         finally
         {
@@ -592,30 +609,150 @@
 
     private async Task<bool> ConfirmDelete()
     {
-        return await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete room {editModel?.Name}?");
+        return await JS.InvokeAsync<bool>("confirm", string.Format(L["rooms.deleteConfirm", "Are you sure you want to delete room {0}?"], editModel?.Name));
     }
 
-    private async Task UpdateNeighbor(string currentRoomName, string neighborRoomName, bool isChecked)
+    private static HashSet<string> ParseNeighborList(string? raw)
     {
-        if (editModel?.Name != currentRoomName)
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(raw))
+            return result;
+
+        foreach (var value in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                result.Add(value);
+        }
+
+        return result;
+    }
+
+    private sealed class NaturalRoomNameComparer : IComparer<string?>
+    {
+        public static NaturalRoomNameComparer Instance { get; } = new();
+
+        public int Compare(string? left, string? right)
+        {
+            if (ReferenceEquals(left, right))
+                return 0;
+
+            if (left is null)
+                return -1;
+
+            if (right is null)
+                return 1;
+
+            var leftParts = Regex.Matches(left, "\\d+|\\D+").Select(match => match.Value).ToList();
+            var rightParts = Regex.Matches(right, "\\d+|\\D+").Select(match => match.Value).ToList();
+            var maxParts = Math.Max(leftParts.Count, rightParts.Count);
+
+            for (var index = 0; index < maxParts; index++)
+            {
+                if (index >= leftParts.Count)
+                    return -1;
+
+                if (index >= rightParts.Count)
+                    return 1;
+
+                var leftPart = leftParts[index];
+                var rightPart = rightParts[index];
+                var leftIsNumber = long.TryParse(leftPart, out var leftNumber);
+                var rightIsNumber = long.TryParse(rightPart, out var rightNumber);
+
+                if (leftIsNumber && rightIsNumber)
+                {
+                    var numericCompare = leftNumber.CompareTo(rightNumber);
+                    if (numericCompare != 0)
+                        return numericCompare;
+
+                    var lengthCompare = leftPart.Length.CompareTo(rightPart.Length);
+                    if (lengthCompare != 0)
+                        return lengthCompare;
+                    continue;
+                }
+
+                var textCompare = StringComparer.OrdinalIgnoreCase.Compare(leftPart, rightPart);
+                if (textCompare != 0)
+                    return textCompare;
+            }
+
+            return StringComparer.OrdinalIgnoreCase.Compare(left, right);
+        }
+    }
+
+    private static string? SerializeNeighborList(HashSet<string> neighbors)
+    {
+        if (neighbors.Count == 0)
+            return null;
+
+        return string.Join(",", neighbors.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static bool AreNeighbors(RoomDto left, RoomDto right)
+    {
+        if (string.IsNullOrWhiteSpace(left.Name) || string.IsNullOrWhiteSpace(right.Name))
+            return false;
+
+        var leftNeighbors = ParseNeighborList(left.NeighboringRooms);
+        var rightNeighbors = ParseNeighborList(right.NeighboringRooms);
+        return leftNeighbors.Contains(right.Name) || rightNeighbors.Contains(left.Name);
+    }
+
+    private async Task UpdateNeighborPair(RoomDto rowRoom, RoomDto colRoom, bool isChecked)
+    {
+        if (rooms is null)
             return;
 
-        var neighbors = editModel.NeighboringRooms?.Split(',')
-            .Select(r => r.Trim())
-            .ToList() ?? new();
+        if (string.IsNullOrWhiteSpace(rowRoom.Id) || string.IsNullOrWhiteSpace(colRoom.Id))
+            return;
+
+        if (string.IsNullOrWhiteSpace(rowRoom.Name) || string.IsNullOrWhiteSpace(colRoom.Name))
+            return;
+
+        var rowNeighbors = ParseNeighborList(rowRoom.NeighboringRooms);
+        var colNeighbors = ParseNeighborList(colRoom.NeighboringRooms);
 
         if (isChecked)
         {
-            if (!neighbors.Contains(neighborRoomName))
-                neighbors.Add(neighborRoomName);
+            rowNeighbors.Add(colRoom.Name);
+            colNeighbors.Add(rowRoom.Name);
         }
         else
         {
-            neighbors.Remove(neighborRoomName);
+            rowNeighbors.Remove(colRoom.Name);
+            colNeighbors.Remove(rowRoom.Name);
         }
 
-        editModel.NeighboringRooms = neighbors.Count > 0 ? string.Join(", ", neighbors) : null;
-        OnFieldChanged();
+        rowRoom = rowRoom with { NeighboringRooms = SerializeNeighborList(rowNeighbors) };
+        colRoom = colRoom with { NeighboringRooms = SerializeNeighborList(colNeighbors) };
+
+        var rowResponse = await Http.PutAsJsonAsync($"/api/rooms/{rowRoom.Id}", rowRoom);
+        var colResponse = await Http.PutAsJsonAsync($"/api/rooms/{colRoom.Id}", colRoom);
+
+        if (!rowResponse.IsSuccessStatusCode || !colResponse.IsSuccessStatusCode)
+        {
+            lastError = string.Format(L["rooms.saveFailedStatus", "Error saving room: {0}"],
+                !rowResponse.IsSuccessStatusCode ? rowResponse.StatusCode : colResponse.StatusCode);
+            return;
+        }
+
+        await LoadRooms();
+
+        if (selectedRoom?.Id is not null && rooms is not null)
+        {
+            var refreshed = rooms.FirstOrDefault(r => string.Equals(r.Id, selectedRoom.Id, StringComparison.OrdinalIgnoreCase));
+            if (refreshed is not null)
+            {
+                selectedRoom = refreshed;
+                if (editModel?.Id is not null && string.Equals(editModel.Id, refreshed.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    editModel = RoomEditModel.FromDto(refreshed);
+                }
+            }
+        }
+
+        isSaved = true;
+        statusMessage = L["common.saved", "Saved"];
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()

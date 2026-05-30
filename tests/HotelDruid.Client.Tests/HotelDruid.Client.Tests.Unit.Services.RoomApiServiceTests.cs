@@ -179,8 +179,8 @@ namespace HotelDruid.Client.Tests.Unit.Services
                 {
                     // Return list of rooms
                     var content = @"[
-                        {""id"":""room-1"",""name"":""Room 1"",""capacity"":2,""floorNumber"":1},
-                        {""id"":""room-2"",""name"":""Room 2"",""capacity"":3,""floorNumber"":2}
+                        {""id"":""room-1"",""name"":""Room 1"",""capacity"":2,""floorNumber"":""1""},
+                        {""id"":""room-2"",""name"":""Room 2"",""capacity"":3,""floorNumber"":""2""}
                     ]";
                     return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                     {
@@ -191,7 +191,7 @@ namespace HotelDruid.Client.Tests.Unit.Services
                 {
                     // Return single room
                     var roomId = uri.Split('/').Last();
-                    var content = $@"{{""id"":""{roomId}"",""name"":""Room"",""capacity"":2,""floorNumber"":1}}";
+                    var content = $@"{{""id"":""{roomId}"",""name"":""Room"",""capacity"":2,""floorNumber"":""1""}}";
                     return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                     {
                         Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json")
@@ -199,18 +199,20 @@ namespace HotelDruid.Client.Tests.Unit.Services
                 }
             }
 
-            if (method == HttpMethod.Get && uri.Contains("/api/export/status/"))
+            if (method == HttpMethod.Get && uri.Contains("/api/export/") && uri.Contains("/status"))
             {
-                var eid = uri.Split("/").Last();
-                var ejson = @"{""ExportId"":""" + eid + @""",""Status"":""completed"",""DownloadUrl"":""http://localhost/dl""}";
+                var parts = uri.Split('/');
+                var statusIndex = Array.FindIndex(parts, p => p == "status");
+                var eid = statusIndex > 0 ? parts[statusIndex - 1] : "export-123";
+                var ejson = @"{""ExportId"":""" + eid + @""",""Status"":""completed"",""ProgressPercent"":100,""DownloadUrl"":""http://localhost/dl""}";
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(ejson, System.Text.Encoding.UTF8, "application/json") });
             }
-            if (method == HttpMethod.Post && uri.Contains("/api/export/rooms"))
-                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ExportId"":""export-123"",""Status"":""completed"",""DownloadUrl"":""http://localhost/dl""}", System.Text.Encoding.UTF8, "application/json") });
+            if (method == HttpMethod.Post && uri.Contains("/api/export/create"))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ExportId"":""export-123"",""Status"":""completed"",""StatusUrl"":""/api/export/export-123/status""}", System.Text.Encoding.UTF8, "application/json") });
             if (method == HttpMethod.Post && uri.Contains("/api/import/validate"))
-                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""IsValid"":true,""RoomsToImport"":2,""Errors"":[],""Warnings"":[]}", System.Text.Encoding.UTF8, "application/json") });
-            if (method == HttpMethod.Post && uri.Contains("/api/import/execute"))
-                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ImportId"":""import-123"",""Status"":""completed"",""RoomsImported"":2}", System.Text.Encoding.UTF8, "application/json") });
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""Valid"":true,""PackageId"":""pkg-123"",""Tables"" : [{""Name"":""rooms"",""RowCount"":2}],""Errors"":[]}", System.Text.Encoding.UTF8, "application/json") });
+            if (method == HttpMethod.Post && uri.Contains("/api/import/pkg-123/execute"))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(@"{""ImportId"":""import-123"",""Status"":""completed"",""StatusUrl"":""/api/import/import-123/status""}", System.Text.Encoding.UTF8, "application/json") });
             if (method == HttpMethod.Post)
             {
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.Created)

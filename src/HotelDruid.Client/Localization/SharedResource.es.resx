@@ -165,4 +165,46 @@
   <data name="Setup.Button.BackHome" xml:space="preserve"><value>Volver al inicio</value></data>
   <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configuración guardada correctamente.</value></data>
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Error al guardar la configuración.</value></data>
+  <data name="common.loading" xml:space="preserve"><value>Cargando...</value></data>
+  <data name="common.save" xml:space="preserve"><value>Guardar</value></data>
+  <data name="common.delete" xml:space="preserve"><value>Eliminar</value></data>
+  <data name="common.saved" xml:space="preserve"><value>Guardado</value></data>
+  <data name="common.saving" xml:space="preserve"><value>Guardando...</value></data>
+  <data name="common.error" xml:space="preserve"><value>Error</value></data>
+  <data name="common.warning" xml:space="preserve"><value>Advertencia</value></data>
+  <data name="common.unsaved" xml:space="preserve"><value>Cambios sin guardar</value></data>
+  <data name="common.noChanges" xml:space="preserve"><value>Sin cambios</value></data>
+  <data name="common.yes" xml:space="preserve"><value>Sí</value></data>
+  <data name="common.no" xml:space="preserve"><value>No</value></data>
+  <data name="rooms.title" xml:space="preserve"><value>Habitaciones Principales</value></data>
+  <data name="rooms.add" xml:space="preserve"><value>Añadir Habitación</value></data>
+  <data name="rooms.emptyList" xml:space="preserve"><value>No hay habitaciones disponibles</value></data>
+  <data name="rooms.capacityPeople" xml:space="preserve"><value>{0} personas</value></data>
+  <data name="rooms.newRoom" xml:space="preserve"><value>Nueva Habitación</value></data>
+  <data name="rooms.manageRoom" xml:space="preserve"><value>Gestionar la habitación</value></data>
+  <data name="rooms.nameLabel" xml:space="preserve"><value>Nombre / ID de Habitación</value></data>
+  <data name="rooms.nameHelp" xml:space="preserve"><value>Identificador único (p. ej., 101, Suite-A)</value></data>
+  <data name="rooms.capacityLabel" xml:space="preserve"><value>Capacidad</value></data>
+  <data name="rooms.capacityHelp" xml:space="preserve"><value>Ocupantes máximos</value></data>
+  <data name="rooms.floorNumber" xml:space="preserve"><value>Número de Planta</value></data>
+  <data name="rooms.houseNumber" xml:space="preserve"><value>Número de Casa</value></data>
+  <data name="rooms.priorityLabel" xml:space="preserve"><value>Prioridad</value></data>
+  <data name="rooms.priorityHelp" xml:space="preserve"><value>Prioridad de reserva (menor = mayor)</value></data>
+  <data name="rooms.secondaryPriorityLabel" xml:space="preserve"><value>Prioridad Secundaria</value></data>
+  <data name="rooms.hasBedsLabel" xml:space="preserve"><value>Tiene Camas</value></data>
+  <data name="rooms.selectOption" xml:space="preserve"><value>Seleccionar...</value></data>
+  <data name="rooms.commentsLabel" xml:space="preserve"><value>Comentarios</value></data>
+  <data name="rooms.selectPrompt" xml:space="preserve"><value>Seleccione una habitación de la lista o agregue una nueva</value></data>
+  <data name="rooms.selectForNeighbors" xml:space="preserve"><value>Cree o seleccione una habitación para editar vecinos</value></data>
+  <data name="rooms.neighboringRooms" xml:space="preserve"><value>Habitaciones Adyacentes</value></data>
+  <data name="rooms.duplicate" xml:space="preserve"><value>Duplicar</value></data>
+  <data name="rooms.nameRequired" xml:space="preserve"><value>El nombre de la habitación es obligatorio</value></data>
+  <data name="rooms.capacityRequired" xml:space="preserve"><value>La capacidad debe ser mayor que 0</value></data>
+  <data name="rooms.exists" xml:space="preserve"><value>La habitación ya existe</value></data>
+  <data name="rooms.loadFailed" xml:space="preserve"><value>Error al cargar habitaciones: {0}</value></data>
+  <data name="rooms.saveFailed" xml:space="preserve"><value>Error al guardar la habitación: {0}</value></data>
+  <data name="rooms.saveFailedStatus" xml:space="preserve"><value>Error al guardar la habitación: {0}</value></data>
+  <data name="rooms.deleteFailed" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
+  <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
+  <data name="rooms.deleteConfirm" xml:space="preserve"><value>¿Está seguro de que desea eliminar la habitación {0}?</value></data>
 </root>

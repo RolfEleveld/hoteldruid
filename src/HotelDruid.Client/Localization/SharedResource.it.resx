@@ -165,4 +165,46 @@
   <data name="Setup.Button.BackHome" xml:space="preserve"><value>Torna alla home</value></data>
   <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configurazione salvata con successo.</value></data>
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Salvataggio configurazione non riuscito.</value></data>
+  <data name="common.loading" xml:space="preserve"><value>Caricamento...</value></data>
+  <data name="common.save" xml:space="preserve"><value>Salva</value></data>
+  <data name="common.delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="common.saved" xml:space="preserve"><value>Salvato</value></data>
+  <data name="common.saving" xml:space="preserve"><value>Salvataggio...</value></data>
+  <data name="common.error" xml:space="preserve"><value>Errore</value></data>
+  <data name="common.warning" xml:space="preserve"><value>Avviso</value></data>
+  <data name="common.unsaved" xml:space="preserve"><value>Modifiche non salvate</value></data>
+  <data name="common.noChanges" xml:space="preserve"><value>Nessuna modifica</value></data>
+  <data name="common.yes" xml:space="preserve"><value>Sì</value></data>
+  <data name="common.no" xml:space="preserve"><value>No</value></data>
+  <data name="rooms.title" xml:space="preserve"><value>Camere Principali</value></data>
+  <data name="rooms.add" xml:space="preserve"><value>Aggiungi Camera</value></data>
+  <data name="rooms.emptyList" xml:space="preserve"><value>Nessuna camera disponibile</value></data>
+  <data name="rooms.capacityPeople" xml:space="preserve"><value>{0} persone</value></data>
+  <data name="rooms.newRoom" xml:space="preserve"><value>Nuova Camera</value></data>
+  <data name="rooms.manageRoom" xml:space="preserve"><value>Gestisci la camera</value></data>
+  <data name="rooms.nameLabel" xml:space="preserve"><value>Nome / ID Camera</value></data>
+  <data name="rooms.nameHelp" xml:space="preserve"><value>Identificativo univoco (es. 101, Suite-A)</value></data>
+  <data name="rooms.capacityLabel" xml:space="preserve"><value>Capacità</value></data>
+  <data name="rooms.capacityHelp" xml:space="preserve"><value>Occupanti massimi</value></data>
+  <data name="rooms.floorNumber" xml:space="preserve"><value>Numero Piano</value></data>
+  <data name="rooms.houseNumber" xml:space="preserve"><value>Numero Casa</value></data>
+  <data name="rooms.priorityLabel" xml:space="preserve"><value>Priorità</value></data>
+  <data name="rooms.priorityHelp" xml:space="preserve"><value>Priorità prenotazione (più basso = più alta)</value></data>
+  <data name="rooms.secondaryPriorityLabel" xml:space="preserve"><value>Priorità Secondaria</value></data>
+  <data name="rooms.hasBedsLabel" xml:space="preserve"><value>Ha Letti</value></data>
+  <data name="rooms.selectOption" xml:space="preserve"><value>Seleziona...</value></data>
+  <data name="rooms.commentsLabel" xml:space="preserve"><value>Commenti</value></data>
+  <data name="rooms.selectPrompt" xml:space="preserve"><value>Seleziona una camera dalla lista o aggiungine una nuova</value></data>
+  <data name="rooms.selectForNeighbors" xml:space="preserve"><value>Crea o seleziona una camera per modificare le adiacenze</value></data>
+  <data name="rooms.neighboringRooms" xml:space="preserve"><value>Camere Adiacenti</value></data>
+  <data name="rooms.duplicate" xml:space="preserve"><value>Duplica</value></data>
+  <data name="rooms.nameRequired" xml:space="preserve"><value>Il nome della camera è obbligatorio</value></data>
+  <data name="rooms.capacityRequired" xml:space="preserve"><value>La capacità deve essere maggiore di 0</value></data>
+  <data name="rooms.exists" xml:space="preserve"><value>La camera esiste già</value></data>
+  <data name="rooms.loadFailed" xml:space="preserve"><value>Caricamento camere non riuscito: {0}</value></data>
+  <data name="rooms.saveFailed" xml:space="preserve"><value>Salvataggio camera non riuscito: {0}</value></data>
+  <data name="rooms.saveFailedStatus" xml:space="preserve"><value>Errore nel salvataggio camera: {0}</value></data>
+  <data name="rooms.deleteFailed" xml:space="preserve"><value>Eliminazione camera non riuscita: {0}</value></data>
+  <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Errore nell'eliminazione camera: {0}</value></data>
+  <data name="rooms.deleteConfirm" xml:space="preserve"><value>Sei sicuro di voler eliminare la camera {0}?</value></data>
 </root>

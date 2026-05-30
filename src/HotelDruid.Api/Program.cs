@@ -422,6 +422,129 @@ app.MapGet("/api/system/setup/status", async (
 
 // --- Room API endpoints ---
 
+HashSet<string> ParseNeighborList(string? raw)
+{
+    var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    if (string.IsNullOrWhiteSpace(raw))
+        return result;
+
+    foreach (var value in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            result.Add(value);
+    }
+
+    return result;
+}
+
+string? SerializeNeighborList(HashSet<string> neighbors)
+{
+    if (neighbors.Count == 0)
+        return null;
+
+    return string.Join(",", neighbors.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+}
+
+async Task<string?> ValidateRoomNeighboringAsync(RoomDto request, IKeyValueStore store)
+{
+    if (!string.IsNullOrWhiteSpace(request.HasBeds)
+        && !string.Equals(request.HasBeds, "S", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(request.HasBeds, "N", StringComparison.OrdinalIgnoreCase))
+    {
+        return "HasBeds must be 'S', 'N', or null";
+    }
+
+    var neighbors = ParseNeighborList(request.NeighboringRooms);
+    if (neighbors.Contains(request.Name))
+        return "A room cannot be marked as neighboring itself";
+
+    return null;
+}
+
+async Task SyncNeighborReciprocityAsync(string roomName, string? neighboringRooms, IKeyValueStore store)
+{
+    var desired = ParseNeighborList(neighboringRooms);
+    desired.Remove(roomName);
+
+    var roomIndex = await store.GetIndexAsync("rooms");
+    var allRooms = await store.ListAsync<RoomStorageModel>("rooms");
+
+    foreach (var room in allRooms)
+    {
+        var otherName = room.Name;
+        if (string.IsNullOrWhiteSpace(otherName) || string.Equals(otherName, roomName, StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        if (!roomIndex.TryGetValue(otherName, out var otherId))
+            continue;
+
+        var current = ParseNeighborList(room.NeighboringRooms);
+        var shouldContain = desired.Contains(otherName);
+        var contains = current.Contains(roomName);
+
+        if (shouldContain == contains)
+            continue;
+
+        if (shouldContain)
+            current.Add(roomName);
+        else
+            current.Remove(roomName);
+
+        room.NeighboringRooms = SerializeNeighborList(current);
+        await store.UpdateAsync("rooms", otherId, room);
+    }
+}
+
+async Task RenameRoomInNeighborListsAsync(string previousRoomName, string newRoomName, IKeyValueStore store)
+{
+    if (string.Equals(previousRoomName, newRoomName, StringComparison.OrdinalIgnoreCase))
+        return;
+
+    var roomIndex = await store.GetIndexAsync("rooms");
+    var allRooms = await store.ListAsync<RoomStorageModel>("rooms");
+
+    foreach (var room in allRooms)
+    {
+        var otherName = room.Name;
+        if (string.IsNullOrWhiteSpace(otherName))
+            continue;
+
+        if (!roomIndex.TryGetValue(otherName, out var otherId))
+            continue;
+
+        var current = ParseNeighborList(room.NeighboringRooms);
+        if (!current.Remove(previousRoomName))
+            continue;
+
+        current.Add(newRoomName);
+        room.NeighboringRooms = SerializeNeighborList(current);
+        await store.UpdateAsync("rooms", otherId, room);
+    }
+}
+
+async Task RemoveRoomFromNeighborListsAsync(string roomName, IKeyValueStore store)
+{
+    var roomIndex = await store.GetIndexAsync("rooms");
+    var allRooms = await store.ListAsync<RoomStorageModel>("rooms");
+
+    foreach (var room in allRooms)
+    {
+        var otherName = room.Name;
+        if (string.IsNullOrWhiteSpace(otherName))
+            continue;
+
+        if (!roomIndex.TryGetValue(otherName, out var otherId))
+            continue;
+
+        var current = ParseNeighborList(room.NeighboringRooms);
+        if (!current.Remove(roomName))
+            continue;
+
+        room.NeighboringRooms = SerializeNeighborList(current);
+        await store.UpdateAsync("rooms", otherId, room);
+    }
+}
+
 app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
     if (string.IsNullOrWhiteSpace(request.Name))
@@ -429,8 +552,13 @@ app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpoin
     if (request.Capacity <= 0)
         return Results.BadRequest(new { error = "Capacity must be greater than 0" });
 
+    var neighboringValidation = await ValidateRoomNeighboringAsync(request, store);
+    if (neighboringValidation is not null)
+        return Results.BadRequest(new { error = neighboringValidation });
+
     try
     {
+        var normalizedNeighbors = SerializeNeighborList(ParseNeighborList(request.NeighboringRooms));
         var storage = new RoomStorageModel
         {
             Name = request.Name,
@@ -440,15 +568,16 @@ app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpoin
             Priority = request.Priority,
             SecondaryPriority = request.SecondaryPriority,
             HasBeds = request.HasBeds,
-            NeighboringRooms = request.NeighboringRooms,
+            NeighboringRooms = normalizedNeighbors,
             Comments = request.Comments
         };
 
         var id = await store.CreateAsync("rooms", request.Name, storage);
+        await SyncNeighborReciprocityAsync(request.Name, storage.NeighboringRooms, store);
         queryCache.InvalidateTag("rooms");
         return Results.Created($"/api/rooms/{id}", new RoomDto(
             id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
-            request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
+            request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments));
     }
     catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
     {
@@ -514,14 +643,21 @@ app.MapGet("/api/rooms", async (IKeyValueStore store, IEndpointQueryCache queryC
 
 app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
-    var exists = await store.ExistsAsync("rooms", id);
-    if (!exists)
+    var existingRoom = await store.GetAsync<RoomStorageModel>("rooms", id);
+    if (existingRoom is null)
         return Results.NotFound();
     
     if (string.IsNullOrWhiteSpace(request.Name))
         return Results.BadRequest(new { error = "Room name is required" });
     if (request.Capacity <= 0)
         return Results.BadRequest(new { error = "Capacity must be greater than 0" });
+
+    var neighboringValidation = await ValidateRoomNeighboringAsync(request, store);
+    if (neighboringValidation is not null)
+        return Results.BadRequest(new { error = neighboringValidation });
+
+    var previousRoomName = existingRoom.Name ?? request.Name;
+    var normalizedNeighbors = SerializeNeighborList(ParseNeighborList(request.NeighboringRooms));
 
     var storage = new RoomStorageModel
     {
@@ -532,25 +668,58 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore 
         Priority = request.Priority,
         SecondaryPriority = request.SecondaryPriority,
         HasBeds = request.HasBeds,
-        NeighboringRooms = request.NeighboringRooms,
+        NeighboringRooms = normalizedNeighbors,
         Comments = request.Comments
     };
 
     await store.UpdateAsync("rooms", id, storage);
+    if (!string.Equals(previousRoomName, request.Name, StringComparison.OrdinalIgnoreCase))
+        await RenameRoomInNeighborListsAsync(previousRoomName, request.Name, store);
+    await SyncNeighborReciprocityAsync(request.Name, normalizedNeighbors, store);
     queryCache.InvalidateTag("rooms");
     return Results.Ok(new RoomDto(
         id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
-        request.Priority, request.SecondaryPriority, request.HasBeds, request.NeighboringRooms, request.Comments));
+        request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments));
 });
 
 app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
-    var exists = await store.ExistsAsync("rooms", id);
-    if (!exists)
+    var room = await store.GetAsync<RoomStorageModel>("rooms", id);
+    if (room is null)
         return Results.NotFound();
 
+    var roomName = room.Name ?? string.Empty;
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var bookings = await store.ListAsync<BookingStorageModel>("bookings");
+    var hasFutureBookings = bookings.Any(b =>
+        !string.IsNullOrWhiteSpace(b.RoomId)
+        && (string.Equals(b.RoomId, id, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(roomName) && string.Equals(b.RoomId, roomName, StringComparison.OrdinalIgnoreCase)))
+        && (!b.DepartureDate.HasValue || b.DepartureDate.Value >= today));
+
+    if (hasFutureBookings)
+        return Results.Conflict(new { error = "Room contains future bookings and cannot be deleted" });
+
+    var inventoryIndex = await store.GetIndexAsync("inventory");
+    foreach (var inventoryEntry in inventoryIndex)
+    {
+        var inventoryItem = await store.GetAsync<InventoryStorageModel>("inventory", inventoryEntry.Value);
+        if (inventoryItem is null || string.IsNullOrWhiteSpace(inventoryItem.RoomId))
+            continue;
+
+        if (string.Equals(inventoryItem.RoomId, id, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(roomName) && string.Equals(inventoryItem.RoomId, roomName, StringComparison.OrdinalIgnoreCase)))
+        {
+            await store.DeleteAsync("inventory", inventoryEntry.Value);
+        }
+    }
+
     await store.DeleteAsync("rooms", id);
+    if (!string.IsNullOrWhiteSpace(roomName))
+        await RemoveRoomFromNeighborListsAsync(roomName, store);
     queryCache.InvalidateTag("rooms");
+    queryCache.InvalidateTag("bookings");
+    queryCache.InvalidateTag("inventory");
     return Results.NoContent();
 });
 

@@ -776,6 +776,58 @@ public class RoomsApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task NeighboringRooms_Create_ShouldApplyReciprocity()
+    {
+        await ClearRoomsAsync();
+
+        var roomB = new RoomDto { Name = "RoomB", Capacity = 2 };
+        var roomA = new RoomDto { Name = "RoomA", Capacity = 2, NeighboringRooms = "RoomB" };
+
+        await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(roomB), Encoding.UTF8, "application/json"));
+
+        await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(roomA), Encoding.UTF8, "application/json"));
+
+        var bResponse = await _client.GetAsync("/api/rooms?name=RoomB");
+        Assert.Equal(HttpStatusCode.OK, bResponse.StatusCode);
+        var bResult = JsonSerializer.Deserialize<RoomDto>(await bResponse.Content.ReadAsStringAsync());
+        Assert.NotNull(bResult);
+        Assert.Contains("RoomA", (bResult!.NeighboringRooms ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        await ClearRoomsAsync();
+    }
+
+    [Fact]
+    public async Task NeighboringRooms_UpdateRemoval_ShouldClearReciprocity()
+    {
+        await ClearRoomsAsync();
+
+        var roomA = new RoomDto { Name = "RoomA", Capacity = 2, NeighboringRooms = "RoomB" };
+        var roomB = new RoomDto { Name = "RoomB", Capacity = 2, NeighboringRooms = "RoomA" };
+
+        var createAResponse = await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(roomA), Encoding.UTF8, "application/json"));
+        var createdA = JsonSerializer.Deserialize<RoomDto>(await createAResponse.Content.ReadAsStringAsync());
+
+        await _client.PostAsync("/api/rooms",
+            new StringContent(JsonSerializer.Serialize(roomB), Encoding.UTF8, "application/json"));
+
+        var updateA = new RoomDto { Name = "RoomA", Capacity = 2, NeighboringRooms = null };
+        var updateAResponse = await _client.PutAsync($"/api/rooms/{createdA!.Id}",
+            new StringContent(JsonSerializer.Serialize(updateA), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, updateAResponse.StatusCode);
+
+        var bResponse = await _client.GetAsync("/api/rooms?name=RoomB");
+        Assert.Equal(HttpStatusCode.OK, bResponse.StatusCode);
+        var bResult = JsonSerializer.Deserialize<RoomDto>(await bResponse.Content.ReadAsStringAsync());
+        Assert.NotNull(bResult);
+        Assert.DoesNotContain("RoomA", (bResult!.NeighboringRooms ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        await ClearRoomsAsync();
+    }
+
+    [Fact]
     public async Task PriorityOrder_MultipleRooms_AreDistinct()
     {
         // Preamble: Clear any existing rooms from previous tests
@@ -929,7 +981,7 @@ public class RoomsApiTests : IAsyncLifetime
         var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
 
         // Assert
-        Assert.Equal(4, results!.Count);  // Adjusted to match actual behavior
+        Assert.Equal(3, results!.Count);
         foreach (var original in rooms)
         {
             var retrieved = results.FirstOrDefault(r => r.Name == original.Name);

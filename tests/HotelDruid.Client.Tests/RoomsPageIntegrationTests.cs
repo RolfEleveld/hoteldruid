@@ -24,12 +24,20 @@ namespace HotelDruid.Client.Tests.Integration.Pages
                 (request.RequestUri?.ToString() ?? "").Contains("/api/rooms"))
                 return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
                 {
-                    Content = new System.Net.Http.StringContent("[]", System.Text.Encoding.UTF8, "application/json")
+                    Content = new System.Net.Http.StringContent(
+                        "[{\"id\":\"r2\",\"name\":\"01.10\",\"capacity\":2},{\"id\":\"r3\",\"name\":\"01.02\",\"capacity\":3},{\"id\":\"r1\",\"name\":\"01.01\",\"capacity\":4}]",
+                        System.Text.Encoding.UTF8,
+                        "application/json")
                 });
             if (request.Method == System.Net.Http.HttpMethod.Post)
                 return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Created)
                 {
-                    Content = new System.Net.Http.StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+                    Content = new System.Net.Http.StringContent("{\"id\":\"new-room\",\"name\":\"New Room\",\"capacity\":1}", System.Text.Encoding.UTF8, "application/json")
+                });
+            if (request.Method == System.Net.Http.HttpMethod.Put)
+                return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new System.Net.Http.StringContent("{\"id\":\"r1\",\"name\":\"Room 1\",\"capacity\":2}", System.Text.Encoding.UTF8, "application/json")
                 });
             return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
         }
@@ -97,6 +105,20 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             // Assert
             var markup = component.Markup;
             markup.Should().Contain("Add Room");
+        }
+
+        [Fact]
+        public void RoomsPage_LeftPanel_ShouldSortRoomNumbersNaturallyByDefault()
+        {
+            // Act
+            var component = RenderComponent<Rooms>();
+
+            // Assert
+            var roomButtons = component.FindAll(".list-group .list-group-item");
+            roomButtons.Should().HaveCount(3);
+            roomButtons[0].TextContent.Should().Contain("01.01");
+            roomButtons[1].TextContent.Should().Contain("01.02");
+            roomButtons[2].TextContent.Should().Contain("01.10");
         }
 
         [Fact]
@@ -249,6 +271,18 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         }
 
         [Fact]
+        public void RoomsPage_RoomListCapacity_ShouldNotContainPlaceholderArtifacts()
+        {
+            // Act
+            var component = RenderComponent<Rooms>();
+
+            // Assert
+            var markup = component.Markup;
+            markup.Should().NotContain("{0} ppl ppl");
+            markup.Should().Contain("<small class=\"text-muted\">2</small>");
+        }
+
+        [Fact]
         public void RoomsPage_NeighboringRoomsMatrix_ShouldBePresent()
         {
             // Act
@@ -258,6 +292,18 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             var markup = component.Markup;
             // The markup should contain matrix or neighbors related content
             markup.Should().Contain("Neighboring Rooms");
+        }
+
+        [Fact]
+        public void RoomsPage_NeighboringRoomsMatrix_ShouldRenderUniquePairCellsOnly()
+        {
+            // Act
+            var component = RenderComponent<Rooms>();
+
+            // Assert
+            // With 3 rooms, lower triangle has 3 pair-edit cells: (2,1), (3,1), (3,2)
+            var matrixCheckboxes = component.FindAll(".neighbors-matrix .matrix-cell input[type='checkbox']");
+            matrixCheckboxes.Count.Should().Be(3);
         }
 
         [Fact]
