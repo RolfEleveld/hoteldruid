@@ -127,7 +127,11 @@
 
     private async Task LoadAll()
     {
-        clients = await ClientApi.GetAllAsync();
+        clients = (await ClientApi.GetAllAsync())
+            .OrderBy(client => client.LastName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(client => client.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(client => client.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private void NewClient()
