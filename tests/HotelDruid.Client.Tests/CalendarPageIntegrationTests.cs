@@ -77,6 +77,7 @@ public class CalendarPageIntegrationTests : TestContext
         [
             new { id = "stay-1", year = today.Year, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), departureDate = today.AddDays(2).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), actualGuestCount = 2, status = "Confirmed" },
             new { id = "res-1", year = today.Year, clientId = "client-2", roomId = "room-2", arrivalDate = today.ToString("yyyy-MM-dd"), departureDate = today.AddDays(3).ToString("yyyy-MM-dd"), status = "Confirmed" }
+            ,new { id = "res-2", year = today.Year, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(5).ToString("yyyy-MM-dd"), departureDate = today.AddDays(8).ToString("yyyy-MM-dd"), status = "Confirmed" }
         ]);
 
         var httpClient = new HttpClient(handler)
@@ -110,17 +111,24 @@ public class CalendarPageIntegrationTests : TestContext
 
         component.Markup.Should().Contain("Months");
         component.Markup.Should().Contain("Day Details");
-        component.Markup.Should().Contain("Room 101");
-        component.Markup.Should().Contain("Room 102");
-        component.FindAll(".calendar-room-cell").Should().OnlyContain(cell => !cell.TextContent.Contains("Capacity", StringComparison.OrdinalIgnoreCase));
+        component.Markup.Should().Contain("room-1");
+        component.Markup.Should().Contain("room-2");
+        component.FindAll(".calendar-room-cell").Should().OnlyContain(cell => !cell.TextContent.Contains("Room 101", StringComparison.OrdinalIgnoreCase));
 
         var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var saturday = Enumerable.Range(0, expectedDayCount)
+            .Select(offset => monthStart.AddDays(offset))
+            .FirstOrDefault(day => day.DayOfWeek == DayOfWeek.Saturday);
         var sunday = Enumerable.Range(0, expectedDayCount)
             .Select(offset => monthStart.AddDays(offset))
             .FirstOrDefault(day => day.DayOfWeek == DayOfWeek.Sunday);
-        var monday = Enumerable.Range(0, expectedDayCount)
-            .Select(offset => monthStart.AddDays(offset))
-            .FirstOrDefault(day => day.DayOfWeek == DayOfWeek.Monday);
+
+        if (saturday != default)
+        {
+            component.FindAll(".calendar-day-header")
+                .Single(cell => cell.TextContent.Trim() == saturday.Day.ToString())
+                .ClassList.Should().Contain("is-weekend-saturday");
+        }
 
         if (sunday != default)
         {
@@ -128,35 +136,70 @@ public class CalendarPageIntegrationTests : TestContext
                 .Single(cell => cell.TextContent.Trim() == sunday.Day.ToString())
                 .ClassList.Should().Contain("is-weekend-sunday");
         }
-
-        if (monday != default)
-        {
-            component.FindAll(".calendar-day-header")
-                .Single(cell => cell.TextContent.Trim() == monday.Day.ToString())
-                .ClassList.Should().Contain("is-weekend-monday");
-        }
     }
 
     [Fact]
-    public void CalendarPage_ShouldShowSelectedDayDetails_ForOccupiedDate()
+    public void CalendarPage_ShouldShowSelectedRoomDetails_WhenRoomNumberIsClicked()
     {
         var component = RenderComponent<CalendarPage>();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         component.WaitForAssertion(() =>
         {
             component.FindAll(".calendar-day-cell.is-occupied").Should().NotBeEmpty();
         });
 
-        var dayHeader = component.FindAll(".calendar-day-header")
-            .Single(cell => cell.TextContent.Trim() == today.Day.ToString());
-        dayHeader.Click();
+        component.FindAll(".calendar-room-cell")
+            .Single(cell => cell.TextContent.Trim() == "room-1")
+            .Click();
 
         component.WaitForAssertion(() =>
         {
+            component.Markup.Should().Contain("Room Details");
+            component.Markup.Should().Contain("room-1");
+            component.FindAll(".calendar-detail-room-entry").Should().HaveCount(2);
             component.Markup.Should().Contain("Doe, Jane");
-            component.Markup.Should().Contain("Room 101");
             component.Markup.Should().Contain("Stay");
+        });
+    }
+
+    [Fact]
+    public void CalendarPage_ShouldShowSelectedDayDetails_WhenDayHeaderIsClicked()
+    {
+        var component = RenderComponent<CalendarPage>();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        component.FindAll(".calendar-day-header")
+            .Single(cell => cell.TextContent.Trim() == today.Day.ToString())
+            .Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Markup.Should().Contain("Day Details");
+            component.Markup.Should().Contain(today.ToString("dddd, dd MMMM yyyy"));
+            component.FindAll(".calendar-detail-day-entry").Should().HaveCount(2);
+            component.Markup.Should().Contain("Room 101");
+            component.Markup.Should().Contain("Room 102");
+        });
+    }
+
+    [Fact]
+    public void CalendarPage_ShouldShowReservationRecord_WhenOccupiedCellIsClicked()
+    {
+        var component = RenderComponent<CalendarPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            component.FindAll(".calendar-day-cell.is-occupied").Should().NotBeEmpty();
+        });
+
+        component.FindAll(".calendar-day-cell.is-occupied").First().Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Markup.Should().Contain("Reservation Record");
+            component.Markup.Should().Contain("Open reservation");
+            component.Markup.Should().Contain("Room 101");
+            component.Markup.Should().Contain("Doe, Jane");
         });
     }
 }
