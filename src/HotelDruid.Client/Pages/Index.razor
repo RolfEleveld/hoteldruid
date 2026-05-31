@@ -934,7 +934,7 @@
       }
 
       return bookings
-        .Where(booking => !IsNonBlockingStatus(booking.Status))
+        .Where(booking => !IsNonBlockingStatus(booking.Status) && !TryParseDate(booking.ActualArrivalDate).HasValue)
         .OrderByDescending(GetBookingSortDate)
         .ThenByDescending(booking => booking.Year)
         .ThenByDescending(booking => booking.Id, StringComparer.OrdinalIgnoreCase)

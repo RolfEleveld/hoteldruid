@@ -101,6 +101,8 @@ public class DashboardBusinessFlowIntegrationTests
             var departures = GetWidgetCard(component, "Dashboard.Departures.Title");
 
             Assert.Contains("Client, One", reservations.TextContent);
+            Assert.DoesNotContain("Client, Three", reservations.TextContent);
+            Assert.DoesNotContain("Client, Four", reservations.TextContent);
             Assert.Contains("Client, Two", arrivals.TextContent);
             Assert.Contains("Client, Three", stays.TextContent);
             Assert.Contains("Client, Four", departures.TextContent);

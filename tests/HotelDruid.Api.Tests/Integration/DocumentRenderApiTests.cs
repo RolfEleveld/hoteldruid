@@ -182,6 +182,30 @@ public class DocumentRenderApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Render_InvoiceTotalAmount_ShouldUseOnlyRequestedStayCosts()
+    {
+        var (_, _, requestedBookingId) = await CreateBookingAsync();
+        var (_, _, otherBookingId) = await CreateBookingAsync();
+
+        await _client.PostAsync("/api/booking-costs",
+            Json(new { Year = 2026, BookingId = requestedBookingId, Amount = 150.0, Description = "Night rate" }));
+        await _client.PostAsync("/api/booking-costs",
+            Json(new { Year = 2026, BookingId = requestedBookingId, Amount = 25.0, Description = "Breakfast" }));
+        await _client.PostAsync("/api/booking-costs",
+            Json(new { Year = 2026, BookingId = otherBookingId, Amount = 999.0, Description = "Other stay cost" }));
+
+        await CreateTemplateAsync("render-test-total-amount", "{{Invoice.TotalAmount}}");
+
+        var r = await _client.GetAsync(
+            $"/api/documents/render/render-test-total-amount/1?bookingId={requestedBookingId}&year=2026&format=html");
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+
+        var body = await r.Content.ReadAsStringAsync();
+        Assert.Contains("175.00", body);
+        Assert.DoesNotContain("999.00", body);
+    }
+
+    [Fact]
     public async Task Render_ForeachGuests_ExpandsRows()
     {
         var (clientId, _, bookingId) = await CreateBookingAsync();
