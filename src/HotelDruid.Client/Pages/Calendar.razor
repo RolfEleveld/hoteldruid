@@ -65,38 +65,32 @@
                     }
                     else
                     {
-                        <div class="calendar-grid">
-                            <div class="calendar-grid-header">
+                        <div class="calendar-grid" style="@GetGridTemplateStyle()">
+                            <div class="calendar-grid-header" style="@GetGridTemplateStyle()">
                                 <div class="calendar-room-header">Room</div>
                                 @foreach (var day in monthDays)
                                 {
                                     <button type="button"
-                                            class="calendar-day-header @(selectedDate == day ? "selected" : string.Empty)"
+                                            class="calendar-day-header @(GetWeekendClass(day)) @(selectedDate == day ? "selected" : string.Empty)"
                                             @onclick="() => SelectDate(day)">
                                         <span class="day-number">@day.Day</span>
-                                        <span class="day-name">@day.ToString("ddd")</span>
                                     </button>
                                 }
                             </div>
 
                             @foreach (var room in rooms)
                             {
-                                <div class="calendar-grid-row">
+                                <div class="calendar-grid-row" style="@GetGridTemplateStyle()">
                                     <div class="calendar-room-cell">
                                         <div class="fw-semibold">@room.Name</div>
-                                        <small class="text-muted">Capacity @room.Capacity</small>
                                     </div>
                                     @foreach (var day in monthDays)
                                     {
                                         var occupancy = GetOccupancyForRoom(room.Id, day);
                                         <button type="button"
-                                                class="calendar-day-cell @occupancy.CssClass @(selectedDate == day ? "selected" : string.Empty)"
+                                                class="calendar-day-cell @occupancy.CssClass @(GetWeekendClass(day)) @(selectedDate == day ? "selected" : string.Empty)"
                                                 title="@occupancy.Tooltip"
                                                 @onclick="() => SelectDate(day)">
-                                            @if (occupancy.HasBooking)
-                                            {
-                                                <span>@occupancy.Label</span>
-                                            }
                                         </button>
                                     }
                                 </div>
@@ -182,15 +176,16 @@
 .calendar-grid {
     display: grid;
     gap: 0.35rem;
-    min-width: max-content;
+    width: 100%;
 }
 
 .calendar-grid-header,
 .calendar-grid-row {
     display: grid;
-    grid-template-columns: 180px repeat(auto-fit, minmax(42px, 1fr));
     gap: 0.35rem;
     align-items: stretch;
+    width: 100%;
+    min-width: 0;
 }
 
 .calendar-room-header,
@@ -252,6 +247,16 @@
 
 .calendar-day-cell.is-empty {
     background: linear-gradient(180deg, #fff, #fafbfc);
+}
+
+.calendar-day-header.is-weekend-sunday,
+.calendar-day-cell.is-weekend-sunday {
+    background: #eef4ff;
+}
+
+.calendar-day-header.is-weekend-monday,
+.calendar-day-cell.is-weekend-monday {
+    background: #f2efff;
 }
 
 .calendar-day-cell.is-reserved {
@@ -353,10 +358,8 @@
     {
         var firstDay = new DateOnly(month.Year, month.Month, 1);
         var lastDay = firstDay.AddMonths(1).AddDays(-1);
-        var start = firstDay.AddDays(-((int)firstDay.DayOfWeek + 6) % 7);
-        var end = lastDay.AddDays(6 - ((int)lastDay.DayOfWeek + 6) % 7);
 
-        for (var day = start; day <= end; day = day.AddDays(1))
+        for (var day = firstDay; day <= lastDay; day = day.AddDays(1))
         {
             yield return day;
         }
@@ -419,6 +422,15 @@
 
         return new CalendarOccupancy(cssClass, label, tooltip, true, booking);
     }
+
+    private string GetGridTemplateStyle() => $"grid-template-columns: 180px repeat({monthDays.Count}, minmax(0, 1fr));";
+
+    private static string GetWeekendClass(DateOnly date) => date.DayOfWeek switch
+    {
+        DayOfWeek.Sunday => "is-weekend-sunday",
+        DayOfWeek.Monday => "is-weekend-monday",
+        _ => string.Empty
+    };
 
     private static bool IsBookingOnDate(BookingDto booking, DateOnly date)
     {

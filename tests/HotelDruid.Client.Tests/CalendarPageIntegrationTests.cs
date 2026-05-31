@@ -94,11 +94,16 @@ public class CalendarPageIntegrationTests : TestContext
     [Fact]
     public void CalendarPage_ShouldRenderMonthListAndColorCodedOccupancy()
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var expectedDayCount = DateTime.DaysInMonth(today.Year, today.Month);
         var component = RenderComponent<CalendarPage>();
 
         component.WaitForAssertion(() =>
         {
             component.FindAll(".calendar-month-item").Should().HaveCount(12);
+            component.FindAll(".calendar-day-header").Should().HaveCount(expectedDayCount);
+            component.Markup.Should().Contain($"repeat({expectedDayCount}, minmax(0, 1fr))");
+            component.FindAll(".calendar-day-header .day-name").Should().BeEmpty();
             component.FindAll(".calendar-day-cell.is-occupied").Should().NotBeEmpty();
             component.FindAll(".calendar-day-cell.is-reserved").Should().NotBeEmpty();
         });
@@ -107,20 +112,45 @@ public class CalendarPageIntegrationTests : TestContext
         component.Markup.Should().Contain("Day Details");
         component.Markup.Should().Contain("Room 101");
         component.Markup.Should().Contain("Room 102");
+        component.FindAll(".calendar-room-cell").Should().OnlyContain(cell => !cell.TextContent.Contains("Capacity", StringComparison.OrdinalIgnoreCase));
+
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var sunday = Enumerable.Range(0, expectedDayCount)
+            .Select(offset => monthStart.AddDays(offset))
+            .FirstOrDefault(day => day.DayOfWeek == DayOfWeek.Sunday);
+        var monday = Enumerable.Range(0, expectedDayCount)
+            .Select(offset => monthStart.AddDays(offset))
+            .FirstOrDefault(day => day.DayOfWeek == DayOfWeek.Monday);
+
+        if (sunday != default)
+        {
+            component.FindAll(".calendar-day-header")
+                .Single(cell => cell.TextContent.Trim() == sunday.Day.ToString())
+                .ClassList.Should().Contain("is-weekend-sunday");
+        }
+
+        if (monday != default)
+        {
+            component.FindAll(".calendar-day-header")
+                .Single(cell => cell.TextContent.Trim() == monday.Day.ToString())
+                .ClassList.Should().Contain("is-weekend-monday");
+        }
     }
 
     [Fact]
     public void CalendarPage_ShouldShowSelectedDayDetails_ForOccupiedDate()
     {
         var component = RenderComponent<CalendarPage>();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         component.WaitForAssertion(() =>
         {
             component.FindAll(".calendar-day-cell.is-occupied").Should().NotBeEmpty();
         });
 
-        var occupiedCell = component.FindAll(".calendar-day-cell.is-occupied").First();
-        occupiedCell.Click();
+        var dayHeader = component.FindAll(".calendar-day-header")
+            .Single(cell => cell.TextContent.Trim() == today.Day.ToString());
+        dayHeader.Click();
 
         component.WaitForAssertion(() =>
         {
