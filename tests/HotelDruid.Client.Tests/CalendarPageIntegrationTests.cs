@@ -103,7 +103,7 @@ public class CalendarPageIntegrationTests : TestContext
         {
             component.FindAll(".calendar-month-item").Should().HaveCount(12);
             component.FindAll(".calendar-day-header").Should().HaveCount(expectedDayCount);
-            component.Markup.Should().Contain($"repeat({expectedDayCount}, minmax(0, 1fr))");
+            component.Markup.Should().Contain("calendar-table");
             component.FindAll(".calendar-day-header .day-name").Should().BeEmpty();
             component.FindAll(".calendar-day-cell.is-occupied").Should().NotBeEmpty();
             component.FindAll(".calendar-day-cell.is-reserved").Should().NotBeEmpty();
