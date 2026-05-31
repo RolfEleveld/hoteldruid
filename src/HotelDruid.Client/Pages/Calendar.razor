@@ -97,7 +97,7 @@
                                                 <button type="button"
                                                         class="calendar-room-cell @(selectedDetailsMode == CalendarDetailsMode.Room && string.Equals(selectedRoom?.Id, room.Id, StringComparison.OrdinalIgnoreCase) ? "selected" : string.Empty)"
                                                         @onclick="() => SelectRoom(room)">
-                                                    @room.Id
+                                                    @room.Name
                                                 </button>
                                             </th>
                                             @foreach (var day in monthDays)
@@ -340,16 +340,18 @@
     background: transparent;
 }
 
+
 .calendar-day-cell.is-reserved {
-    background: #fff3cd;
+    background: #ffe066 !important;
+    border-color: #ffe066 !important;
 }
-
 .calendar-day-cell.is-arrived {
-    background: #d1e7dd;
+    background: #a3e635 !important;
+    border-color: #a3e635 !important;
 }
-
 .calendar-day-cell.is-occupied {
-    background: #0ea5e9;
+    background: #38bdf8 !important;
+    border-color: #38bdf8 !important;
 }
 
 .calendar-day-cell.is-departure {
@@ -601,7 +603,7 @@
     };
 
     private string GetRoomDetailsHeading()
-        => selectedRoom is null ? "Select a room" : $"Room {selectedRoom.Id}";
+        => selectedRoom is null ? "Select a room" : $"Room {selectedRoom.Name}";
 
     private static string GetWeekendClass(DateOnly date) => date.DayOfWeek switch
     {
