@@ -16,6 +16,7 @@ public class BookingsPageIntegrationTests : TestContext
 {
     private readonly Mock<IBookingApiService> bookingApi = new();
     private readonly Mock<IClientApiService> clientApi = new();
+    private readonly Mock<IRoomApiService> roomApi = new();
     private readonly Mock<IActiveYearService> activeYearService = new();
 
     public BookingsPageIntegrationTests()
@@ -32,9 +33,15 @@ public class BookingsPageIntegrationTests : TestContext
         });
 
         clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>());
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<HotelDruid.Client.Services.RoomDto>
+        {
+            new HotelDruid.Client.Services.RoomDto("room-77", "Room 77", 2, 1, "A", 1, 0, true),
+            new HotelDruid.Client.Services.RoomDto("room-2", "Room 2", 2, 1, "A", 2, 0, true)
+        });
 
         Services.AddScoped(_ => bookingApi.Object);
         Services.AddScoped(_ => clientApi.Object);
+        Services.AddScoped(_ => roomApi.Object);
         Services.AddScoped(_ => activeYearService.Object);
     }
 
@@ -72,8 +79,8 @@ public class BookingsPageIntegrationTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            var textInputs = component.FindAll("input.form-control");
-            textInputs.Should().Contain(input => input.GetAttribute("value") == "room-77");
+            component.Markup.Should().Contain("Room 77");
+            component.Markup.Should().Contain("room-77");
         });
     }
 }

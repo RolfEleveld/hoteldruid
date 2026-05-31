@@ -229,6 +229,7 @@
   <data name="common.loading" xml:space="preserve"><value>Loading...</value></data>
   <data name="common.save" xml:space="preserve"><value>Save</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="common.details" xml:space="preserve"><value>Details</value></data>
   <data name="common.delete" xml:space="preserve"><value>Delete</value></data>
   <data name="common.saved" xml:space="preserve"><value>Saved</value></data>
   <data name="common.saving" xml:space="preserve"><value>Saving...</value></data>
@@ -288,9 +289,13 @@
   <data name="bookings.notes" xml:space="preserve"><value>Notes</value></data>
   <data name="bookings.clientSearchLabel" xml:space="preserve"><value>Find existing client</value></data>
   <data name="bookings.clientSearchPlaceholder" xml:space="preserve"><value>Type last name, first name, email, phone, or ID</value></data>
+  <data name="bookings.roomSearchLabel" xml:space="preserve"><value>Find room</value></data>
+  <data name="bookings.roomSearchPlaceholder" xml:space="preserve"><value>Type room name or ID</value></data>
+  <data name="bookings.noRoomMatch" xml:space="preserve"><value>No room matches this search.</value></data>
   <data name="bookings.noClientMatch" xml:space="preserve"><value>No existing client matches this search.</value></data>
   <data name="bookings.createClientInline" xml:space="preserve"><value>Enter new client details</value></data>
   <data name="bookings.clearSelection" xml:space="preserve"><value>Clear</value></data>
+  <data name="bookings.idLabel" xml:space="preserve"><value>ID</value></data>
   <data name="bookings.clientLastName" xml:space="preserve"><value>Last Name</value></data>
   <data name="bookings.clientFirstName" xml:space="preserve"><value>First Name</value></data>
   <data name="bookings.clientNickname" xml:space="preserve"><value>Nickname</value></data>
@@ -305,9 +310,11 @@
   <data name="bookings.clientVatNumber" xml:space="preserve"><value>VAT Number</value></data>
   <data name="bookings.yearRequired" xml:space="preserve"><value>Year is required.</value></data>
   <data name="bookings.arrivalRequired" xml:space="preserve"><value>Arrival Date is required.</value></data>
+  <data name="bookings.roomRequired" xml:space="preserve"><value>Room is required.</value></data>
   <data name="bookings.departureRequired" xml:space="preserve"><value>Departure Date is required.</value></data>
   <data name="bookings.departureAfterArrival" xml:space="preserve"><value>Departure Date must be after Arrival Date.</value></data>
   <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Actual Arrival Date</value></data>
+  <data name="bookings.actualArrivalDateOptional" xml:space="preserve"><value>Actual Arrival Date (optional)</value></data>
   <data name="bookings.actualGuestCount" xml:space="preserve"><value>Guests On Arrival</value></data>
   <data name="bookings.prepaidAmount" xml:space="preserve"><value>Prepaid Amount</value></data>
   <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Guests On Arrival is required when Actual Arrival Date is set.</value></data>

@@ -212,6 +212,7 @@
   <data name="common.loading" xml:space="preserve"><value>Caricamento...</value></data>
   <data name="common.save" xml:space="preserve"><value>Salva</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="common.details" xml:space="preserve"><value>Dettagli</value></data>
   <data name="common.delete" xml:space="preserve"><value>Elimina</value></data>
   <data name="common.saved" xml:space="preserve"><value>Salvato</value></data>
   <data name="common.saving" xml:space="preserve"><value>Salvataggio...</value></data>
@@ -253,9 +254,15 @@
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Errore nell'eliminazione camera: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>Sei sicuro di voler eliminare la camera {0}?</value></data>
   <data name="bookings.arrivalRequired" xml:space="preserve"><value>La data di arrivo e obbligatoria.</value></data>
+  <data name="bookings.roomRequired" xml:space="preserve"><value>La camera e obbligatoria.</value></data>
   <data name="bookings.departureRequired" xml:space="preserve"><value>La data di partenza e obbligatoria.</value></data>
   <data name="bookings.departureAfterArrival" xml:space="preserve"><value>La data di partenza deve essere successiva alla data di arrivo.</value></data>
+  <data name="bookings.roomSearchLabel" xml:space="preserve"><value>Cerca camera</value></data>
+  <data name="bookings.roomSearchPlaceholder" xml:space="preserve"><value>Digita nome o ID camera</value></data>
+  <data name="bookings.noRoomMatch" xml:space="preserve"><value>Nessuna camera corrisponde a questa ricerca.</value></data>
+  <data name="bookings.idLabel" xml:space="preserve"><value>ID</value></data>
   <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Data arrivo effettiva</value></data>
+  <data name="bookings.actualArrivalDateOptional" xml:space="preserve"><value>Data arrivo effettiva (facoltativa)</value></data>
   <data name="bookings.actualGuestCount" xml:space="preserve"><value>Ospiti all'arrivo</value></data>
   <data name="bookings.prepaidAmount" xml:space="preserve"><value>Importo prepagato</value></data>
   <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Ospiti all'arrivo e obbligatorio quando e impostata la data arrivo effettiva.</value></data>
