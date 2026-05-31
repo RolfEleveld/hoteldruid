@@ -962,11 +962,12 @@ public class RoomsApiTests : IAsyncLifetime
         await ClearRoomsAsync();
         
         // Arrange: Create fresh test data
+        var runId = Guid.NewGuid().ToString("N")[..8];
         var rooms = new[]
         {
-            new RoomDto { Name = "R1", Capacity = 1, FloorNumber = "1", Priority = 1 },
-            new RoomDto { Name = "R2", Capacity = 2, FloorNumber = "1", Priority = 2 },
-            new RoomDto { Name = "R3", Capacity = 3, FloorNumber = "2", Priority = 3 }
+            new RoomDto { Name = $"R1-{runId}", Capacity = 1, FloorNumber = "1", Priority = 1 },
+            new RoomDto { Name = $"R2-{runId}", Capacity = 2, FloorNumber = "1", Priority = 2 },
+            new RoomDto { Name = $"R3-{runId}", Capacity = 3, FloorNumber = "2", Priority = 3 }
         };
 
         foreach (var room in rooms)
@@ -981,7 +982,8 @@ public class RoomsApiTests : IAsyncLifetime
         var results = JsonSerializer.Deserialize<List<RoomDto>>(await response.Content.ReadAsStringAsync());
 
         // Assert
-        Assert.Equal(3, results!.Count);
+        Assert.NotNull(results);
+        Assert.Equal(3, results!.Count(r => r.Name is not null && r.Name.EndsWith(runId, StringComparison.Ordinal)));
         foreach (var original in rooms)
         {
             var retrieved = results.FirstOrDefault(r => r.Name == original.Name);
