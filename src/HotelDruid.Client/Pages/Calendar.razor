@@ -1,0 +1,525 @@
+@page "/calendar"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@using ClientRecord = HotelDruid.Client.Services.ClientDto
+@using RoomRecord = HotelDruid.Client.Services.RoomDto
+@inject IBookingApiService BookingApi
+@inject IClientApiService ClientApi
+@inject IRoomApiService RoomApiService
+@inject IActiveYearService ActiveYearService
+
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>Room Calendar</PageTitle>
+
+<div class="container-fluid calendar-overview-page py-3">
+    <div class="row g-3">
+        <div class="col-lg-2">
+            <div class="panel panel-default h-100">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Months</h3>
+                </div>
+                <div class="panel-body p-2">
+                    <div class="list-group list-group-flush">
+                        @foreach (var month in monthItems)
+                        {
+                            <button type="button"
+                                    class="list-group-item list-group-item-action calendar-month-item @(selectedMonth == month ? "active" : string.Empty)"
+                                    @onclick="() => SelectMonth(month)">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>@month.ToString("MMMM")</span>
+                                    <small>@month.ToString("yyyy")</small>
+                                </div>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h3 class="panel-title mb-0">@selectedMonth.ToString("MMMM yyyy")</h3>
+                        <small class="text-muted">@rooms.Count rooms · @bookings.Count bookings</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="SelectPreviousMonth">Previous</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="SelectCurrentMonth">Current</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="SelectNextMonth">Next</button>
+                    </div>
+                </div>
+
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (isLoading)
+                    {
+                        <div class="d-flex align-items-center gap-2 text-muted">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span>Loading calendar...</span>
+                        </div>
+                    }
+                    else if (!rooms.Any())
+                    {
+                        <div class="alert alert-info mb-0">No rooms available.</div>
+                    }
+                    else
+                    {
+                        <div class="calendar-grid">
+                            <div class="calendar-grid-header">
+                                <div class="calendar-room-header">Room</div>
+                                @foreach (var day in monthDays)
+                                {
+                                    <button type="button"
+                                            class="calendar-day-header @(selectedDate == day ? "selected" : string.Empty)"
+                                            @onclick="() => SelectDate(day)">
+                                        <span class="day-number">@day.Day</span>
+                                        <span class="day-name">@day.ToString("ddd")</span>
+                                    </button>
+                                }
+                            </div>
+
+                            @foreach (var room in rooms)
+                            {
+                                <div class="calendar-grid-row">
+                                    <div class="calendar-room-cell">
+                                        <div class="fw-semibold">@room.Name</div>
+                                        <small class="text-muted">Capacity @room.Capacity</small>
+                                    </div>
+                                    @foreach (var day in monthDays)
+                                    {
+                                        var occupancy = GetOccupancyForRoom(room.Id, day);
+                                        <button type="button"
+                                                class="calendar-day-cell @occupancy.CssClass @(selectedDate == day ? "selected" : string.Empty)"
+                                                title="@occupancy.Tooltip"
+                                                @onclick="() => SelectDate(day)">
+                                            @if (occupancy.HasBooking)
+                                            {
+                                                <span>@occupancy.Label</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Day Details</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <div class="mb-3">
+                        <div class="fw-semibold">@selectedDate.ToString("dddd, dd MMMM yyyy")</div>
+                        <div class="text-muted small">@dayBookings.Count booking(s)</div>
+                    </div>
+
+                    @if (!dayBookings.Any())
+                    {
+                        <div class="alert alert-light border mb-0">No room occupancy on this date.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var booking in dayBookings)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <div>
+                                            <div class="fw-semibold">@GetRoomName(booking.RoomId)</div>
+                                            <div class="small text-muted">@GetClientName(booking.ClientId)</div>
+                                        </div>
+                                        <span class="badge @GetBookingBadgeClass(booking)">@GetBookingLabel(booking)</span>
+                                    </div>
+                                    <div class="small mt-2">
+                                        @FormatRange(booking)
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.calendar-overview-page .panel {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 1rem 2rem rgba(12, 18, 28, 0.06);
+}
+
+.calendar-overview-page .panel-heading {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: linear-gradient(180deg, rgba(10, 22, 39, 0.03), rgba(10, 22, 39, 0));
+}
+
+.calendar-overview-page .panel-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.calendar-overview-page .panel-body {
+    padding: 1rem;
+}
+
+.calendar-month-item {
+    border: 0;
+    border-radius: 0.75rem !important;
+    margin-bottom: 0.35rem;
+}
+
+.calendar-grid {
+    display: grid;
+    gap: 0.35rem;
+    min-width: max-content;
+}
+
+.calendar-grid-header,
+.calendar-grid-row {
+    display: grid;
+    grid-template-columns: 180px repeat(auto-fit, minmax(42px, 1fr));
+    gap: 0.35rem;
+    align-items: stretch;
+}
+
+.calendar-room-header,
+.calendar-room-cell,
+.calendar-day-header,
+.calendar-day-cell {
+    min-height: 4rem;
+    border-radius: 0.75rem;
+}
+
+.calendar-room-header,
+.calendar-room-cell {
+    padding: 0.75rem;
+    background: #f6f7f9;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.calendar-room-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+}
+
+.calendar-day-header,
+.calendar-day-cell {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 0.4rem;
+    text-align: center;
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.calendar-day-header {
+    background: #fff;
+    color: #3b4957;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+}
+
+.calendar-day-header.selected,
+.calendar-day-cell.selected {
+    outline: 2px solid rgba(13, 110, 253, 0.55);
+    outline-offset: 1px;
+}
+
+.calendar-day-cell {
+    background: #fff;
+    color: #1f2933;
+}
+
+.calendar-day-cell:hover,
+.calendar-day-header:hover,
+.calendar-month-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(12, 18, 28, 0.08);
+}
+
+.calendar-day-cell.is-empty {
+    background: linear-gradient(180deg, #fff, #fafbfc);
+}
+
+.calendar-day-cell.is-reserved {
+    background: #fff3cd;
+    border-color: #f0d98c;
+}
+
+.calendar-day-cell.is-arrived {
+    background: #d1e7dd;
+    border-color: #9fd3b6;
+}
+
+.calendar-day-cell.is-occupied {
+    background: #f8d7da;
+    border-color: #f1aeb5;
+}
+
+.calendar-day-cell.is-departure {
+    background: #cff4fc;
+    border-color: #9fd7e8;
+}
+
+.calendar-day-cell.is-arrived,
+.calendar-day-cell.is-occupied,
+.calendar-day-cell.is-reserved,
+.calendar-day-cell.is-departure {
+    font-weight: 600;
+}
+
+.calendar-day-cell,
+.calendar-day-header,
+.calendar-month-item {
+    cursor: pointer;
+}
+
+@@media (max-width: 992px) {
+    .calendar-grid-header,
+    .calendar-grid-row {
+        grid-template-columns: 150px repeat(auto-fit, minmax(36px, 1fr));
+    }
+}
+</style>
+
+@code {
+    private sealed record CalendarOccupancy(string CssClass, string Label, string Tooltip, bool HasBooking, BookingDto? Booking);
+
+    private List<RoomRecord> rooms = new();
+    private List<BookingDto> bookings = new();
+    private List<ClientRecord> clients = new();
+    private List<DateOnly> monthItems = new();
+    private List<DateOnly> monthDays = new();
+    private List<BookingDto> dayBookings = new();
+    private int selectedYear;
+    private DateOnly selectedMonth;
+    private DateOnly selectedDate;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        selectedMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
+        selectedYear = selectedMonth.Year;
+        RebuildMonthItems();
+
+        await LoadDataAsync();
+        BuildMonthView();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            isLoading = true;
+            rooms = await RoomApiService.GetRoomsAsync();
+            clients = await ClientApi.GetAllAsync();
+            bookings = await BookingApi.ListAsync(ActiveYearService.CurrentYear);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BuildMonthView()
+    {
+        RebuildMonthItems();
+        monthDays = GetMonthDays(selectedMonth).ToList();
+        dayBookings = GetBookingsForDate(selectedDate).ToList();
+    }
+
+    private void RebuildMonthItems()
+    {
+        monthItems = Enumerable.Range(1, 12)
+            .Select(month => new DateOnly(selectedYear, month, 1))
+            .ToList();
+    }
+
+    private IEnumerable<DateOnly> GetMonthDays(DateOnly month)
+    {
+        var firstDay = new DateOnly(month.Year, month.Month, 1);
+        var lastDay = firstDay.AddMonths(1).AddDays(-1);
+        var start = firstDay.AddDays(-((int)firstDay.DayOfWeek + 6) % 7);
+        var end = lastDay.AddDays(6 - ((int)lastDay.DayOfWeek + 6) % 7);
+
+        for (var day = start; day <= end; day = day.AddDays(1))
+        {
+            yield return day;
+        }
+    }
+
+    private void SelectMonth(DateOnly month)
+    {
+        selectedMonth = new DateOnly(month.Year, month.Month, 1);
+        selectedYear = selectedMonth.Year;
+        selectedDate = selectedMonth;
+        BuildMonthView();
+    }
+
+    private void SelectPreviousMonth() => SelectMonth(selectedMonth.AddMonths(-1));
+
+    private void SelectCurrentMonth() => SelectMonth(DateOnly.FromDateTime(DateTime.UtcNow));
+
+    private void SelectNextMonth() => SelectMonth(selectedMonth.AddMonths(1));
+
+    private void SelectDate(DateOnly date)
+    {
+        selectedDate = date;
+        dayBookings = GetBookingsForDate(selectedDate).ToList();
+        if (date.Year != selectedMonth.Year || date.Month != selectedMonth.Month)
+        {
+            selectedMonth = new DateOnly(date.Year, date.Month, 1);
+            monthDays = GetMonthDays(selectedMonth).ToList();
+        }
+    }
+
+    private IEnumerable<BookingDto> GetBookingsForDate(DateOnly date)
+    {
+        return bookings.Where(booking => IsBookingOnDate(booking, date));
+    }
+
+    private CalendarOccupancy GetOccupancyForRoom(string? roomId, DateOnly date)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return new CalendarOccupancy("is-empty", string.Empty, "No room assigned", false, null);
+        }
+
+        var booking = bookings
+            .Where(current => string.Equals(current.RoomId, roomId, StringComparison.OrdinalIgnoreCase) && IsBookingOnDate(current, date))
+            .OrderBy(current => TryParseDate(current.ArrivalDate) ?? DateOnly.MaxValue)
+            .ThenBy(current => current.Id, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (booking is null)
+        {
+            return new CalendarOccupancy("is-empty", string.Empty, string.Empty, false, null);
+        }
+
+        var arrival = TryParseDate(booking.ArrivalDate);
+        var departure = TryParseDate(booking.DepartureDate);
+        var actualArrival = TryParseDate(booking.ActualArrivalDate);
+        var label = string.Equals(booking.RoomId, roomId, StringComparison.OrdinalIgnoreCase) ? booking.Id ?? string.Empty : string.Empty;
+        var cssClass = GetBookingCssClass(date, actualArrival, arrival, departure);
+        var tooltip = $"{GetClientName(booking.ClientId)} {FormatRange(booking)}";
+
+        return new CalendarOccupancy(cssClass, label, tooltip, true, booking);
+    }
+
+    private static bool IsBookingOnDate(BookingDto booking, DateOnly date)
+    {
+        var arrival = TryParseDate(booking.ArrivalDate);
+        var departure = TryParseDate(booking.DepartureDate);
+
+        if (!arrival.HasValue || !departure.HasValue || string.IsNullOrWhiteSpace(booking.RoomId))
+        {
+            return false;
+        }
+
+        var start = booking.ActualArrivalDate is not null && TryParseDate(booking.ActualArrivalDate).HasValue
+            ? TryParseDate(booking.ActualArrivalDate)!.Value
+            : arrival.Value;
+
+        return start <= date && date < departure.Value;
+    }
+
+    private static DateOnly? TryParseDate(DateOnly? value) => value;
+
+    private static DateOnly? TryParseDate(string? value)
+        => DateOnly.TryParse(value, out var parsed) ? parsed : null;
+
+    private static string GetBookingCssClass(DateOnly date, DateOnly? actualArrival, DateOnly? arrival, DateOnly? departure)
+    {
+        if (departure.HasValue && departure.Value == date)
+        {
+            return "is-departure";
+        }
+
+        if (actualArrival.HasValue)
+        {
+            return date >= actualArrival.Value && departure.HasValue && date < departure.Value
+                ? "is-occupied"
+                : "is-empty";
+        }
+
+        if (arrival.HasValue)
+        {
+            return date >= arrival.Value && departure.HasValue && date < departure.Value
+                ? "is-reserved"
+                : "is-empty";
+        }
+
+        return "is-empty";
+    }
+
+    private string GetRoomName(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return "Unassigned room";
+        }
+
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        return room?.Name ?? roomId;
+    }
+
+    private string GetClientName(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return "Unknown client";
+        }
+
+        var client = clients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
+        if (client is null)
+        {
+            return clientId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
+        {
+            return $"{client.LastName}, {client.FirstName}";
+        }
+
+        return client.LastName ?? client.FirstName ?? client.Id ?? clientId;
+    }
+
+    private string GetBookingLabel(BookingDto booking)
+    {
+        if (TryParseDate(booking.ActualArrivalDate).HasValue)
+        {
+            return "Stay";
+        }
+
+        return "Reservation";
+    }
+
+    private string GetBookingBadgeClass(BookingDto booking)
+        => TryParseDate(booking.ActualArrivalDate).HasValue ? "bg-danger" : "bg-warning text-dark";
+
+    private string FormatRange(BookingDto booking)
+    {
+        var arrival = TryParseDate(booking.ArrivalDate)?.ToString("yyyy-MM-dd") ?? "-";
+        var departure = TryParseDate(booking.DepartureDate)?.ToString("yyyy-MM-dd") ?? "-";
+        return $"{arrival} → {departure}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Task.CompletedTask;
+    }
+}
