@@ -15,7 +15,7 @@
 <PageTitle>@L["Index.PageTitle"]</PageTitle>
 
 <div class="landing-hero py-5 bg-light">
-  <div class="container">
+  <div class="container-fluid px-3 px-xl-4 dashboard-layout-fluid">
     <div class="mb-4">
       <div class="text-start">
         @if (!isEditingHotelName)
@@ -154,16 +154,16 @@
                 {
                   var isSelected = selectedRoomId == room.Id;
                   <li class="list-group-item px-0 py-2">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2 room-row-header">
                       <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => ToggleRoomDetails(room.Id)">
-                        <span class="fw-semibold">@room.Name</span>
+                        <span class="fw-semibold room-link-title">@room.Name</span>
                         @if (compactRoomsView)
                         {
-                          <span class="text-muted small d-block">@BuildCompactRoomSummary(room)</span>
+                          <span class="text-muted small room-link-meta">@BuildCompactRoomSummary(room)</span>
                         }
                         else
                         {
-                          <span class="text-muted small d-block">@L["DashboardRooms.RoomCapacity", room.Capacity]</span>
+                          <span class="text-muted small room-link-meta">@L["DashboardRooms.RoomCapacity", room.Capacity]</span>
                         }
                       </button>
 
