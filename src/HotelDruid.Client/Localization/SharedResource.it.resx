@@ -60,15 +60,18 @@
   <data name="DashboardRooms.Loading" xml:space="preserve"><value>Caricamento camere...</value></data>
   <data name="DashboardRooms.Empty" xml:space="preserve"><value>Nessuna camera disponibile al momento.</value></data>
   <data name="DashboardRooms.RoomCapacity" xml:space="preserve"><value>Capacita: {0}</value></data>
+    <data name="Index.QuickAction.NewStay" xml:space="preserve"><value>Nuovo soggiorno</value></data>
   <data name="DashboardRooms.RoomMenu" xml:space="preserve"><value>Azioni camera</value></data>
   <data name="DashboardRooms.Menu.AddRoom" xml:space="preserve"><value>Aggiungi camera</value></data>
   <data name="DashboardRooms.Menu.SetLayout" xml:space="preserve"><value>Imposta layout camere</value></data>
+  <data name="DashboardRooms.Menu.NewReservation" xml:space="preserve"><value>Nuova prenotazione per camera</value></data>
   <data name="DashboardRooms.Menu.Refresh" xml:space="preserve"><value>Aggiorna</value></data>
   <data name="DashboardRooms.Menu.ViewDetails" xml:space="preserve"><value>Visualizza dettagli</value></data>
   <data name="DashboardRooms.Menu.ManageRoom" xml:space="preserve"><value>Gestisci camera</value></data>
   <data name="DashboardRooms.Menu.DeleteRoom" xml:space="preserve"><value>Elimina camera</value></data>
   <data name="DashboardRooms.Menu.VisibleCount" xml:space="preserve"><value>Camere da visualizzare</value></data>
   <data name="Dashboard.Widget.VisibleCount.Reservations" xml:space="preserve"><value>Prenotazioni da visualizzare</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Stays" xml:space="preserve"><value>Soggiorni da visualizzare</value></data>
   <data name="Dashboard.Widget.VisibleCount.Clients" xml:space="preserve"><value>Clienti da visualizzare</value></data>
   <data name="Dashboard.Widget.VisibleCount.Rooms" xml:space="preserve"><value>Camere da visualizzare</value></data>
   <data name="Dashboard.Widget.VisibleCount.Calendar" xml:space="preserve"><value>Anni da visualizzare</value></data>
@@ -96,8 +99,49 @@
   <data name="Dashboard.Settings.Save" xml:space="preserve"><value>Salva</value></data>
   <data name="Dashboard.Settings.Cancel" xml:space="preserve"><value>Annulla</value></data>
   <data name="Dashboard.Count.Bookings" xml:space="preserve"><value>Prenotazioni: {0}</value></data>
+  <data name="Dashboard.Stays.Title" xml:space="preserve"><value>Soggiorni</value></data>
+  <data name="Dashboard.Stays.Subtitle" xml:space="preserve"><value>Ospiti attualmente presenti e camere occupate</value></data>
+  <data name="Dashboard.Stays.Count" xml:space="preserve"><value>Camere occupate: {0}</value></data>
+  <data name="Dashboard.Stays.Empty" xml:space="preserve"><value>Nessun soggiorno attivo al momento.</value></data>
+  <data name="Dashboard.Stays.ActiveBadge" xml:space="preserve"><value>In soggiorno</value></data>
+  <data name="Dashboard.Stays.Menu.OpenReservations" xml:space="preserve"><value>Nuova prenotazione</value></data>
+  <data name="Dashboard.Stays.Action.OpenReservation" xml:space="preserve"><value>Apri prenotazione</value></data>
+  <data name="Dashboard.Stays.Action.AddCosts" xml:space="preserve"><value>Aggiungi costi</value></data>
+  <data name="Dashboard.Stays.Action.AddGuests" xml:space="preserve"><value>Aggiungi ospiti</value></data>
+  <data name="Dashboard.Stays.Action.OpenClient" xml:space="preserve"><value>Apri cliente</value></data>
+  <data name="Dashboard.Stays.Action.RecordWishes" xml:space="preserve"><value>Registra desideri</value></data>
+  <data name="Dashboard.Stays.RowMenu" xml:space="preserve"><value>Azioni soggiorno</value></data>
+  <data name="Dashboard.Reservations.Empty" xml:space="preserve"><value>Nessuna prenotazione attiva da mostrare.</value></data>
+  <data name="Dashboard.Reservations.Action.OpenReservation" xml:space="preserve"><value>Apri prenotazione</value></data>
+  <data name="Dashboard.Reservations.UnknownClient" xml:space="preserve"><value>Ospite non ancora collegato</value></data>
+  <data name="Dashboard.Reservations.UnassignedRoom" xml:space="preserve"><value>Nessuna camera assegnata</value></data>
+  <data name="Dashboard.Reservations.NoArrival" xml:space="preserve"><value>Nessun arrivo</value></data>
+    <data name="Dashboard.Stays.Button" xml:space="preserve"><value>Visualizza soggiorni</value></data>
+  <data name="Dashboard.Reservations.RoomLabel" xml:space="preserve"><value>Camera</value></data>
+  <data name="Dashboard.Reservations.RowMenu" xml:space="preserve"><value>Azioni prenotazione</value></data>
+  <data name="Dashboard.Reservations.Menu.Arrived" xml:space="preserve"><value>Arrivato</value></data>
+  <data name="Dashboard.Reservations.StatusUnknown" xml:space="preserve"><value>In attesa</value></data>
+  <data name="Dashboard.Reservations.NotArrived" xml:space="preserve"><value>Non ancora arrivato</value></data>
+  <data name="Dashboard.Reservations.ArrivedOn" xml:space="preserve"><value>Arrivato</value></data>
+  <data name="Dashboard.Reservations.ArrivedGuests" xml:space="preserve"><value>Ospiti</value></data>
   <data name="Dashboard.Count.Clients" xml:space="preserve"><value>Clienti: {0}</value></data>
+    <data name="Dashboard.Arrivals.Title" xml:space="preserve"><value>Arrivi</value></data>
+    <data name="Dashboard.Arrivals.Subtitle" xml:space="preserve"><value>Prenotazioni in arrivo nei prossimi {0} giorni e non ancora registrate</value></data>
+    <data name="Dashboard.Arrivals.Count" xml:space="preserve"><value>Arrivi attesi: {0}</value></data>
+    <data name="Dashboard.Arrivals.Empty" xml:space="preserve"><value>Nessun arrivo in attesa.</value></data>
+    <data name="Dashboard.Arrivals.Badge" xml:space="preserve"><value>Arrivo previsto</value></data>
+    <data name="Dashboard.Arrivals.RowMenu" xml:space="preserve"><value>Azioni arrivo</value></data>
+    <data name="Dashboard.Arrivals.Button" xml:space="preserve"><value>Visualizza arrivi</value></data>
+    <data name="Dashboard.Departures.Title" xml:space="preserve"><value>Partenze</value></data>
+    <data name="Dashboard.Departures.Subtitle" xml:space="preserve"><value>Ospiti in partenza prevista per oggi</value></data>
+    <data name="Dashboard.Departures.Count" xml:space="preserve"><value>Partenze in attesa: {0}</value></data>
+    <data name="Dashboard.Departures.Empty" xml:space="preserve"><value>Nessuna partenza prevista oggi.</value></data>
+    <data name="Dashboard.Departures.Badge" xml:space="preserve"><value>Check-out previsto</value></data>
+    <data name="Dashboard.Departures.RowMenu" xml:space="preserve"><value>Azioni partenza</value></data>
+    <data name="Dashboard.Departures.Button" xml:space="preserve"><value>Visualizza partenze</value></data>
+    <data name="Dashboard.Widget.VisibleCount.Departures" xml:space="preserve"><value>Partenze da visualizzare</value></data>
   <data name="Dashboard.Count.ActiveYear" xml:space="preserve"><value>Anno attivo: {0}</value></data>
+    <data name="Dashboard.Widget.VisibleCount.Arrivals" xml:space="preserve"><value>Arrivi da visualizzare</value></data>
   <data name="Dashboard.Version.Label" xml:space="preserve"><value>Versione</value></data>
   <data name="Nav.Toggle" xml:space="preserve"><value>Menu di navigazione</value></data>
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
@@ -208,4 +252,16 @@
   <data name="rooms.deleteFailed" xml:space="preserve"><value>Eliminazione camera non riuscita: {0}</value></data>
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Errore nell'eliminazione camera: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>Sei sicuro di voler eliminare la camera {0}?</value></data>
+  <data name="bookings.arrivalRequired" xml:space="preserve"><value>La data di arrivo e obbligatoria.</value></data>
+  <data name="bookings.departureRequired" xml:space="preserve"><value>La data di partenza e obbligatoria.</value></data>
+  <data name="bookings.departureAfterArrival" xml:space="preserve"><value>La data di partenza deve essere successiva alla data di arrivo.</value></data>
+  <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Data arrivo effettiva</value></data>
+  <data name="bookings.actualGuestCount" xml:space="preserve"><value>Ospiti all'arrivo</value></data>
+  <data name="bookings.prepaidAmount" xml:space="preserve"><value>Importo prepagato</value></data>
+  <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Ospiti all'arrivo e obbligatorio quando e impostata la data arrivo effettiva.</value></data>
+  <data name="bookings.actualArrivalRequiredWithGuestCount" xml:space="preserve"><value>La data arrivo effettiva e obbligatoria quando e impostato Ospiti all'arrivo.</value></data>
+  <data name="bookings.actualGuestCountPositive" xml:space="preserve"><value>Ospiti all'arrivo deve essere maggiore di zero.</value></data>
+  <data name="bookings.actualArrivalBeforeDeparture" xml:space="preserve"><value>La data arrivo effettiva deve essere precedente alla data di partenza.</value></data>
+  <data name="bookings.prepaidAmountNonNegative" xml:space="preserve"><value>L'importo prepagato deve essere maggiore o uguale a zero.</value></data>
+  <data name="bookings.saveFailedStatus" xml:space="preserve"><value>Salvataggio non riuscito: {0}</value></data>
 </root>

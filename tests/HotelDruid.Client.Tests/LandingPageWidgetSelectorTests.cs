@@ -21,11 +21,11 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
     {
         this.bookings = bookings ??
         [
-            new { id = "1", clientId = 1, status = "Confirmed" },
-            new { id = "2", clientId = 2, status = "Pending" },
-            new { id = "3", clientId = 3, status = "Confirmed" },
-            new { id = "4", clientId = 4, status = "Pending" },
-            new { id = "5", clientId = 5, status = "Confirmed" }
+            new { id = "1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = "2026-06-01", departureDate = "2026-06-03", status = "Confirmed" },
+            new { id = "2", year = 2026, clientId = "client-2", roomId = "room-2", arrivalDate = "2026-06-04", departureDate = "2026-06-06", status = "Pending" },
+            new { id = "3", year = 2026, clientId = "client-3", roomId = "room-3", arrivalDate = "2026-06-07", departureDate = "2026-06-09", status = "Confirmed" },
+            new { id = "4", year = 2026, clientId = "client-4", roomId = "room-4", arrivalDate = "2026-06-10", departureDate = "2026-06-12", status = "Pending" },
+            new { id = "5", year = 2026, clientId = "client-5", roomId = "room-5", arrivalDate = "2026-06-13", departureDate = "2026-06-15", status = "Confirmed" }
         ];
 
         this.settings = settings ?? new Dictionary<string, string>();
@@ -59,11 +59,11 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
             return JsonResponse(new[]
             {
-                new { id = 1, name = "Client 1" },
-                new { id = 2, name = "Client 2" },
-                new { id = 3, name = "Client 3" },
-                new { id = 4, name = "Client 4" },
-                new { id = 5, name = "Client 5" }
+                new { id = "client-1", lastName = "Client", firstName = "One" },
+                new { id = "client-2", lastName = "Client", firstName = "Two" },
+                new { id = "client-3", lastName = "Client", firstName = "Three" },
+                new { id = "client-4", lastName = "Client", firstName = "Four" },
+                new { id = "client-5", lastName = "Client", firstName = "Five" }
             });
         }
 
@@ -109,6 +109,9 @@ public class LandingPageWidgetSelectorTests : TestContext
     private static readonly string[] ExpectedVisibleCountHeaderKeys =
     [
         "Dashboard.Widget.VisibleCount.Reservations",
+        "Dashboard.Widget.VisibleCount.Arrivals",
+        "Dashboard.Widget.VisibleCount.Stays",
+        "Dashboard.Widget.VisibleCount.Departures",
         "Dashboard.Widget.VisibleCount.Clients",
         "Dashboard.Widget.VisibleCount.Rooms",
         "Dashboard.Widget.VisibleCount.Calendar",
@@ -119,6 +122,9 @@ public class LandingPageWidgetSelectorTests : TestContext
 
     private static readonly string[] ExpectedAddActionKeys =
     [
+        "Index.QuickAction.NewReservation",
+        "Index.QuickAction.NewReservation",
+        "Index.QuickAction.NewStay",
         "Index.QuickAction.NewReservation",
         "Index.QuickAction.NewClient",
         "DashboardRooms.Menu.AddRoom",
@@ -160,7 +166,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         component.WaitForAssertion(() =>
         {
             var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
-            Assert.Equal(7, menuButtons.Count);
+            Assert.Equal(10, menuButtons.Count);
         });
 
         for (var i = 0; i < ExpectedVisibleCountHeaderKeys.Length; i++)
@@ -192,7 +198,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         component.WaitForAssertion(() =>
         {
             var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
-            Assert.Equal(7, menuButtons.Count);
+            Assert.Equal(10, menuButtons.Count);
         });
 
         var buttons = component.FindAll("button[title='Dashboard.Widget.Menu']");
@@ -228,7 +234,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         });
 
         var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
-        menuButtons[2].Click();
+        menuButtons[5].Click();
 
         component.WaitForAssertion(() =>
         {
@@ -241,6 +247,241 @@ public class LandingPageWidgetSelectorTests : TestContext
         {
             var roomRows = component.FindAll(".actionable-room-list .list-group-item");
             Assert.Equal(7, roomRows.Count);
+        });
+    }
+
+    [Fact]
+    public void ReservationsWidget_ShouldRenderBookings_FromApiPayloadWithStringClientIds()
+    {
+        var component = RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var bookingRows = component.FindAll(".border-primary .list-group-item");
+            Assert.NotEmpty(bookingRows);
+            Assert.Contains(bookingRows, row => row.TextContent.Contains("Client, Five", StringComparison.Ordinal));
+            Assert.Contains(bookingRows, row => row.TextContent.Contains("2026-06-13 -> 2026-06-15", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void ReservationsWidget_RowMenuShouldOffer_ArrivedAndClientActions()
+    {
+        var component = RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var menuButtons = component.FindAll("button[title='Dashboard.Reservations.RowMenu']");
+            Assert.NotEmpty(menuButtons);
+        });
+
+        var reservationMenuButton = component.FindAll("button[title='Dashboard.Reservations.RowMenu']")[0];
+        reservationMenuButton.Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".border-primary .dropdown-menu.show .dropdown-item")
+                .Select(x => x.TextContent.Trim())
+                .ToList();
+
+            Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
+            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+        });
+    }
+
+    [Fact]
+    public void StaysWidget_ShouldShowOnly_CurrentOccupiedRooms()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, true),
+            new("room-3", "Room 3", 2, 1, "A", 3, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), departureDate = today.AddDays(2).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), actualGuestCount = 2, status = "Confirmed" },
+            new { id = "b-2", year = 2026, clientId = "client-2", roomId = "room-2", arrivalDate = today.AddDays(3).ToString("yyyy-MM-dd"), departureDate = today.AddDays(5).ToString("yyyy-MM-dd"), status = "Confirmed" },
+            new { id = "b-3", year = 2026, clientId = "client-3", roomId = "room-3", arrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"), departureDate = today.AddDays(1).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"), actualGuestCount = 1, status = "Cancelled" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var stayRows = component.FindAll(".border-danger .list-group-item");
+            Assert.Single(stayRows);
+            Assert.Contains("Room 1", stayRows[0].TextContent);
+            Assert.DoesNotContain("Room 2", stayRows[0].TextContent);
+        });
+    }
+
+    [Fact]
+    public void StaysWidget_RowMenuShouldOffer_StandardStayActions()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), departureDate = today.AddDays(2).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), actualGuestCount = 2, status = "Confirmed" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var menuButtons = component.FindAll("button[title='Dashboard.Stays.RowMenu']");
+            Assert.NotEmpty(menuButtons);
+        });
+
+        component.FindAll("button[title='Dashboard.Stays.RowMenu']")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".border-danger .dropdown-menu.show .dropdown-item")
+                .Select(x => x.TextContent.Trim())
+                .ToList();
+
+            Assert.Contains("Dashboard.Stays.Action.OpenReservation", items);
+            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
+            Assert.Contains("Dashboard.Stays.Action.AddGuests", items);
+            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+        });
+    }
+
+    [Fact]
+    public void ArrivalsWidget_RowMenuShouldOffer_ArrivalActions()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = today.ToString("yyyy-MM-dd"), departureDate = today.AddDays(2).ToString("yyyy-MM-dd"), status = "Confirmed" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var menuButtons = component.FindAll("button[title='Dashboard.Arrivals.RowMenu']");
+            Assert.NotEmpty(menuButtons);
+        });
+
+        component.FindAll("button[title='Dashboard.Arrivals.RowMenu']")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".border-secondary .dropdown-menu.show .dropdown-item")
+                .Select(x => x.TextContent.Trim())
+                .ToList();
+
+            Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
+            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+        });
+    }
+
+    [Fact]
+    public void DeparturesWidget_ShouldShowOnly_TodaysDeparturesAndMenuActions()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true),
+            new("room-2", "Room 2", 2, 1, "A", 2, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "b-1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"), departureDate = today.ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"), actualGuestCount = 2, status = "Confirmed" },
+            new { id = "b-2", year = 2026, clientId = "client-2", roomId = "room-2", arrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), departureDate = today.AddDays(1).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"), actualGuestCount = 1, status = "Confirmed" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var departureRows = component.FindAll(".border-dark .list-group-item");
+            Assert.Single(departureRows);
+            Assert.Contains("Room 1", departureRows[0].TextContent);
+        });
+
+        component.FindAll("button[title='Dashboard.Departures.RowMenu']")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".border-dark .dropdown-menu.show .dropdown-item")
+                .Select(x => x.TextContent.Trim())
+                .ToList();
+
+            Assert.Contains("Dashboard.Stays.Action.OpenReservation", items);
+            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
+            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+        });
+    }
+
+    [Fact]
+    public void RoomsWidget_MenuShouldOffer_NewReservationForSelectedRoom()
+    {
+        var component = RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var roomRows = component.FindAll(".actionable-room-list .list-group-item");
+            Assert.NotEmpty(roomRows);
+        });
+
+        var menuButtons = component.FindAll("button[title='DashboardRooms.RoomMenu']");
+        menuButtons[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".actionable-room-list .dropdown-menu.show .dropdown-item")
+                .Select(x => x.TextContent.Trim())
+                .ToList();
+
+            Assert.Contains("DashboardRooms.Menu.NewReservation", items);
         });
     }
 
@@ -264,8 +505,8 @@ public class LandingPageWidgetSelectorTests : TestContext
 
         var client = new HttpClient(new LandingPageMockHandler(
         [
-            new { id = "b-1", clientId = 1, status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null },
-            new { id = "b-2", clientId = 2, status = "Confirmed", roomId = "", arrivalDate = "", departureDate = "" }
+            new { id = "b-1", year = 2026, clientId = "client-1", status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null },
+            new { id = "b-2", year = 2026, clientId = "client-2", status = "Confirmed", roomId = "", arrivalDate = "", departureDate = "" }
         ]))
         { BaseAddress = new Uri("http://localhost/") };
         localContext.Services.AddScoped(_ => client);
@@ -306,8 +547,8 @@ public class LandingPageWidgetSelectorTests : TestContext
 
         var client = new HttpClient(new LandingPageMockHandler(
         [
-            new { id = "b-1", clientId = 1, status = "Confirmed", roomId = "room-1", arrivalDate = arrival, departureDate = departure },
-            new { id = "b-2", clientId = 2, status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null }
+            new { id = "b-1", year = 2026, clientId = "client-1", status = "Confirmed", roomId = "room-1", arrivalDate = arrival, departureDate = departure, actualArrivalDate = arrival, actualGuestCount = 2 },
+            new { id = "b-2", year = 2026, clientId = "client-2", status = "Confirmed", roomId = (string?)null, arrivalDate = (string?)null, departureDate = (string?)null }
         ]))
         { BaseAddress = new Uri("http://localhost/") };
         localContext.Services.AddScoped(_ => client);
@@ -317,11 +558,11 @@ public class LandingPageWidgetSelectorTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            var text = component.Markup;
-            Assert.DoesNotContain("Room 1", text);
-            Assert.Contains("Room 2", text);
-            Assert.Contains("Room 3", text);
-            Assert.Contains("Room 4", text);
+            var roomRows = component.FindAll(".actionable-room-list .list-group-item");
+            Assert.DoesNotContain(roomRows, row => row.TextContent.Contains("Room 1", StringComparison.Ordinal));
+            Assert.Contains(roomRows, row => row.TextContent.Contains("Room 2", StringComparison.Ordinal));
+            Assert.Contains(roomRows, row => row.TextContent.Contains("Room 3", StringComparison.Ordinal));
+            Assert.Contains(roomRows, row => row.TextContent.Contains("Room 4", StringComparison.Ordinal));
         });
     }
 

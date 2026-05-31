@@ -7,6 +7,11 @@ using HotelDruid.Shared;
 
 namespace HotelDruid.Client.Services
 {
+    internal sealed class BookingApiErrorResponse
+    {
+        public string? Error { get; set; }
+    }
+
     public interface IBookingApiService
     {
         Task<List<BookingDto>> ListAsync(int? year = null);
@@ -51,7 +56,7 @@ namespace HotelDruid.Client.Services
         {
             var content = new StringContent(JsonSerializer.Serialize(dto, _json), Encoding.UTF8, "application/json");
             var resp = await _httpClient.PostAsync("/api/bookings", content);
-            resp.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowAsync(resp);
             var created = JsonSerializer.Deserialize<BookingDto>(await resp.Content.ReadAsStringAsync(), _json);
             return created?.Id ?? string.Empty;
         }
@@ -60,7 +65,7 @@ namespace HotelDruid.Client.Services
         {
             var content = new StringContent(JsonSerializer.Serialize(dto, _json), Encoding.UTF8, "application/json");
             var resp = await _httpClient.PutAsync($"/api/bookings/{year}/{id}", content);
-            resp.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowAsync(resp);
         }
 
         public async Task DeleteAsync(int year, string id)
@@ -73,6 +78,32 @@ namespace HotelDruid.Client.Services
         {
             var resp = await _httpClient.PostAsync($"/api/bookings/{year}/{id}/cancel", null);
             resp.EnsureSuccessStatusCode();
+        }
+
+        private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            string? errorMessage = null;
+
+            try
+            {
+                var payload = JsonSerializer.Deserialize<BookingApiErrorResponse>(await response.Content.ReadAsStringAsync(), _json);
+                errorMessage = payload?.Error;
+            }
+            catch
+            {
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            response.EnsureSuccessStatusCode();
         }
     }
 }

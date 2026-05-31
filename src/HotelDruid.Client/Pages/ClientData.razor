@@ -1,4 +1,5 @@
 @page "/client-data"
+@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @inject IClientDataApiService ClientDataApi
 
@@ -67,6 +68,15 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "clientId")]
+    public string? ClientIdQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "type")]
+    public string? TypeQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "new")]
+    public bool? StartNew { get; set; }
+
     private List<ClientDataDto>? records;
     private ClientDataDto? selected;
     private bool editing, isNew;
@@ -78,13 +88,52 @@
         ? (records ?? new())
         : (records ?? new()).Where(r => r.ClientId?.Contains(filterClientId, StringComparison.OrdinalIgnoreCase) == true);
 
-    protected override async Task OnInitializedAsync() => await LoadAll();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAll();
+        ApplyQueryContext();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplyQueryContext();
+        return Task.CompletedTask;
+    }
 
     private async Task LoadAll()
     {
         var all = await ClientDataApi.GetByClientAsync("");
         // GetByClientAsync with empty string — fallback: load by getting all
         records = all;
+    }
+
+    private void ApplyQueryContext()
+    {
+        if (!string.IsNullOrWhiteSpace(ClientIdQuery))
+        {
+            filterClientId = ClientIdQuery;
+        }
+
+        if (StartNew == true && !string.IsNullOrWhiteSpace(ClientIdQuery))
+        {
+            form = new() { ClientId = ClientIdQuery, Type = TypeQuery };
+            isNew = true;
+            editing = true;
+            selected = null;
+            errorMsg = "";
+            return;
+        }
+
+        if (records is null || string.IsNullOrWhiteSpace(ClientIdQuery))
+        {
+            return;
+        }
+
+        var existing = records.FirstOrDefault(record => string.Equals(record.ClientId, ClientIdQuery, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            SelectRecord(existing);
+        }
     }
 
     private void NewRecord() { form = new(); isNew = true; editing = true; selected = null; errorMsg = ""; }

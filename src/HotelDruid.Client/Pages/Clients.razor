@@ -1,6 +1,8 @@
 @page "/clients"
+@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @inject IClientApiService ClientApi
+@inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -113,6 +115,12 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "edit")]
+    public bool? EditRequested { get; set; }
+
     private List<ClientDto>? clients;
     private ClientDto? selected;
     private bool editing;
@@ -123,6 +131,13 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadAll();
+        ApplySelectedClientFromQuery();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplySelectedClientFromQuery();
+        return Task.CompletedTask;
     }
 
     private async Task LoadAll()
@@ -132,6 +147,26 @@
             .ThenBy(client => client.FirstName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(client => client.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private void ApplySelectedClientFromQuery()
+    {
+        if (clients is null || string.IsNullOrWhiteSpace(SelectedId))
+        {
+            return;
+        }
+
+        var client = clients.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (client is null)
+        {
+            return;
+        }
+
+        SelectClient(client);
+        if (EditRequested == true)
+        {
+            EditSelected();
+        }
     }
 
     private void NewClient()

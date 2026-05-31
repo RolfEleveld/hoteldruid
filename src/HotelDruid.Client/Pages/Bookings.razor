@@ -1,11 +1,14 @@
 @page "/bookings"
+@page "/bookings/new"
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared
 @using ClientRecord = HotelDruid.Client.Services.ClientDto
 @inject IBookingApiService BookingApi
 @inject IClientApiService ClientApi
 @inject IActiveYearService ActiveYearService
+@inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -48,6 +51,9 @@
                     <div class="col-6"><label>@L["bookings.status", "Status"]</label><input class="form-control" @bind="form.Status" /></div>
                     <div class="col-6"><label>@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
                     <div class="col-6"><label>@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
+                    <div class="col-6"><label>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</label><input class="form-control" type="date" @bind="form.ActualArrivalDate" /></div>
+                    <div class="col-6"><label>@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" /></div>
+                    <div class="col-6"><label>@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
                     <div class="col-12"><label>@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
 
                     <div class="col-12 mt-3">
@@ -140,6 +146,9 @@
                     <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
                     <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
                     <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
+                    <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
+                    <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
+                    <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                     <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                 </dl>
                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["bookings.editBooking", "Edit Booking"]</button>
@@ -151,6 +160,15 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "edit")]
+    public bool? EditRequested { get; set; }
+
+    [SupplyParameterFromQuery(Name = "roomId")]
+    public string? RoomIdQuery { get; set; }
+
     private List<BookingDto>? records;
     private BookingDto? selected;
     private List<ClientRecord> knownClients = new();
@@ -169,6 +187,25 @@
         filterYear = ActiveYearService.CurrentYear;
         knownClients = await ClientApi.GetAllAsync();
         await LoadAll();
+
+        if (IsNewBookingRoute())
+        {
+            NewRecord();
+            return;
+        }
+
+        await ApplySelectedRecordFromQueryAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ApplySelectedRecordFromQueryAsync();
+    }
+
+    private bool IsNewBookingRoute()
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/');
+        return string.Equals(relative, "bookings/new", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task LoadAll()
@@ -178,11 +215,35 @@
             .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    private async Task ApplySelectedRecordFromQueryAsync()
+    {
+        if (records is null || string.IsNullOrWhiteSpace(SelectedId) || IsNewBookingRoute())
+        {
+            return;
+        }
+
+        var record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (record is null)
+        {
+            return;
+        }
+
+        SelectRecord(record);
+        if (EditRequested == true)
+        {
+            await EditSelected();
+        }
+    }
     private async Task ApplyFilter() => await LoadAll();
 
     private void NewRecord()
     {
-        form = new() { Year = filterYear ?? ActiveYearService.CurrentYear };
+        form = new()
+        {
+            Year = filterYear ?? ActiveYearService.CurrentYear,
+            RoomId = RoomIdQuery
+        };
         isNew = true;
         editing = true;
         selected = null;
@@ -195,7 +256,19 @@
     private async Task EditSelected()
     {
         if (selected is null) return;
-        form = new() { Year = selected.Year, ClientId = selected.ClientId, RoomId = selected.RoomId, Status = selected.Status, ArrivalDate = selected.ArrivalDate, DepartureDate = selected.DepartureDate, Notes = selected.Notes };
+        form = new()
+        {
+            Year = selected.Year,
+            ClientId = selected.ClientId,
+            RoomId = selected.RoomId,
+            Status = selected.Status,
+            ArrivalDate = selected.ArrivalDate,
+            DepartureDate = selected.DepartureDate,
+            Notes = selected.Notes,
+            ActualArrivalDate = selected.ActualArrivalDate,
+            ActualGuestCount = selected.ActualGuestCount,
+            PrepaidAmount = selected.PrepaidAmount
+        };
         isNew = false;
         editing = true;
         errorMsg = "";
@@ -205,6 +278,14 @@
     private async Task Save()
     {
         if (form.Year == 0) { errorMsg = L["bookings.yearRequired", "Year is required."]; return; }
+        if (!form.ArrivalDate.HasValue) { errorMsg = L["bookings.arrivalRequired", "Arrival Date is required."]; return; }
+        if (!form.DepartureDate.HasValue) { errorMsg = L["bookings.departureRequired", "Departure Date is required."]; return; }
+        if (form.DepartureDate.Value <= form.ArrivalDate.Value) { errorMsg = L["bookings.departureAfterArrival", "Departure Date must be after Arrival Date."]; return; }
+        if (form.ActualArrivalDate.HasValue && !form.ActualGuestCount.HasValue) { errorMsg = L["bookings.actualGuestCountRequiredWithArrival", "Guests On Arrival is required when Actual Arrival Date is set."]; return; }
+        if (form.ActualGuestCount.HasValue && !form.ActualArrivalDate.HasValue) { errorMsg = L["bookings.actualArrivalRequiredWithGuestCount", "Actual Arrival Date is required when Guests On Arrival is set."]; return; }
+        if (form.ActualGuestCount.HasValue && form.ActualGuestCount.Value <= 0) { errorMsg = L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."]; return; }
+        if (form.ActualArrivalDate.HasValue && form.DepartureDate.HasValue && form.ActualArrivalDate.Value >= form.DepartureDate.Value) { errorMsg = L["bookings.actualArrivalBeforeDeparture", "Actual Arrival Date must be before Departure Date."]; return; }
+        if (form.PrepaidAmount.HasValue && form.PrepaidAmount.Value < 0) { errorMsg = L["bookings.prepaidAmountNonNegative", "Prepaid Amount must be greater than or equal to zero."]; return; }
 
         var bookingClientId = await ResolveClientIdForSave();
         if (string.IsNullOrWhiteSpace(bookingClientId))
@@ -212,7 +293,18 @@
             return;
         }
 
-        var dto = new BookingDto(selected?.Id, form.Year, bookingClientId, form.RoomId, form.ArrivalDate, form.DepartureDate, form.Status, form.Notes);
+        var dto = new BookingDto(
+            selected?.Id,
+            form.Year,
+            bookingClientId,
+            form.RoomId,
+            form.ArrivalDate,
+            form.DepartureDate,
+            form.Status,
+            form.Notes,
+            form.ActualArrivalDate,
+            form.ActualGuestCount,
+            form.PrepaidAmount);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
@@ -221,7 +313,7 @@
             await LoadAll();
             await RefreshKnownClients();
         }
-        catch { errorMsg = L["bookings.saveFailed", "Save failed."]; }
+        catch (Exception ex) { errorMsg = TranslateBookingSaveError(ex); }
     }
 
     private void Cancel()
@@ -431,6 +523,25 @@
             || (!string.IsNullOrWhiteSpace(client.Id) && client.Id.Contains(term, StringComparison.OrdinalIgnoreCase));
     }
 
+    private string TranslateBookingSaveError(Exception ex)
+    {
+        return ex.Message switch
+        {
+            "Year is required" => L["bookings.yearRequired", "Year is required."],
+            "ClientId is required" => L["bookings.clientRequired", "Select an existing client or enter new client details."],
+            "ArrivalDate is required" => L["bookings.arrivalRequired", "Arrival Date is required."],
+            "DepartureDate is required" => L["bookings.departureRequired", "Departure Date is required."],
+            "DepartureDate must be after ArrivalDate" => L["bookings.departureAfterArrival", "Departure Date must be after Arrival Date."],
+            "PrepaidAmount must be greater than or equal to zero" => L["bookings.prepaidAmountNonNegative", "Prepaid Amount must be greater than or equal to zero."],
+            "ActualGuestCount is required when ActualArrivalDate is provided" => L["bookings.actualGuestCountRequiredWithArrival", "Guests On Arrival is required when Actual Arrival Date is set."],
+            "ActualArrivalDate is required when ActualGuestCount is provided" => L["bookings.actualArrivalRequiredWithGuestCount", "Actual Arrival Date is required when Guests On Arrival is set."],
+            "ActualGuestCount must be greater than zero" => L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."],
+            "ActualArrivalDate must be before DepartureDate" => L["bookings.actualArrivalBeforeDeparture", "Actual Arrival Date must be before Departure Date."],
+            _ when !string.IsNullOrWhiteSpace(ex.Message) => L["bookings.saveFailedStatus", ex.Message],
+            _ => L["bookings.saveFailed", "Save failed."]
+        };
+    }
+
     private static string ClientDisplayName(ClientRecord client)
     {
         var fullName = string.Join(" ", new[] { client.LastName, client.FirstName }.Where(x => !string.IsNullOrWhiteSpace(x)));
@@ -446,6 +557,9 @@
         public DateOnly? ArrivalDate { get; set; }
         public DateOnly? DepartureDate { get; set; }
         public string? Notes { get; set; }
+        public DateOnly? ActualArrivalDate { get; set; }
+        public int? ActualGuestCount { get; set; }
+        public double? PrepaidAmount { get; set; }
     }
 
     private class ClientFormModel

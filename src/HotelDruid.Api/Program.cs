@@ -2352,7 +2352,44 @@ app.MapFallbackToFile("index.html");
 
 // --- Layer 4: Bookings (prenotazioni{year}) ---
 
-BookingDto ToBookingDto(string id, BookingStorageModel s) => new(id, s.Year, s.ClientId, s.RoomId, s.ArrivalDate, s.DepartureDate, s.Status, s.Notes);
+BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
+    id,
+    s.Year,
+    s.ClientId,
+    s.RoomId,
+    s.ArrivalDate,
+    s.DepartureDate,
+    s.Status,
+    s.Notes,
+    s.ActualArrivalDate,
+    s.ActualGuestCount,
+    s.PrepaidAmount);
+
+string? ValidateBookingRequest(BookingDto request, int expectedYear)
+{
+    if (expectedYear <= 0)
+        return "Year is required";
+    if (string.IsNullOrWhiteSpace(request.ClientId))
+        return "ClientId is required";
+    if (!request.ArrivalDate.HasValue)
+        return "ArrivalDate is required";
+    if (!request.DepartureDate.HasValue)
+        return "DepartureDate is required";
+    if (request.DepartureDate.Value <= request.ArrivalDate.Value)
+        return "DepartureDate must be after ArrivalDate";
+    if (request.PrepaidAmount.HasValue && request.PrepaidAmount.Value < 0)
+        return "PrepaidAmount must be greater than or equal to zero";
+    if (request.ActualArrivalDate.HasValue && !request.ActualGuestCount.HasValue)
+        return "ActualGuestCount is required when ActualArrivalDate is provided";
+    if (request.ActualGuestCount.HasValue && !request.ActualArrivalDate.HasValue)
+        return "ActualArrivalDate is required when ActualGuestCount is provided";
+    if (request.ActualGuestCount.HasValue && request.ActualGuestCount.Value <= 0)
+        return "ActualGuestCount must be greater than zero";
+    if (request.ActualArrivalDate.HasValue && request.DepartureDate.HasValue && request.ActualArrivalDate.Value >= request.DepartureDate.Value)
+        return "ActualArrivalDate must be before DepartureDate";
+
+    return null;
+}
 
 app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
 {
@@ -2385,9 +2422,25 @@ app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValu
 
 app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
 {
+    var validationError = ValidateBookingRequest(request, request.Year);
+    if (validationError is not null)
+        return Results.BadRequest(new { error = validationError });
+
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
-    var storage = new BookingStorageModel { Year = request.Year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
+    var storage = new BookingStorageModel
+    {
+        Year = request.Year,
+        ClientId = request.ClientId,
+        RoomId = request.RoomId,
+        ArrivalDate = request.ArrivalDate,
+        DepartureDate = request.DepartureDate,
+        Status = request.Status,
+        Notes = request.Notes,
+        ActualArrivalDate = request.ActualArrivalDate,
+        ActualGuestCount = request.ActualGuestCount,
+        PrepaidAmount = request.PrepaidAmount
+    };
     var id = await store.CreateAsync("bookings", key, storage);
     queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
@@ -2397,7 +2450,24 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
-    var storage = new BookingStorageModel { Year = year, ClientId = request.ClientId, RoomId = request.RoomId, ArrivalDate = request.ArrivalDate, DepartureDate = request.DepartureDate, Status = request.Status, Notes = request.Notes };
+
+    var validationError = ValidateBookingRequest(request, year);
+    if (validationError is not null)
+        return Results.BadRequest(new { error = validationError });
+
+    var storage = new BookingStorageModel
+    {
+        Year = year,
+        ClientId = request.ClientId,
+        RoomId = request.RoomId,
+        ArrivalDate = request.ArrivalDate,
+        DepartureDate = request.DepartureDate,
+        Status = request.Status,
+        Notes = request.Notes,
+        ActualArrivalDate = request.ActualArrivalDate,
+        ActualGuestCount = request.ActualGuestCount,
+        PrepaidAmount = request.PrepaidAmount
+    };
     await store.UpdateAsync("bookings", id, storage);
     queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));

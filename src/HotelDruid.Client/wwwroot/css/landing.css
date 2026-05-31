@@ -96,6 +96,61 @@
   line-height: 1.2;
 }
 
+.reservation-widget-list .list-group-item {
+  border-left: 0;
+  border-right: 0;
+}
+
+.reservation-widget-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reservation-row-header > .position-relative {
+  flex: 0 0 auto;
+}
+
+.reservation-details-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.reservation-details-link:hover,
+.reservation-details-link:focus {
+  text-decoration: none;
+}
+
+.reservation-card-main {
+  min-width: 0;
+}
+
+.reservation-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.reservation-link:hover,
+.reservation-link:focus {
+  text-decoration: underline;
+}
+
+.reservation-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reservation-status {
+  white-space: nowrap;
+}
+
+.stay-widget-item {
+  border-color: #f1d2d8;
+}
+
 /* Responsive tweaks */
 @media (max-width: 576px) {
   .quick-actions .quick-action { flex: 1 1 auto; }
@@ -119,5 +174,9 @@
     text-overflow: unset;
     white-space: normal;
     margin-left: 0;
+  }
+
+  .reservation-card-actions .btn {
+    flex: 1 1 calc(50% - 0.5rem);
   }
 }

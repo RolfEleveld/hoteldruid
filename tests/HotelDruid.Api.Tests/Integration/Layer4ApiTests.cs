@@ -15,7 +15,19 @@ public class Layer4ApiTests : IAsyncLifetime
     private string _testDataRoot = null!;
     private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    private class BookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? RoomId { get; set; } public string? Status { get; set; } public string? ArrivalDate { get; set; } public string? DepartureDate { get; set; } }
+    private class BookingDto
+    {
+        public string? Id { get; set; }
+        public int Year { get; set; }
+        public string? ClientId { get; set; }
+        public string? RoomId { get; set; }
+        public string? Status { get; set; }
+        public string? ArrivalDate { get; set; }
+        public string? DepartureDate { get; set; }
+        public string? ActualArrivalDate { get; set; }
+        public int? ActualGuestCount { get; set; }
+        public double? PrepaidAmount { get; set; }
+    }
     private class BookingCostDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? TariffId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class BookingGuestDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public int? GuestNumber { get; set; } }
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
@@ -47,7 +59,7 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task Booking_Create_ReturnsCreated()
     {
-        var r = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C001", RoomId = "101", Status = "Confirmed" }));
+        var r = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C001", RoomId = "101", Status = "Confirmed", ArrivalDate = "2024-06-01", DepartureDate = "2024-06-05" }));
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
         var dto = await ReadAs<BookingDto>(r);
         Assert.NotNull(dto?.Id);
@@ -57,9 +69,21 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_Create_WithoutDates_ReturnsBadRequest_AndDoesNotPersist()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C-NoDates", Status = "Pending" }));
+        Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
+
+        var listResponse = await _client.GetAsync("/api/bookings?year=2024");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var list = await ReadAs<List<BookingDto>>(listResponse);
+        Assert.DoesNotContain(list!, b => b.ClientId == "C-NoDates");
+    }
+
+    [Fact]
     public async Task Booking_GetByYearAndId_ReturnsOk()
     {
-        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C002", Status = "Pending" }));
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C002", Status = "Pending", ArrivalDate = "2024-07-01", DepartureDate = "2024-07-03" }));
         var created = await ReadAs<BookingDto>(create);
         var r = await _client.GetAsync($"/api/bookings/2024/{created!.Id}");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
@@ -70,8 +94,8 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task Booking_List_FilteredByYear()
     {
-        await _client.PostAsync("/api/bookings", Json(new { Year = 2060, ClientId = "C010" }));
-        await _client.PostAsync("/api/bookings", Json(new { Year = 2061, ClientId = "C011" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2060, ClientId = "C010", ArrivalDate = "2060-05-10", DepartureDate = "2060-05-12" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2061, ClientId = "C011", ArrivalDate = "2061-05-10", DepartureDate = "2061-05-12" }));
         var r = await _client.GetAsync("/api/bookings?year=2060");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var list = await ReadAs<List<BookingDto>>(r);
@@ -81,7 +105,7 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task Booking_ListAfterCreate_ReturnsFreshData()
     {
-        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-A" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-A", ArrivalDate = "2090-01-01", DepartureDate = "2090-01-03" }));
 
         var first = await _client.GetAsync("/api/bookings?year=2090");
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
@@ -89,7 +113,7 @@ public class Layer4ApiTests : IAsyncLifetime
         Assert.NotNull(firstList);
         Assert.Contains(firstList!, b => b.ClientId == "Phase3-A");
 
-        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-B" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-B", ArrivalDate = "2090-02-01", DepartureDate = "2090-02-04" }));
 
         var second = await _client.GetAsync("/api/bookings?year=2090");
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
@@ -101,18 +125,62 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task Booking_Update_ChangesFields()
     {
-        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C003", Status = "Pending" }));
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C003", Status = "Pending", ArrivalDate = "2024-08-01", DepartureDate = "2024-08-05" }));
         var created = await ReadAs<BookingDto>(create);
-        var r = await _client.PutAsync($"/api/bookings/2024/{created!.Id}", Json(new { Year = 2024, ClientId = "C003", Status = "Confirmed" }));
+        var r = await _client.PutAsync($"/api/bookings/2024/{created!.Id}", Json(new { Year = 2024, ClientId = "C003", Status = "Confirmed", ArrivalDate = "2024-08-01", DepartureDate = "2024-08-06" }));
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var dto = await ReadAs<BookingDto>(r);
         Assert.Equal("Confirmed", dto?.Status);
     }
 
     [Fact]
+    public async Task Booking_Update_WithActualArrivalAndPrepay_PersistsValues()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C003X", Status = "Pending", ArrivalDate = "2024-08-01", DepartureDate = "2024-08-06" }));
+        var created = await ReadAs<BookingDto>(create);
+
+        var update = await _client.PutAsync(
+            $"/api/bookings/2024/{created!.Id}",
+            Json(new
+            {
+                Year = 2024,
+                ClientId = "C003X",
+                Status = "CheckedIn",
+                ArrivalDate = "2024-08-01",
+                DepartureDate = "2024-08-06",
+                ActualArrivalDate = "2024-08-02",
+                ActualGuestCount = 2,
+                PrepaidAmount = 125.50
+            }));
+
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var dto = await ReadAs<BookingDto>(update);
+        Assert.Equal("2024-08-02", dto?.ActualArrivalDate);
+        Assert.Equal(2, dto?.ActualGuestCount);
+        Assert.Equal(125.50, dto?.PrepaidAmount);
+    }
+
+    [Fact]
+    public async Task Booking_Update_WithInvalidDateRange_ReturnsBadRequest_AndPreservesStoredBooking()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C-BadUpdate", Status = "Pending", ArrivalDate = "2024-09-10", DepartureDate = "2024-09-15" }));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await ReadAs<BookingDto>(create);
+
+        var update = await _client.PutAsync($"/api/bookings/2024/{created!.Id}", Json(new { Year = 2024, ClientId = "C-BadUpdate", Status = "Confirmed", ArrivalDate = "2024-09-15", DepartureDate = "2024-09-10" }));
+        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
+
+        var get = await _client.GetAsync($"/api/bookings/2024/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+        var dto = await ReadAs<BookingDto>(get);
+        Assert.Equal("2024-09-10", dto?.ArrivalDate);
+        Assert.Equal("2024-09-15", dto?.DepartureDate);
+    }
+
+    [Fact]
     public async Task Booking_Delete_ReturnsNoContent()
     {
-        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C004" }));
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C004", ArrivalDate = "2024-10-01", DepartureDate = "2024-10-03" }));
         var created = await ReadAs<BookingDto>(create);
         var r = await _client.DeleteAsync($"/api/bookings/2024/{created!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
@@ -123,7 +191,7 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task Booking_Cancel_MovesToCancelledBookings()
     {
-        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C005", Status = "Confirmed" }));
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C005", Status = "Confirmed", ArrivalDate = "2024-11-01", DepartureDate = "2024-11-04" }));
         var created = await ReadAs<BookingDto>(create);
         var cancel = await _client.PostAsync($"/api/bookings/2024/{created!.Id}/cancel", null);
         Assert.Equal(HttpStatusCode.NoContent, cancel.StatusCode);
@@ -245,7 +313,7 @@ public class Layer4ApiTests : IAsyncLifetime
     [Fact]
     public async Task CancelledBooking_DeleteFromArchive_ReturnsNoContent()
     {
-        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C999", Status = "Confirmed" }));
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C999", Status = "Confirmed", ArrivalDate = "2024-12-01", DepartureDate = "2024-12-03" }));
         var created = await ReadAs<BookingDto>(create);
         await _client.PostAsync($"/api/bookings/2024/{created!.Id}/cancel", null);
         var listResp = await _client.GetAsync("/api/cancelled-bookings?year=2024");

@@ -406,6 +406,9 @@ public class BookingStorageModel
     public DateOnly? DepartureDate { get; set; }
     public string? Status { get; set; }
     public string? Notes { get; set; }
+    public DateOnly? ActualArrivalDate { get; set; }
+    public int? ActualGuestCount { get; set; }
+    public double? PrepaidAmount { get; set; }
 }
 
 public class BookingCostStorageModel

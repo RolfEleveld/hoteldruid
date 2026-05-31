@@ -1,4 +1,5 @@
 @page "/booking-guests"
+@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @inject IBookingGuestApiService BookingGuestApi
 @inject IActiveYearService ActiveYearService
@@ -69,6 +70,18 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "bookingId")]
+    public string? BookingIdQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "clientId")]
+    public string? ClientIdQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? YearQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "new")]
+    public bool? StartNew { get; set; }
+
     private List<BookingGuestClientDto>? records;
     private BookingGuestClientDto? selected;
     private bool editing, isNew;
@@ -78,12 +91,54 @@
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = ActiveYearService.CurrentYear;
+        filterYear = YearQuery ?? ActiveYearService.CurrentYear;
         await LoadAll();
+        ApplyQueryContext();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplyQueryContext();
+        return Task.CompletedTask;
     }
 
     private async Task LoadAll() => records = await BookingGuestApi.ListAsync(filterYear);
     private async Task ApplyFilter() => await LoadAll();
+
+    private void ApplyQueryContext()
+    {
+        if (YearQuery.HasValue)
+        {
+            filterYear = YearQuery.Value;
+        }
+
+        if (StartNew == true && !string.IsNullOrWhiteSpace(BookingIdQuery))
+        {
+            form = new()
+            {
+                Year = filterYear ?? ActiveYearService.CurrentYear,
+                BookingId = BookingIdQuery,
+                ClientId = ClientIdQuery
+            };
+            isNew = true;
+            editing = true;
+            selected = null;
+            errorMsg = "";
+            return;
+        }
+
+        if (records is null || string.IsNullOrWhiteSpace(BookingIdQuery))
+        {
+            return;
+        }
+
+        var existing = records.FirstOrDefault(record => string.Equals(record.BookingId, BookingIdQuery, StringComparison.OrdinalIgnoreCase)
+            && (string.IsNullOrWhiteSpace(ClientIdQuery) || string.Equals(record.ClientId, ClientIdQuery, StringComparison.OrdinalIgnoreCase)));
+        if (existing is not null)
+        {
+            SelectRecord(existing);
+        }
+    }
 
     private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(BookingGuestClientDto r) { selected = r; editing = false; }

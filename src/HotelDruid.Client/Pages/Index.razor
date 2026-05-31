@@ -55,18 +55,246 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reservations.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.Bookings", bookings?.Count ?? 0]</p>
-            @if (bookings is { Count: > 0 })
+            @if (GetVisibleReservations().Count > 0)
             {
-              <ul class="list-group list-group-flush mb-3">
-                @foreach (var booking in bookings.OrderByDescending(b => b.Id).Take(GetWidgetVisibleCount("reservations")))
+              <ul class="list-group list-group-flush mb-3 reservation-widget-list">
+                @foreach (var booking in GetVisibleReservations())
                 {
-                  <li class="list-group-item px-0 py-1 small">#@booking.Id @booking.Status</li>
+                  <li class="list-group-item px-0 py-2 reservation-widget-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2 reservation-row-header">
+                      <button type="button" class="btn btn-link p-0 text-start reservation-details-link" @onclick="() => GoToBooking(booking.Id, booking.Year, edit: true)">
+                        <div class="reservation-card-main">
+                          <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div class="fw-semibold reservation-link">@GetBookingClientDisplayName(booking)</div>
+                              <div class="text-muted small">@GetReservationDateRange(booking)</div>
+                            </div>
+                            <span class="badge text-bg-light reservation-status">@GetBookingStatusLabel(booking)</span>
+                          </div>
+                          <div class="small text-muted mt-1">@GetReservationRoomLabel(booking)</div>
+                          <div class="small text-muted">@GetArrivalCheckpointLabel(booking)</div>
+                        </div>
+                      </button>
+
+                      <div class="position-relative">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-menu-button"
+                                title="@L["Dashboard.Reservations.RowMenu"]" @onclick="() => ToggleReservationMenu(GetBookingMenuKey(booking))">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        @if (openReservationMenuId == GetBookingMenuKey(booking))
+                        {
+                          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
+                            <button class="dropdown-item" @onclick="() => GoToBooking(booking.Id, booking.Year, edit: true)">@L["Dashboard.Reservations.Action.OpenReservation"]</button>
+                            <button class="dropdown-item" @onclick="() => MarkBookingArrivedAsync(booking)">@L["Dashboard.Reservations.Menu.Arrived"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(booking.Id, booking.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(booking.Id, booking.ClientId, booking.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
+                            @if (!string.IsNullOrWhiteSpace(booking.ClientId))
+                            {
+                              <button class="dropdown-item" @onclick="() => GoToClient(booking.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
+                              <button class="dropdown-item" @onclick="() => GoToClientWishes(booking.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </li>
                 }
               </ul>
+            }
+            else
+            {
+              <p class="small text-muted">@L["Dashboard.Reservations.Empty"]</p>
             }
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
               <a class="btn btn-outline-primary btn-sm" href="/bookings">@L["Index.Feature.Reservations.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("arrivals")">
+        <div class="card feature-card border-secondary dashboard-widget h-100">
+          @WidgetHeader("arrivals", "bi-calendar-event", L["Dashboard.Arrivals.Title"], "Dashboard.Widget.VisibleCount.Arrivals", "Index.QuickAction.NewReservation", "/bookings/new")
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Dashboard.Arrivals.Subtitle", arrivalsLookAheadDays]</p>
+            <p class="small fw-semibold">@L["Dashboard.Arrivals.Count", GetPendingArrivals().Count]</p>
+            @if (GetPendingArrivals().Count > 0)
+            {
+              <ul class="list-group list-group-flush mb-3 reservation-widget-list">
+                @foreach (var arrival in GetPendingArrivals())
+                {
+                  <li class="list-group-item px-0 py-2 reservation-widget-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2 reservation-row-header">
+                      <button type="button" class="btn btn-link p-0 text-start reservation-details-link" @onclick="() => GoToBooking(arrival.Id, arrival.Year, edit: true)">
+                        <div class="reservation-card-main">
+                          <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div class="fw-semibold reservation-link">@GetBookingClientDisplayName(arrival)</div>
+                              <div class="text-muted small">@GetReservationDateRange(arrival)</div>
+                            </div>
+                            <span class="badge text-bg-warning-subtle">@L["Dashboard.Arrivals.Badge"]</span>
+                          </div>
+                          <div class="small text-muted mt-1">@GetReservationRoomLabel(arrival)</div>
+                        </div>
+                      </button>
+
+                      <div class="position-relative">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-menu-button"
+                                title="@L["Dashboard.Arrivals.RowMenu"]" @onclick="() => ToggleArrivalMenu(GetBookingMenuKey(arrival))">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        @if (openArrivalMenuId == GetBookingMenuKey(arrival))
+                        {
+                          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
+                            <button class="dropdown-item" @onclick="() => GoToBooking(arrival.Id, arrival.Year, edit: true)">@L["Dashboard.Reservations.Action.OpenReservation"]</button>
+                            <button class="dropdown-item" @onclick="() => MarkBookingArrivedAsync(arrival)">@L["Dashboard.Reservations.Menu.Arrived"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(arrival.Id, arrival.ClientId, arrival.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
+                            @if (!string.IsNullOrWhiteSpace(arrival.ClientId))
+                            {
+                              <button class="dropdown-item" @onclick="() => GoToClient(arrival.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
+                              <button class="dropdown-item" @onclick="() => GoToClientWishes(arrival.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+            else
+            {
+              <p class="small text-muted">@L["Dashboard.Arrivals.Empty"]</p>
+            }
+
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
+              <a class="btn btn-outline-secondary btn-sm" href="/bookings?view=arrivals">@L["Dashboard.Arrivals.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("stays")">
+        <div class="card feature-card border-danger dashboard-widget h-100">
+          @WidgetHeader("stays", "bi-door-open-fill", L["Dashboard.Stays.Title"], "Dashboard.Widget.VisibleCount.Stays", "Index.QuickAction.NewStay", "/bookings/new?mode=stay")
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Dashboard.Stays.Subtitle"]</p>
+            <p class="small fw-semibold">@L["Dashboard.Stays.Count", GetCurrentStays().Count]</p>
+            @if (GetCurrentStays().Count > 0)
+            {
+              <ul class="list-group list-group-flush mb-3 reservation-widget-list">
+                @foreach (var stay in GetCurrentStays())
+                {
+                  <li class="list-group-item px-0 py-2 reservation-widget-item stay-widget-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2 reservation-row-header">
+                      <button type="button" class="btn btn-link p-0 text-start reservation-details-link" @onclick="() => GoToBooking(stay.Id, stay.Year, edit: true)">
+                        <div class="reservation-card-main">
+                          <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div class="fw-semibold">@GetRoomDisplayName(stay.RoomId)</div>
+                              <div class="reservation-link small">@GetBookingClientDisplayName(stay)</div>
+                            </div>
+                            <span class="badge text-bg-danger-subtle">@L["Dashboard.Stays.ActiveBadge"]</span>
+                          </div>
+                          <div class="small text-muted mt-1">@GetReservationDateRange(stay)</div>
+                        </div>
+                      </button>
+
+                      <div class="position-relative">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-menu-button"
+                                title="@L["Dashboard.Stays.RowMenu"]" @onclick="() => ToggleStayMenu(GetBookingMenuKey(stay))">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        @if (openStayMenuId == GetBookingMenuKey(stay))
+                        {
+                          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
+                            <button class="dropdown-item" @onclick="() => GoToBooking(stay.Id, stay.Year, edit: true)">@L["Dashboard.Stays.Action.OpenReservation"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(stay.Id, stay.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(stay.Id, stay.ClientId, stay.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
+                            @if (!string.IsNullOrWhiteSpace(stay.ClientId))
+                            {
+                              <button class="dropdown-item" @onclick="() => GoToClient(stay.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
+                              <button class="dropdown-item" @onclick="() => GoToClientWishes(stay.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+            else
+            {
+              <p class="small text-muted">@L["Dashboard.Stays.Empty"]</p>
+            }
+
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-success btn-sm" href="/bookings/new?mode=stay">@L["Index.QuickAction.NewStay"]</a>
+              <a class="btn btn-outline-primary btn-sm" href="/bookings?view=stays">@L["Dashboard.Stays.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="@GetWidgetColumnClass("departures")">
+        <div class="card feature-card border-dark dashboard-widget h-100">
+          @WidgetHeader("departures", "bi-box-arrow-right", L["Dashboard.Departures.Title"], "Dashboard.Widget.VisibleCount.Departures", "Index.QuickAction.NewReservation", "/bookings/new")
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Dashboard.Departures.Subtitle"]</p>
+            <p class="small fw-semibold">@L["Dashboard.Departures.Count", GetPendingDepartures().Count]</p>
+            @if (GetPendingDepartures().Count > 0)
+            {
+              <ul class="list-group list-group-flush mb-3 reservation-widget-list">
+                @foreach (var departure in GetPendingDepartures())
+                {
+                  <li class="list-group-item px-0 py-2 reservation-widget-item stay-widget-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2 reservation-row-header">
+                      <button type="button" class="btn btn-link p-0 text-start reservation-details-link" @onclick="() => GoToBooking(departure.Id, departure.Year, edit: true)">
+                        <div class="reservation-card-main">
+                          <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                              <div class="fw-semibold">@GetRoomDisplayName(departure.RoomId)</div>
+                              <div class="reservation-link small">@GetBookingClientDisplayName(departure)</div>
+                            </div>
+                            <span class="badge text-bg-secondary-subtle">@L["Dashboard.Departures.Badge"]</span>
+                          </div>
+                          <div class="small text-muted mt-1">@GetReservationDateRange(departure)</div>
+                        </div>
+                      </button>
+
+                      <div class="position-relative">
+                        <button type="button" class="btn btn-sm btn-outline-secondary widget-menu-button"
+                                title="@L["Dashboard.Departures.RowMenu"]" @onclick="() => ToggleDepartureMenu(GetBookingMenuKey(departure))">
+                          <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        @if (openDepartureMenuId == GetBookingMenuKey(departure))
+                        {
+                          <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
+                            <button class="dropdown-item" @onclick="() => GoToBooking(departure.Id, departure.Year, edit: true)">@L["Dashboard.Stays.Action.OpenReservation"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(departure.Id, departure.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
+                            @if (!string.IsNullOrWhiteSpace(departure.ClientId))
+                            {
+                              <button class="dropdown-item" @onclick="() => GoToClient(departure.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+            else
+            {
+              <p class="small text-muted">@L["Dashboard.Departures.Empty"]</p>
+            }
+
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-dark btn-sm" href="/booking-costs">@L["Dashboard.Stays.Action.AddCosts"]</a>
+              <a class="btn btn-outline-dark btn-sm" href="/bookings?view=departures">@L["Dashboard.Departures.Button"]</a>
             </div>
           </div>
         </div>
@@ -81,9 +309,9 @@
             @if (clients is { Count: > 0 })
             {
               <ul class="list-group list-group-flush mb-3">
-                @foreach (var client in clients.OrderByDescending(c => c.Id).Take(GetWidgetVisibleCount("clients")))
+                @foreach (var client in clients.OrderBy(c => c.LastName, StringComparer.OrdinalIgnoreCase).ThenBy(c => c.FirstName, StringComparer.OrdinalIgnoreCase).Take(GetWidgetVisibleCount("clients")))
                 {
-                  <li class="list-group-item px-0 py-1 small">@client.Name</li>
+                  <li class="list-group-item px-0 py-1 small">@BuildClientDisplayName(client)</li>
                 }
               </ul>
             }
@@ -155,7 +383,7 @@
                   var isSelected = selectedRoomId == room.Id;
                   <li class="list-group-item px-0 py-2">
                     <div class="d-flex justify-content-between align-items-start gap-2 room-row-header">
-                      <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => ToggleRoomDetails(room.Id)">
+                      <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => GoToRoomManagement(room.Id)">
                         <span class="fw-semibold room-link-title">@room.Name</span>
                         @if (compactRoomsView)
                         {
@@ -176,7 +404,9 @@
                         @if (openRoomMenuId == room.Id)
                         {
                           <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-                            <button class="dropdown-item" @onclick="() => ToggleRoomDetails(room.Id)">@L["DashboardRooms.Menu.ViewDetails"]</button>
+                            <button class="dropdown-item" @onclick="() => GoToNewReservation(room.Id)">@L["DashboardRooms.Menu.NewReservation"]</button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" @onclick="() => GoToRoomManagement(room.Id)">@L["DashboardRooms.Menu.ViewDetails"]</button>
                             <button class="dropdown-item" @onclick="() => GoToRoomManagement(room.Id)">@L["DashboardRooms.Menu.ManageRoom"]</button>
                             <button class="dropdown-item text-danger" @onclick="() => DeleteRoomAsync(room.Id)">@L["DashboardRooms.Menu.DeleteRoom"]</button>
                           </div>
@@ -272,6 +502,10 @@
     private bool isDashboardSettingsMenuOpen;
     private string? openMenuWidgetId;
     private string? openRoomMenuId;
+    private string? openReservationMenuId;
+    private string? openStayMenuId;
+    private string? openArrivalMenuId;
+    private string? openDepartureMenuId;
     private string? selectedRoomId;
     private static readonly int[] WidgetVisibleCountOptions = [3, 5, 7, 10, 15];
 
@@ -282,15 +516,20 @@
     private const string RoomsSortModeDefaultsSettingKey = "DashboardRoomsSortModeDefault";
     private const string RoomsIncludeWithoutBedsDefaultsSettingKey = "DashboardRoomsIncludeWithoutBedsDefault";
     private const string RoomsCompactViewDefaultsSettingKey = "DashboardRoomsCompactViewDefault";
+    private const string ArrivalsLookAheadDaysSettingKey = "DashboardArrivalsLookAheadDays";
 
     private string roomsSearch = string.Empty;
     private RoomSortMode roomSortMode = RoomSortMode.Priority;
     private bool showRoomsWithoutBeds = true;
     private bool compactRoomsView = true;
+    private int arrivalsLookAheadDays;
 
     private readonly Dictionary<string, string> widgetSizes = new(StringComparer.OrdinalIgnoreCase)
     {
       ["reservations"] = "1x1",
+      ["arrivals"] = "1x1",
+      ["stays"] = "1x1",
+      ["departures"] = "1x1",
       ["clients"] = "1x1",
       ["rooms"] = "2x1",
       ["calendar"] = "1x1",
@@ -302,6 +541,9 @@
     private readonly Dictionary<string, int> widgetVisibleCounts = new(StringComparer.OrdinalIgnoreCase)
     {
       ["reservations"] = 3,
+      ["arrivals"] = 3,
+      ["stays"] = 3,
+      ["departures"] = 3,
       ["clients"] = 3,
       ["rooms"] = 3,
       ["calendar"] = 3,
@@ -549,12 +791,63 @@
     {
       openMenuWidgetId = openMenuWidgetId == widgetId ? null : widgetId;
       openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
       isDashboardSettingsMenuOpen = false;
     }
 
     private void ToggleRoomMenu(string roomId)
     {
       openRoomMenuId = openRoomMenuId == roomId ? null : roomId;
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      isDashboardSettingsMenuOpen = false;
+    }
+
+    private void ToggleReservationMenu(string bookingMenuId)
+    {
+      openReservationMenuId = openReservationMenuId == bookingMenuId ? null : bookingMenuId;
+      openRoomMenuId = null;
+      openMenuWidgetId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      isDashboardSettingsMenuOpen = false;
+    }
+
+    private void ToggleStayMenu(string bookingMenuId)
+    {
+      openStayMenuId = openStayMenuId == bookingMenuId ? null : bookingMenuId;
+      openReservationMenuId = null;
+      openRoomMenuId = null;
+      openMenuWidgetId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      isDashboardSettingsMenuOpen = false;
+    }
+
+    private void ToggleDepartureMenu(string bookingMenuId)
+    {
+      openDepartureMenuId = openDepartureMenuId == bookingMenuId ? null : bookingMenuId;
+      openArrivalMenuId = null;
+      openStayMenuId = null;
+      openReservationMenuId = null;
+      openRoomMenuId = null;
+      openMenuWidgetId = null;
+      isDashboardSettingsMenuOpen = false;
+    }
+
+    private void ToggleArrivalMenu(string bookingMenuId)
+    {
+      openArrivalMenuId = openArrivalMenuId == bookingMenuId ? null : bookingMenuId;
+      openStayMenuId = null;
+      openReservationMenuId = null;
+      openRoomMenuId = null;
       openMenuWidgetId = null;
       isDashboardSettingsMenuOpen = false;
     }
@@ -563,6 +856,7 @@
     {
       selectedRoomId = selectedRoomId == roomId ? null : roomId;
       openRoomMenuId = null;
+      openDepartureMenuId = null;
     }
 
     private void ToggleCompactRoomsView()
@@ -632,6 +926,143 @@
       return result;
     }
 
+    private List<BookingDto> GetVisibleReservations()
+    {
+      if (bookings is null)
+      {
+        return new List<BookingDto>();
+      }
+
+      return bookings
+        .Where(booking => !IsNonBlockingStatus(booking.Status))
+        .OrderByDescending(GetBookingSortDate)
+        .ThenByDescending(booking => booking.Year)
+        .ThenByDescending(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
+        .Take(GetWidgetVisibleCount("reservations"))
+        .ToList();
+    }
+
+    private List<BookingDto> GetCurrentStays()
+    {
+      if (bookings is null)
+      {
+        return new List<BookingDto>();
+      }
+
+      var today = DateOnly.FromDateTime(DateTime.UtcNow);
+      return bookings
+        .Where(booking => IsCurrentStay(booking, today))
+        .OrderBy(booking => GetRoomDisplayName(booking.RoomId), StringComparer.OrdinalIgnoreCase)
+        .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
+        .Take(GetWidgetVisibleCount("stays"))
+        .ToList();
+    }
+
+    private List<BookingDto> GetPendingArrivals()
+    {
+      if (bookings is null)
+      {
+        return new List<BookingDto>();
+      }
+
+      var today = DateOnly.FromDateTime(DateTime.UtcNow);
+      return bookings
+        .Where(booking => IsPendingArrival(booking, today, arrivalsLookAheadDays))
+        .OrderBy(booking => TryParseDate(booking.ArrivalDate) ?? DateOnly.MaxValue)
+        .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
+        .Take(GetWidgetVisibleCount("arrivals"))
+        .ToList();
+    }
+
+    private List<BookingDto> GetPendingDepartures()
+    {
+      if (bookings is null)
+      {
+        return new List<BookingDto>();
+      }
+
+      var today = DateOnly.FromDateTime(DateTime.UtcNow);
+      return bookings
+        .Where(booking => IsPendingDeparture(booking, today))
+        .OrderBy(booking => GetRoomDisplayName(booking.RoomId), StringComparer.OrdinalIgnoreCase)
+        .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
+        .Take(GetWidgetVisibleCount("departures"))
+        .ToList();
+    }
+
+    private static DateOnly GetBookingSortDate(BookingDto booking)
+    {
+      return TryParseDate(booking.ArrivalDate) ?? TryParseDate(booking.DepartureDate) ?? DateOnly.MinValue;
+    }
+
+    private static DateOnly? TryParseDate(string? value)
+    {
+      return DateOnly.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    private static bool IsCurrentStay(BookingDto booking, DateOnly today)
+    {
+      if (string.IsNullOrWhiteSpace(booking.RoomId)
+          || IsNonBlockingStatus(booking.Status))
+      {
+        return false;
+      }
+
+      var actualArrival = TryParseDate(booking.ActualArrivalDate);
+      var departure = TryParseDate(booking.DepartureDate);
+      if (!actualArrival.HasValue || !departure.HasValue || departure.Value <= actualArrival.Value)
+      {
+        return false;
+      }
+      if (!booking.ActualGuestCount.HasValue || booking.ActualGuestCount.Value <= 0)
+      {
+        return false;
+      }
+
+      return actualArrival.Value <= today && today < departure.Value;
+    }
+
+    private static bool IsPendingArrival(BookingDto booking, DateOnly today, int lookAheadDays)
+    {
+      if (IsNonBlockingStatus(booking.Status))
+      {
+        return false;
+      }
+
+      if (TryParseDate(booking.ActualArrivalDate).HasValue)
+      {
+        return false;
+      }
+
+      var arrival = TryParseDate(booking.ArrivalDate);
+      var departure = TryParseDate(booking.DepartureDate);
+      if (!arrival.HasValue || !departure.HasValue || departure.Value <= arrival.Value)
+      {
+        return false;
+      }
+
+      var latestArrival = today.AddDays(Math.Max(0, lookAheadDays));
+      return today <= arrival.Value && arrival.Value <= latestArrival;
+    }
+
+    private static bool IsPendingDeparture(BookingDto booking, DateOnly today)
+    {
+      if (string.IsNullOrWhiteSpace(booking.RoomId)
+          || IsNonBlockingStatus(booking.Status))
+      {
+        return false;
+      }
+
+      var actualArrival = TryParseDate(booking.ActualArrivalDate);
+      var departure = TryParseDate(booking.DepartureDate);
+      if (!actualArrival.HasValue || !departure.HasValue || departure.Value <= actualArrival.Value)
+      {
+        return false;
+      }
+
+      return departure.Value == today;
+    }
+
     private static HashSet<string> GetUnavailableRoomIds(IEnumerable<BookingDto>? currentBookings, DateOnly today)
     {
       var unavailable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -642,18 +1073,7 @@
 
       foreach (var booking in currentBookings)
       {
-        if (string.IsNullOrWhiteSpace(booking.RoomId)
-            || string.IsNullOrWhiteSpace(booking.ArrivalDate)
-            || string.IsNullOrWhiteSpace(booking.DepartureDate)
-            || !DateOnly.TryParse(booking.ArrivalDate, out var arrival)
-            || !DateOnly.TryParse(booking.DepartureDate, out var departure)
-            || departure <= arrival
-            || IsNonBlockingStatus(booking.Status))
-        {
-          continue;
-        }
-
-        if (arrival <= today && today < departure)
+        if (IsCurrentStay(booking, today) && !string.IsNullOrWhiteSpace(booking.RoomId))
         {
           unavailable.Add(booking.RoomId);
         }
@@ -679,6 +1099,81 @@
       var floor = room.FloorNumber?.ToString() ?? "-";
       var house = string.IsNullOrWhiteSpace(room.HouseNumber) ? "-" : room.HouseNumber;
       return $"{L["DashboardRooms.RoomCapacity", room.Capacity]} · {L["DashboardRooms.Detail.Floor"]}: {floor} · {L["DashboardRooms.Detail.House"]}: {house}";
+    }
+
+    private string GetBookingClientDisplayName(BookingDto booking)
+    {
+      if (clients is null || string.IsNullOrWhiteSpace(booking.ClientId))
+      {
+        return L["Dashboard.Reservations.UnknownClient"];
+      }
+
+      var client = clients.FirstOrDefault(current => string.Equals(current.Id, booking.ClientId, StringComparison.OrdinalIgnoreCase));
+      return client is null ? L["Dashboard.Reservations.UnknownClient"] : BuildClientDisplayName(client);
+    }
+
+    private static string BuildClientDisplayName(ClientDto client)
+    {
+      if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
+      {
+        return $"{client.LastName}, {client.FirstName}";
+      }
+
+      if (!string.IsNullOrWhiteSpace(client.LastName))
+      {
+        return client.LastName;
+      }
+
+      if (!string.IsNullOrWhiteSpace(client.FirstName))
+      {
+        return client.FirstName;
+      }
+
+      return client.Id ?? string.Empty;
+    }
+
+    private string GetReservationDateRange(BookingDto booking)
+    {
+      var arrival = TryParseDate(booking.ArrivalDate)?.ToString("yyyy-MM-dd") ?? L["Dashboard.Reservations.NoArrival"].Value;
+      var departure = TryParseDate(booking.DepartureDate)?.ToString("yyyy-MM-dd") ?? L["Dashboard.Reservations.NoDeparture"].Value;
+      return $"{arrival} -> {departure}";
+    }
+
+    private string GetBookingStatusLabel(BookingDto booking)
+    {
+      return string.IsNullOrWhiteSpace(booking.Status)
+        ? L["Dashboard.Reservations.StatusUnknown"]
+        : booking.Status;
+    }
+
+    private string GetArrivalCheckpointLabel(BookingDto booking)
+    {
+      var actualArrival = TryParseDate(booking.ActualArrivalDate);
+      if (!actualArrival.HasValue)
+      {
+        return L["Dashboard.Reservations.NotArrived"];
+      }
+
+      var guests = booking.ActualGuestCount.HasValue ? booking.ActualGuestCount.Value.ToString() : "-";
+      return $"{L["Dashboard.Reservations.ArrivedOn"]}: {actualArrival.Value:yyyy-MM-dd} · {L["Dashboard.Reservations.ArrivedGuests"]}: {guests}";
+    }
+
+    private string GetReservationRoomLabel(BookingDto booking)
+    {
+      return string.IsNullOrWhiteSpace(booking.RoomId)
+        ? L["Dashboard.Reservations.UnassignedRoom"]
+        : $"{L["Dashboard.Reservations.RoomLabel"]}: {GetRoomDisplayName(booking.RoomId)}";
+    }
+
+    private string GetRoomDisplayName(string? roomId)
+    {
+      if (string.IsNullOrWhiteSpace(roomId))
+      {
+        return L["Dashboard.Reservations.UnassignedRoom"];
+      }
+
+      var room = availableRooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+      return room?.Name ?? roomId;
     }
 
     private void SetWidgetVisibleCount(string widgetId, int count)
@@ -806,6 +1301,14 @@
       {
         compactRoomsView = parsedCompactView;
       }
+
+      if (settings.TryGetValue(ArrivalsLookAheadDaysSettingKey, out var arrivalsWindow)
+          && int.TryParse(arrivalsWindow, out var parsedArrivalsWindow)
+          && parsedArrivalsWindow >= 0
+          && parsedArrivalsWindow <= 14)
+      {
+        arrivalsLookAheadDays = parsedArrivalsWindow;
+      }
     }
 
     private void BeginEditHotelName()
@@ -837,6 +1340,10 @@
       isDashboardSettingsMenuOpen = !isDashboardSettingsMenuOpen;
       openMenuWidgetId = null;
       openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
     }
 
     private async Task SaveCurrentLayoutAsDefaultAsync()
@@ -850,6 +1357,9 @@
       isDashboardSettingsMenuOpen = false;
 
       widgetSizes["reservations"] = "1x1";
+      widgetSizes["arrivals"] = "1x1";
+      widgetSizes["stays"] = "1x1";
+      widgetSizes["departures"] = "1x1";
       widgetSizes["clients"] = "1x1";
       widgetSizes["rooms"] = "2x1";
       widgetSizes["calendar"] = "1x1";
@@ -863,6 +1373,7 @@
       roomSortMode = RoomSortMode.Priority;
       showRoomsWithoutBeds = false;
       compactRoomsView = true;
+      arrivalsLookAheadDays = 0;
       roomsSearch = string.Empty;
 
       SavePreferencesAsync();
@@ -886,6 +1397,7 @@
       systemConfiguration.Settings[RoomsSortModeDefaultsSettingKey] = roomSortMode.ToString();
       systemConfiguration.Settings[RoomsIncludeWithoutBedsDefaultsSettingKey] = showRoomsWithoutBeds.ToString();
       systemConfiguration.Settings[RoomsCompactViewDefaultsSettingKey] = compactRoomsView.ToString();
+      systemConfiguration.Settings[ArrivalsLookAheadDaysSettingKey] = arrivalsLookAheadDays.ToString();
       systemConfiguration.UpdatedUtc = DateTime.UtcNow;
 
       await Http.PutAsJsonAsync("/api/system/configuration", systemConfiguration);
@@ -899,24 +1411,156 @@
     private void GoToRoute(string route)
     {
       openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
       Navigation.NavigateTo(route);
     }
 
     private void GoToRoomLayout()
     {
       openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
       Navigation.NavigateTo("/rooms");
+    }
+
+    private void GoToNewReservation(string? roomId = null)
+    {
+      openMenuWidgetId = null;
+      openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      var route = "/bookings/new";
+      if (!string.IsNullOrWhiteSpace(roomId))
+      {
+        route += $"?roomId={Uri.EscapeDataString(roomId)}";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private void GoToBooking(string? bookingId, int year, bool edit = false)
+    {
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      if (string.IsNullOrWhiteSpace(bookingId))
+      {
+        Navigation.NavigateTo("/bookings");
+        return;
+      }
+
+      var route = $"/bookings?selectedId={Uri.EscapeDataString(bookingId)}";
+      if (edit)
+      {
+        route += "&edit=true";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private void GoToClient(string? clientId, bool edit = false)
+    {
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      if (string.IsNullOrWhiteSpace(clientId))
+      {
+        Navigation.NavigateTo("/clients");
+        return;
+      }
+
+      var route = $"/clients?selectedId={Uri.EscapeDataString(clientId)}";
+      if (edit)
+      {
+        route += "&edit=true";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private void GoToBookingCosts(string? bookingId, int year)
+    {
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      if (string.IsNullOrWhiteSpace(bookingId))
+      {
+        Navigation.NavigateTo("/booking-costs");
+        return;
+      }
+
+      Navigation.NavigateTo($"/booking-costs?year={year}&bookingId={Uri.EscapeDataString(bookingId)}&new=true");
+    }
+
+    private void GoToBookingGuests(string? bookingId, string? clientId, int year)
+    {
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      if (string.IsNullOrWhiteSpace(bookingId))
+      {
+        Navigation.NavigateTo("/booking-guests");
+        return;
+      }
+
+      var route = $"/booking-guests?year={year}&bookingId={Uri.EscapeDataString(bookingId)}&new=true";
+      if (!string.IsNullOrWhiteSpace(clientId))
+      {
+        route += $"&clientId={Uri.EscapeDataString(clientId)}";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private void GoToClientWishes(string? clientId)
+    {
+      openMenuWidgetId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+      if (string.IsNullOrWhiteSpace(clientId))
+      {
+        Navigation.NavigateTo("/client-data");
+        return;
+      }
+
+      Navigation.NavigateTo($"/client-data?clientId={Uri.EscapeDataString(clientId)}&new=true&type=GuestWish");
     }
 
     private void GoToRoomManagement(string roomId)
     {
       openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
       Navigation.NavigateTo($"/rooms?selectedId={roomId}");
     }
 
     private async Task DeleteRoomAsync(string roomId)
     {
       openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
 
       var response = await Http.DeleteAsync($"/api/rooms/{roomId}");
       if (!response.IsSuccessStatusCode)
@@ -931,22 +1575,83 @@
       }
     }
 
+    private string GetBookingMenuKey(BookingDto booking)
+    {
+      var id = booking.Id ?? string.Empty;
+      return $"{booking.Year}:{id}";
+    }
+
+    private async Task MarkBookingArrivedAsync(BookingDto booking)
+    {
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      if (string.IsNullOrWhiteSpace(booking.Id)
+          || booking.Year <= 0
+          || string.IsNullOrWhiteSpace(booking.ClientId)
+          || string.IsNullOrWhiteSpace(booking.ArrivalDate)
+          || string.IsNullOrWhiteSpace(booking.DepartureDate))
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      var now = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+      var payload = new
+      {
+        Year = booking.Year,
+        ClientId = booking.ClientId,
+        RoomId = booking.RoomId,
+        ArrivalDate = booking.ArrivalDate,
+        DepartureDate = booking.DepartureDate,
+        Status = string.IsNullOrWhiteSpace(booking.Status) ? "Arrived" : booking.Status,
+        Notes = booking.Notes,
+        ActualArrivalDate = now,
+        ActualGuestCount = booking.ActualGuestCount.HasValue && booking.ActualGuestCount.Value > 0 ? booking.ActualGuestCount.Value : 1,
+        PrepaidAmount = booking.PrepaidAmount
+      };
+
+      var response = await Http.PutAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}", payload);
+      if (!response.IsSuccessStatusCode)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      booking.ActualArrivalDate = now;
+      if (!booking.ActualGuestCount.HasValue || booking.ActualGuestCount.Value <= 0)
+      {
+        booking.ActualGuestCount = 1;
+      }
+
+      StateHasChanged();
+    }
+
     private class ClientDto
     {
-      public int Id { get; set; }
-      public string? Name { get; set; }
+      public string? Id { get; set; }
+      public string? LastName { get; set; }
+      public string? FirstName { get; set; }
       public string? Email { get; set; }
       public string? Phone { get; set; }
+      public string? City { get; set; }
     }
 
     private class BookingDto
     {
       public string? Id { get; set; }
-      public int ClientId { get; set; }
+      public int Year { get; set; }
+      public string? ClientId { get; set; }
       public string? RoomId { get; set; }
       public string? ArrivalDate { get; set; }
       public string? DepartureDate { get; set; }
       public string? Status { get; set; }
+      public string? Notes { get; set; }
+      public string? ActualArrivalDate { get; set; }
+      public int? ActualGuestCount { get; set; }
+      public double? PrepaidAmount { get; set; }
     }
 
     private class SetupStatusDto

@@ -5,6 +5,7 @@ using FluentAssertions;
 using HotelDruid.Client.Pages;
 using HotelDruid.Client.Services;
 using HotelDruid.Shared;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -57,7 +58,22 @@ public class BookingsPageIntegrationTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            component.FindAll("input[type='date']").Should().HaveCount(2);
+            component.FindAll("input[type='date']").Should().HaveCount(3);
+        });
+    }
+
+    [Fact]
+    public void BookingsNewRoute_ShouldPrefillRoom_WhenRoomIdQueryIsProvided()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings/new?roomId=room-77");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var textInputs = component.FindAll("input.form-control");
+            textInputs.Should().Contain(input => input.GetAttribute("value") == "room-77");
         });
     }
 }

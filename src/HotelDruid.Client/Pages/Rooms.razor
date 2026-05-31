@@ -356,6 +356,9 @@
 </style>
 
 @code {
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
     private List<RoomDto>? rooms;
     private RoomDto? selectedRoom;
     private RoomEditModel? editModel;
@@ -409,7 +412,14 @@
     {
         statusMessage = L["common.noChanges", "No changes"];
         await LoadRooms();
+        ApplySelectedRoomFromQuery();
         initAutoSaveTimer();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplySelectedRoomFromQuery();
+        return Task.CompletedTask;
     }
 
     private void initAutoSaveTimer()
@@ -433,10 +443,25 @@
                 .OrderBy(room => room.Name, NaturalRoomNameComparer.Instance)
                 .ThenBy(room => room.Id, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            ApplySelectedRoomFromQuery();
         }
         catch (Exception ex)
         {
             lastError = string.Format(L["rooms.loadFailed", "Failed to load rooms: {0}"], ex.Message);
+        }
+    }
+
+    private void ApplySelectedRoomFromQuery()
+    {
+        if (rooms is null || string.IsNullOrWhiteSpace(SelectedId))
+        {
+            return;
+        }
+
+        var requestedRoom = rooms.FirstOrDefault(room => string.Equals(room.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (requestedRoom is not null && !string.Equals(selectedRoom?.Id, requestedRoom.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            SelectRoom(requestedRoom);
         }
     }
 
