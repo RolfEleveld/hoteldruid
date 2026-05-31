@@ -435,18 +435,28 @@
         </div>
       </div>
 
+
       <div class="@GetWidgetColumnClass("calendar")">
         <div class="card feature-card border-purple dashboard-widget h-100">
           @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"], "Dashboard.Widget.VisibleCount.Calendar", "Dashboard.Widget.Menu.AddYear", "/years")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Calendar.Subtitle"]</p>
             <p class="small fw-semibold">@L["Dashboard.Count.ActiveYear", activeYearDisplay]</p>
+            <div class="calendar-months-widget-list mb-2">
+              @foreach (var month in GetCalendarWidgetMonths())
+              {
+                <button type="button" class="calendar-month-widget-box" @onclick="() => GoToCalendarMonth(month.Year, month.Month)">
+                  <div class="calendar-month-widget-label">@month.ToString("MMM yyyy")</div>
+                </button>
+              }
+            </div>
             <div class="d-flex gap-2 mt-auto">
-              <a class="btn btn-outline-dark btn-sm" href="/calendar">@L["Index.Feature.Calendar.Button"]</a>
+              <a class="btn btn-outline-dark btn-sm w-100" href="/calendar">@L["Index.Feature.Calendar.Button"]</a>
             </div>
           </div>
         </div>
       </div>
+
 
       <div class="@GetWidgetColumnClass("inventory")">
         <div class="card feature-card border-dark dashboard-widget h-100">
@@ -488,7 +498,65 @@
   </div>
 </div>
 
+
+<style>
+.calendar-months-widget-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.calendar-month-widget-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  min-height: 54px;
+  background: #f3f4f6;
+  border: 2px solid #a78bfa;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 0.25rem;
+}
+.calendar-month-widget-box:hover, .calendar-month-widget-box:focus {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  color: #1e293b;
+}
+.calendar-month-widget-label {
+  padding: 0.25rem 0.5rem;
+}
+</style>
+
 @code {
+    // --- Calendar Widget Month Selector and Logic ---
+    private static readonly int[] CalendarWidgetMonthOptions = new[] { 3, 6, 12 };
+    private int calendarWidgetMonthCount = 3;
+
+    private IEnumerable<DateTime> GetCalendarWidgetMonths()
+    {
+        var now = DateTime.Now;
+        for (int i = 0; i < calendarWidgetMonthCount; i++)
+        {
+            yield return new DateTime(now.Year, now.Month, 1).AddMonths(i);
+        }
+    }
+
+    private void GoToCalendarMonth(int year, int month)
+    {
+      // Use the route-based navigation for robust parameter handling
+      Navigation.NavigateTo($"/calendar/{year}/{month}");
+    }
+
+    private void SetCalendarWidgetMonthCount(int count)
+    {
+        calendarWidgetMonthCount = count;
+        SavePreferencesAsync();
+    }
 
     private SystemConfiguration? systemConfiguration;
     private List<ClientDto>? clients;
@@ -663,6 +731,7 @@
       }
     }
 
+
     private RenderFragment WidgetHeader(string widgetId, string icon, string title, string visibleCountHeaderKey, string? addActionLabelKey = null, string? addActionRoute = null) => builder =>
     {
       builder.OpenElement(0, "div");
@@ -720,24 +789,31 @@
           builder.CloseElement();
         }
 
-        builder.OpenElement(30, "div");
-        builder.AddAttribute(31, "class", "dropdown-header");
-        builder.AddContent(32, L[visibleCountHeaderKey]);
-        builder.CloseElement();
-
-        foreach (var count in WidgetVisibleCountOptions)
+        // --- Calendar widget: Months to show selector ---
+        if (widgetId == "calendar")
         {
-          var localCount = count;
-          builder.OpenElement(40 + count, "button");
-          builder.AddAttribute(41 + count, "class", "dropdown-item");
-          builder.AddAttribute(42 + count, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localCount)));
-          builder.AddContent(43 + count, localCount.ToString());
+          builder.OpenElement(30, "div");
+          builder.AddAttribute(31, "class", "dropdown-header");
+          builder.AddContent(32, "Months to show");
+          builder.CloseElement();
+          foreach (var count in CalendarWidgetMonthOptions)
+          {
+            var localCount = count;
+            builder.OpenElement(40 + count, "button");
+            var selected = calendarWidgetMonthCount == localCount;
+            builder.AddAttribute(41 + count, "class", $"dropdown-item{(selected ? " active fw-bold" : "")}");
+            builder.AddAttribute(42 + count, "onclick", EventCallback.Factory.Create(this, () => SetCalendarWidgetMonthCount(localCount)));
+            builder.AddContent(43 + count, localCount.ToString());
+            if (selected)
+            {
+              builder.AddContent(44 + count, " 03"); // checkmark
+            }
+            builder.CloseElement();
+          }
+          builder.OpenElement(56, "div");
+          builder.AddAttribute(57, "class", "dropdown-divider");
           builder.CloseElement();
         }
-
-        builder.OpenElement(56, "div");
-        builder.AddAttribute(57, "class", "dropdown-divider");
-        builder.CloseElement();
 
         builder.OpenElement(58, "div");
         builder.AddAttribute(59, "class", "dropdown-header");

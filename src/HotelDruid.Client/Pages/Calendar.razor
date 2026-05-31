@@ -1,4 +1,6 @@
 @page "/calendar"
+@page "/calendar/{year:int?}/{month:int?}"
+@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared
 @using ClientRecord = HotelDruid.Client.Services.ClientDto
@@ -418,15 +420,68 @@
     private CalendarDetailsMode selectedDetailsMode = CalendarDetailsMode.Day;
     private bool isLoading = true;
 
+
+
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? year { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "month")]
+    public int? month { get; set; }
+
+
+
+    private bool dataLoaded = false;
     protected override async Task OnInitializedAsync()
+    {
+        if (!dataLoaded)
+        {
+            await LoadDataAsync();
+            dataLoaded = true;
+        }
+    }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        ApplyYearMonthParameters();
+        if (!dataLoaded)
+        {
+            await LoadDataAsync();
+            dataLoaded = true;
+        }
+        RebuildMonthItems();
+        BuildMonthView();
+    }
+
+    private void ApplyYearMonthParameters()
+    {
+        if (year.HasValue && month.HasValue && month.Value >= 1 && month.Value <= 12)
+        {
+            try
+            {
+                selectedMonth = new DateOnly(year.Value, month.Value, 1);
+                selectedYear = year.Value;
+                selectedDate = selectedMonth;
+            }
+            catch
+            {
+                SetToCurrentMonth();
+            }
+        }
+        else
+        {
+            SetToCurrentMonth();
+        }
+    }
+
+    private void SetToCurrentMonth()
     {
         selectedDate = DateOnly.FromDateTime(DateTime.UtcNow);
         selectedMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
         selectedYear = selectedMonth.Year;
-        RebuildMonthItems();
-
-        await LoadDataAsync();
-        BuildMonthView();
     }
 
     private async Task LoadDataAsync()
