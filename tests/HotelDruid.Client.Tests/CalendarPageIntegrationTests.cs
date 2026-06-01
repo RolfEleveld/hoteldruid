@@ -114,9 +114,11 @@ public class CalendarPageIntegrationTests : TestContext
 
         component.Markup.Should().Contain("Months");
         component.Markup.Should().Contain("Day Details");
-        component.Markup.Should().Contain("room-1");
-        component.Markup.Should().Contain("room-2");
-        component.FindAll(".calendar-room-cell").Should().OnlyContain(cell => !cell.TextContent.Contains("Room 101", StringComparison.OrdinalIgnoreCase));
+        component.Markup.Should().Contain("Room 101");
+        component.Markup.Should().Contain("Room 102");
+        component.FindAll(".calendar-room-cell").Should().Contain(cell => cell.TextContent.Contains("Room 101", StringComparison.OrdinalIgnoreCase));
+        component.FindAll(".calendar-room-cell").Should().Contain(cell => cell.TextContent.Contains("Room 102", StringComparison.OrdinalIgnoreCase));
+        component.FindAll(".calendar-room-cell").Select(cell => cell.TextContent.Trim()).Should().ContainInOrder("Room 101", "Room 102");
 
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var saturday = Enumerable.Range(0, expectedDayCount)
@@ -152,13 +154,13 @@ public class CalendarPageIntegrationTests : TestContext
         });
 
         component.FindAll(".calendar-room-cell")
-            .Single(cell => cell.TextContent.Trim() == "room-1")
+            .Single(cell => cell.TextContent.Trim() == "Room 101")
             .Click();
 
         component.WaitForAssertion(() =>
         {
             component.Markup.Should().Contain("Room Details");
-            component.Markup.Should().Contain("room-1");
+            component.Markup.Should().Contain("Room 101");
             component.FindAll(".calendar-detail-room-entry").Should().HaveCount(2);
             component.Markup.Should().Contain("Doe, Jane");
             component.Markup.Should().Contain("Stay");

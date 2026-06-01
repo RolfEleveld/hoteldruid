@@ -534,7 +534,7 @@
 
 @code {
     // --- Calendar Widget Month Selector and Logic ---
-    private static readonly int[] CalendarWidgetMonthOptions = new[] { 1, 2, 3, 4, 6, 12 };
+    private static readonly int[] CalendarWidgetMonthOptions = new[] { 1, 2, 3, 4, 5, 6, 7, 10, 12, 15 };
     private int calendarWidgetMonthCount = 3;
 
     private IEnumerable<DateTime> GetCalendarWidgetMonths()
@@ -830,25 +830,28 @@
           builder.CloseElement();
         }
 
-        builder.OpenElement(30, "div");
-        builder.AddAttribute(31, "class", "dropdown-header");
-        builder.AddContent(32, L[visibleCountHeaderKey]);
-        builder.CloseElement();
-
-        foreach (var visibleCount in WidgetVisibleCountOptions)
+        if (!string.Equals(widgetId, "calendar", StringComparison.OrdinalIgnoreCase))
         {
-          var localVisibleCount = visibleCount;
-          builder.OpenElement(33 + visibleCount, "button");
-          var selectedVisibleCount = GetWidgetVisibleCount(widgetId) == localVisibleCount;
-          builder.AddAttribute(34 + visibleCount, "class", $"dropdown-item{(selectedVisibleCount ? " active" : string.Empty)}");
-          builder.AddAttribute(35 + visibleCount, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localVisibleCount)));
-          builder.AddContent(36 + visibleCount, localVisibleCount.ToString());
+          builder.OpenElement(30, "div");
+          builder.AddAttribute(31, "class", "dropdown-header");
+          builder.AddContent(32, L[visibleCountHeaderKey]);
+          builder.CloseElement();
+
+          foreach (var visibleCount in WidgetVisibleCountOptions)
+          {
+            var localVisibleCount = visibleCount;
+            builder.OpenElement(33 + visibleCount, "button");
+            var selectedVisibleCount = GetWidgetVisibleCount(widgetId) == localVisibleCount;
+            builder.AddAttribute(34 + visibleCount, "class", $"dropdown-item{(selectedVisibleCount ? " active" : string.Empty)}");
+            builder.AddAttribute(35 + visibleCount, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localVisibleCount)));
+            builder.AddContent(36 + visibleCount, localVisibleCount.ToString());
+            builder.CloseElement();
+          }
+
+          builder.OpenElement(50, "div");
+          builder.AddAttribute(51, "class", "dropdown-divider");
           builder.CloseElement();
         }
-
-        builder.OpenElement(50, "div");
-        builder.AddAttribute(51, "class", "dropdown-divider");
-        builder.CloseElement();
 
         // --- Calendar widget: Months to show selector ---
         if (widgetId == "calendar")

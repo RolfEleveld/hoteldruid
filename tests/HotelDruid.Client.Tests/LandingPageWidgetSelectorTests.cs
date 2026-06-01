@@ -106,6 +106,8 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
 public class LandingPageWidgetSelectorTests : TestContext
 {
+    private const int CalendarWidgetMenuIndex = 6;
+
     private static readonly string[] ExpectedVisibleCountHeaderKeys =
     [
         "Dashboard.Widget.VisibleCount.Reservations",
@@ -114,7 +116,6 @@ public class LandingPageWidgetSelectorTests : TestContext
         "Dashboard.Widget.VisibleCount.Departures",
         "Dashboard.Widget.VisibleCount.Clients",
         "Dashboard.Widget.VisibleCount.Rooms",
-        "Dashboard.Widget.VisibleCount.Calendar",
         "Dashboard.Widget.VisibleCount.Inventory",
         "Dashboard.Widget.VisibleCount.Warehouses",
         "Dashboard.Widget.VisibleCount.Reports"
@@ -169,7 +170,7 @@ public class LandingPageWidgetSelectorTests : TestContext
             Assert.Equal(10, menuButtons.Count);
         });
 
-        for (var i = 0; i < ExpectedVisibleCountHeaderKeys.Length; i++)
+        for (var i = 0; i < ExpectedAddActionKeys.Length; i++)
         {
             var buttons = component.FindAll("button[title='Dashboard.Widget.Menu']");
             buttons[i].Click();
@@ -184,8 +185,17 @@ public class LandingPageWidgetSelectorTests : TestContext
                     .Select(x => x.TextContent.Trim())
                     .ToList();
 
-                Assert.Contains(ExpectedVisibleCountHeaderKeys[i], headers);
                 Assert.Contains(ExpectedAddActionKeys[i], items);
+
+                if (i == CalendarWidgetMenuIndex)
+                {
+                    Assert.DoesNotContain("Dashboard.Widget.VisibleCount.Calendar", headers);
+                }
+                else
+                {
+                    var expectedHeaderIndex = i > CalendarWidgetMenuIndex ? i - 1 : i;
+                    Assert.Contains(ExpectedVisibleCountHeaderKeys[expectedHeaderIndex], headers);
+                }
             });
         }
     }
