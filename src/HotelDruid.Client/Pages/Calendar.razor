@@ -99,7 +99,7 @@
                                                 <button type="button"
                                                         class="calendar-room-cell @(selectedDetailsMode == CalendarDetailsMode.Room && string.Equals(selectedRoom?.Id, room.Id, StringComparison.OrdinalIgnoreCase) ? "selected" : string.Empty)"
                                                         @onclick="() => SelectRoom(room)">
-                                                    @room.Name
+                                                    @((string.IsNullOrWhiteSpace(room.Id) ? room.Name : room.Id) ?? "-")
                                                 </button>
                                             </th>
                                             @foreach (var day in monthDays)
@@ -424,11 +424,9 @@
 
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "year")]
     public int? year { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "month")]
     public int? month { get; set; }
 
 
@@ -458,12 +456,22 @@
 
     private void ApplyYearMonthParameters()
     {
-        if (year.HasValue && month.HasValue && month.Value >= 1 && month.Value <= 12)
+        var requestedYear = year;
+        var requestedMonth = month;
+
+        if ((!requestedYear.HasValue || !requestedMonth.HasValue)
+            && TryGetYearMonthFromQuery(out var queryYear, out var queryMonth))
+        {
+            requestedYear = queryYear;
+            requestedMonth = queryMonth;
+        }
+
+        if (requestedYear.HasValue && requestedMonth.HasValue && requestedMonth.Value >= 1 && requestedMonth.Value <= 12)
         {
             try
             {
-                selectedMonth = new DateOnly(year.Value, month.Value, 1);
-                selectedYear = year.Value;
+                selectedMonth = new DateOnly(requestedYear.Value, requestedMonth.Value, 1);
+                selectedYear = requestedYear.Value;
                 selectedDate = selectedMonth;
             }
             catch
@@ -475,6 +483,42 @@
         {
             SetToCurrentMonth();
         }
+    }
+
+    private bool TryGetYearMonthFromQuery(out int? parsedYear, out int? parsedMonth)
+    {
+        parsedYear = null;
+        parsedMonth = null;
+
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (string.IsNullOrWhiteSpace(uri.Query))
+        {
+            return false;
+        }
+
+        foreach (var pair in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length != 2)
+            {
+                continue;
+            }
+
+            var key = Uri.UnescapeDataString(parts[0]);
+            var value = Uri.UnescapeDataString(parts[1]);
+
+            if (key.Equals("year", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var y))
+            {
+                parsedYear = y;
+            }
+
+            if (key.Equals("month", StringComparison.OrdinalIgnoreCase) && int.TryParse(value, out var m))
+            {
+                parsedMonth = m;
+            }
+        }
+
+        return parsedYear.HasValue && parsedMonth.HasValue;
     }
 
     private void SetToCurrentMonth()

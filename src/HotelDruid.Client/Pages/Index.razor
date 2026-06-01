@@ -534,7 +534,7 @@
 
 @code {
     // --- Calendar Widget Month Selector and Logic ---
-    private static readonly int[] CalendarWidgetMonthOptions = new[] { 3, 6, 12 };
+    private static readonly int[] CalendarWidgetMonthOptions = new[] { 1, 2, 3, 4, 6, 12 };
     private int calendarWidgetMonthCount = 3;
 
     private IEnumerable<DateTime> GetCalendarWidgetMonths()
@@ -554,8 +554,16 @@
 
     private void SetCalendarWidgetMonthCount(int count)
     {
+      if (!CalendarWidgetMonthOptions.Contains(count))
+      {
+        calendarWidgetMonthCount = 3;
+        _ = SavePreferencesAsync();
+      }
+      else
+      {
         calendarWidgetMonthCount = count;
-        SavePreferencesAsync();
+        _ = SavePreferencesAsync();
+      }
     }
 
     private SystemConfiguration? systemConfiguration;
@@ -576,6 +584,33 @@
     private string? openDepartureMenuId;
     private string? selectedRoomId;
     private static readonly int[] WidgetVisibleCountOptions = [3, 5, 7, 10, 15];
+    private static readonly string[] WidgetSizeOptions = ["1x1", "2x1", "1x2", "2x2"];
+    private static readonly Dictionary<string, string> DefaultWidgetSizes = new(StringComparer.OrdinalIgnoreCase)
+    {
+      ["reservations"] = "1x1",
+      ["arrivals"] = "1x1",
+      ["stays"] = "1x1",
+      ["departures"] = "1x1",
+      ["clients"] = "1x1",
+      ["rooms"] = "2x1",
+      ["calendar"] = "1x1",
+      ["inventory"] = "1x1",
+      ["warehouses"] = "1x1",
+      ["reports"] = "1x1"
+    };
+    private static readonly Dictionary<string, int> DefaultWidgetVisibleCounts = new(StringComparer.OrdinalIgnoreCase)
+    {
+      ["reservations"] = 3,
+      ["arrivals"] = 3,
+      ["stays"] = 3,
+      ["departures"] = 3,
+      ["clients"] = 3,
+      ["rooms"] = 3,
+      ["calendar"] = 3,
+      ["inventory"] = 3,
+      ["warehouses"] = 3,
+      ["reports"] = 3
+    };
 
     private const string HotelNameSettingKey = "HotelName";
     private const string WidgetSizeDefaultsSettingKey = "DashboardWidgetSizesDefault";
@@ -592,33 +627,9 @@
     private bool compactRoomsView = true;
     private int arrivalsLookAheadDays;
 
-    private readonly Dictionary<string, string> widgetSizes = new(StringComparer.OrdinalIgnoreCase)
-    {
-      ["reservations"] = "1x1",
-      ["arrivals"] = "1x1",
-      ["stays"] = "1x1",
-      ["departures"] = "1x1",
-      ["clients"] = "1x1",
-      ["rooms"] = "2x1",
-      ["calendar"] = "1x1",
-      ["inventory"] = "1x1",
-      ["warehouses"] = "1x1",
-      ["reports"] = "1x1"
-    };
+    private readonly Dictionary<string, string> widgetSizes = DefaultWidgetSizes.ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
 
-    private readonly Dictionary<string, int> widgetVisibleCounts = new(StringComparer.OrdinalIgnoreCase)
-    {
-      ["reservations"] = 3,
-      ["arrivals"] = 3,
-      ["stays"] = 3,
-      ["departures"] = 3,
-      ["clients"] = 3,
-      ["rooms"] = 3,
-      ["calendar"] = 3,
-      ["inventory"] = 3,
-      ["warehouses"] = 3,
-      ["reports"] = 3
-    };
+    private readonly Dictionary<string, int> widgetVisibleCounts = DefaultWidgetVisibleCounts.ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
 
     private enum RoomSortMode
     {
@@ -684,13 +695,20 @@
         }
 
         var prefs = JsonSerializer.Deserialize<DashboardPreferences>(json);
+        var hasInvalidPreferenceValues = false;
+
         if (prefs?.WidgetSizes is not null)
         {
           foreach (var item in prefs.WidgetSizes)
           {
-            if (widgetSizes.ContainsKey(item.Key))
+            if (widgetSizes.ContainsKey(item.Key)
+                && WidgetSizeOptions.Contains(item.Value, StringComparer.OrdinalIgnoreCase))
             {
               widgetSizes[item.Key] = item.Value;
+            }
+            else
+            {
+              hasInvalidPreferenceValues = true;
             }
           }
         }
@@ -703,6 +721,10 @@
                 && WidgetVisibleCountOptions.Contains(item.Value))
             {
               widgetVisibleCounts[item.Key] = item.Value;
+            }
+            else
+            {
+              hasInvalidPreferenceValues = true;
             }
           }
         }
@@ -721,6 +743,25 @@
         if (prefs?.CompactRoomsView is not null)
         {
           compactRoomsView = prefs.CompactRoomsView.Value;
+        }
+
+        // Restore calendarWidgetMonthCount if present and valid, else revert to default and remove invalid
+        if (prefs?.CalendarWidgetMonthCount is int val)
+        {
+          if (CalendarWidgetMonthOptions.Contains(val))
+          {
+            calendarWidgetMonthCount = val;
+          }
+          else
+          {
+            calendarWidgetMonthCount = 3;
+            hasInvalidPreferenceValues = true;
+          }
+        }
+
+        if (hasInvalidPreferenceValues)
+        {
+          await SavePreferencesAsync();
         }
 
         StateHasChanged();
@@ -789,29 +830,47 @@
           builder.CloseElement();
         }
 
+        builder.OpenElement(30, "div");
+        builder.AddAttribute(31, "class", "dropdown-header");
+        builder.AddContent(32, L[visibleCountHeaderKey]);
+        builder.CloseElement();
+
+        foreach (var visibleCount in WidgetVisibleCountOptions)
+        {
+          var localVisibleCount = visibleCount;
+          builder.OpenElement(33 + visibleCount, "button");
+          var selectedVisibleCount = GetWidgetVisibleCount(widgetId) == localVisibleCount;
+          builder.AddAttribute(34 + visibleCount, "class", $"dropdown-item{(selectedVisibleCount ? " active" : string.Empty)}");
+          builder.AddAttribute(35 + visibleCount, "onclick", EventCallback.Factory.Create(this, () => SetWidgetVisibleCount(widgetId, localVisibleCount)));
+          builder.AddContent(36 + visibleCount, localVisibleCount.ToString());
+          builder.CloseElement();
+        }
+
+        builder.OpenElement(50, "div");
+        builder.AddAttribute(51, "class", "dropdown-divider");
+        builder.CloseElement();
+
         // --- Calendar widget: Months to show selector ---
         if (widgetId == "calendar")
         {
-          builder.OpenElement(30, "div");
-          builder.AddAttribute(31, "class", "dropdown-header");
-          builder.AddContent(32, "Months to show");
+          builder.OpenElement(52, "div");
+          builder.AddAttribute(53, "class", "dropdown-header");
+          builder.AddContent(54, "Months to show");
           builder.CloseElement();
+
           foreach (var count in CalendarWidgetMonthOptions)
           {
             var localCount = count;
-            builder.OpenElement(40 + count, "button");
+            builder.OpenElement(55 + count, "button");
             var selected = calendarWidgetMonthCount == localCount;
-            builder.AddAttribute(41 + count, "class", $"dropdown-item{(selected ? " active fw-bold" : "")}");
-            builder.AddAttribute(42 + count, "onclick", EventCallback.Factory.Create(this, () => SetCalendarWidgetMonthCount(localCount)));
-            builder.AddContent(43 + count, localCount.ToString());
-            if (selected)
-            {
-              builder.AddContent(44 + count, " 03"); // checkmark
-            }
+            builder.AddAttribute(56 + count, "class", $"dropdown-item{(selected ? " active" : string.Empty)}");
+            builder.AddAttribute(57 + count, "onclick", EventCallback.Factory.Create(this, () => SetCalendarWidgetMonthCount(localCount)));
+            builder.AddContent(58 + count, localCount.ToString());
             builder.CloseElement();
           }
-          builder.OpenElement(56, "div");
-          builder.AddAttribute(57, "class", "dropdown-divider");
+
+          builder.OpenElement(68, "div");
+          builder.AddAttribute(69, "class", "dropdown-divider");
           builder.CloseElement();
         }
 
@@ -938,7 +997,7 @@
     private void ToggleCompactRoomsView()
     {
       compactRoomsView = !compactRoomsView;
-      SavePreferencesAsync();
+      _ = SavePreferencesAsync();
     }
 
     private void OnRoomSortModeChanged(ChangeEventArgs args)
@@ -947,7 +1006,7 @@
       if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<RoomSortMode>(value, ignoreCase: true, out var parsedMode))
       {
         roomSortMode = parsedMode;
-        SavePreferencesAsync();
+        _ = SavePreferencesAsync();
       }
     }
 
@@ -959,7 +1018,7 @@
         string stringValue when bool.TryParse(stringValue, out var parsed) => parsed,
         _ => showRoomsWithoutBeds
       };
-      SavePreferencesAsync();
+      _ = SavePreferencesAsync();
       StateHasChanged();
     }
 
@@ -1260,13 +1319,19 @@
       }
 
       widgetVisibleCounts[widgetId] = count;
-      SavePreferencesAsync();
+      _ = SavePreferencesAsync();
     }
 
     private void SetWidgetSize(string widgetId, string size)
     {
+      if (!widgetSizes.ContainsKey(widgetId)
+          || !WidgetSizeOptions.Contains(size, StringComparer.OrdinalIgnoreCase))
+      {
+        return;
+      }
+
       widgetSizes[widgetId] = size;
-      SavePreferencesAsync();
+      _ = SavePreferencesAsync();
     }
 
     private async Task LoadRoomsAsync()
@@ -1285,7 +1350,7 @@
       }
     }
 
-    private async void SavePreferencesAsync()
+    private async Task SavePreferencesAsync()
     {
       try
       {
@@ -1295,7 +1360,8 @@
           WidgetVisibleCounts = widgetVisibleCounts,
           RoomSortMode = roomSortMode.ToString(),
           ShowRoomsWithoutBeds = showRoomsWithoutBeds,
-          CompactRoomsView = compactRoomsView
+          CompactRoomsView = compactRoomsView,
+          CalendarWidgetMonthCount = CalendarWidgetMonthOptions.Contains(calendarWidgetMonthCount) ? calendarWidgetMonthCount : 3
         };
 
         var json = JsonSerializer.Serialize(prefs);
@@ -1329,7 +1395,8 @@
         {
           foreach (var pair in sizes)
           {
-            if (widgetSizes.ContainsKey(pair.Key))
+            if (widgetSizes.ContainsKey(pair.Key)
+                && WidgetSizeOptions.Contains(pair.Value, StringComparer.OrdinalIgnoreCase))
             {
               widgetSizes[pair.Key] = pair.Value;
             }
@@ -1432,27 +1499,22 @@
     {
       isDashboardSettingsMenuOpen = false;
 
-      widgetSizes["reservations"] = "1x1";
-      widgetSizes["arrivals"] = "1x1";
-      widgetSizes["stays"] = "1x1";
-      widgetSizes["departures"] = "1x1";
-      widgetSizes["clients"] = "1x1";
-      widgetSizes["rooms"] = "2x1";
-      widgetSizes["calendar"] = "1x1";
-      widgetSizes["inventory"] = "1x1";
-      widgetSizes["warehouses"] = "1x1";
-      widgetSizes["reports"] = "1x1";
-      foreach (var key in widgetVisibleCounts.Keys.ToList())
+      foreach (var item in DefaultWidgetSizes)
       {
-        widgetVisibleCounts[key] = 3;
+        widgetSizes[item.Key] = item.Value;
       }
+      foreach (var item in DefaultWidgetVisibleCounts)
+      {
+        widgetVisibleCounts[item.Key] = item.Value;
+      }
+      calendarWidgetMonthCount = 3;
       roomSortMode = RoomSortMode.Priority;
       showRoomsWithoutBeds = false;
       compactRoomsView = true;
       arrivalsLookAheadDays = 0;
       roomsSearch = string.Empty;
 
-      SavePreferencesAsync();
+      await SavePreferencesAsync();
       await SaveSystemDefaultsAsync();
     }
 
@@ -1743,6 +1805,7 @@
       public string? RoomSortMode { get; set; }
       public bool? ShowRoomsWithoutBeds { get; set; }
       public bool? CompactRoomsView { get; set; }
+      public int? CalendarWidgetMonthCount { get; set; }
     }
 }
 

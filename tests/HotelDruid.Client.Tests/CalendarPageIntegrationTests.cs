@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Components;
+
+// All code before usings removed. Only one namespace and class remain. All test methods are inside CalendarPageIntegrationTests.
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -200,6 +203,42 @@ public class CalendarPageIntegrationTests : TestContext
             component.Markup.Should().Contain("Open reservation");
             component.Markup.Should().Contain("Room 101");
             component.Markup.Should().Contain("Doe, Jane");
+        });
+    }
+
+    [Theory]
+    [InlineData(2025, 12)]
+    [InlineData(2026, 1)]
+    public void CalendarPage_ShouldShowCorrectMonth_WhenYearMonthRouteParametersProvided(int year, int month)
+    {
+        var component = RenderComponent<CalendarPage>(parameters =>
+        {
+            parameters.Add(p => p.year, year);
+            parameters.Add(p => p.month, month);
+        });
+
+        component.WaitForAssertion(() =>
+        {
+            var expected = new DateOnly(year, month, 1).ToString("MMMM yyyy");
+            component.Markup.Should().Contain(expected);
+        });
+    }
+
+    [Theory]
+    [InlineData(2024, 7)]
+    [InlineData(2027, 3)]
+    public void CalendarPage_ShouldShowCorrectMonth_WhenYearMonthQueryParametersProvided(int year, int month)
+    {
+        var uri = $"/calendar?year={year}&month={month}";
+        var navMan = Services.GetRequiredService<NavigationManager>() as Bunit.TestDoubles.FakeNavigationManager;
+        navMan?.NavigateTo(uri);
+
+        var component = RenderComponent<CalendarPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var expected = new DateOnly(year, month, 1).ToString("MMMM yyyy");
+            component.Markup.Should().Contain(expected);
         });
     }
 }
