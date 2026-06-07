@@ -1,10 +1,13 @@
 @page "/clients"
 @page "/clients/new"
 @using HotelDruid.Client.Services
+@using BookingDto = HotelDruid.Shared.BookingDto
 @using Microsoft.AspNetCore.Components
 @using System.Net.Mail
 @using System.Text.RegularExpressions
 @inject IClientApiService ClientApi
+@inject IBookingApiService BookingApi
+@inject IRoomApiService RoomApi
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
@@ -42,7 +45,7 @@
                         <div class="list-group">
                             @foreach (var client in FilteredClients)
                             {
-                                <button type="button" class="list-group-item list-group-item-action @(selectedClient?.Id == client.Id ? "active" : string.Empty)" @onclick="() => SelectClient(client)">
+                                <button type="button" class="list-group-item list-group-item-action @(selectedClient?.Id == client.Id ? "active" : string.Empty)" @onclick="() => SelectClientAsync(client)">
                                     <div class="fw-semibold">@GetDisplayName(client)</div>
                                     <small class="text-muted">@GetListMeta(client)</small>
                                 </button>
@@ -330,6 +333,32 @@
                         {
                             <div class="alert alert-info mb-0">@L["clients.previewEmpty", "Client details will appear here once you select or create a record."]</div>
                         }
+
+                        <section class="client-section client-section-bookings mt-3">
+                            <h4 class="client-section-title">@L["clients.reservationsTitle", "Reservations"]</h4>
+                            @if (isBookingLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                                <span class="ms-2">@L["common.loading", "Loading..."]</span>
+                            }
+                            else if (clientBookings is null || !clientBookings.Any())
+                            {
+                                <div class="alert alert-info mb-0">@L["clients.noReservations", "No reservations found for this guest."]</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var booking in clientBookings.Take(ReservationDetailsVisibleCount))
+                                    {
+                                        <a class="list-group-item list-group-item-action" href="@GetBookingUrl(booking)">
+                                            <div class="fw-semibold"><strong>@DisplayDate(booking.ArrivalDate)</strong></div>
+                                            <div class="small text-muted">@GetBookingDuration(booking)</div>
+                                            <div class="small text-muted">@GetBookingRoomLabel(booking)</div>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </section>
                     }
                 </div>
             </div>
@@ -384,6 +413,9 @@
     private string? lastError;
     private string? statusMessage = string.Empty;
     private string filterText = string.Empty;
+    private List<RoomDto>? rooms;
+    private List<BookingDto>? clientBookings;
+    private bool isBookingLoading;
     private System.Timers.Timer? autoSaveTimer;
 
     private static readonly (string Value, string ResourceKey)[] GenderOptions = new[]
@@ -408,6 +440,7 @@
         .Where(client => MatchesFilter(client, filterText))
         .ToList();
 
+    private const int ReservationDetailsVisibleCount = 3;
     private const string FieldPhone = "Phone";
     private const string FieldPhone2 = "Phone2";
     private const string FieldPhone3 = "Phone3";
@@ -424,15 +457,15 @@
     {
         statusMessage = L["common.noChanges", "No changes"];
         await LoadClients();
-        ApplySelectedClientFromQuery();
+        rooms = await RoomApi.GetRoomsAsync();
+        await ApplySelectedClientFromQueryAsync();
         InitializeAutoSaveTimer();
     }
 
-    protected override Task OnParametersSetAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        ApplySelectedClientFromQuery();
+        await ApplySelectedClientFromQueryAsync();
         EnsureNewClientRoute();
-        return Task.CompletedTask;
     }
 
     private void EnsureNewClientRoute()
@@ -468,7 +501,7 @@
             .ToList();
     }
 
-    private void ApplySelectedClientFromQuery()
+    private async Task ApplySelectedClientFromQueryAsync()
     {
         if (clients is null || string.IsNullOrWhiteSpace(SelectedId))
         {
@@ -478,11 +511,11 @@
         var requestedClient = clients.FirstOrDefault(client => string.Equals(client.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
         if (requestedClient is not null && !string.Equals(selectedClient?.Id, requestedClient.Id, StringComparison.OrdinalIgnoreCase))
         {
-            SelectClient(requestedClient);
+            await SelectClientAsync(requestedClient);
         }
     }
 
-    private void SelectClient(ClientDto client)
+    private async Task SelectClientAsync(ClientDto client)
     {
         selectedClient = client;
         editModel = ClientEditModel.FromDto(client);
@@ -494,6 +527,144 @@
         fieldWarnings.Clear();
         focusedField = null;
         ClearAutoSaveTimer();
+        await LoadClientBookingsAsync();
+    }
+
+    private async Task LoadClientBookingsAsync()
+    {
+        clientBookings = null;
+        if (selectedClient is null)
+        {
+            return;
+        }
+
+        try
+        {
+            isBookingLoading = true;
+            var bookings = await BookingApi.ListAsync();
+            clientBookings = bookings
+                .Where(booking => string.Equals(booking.ClientId, selectedClient.Id, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+                .ThenByDescending(booking => booking.Year)
+                .ThenByDescending(booking => booking.Id)
+                .ToList();
+        }
+        finally
+        {
+            isBookingLoading = false;
+        }
+    }
+
+    private string GetBookingUrl(BookingDto booking)
+    {
+        if (booking is null || string.IsNullOrWhiteSpace(booking.Id))
+        {
+            return "/bookings";
+        }
+
+        return $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}";
+    }
+
+    private string GetBookingRoomLabel(BookingDto booking)
+    {
+        if (string.IsNullOrWhiteSpace(booking.RoomId))
+        {
+            return string.Empty;
+        }
+
+        return string.Format(L["clients.reservationRoomLabel", "Room"] + ": {0}", GetRoomDisplayName(booking.RoomId));
+    }
+
+    private string GetRoomDisplayName(string roomId)
+    {
+        if (rooms is null || string.IsNullOrWhiteSpace(roomId))
+        {
+            return roomId;
+        }
+
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        if (room is null)
+        {
+            return roomId;
+        }
+
+        return string.IsNullOrWhiteSpace(room.Name) ? roomId : room.Name;
+    }
+
+    private void OpenBooking(BookingDto booking)
+    {
+        if (booking is null || string.IsNullOrWhiteSpace(booking.Id))
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}");
+    }
+
+    private string GetBookingReference(BookingDto booking)
+    {
+        if (booking.Year > 0 && !string.IsNullOrWhiteSpace(booking.Id))
+        {
+            return $"#{booking.Year}/{booking.Id}";
+        }
+
+        return L["clients.reservationEntry", "Reservation entry"];
+    }
+
+    private string GetBookingDateAndDuration(BookingDto booking)
+    {
+        var date = DisplayDate(booking.ArrivalDate);
+        var duration = GetBookingDuration(booking);
+        if (!string.IsNullOrWhiteSpace(duration))
+        {
+            return $"{L["clients.reservationStartLabel", "Start Date"]}: {date} · {duration}";
+        }
+
+        return $"{L["clients.reservationStartLabel", "Start Date"]}: {date}";
+    }
+
+    private string GetBookingDuration(BookingDto booking)
+    {
+        if (!booking.ArrivalDate.HasValue || !booking.DepartureDate.HasValue)
+        {
+            return string.Empty;
+        }
+
+        var days = (booking.DepartureDate.Value.ToDateTime(TimeOnly.MinValue) - booking.ArrivalDate.Value.ToDateTime(TimeOnly.MinValue)).Days;
+        if (days <= 0)
+        {
+            return string.Empty;
+        }
+
+        if (days == 1)
+        {
+            return string.Format(L["clients.reservationDay", "{0} day"], days);
+        }
+
+        return string.Format(L["clients.reservationNights", "{0} nights"], days);
+    }
+
+    private string GetBookingMeta(BookingDto booking)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(booking.RoomId))
+        {
+            parts.Add($"{L["clients.reservationRoomLabel", "Room"]}: {booking.RoomId}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(booking.Status))
+        {
+            parts.Add($"{L["clients.reservationStatusLabel", "Status"]}: {booking.Status}");
+        }
+
+        if (parts.Count == 0)
+        {
+            return booking.Year > 0 && !string.IsNullOrWhiteSpace(booking.Id)
+                ? $"#{booking.Year}/{booking.Id}"
+                : L["clients.reservationEntry", "Reservation entry"];
+        }
+
+        return string.Join(" · ", parts);
     }
 
     private void AddNewClient()
@@ -804,6 +975,7 @@
 
     private static string DisplayValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string DisplayDate(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
+    private static string DisplayDate(DateOnly? value) => value?.ToString("yyyy-MM-dd") ?? "-";
 
     private static string GetPhoneFieldName(int index) => index switch
     {

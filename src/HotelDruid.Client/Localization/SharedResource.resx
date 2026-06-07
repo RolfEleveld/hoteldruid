@@ -283,6 +283,15 @@
   <data name="clients.section.document" xml:space="preserve"><value>Document</value></data>
   <data name="clients.section.tax" xml:space="preserve"><value>Tax Data</value></data>
   <data name="clients.section.notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="clients.reservationsTitle" xml:space="preserve"><value>Reservations</value></data>
+  <data name="clients.noReservations" xml:space="preserve"><value>No reservations found for this guest.</value></data>
+  <data name="clients.reservationEntry" xml:space="preserve"><value>Reservation entry</value></data>
+  <data name="clients.reservationStartLabel" xml:space="preserve"><value>Start Date</value></data>
+  <data name="clients.reservationDurationLabel" xml:space="preserve"><value>Duration</value></data>
+  <data name="clients.reservationNights" xml:space="preserve"><value>{0} nights</value></data>
+  <data name="clients.reservationDay" xml:space="preserve"><value>{0} day</value></data>
+  <data name="clients.reservationRoomLabel" xml:space="preserve"><value>Room</value></data>
+  <data name="clients.reservationStatusLabel" xml:space="preserve"><value>Status</value></data>
   <data name="clients.titleLabel" xml:space="preserve"><value>Title</value></data>
   <data name="clients.titleSelectPlaceholder" xml:space="preserve"><value>Select title</value></data>
   <data name="clients.lastNameLabel" xml:space="preserve"><value>Last Name</value></data>

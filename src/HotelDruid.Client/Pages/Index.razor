@@ -311,7 +311,9 @@
               <ul class="list-group list-group-flush mb-3">
                 @foreach (var client in clients.OrderBy(c => c.LastName, StringComparer.OrdinalIgnoreCase).ThenBy(c => c.FirstName, StringComparer.OrdinalIgnoreCase).Take(GetWidgetVisibleCount("clients")))
                 {
-                  <li class="list-group-item px-0 py-1 small">@BuildClientDisplayName(client)</li>
+                  <li class="list-group-item list-group-item-action px-0 py-1 small text-start" @onclick="() => GoToClient(client.Id)">
+                    <strong>@BuildClientDisplayName(client)</strong>
+                  </li>
                 }
               </ul>
             }
