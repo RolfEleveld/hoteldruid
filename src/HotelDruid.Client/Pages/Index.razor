@@ -1267,7 +1267,7 @@
         return client.FirstName;
       }
 
-      return client.Id ?? string.Empty;
+      return "Unknown client";
     }
 
     private string GetReservationDateRange(BookingDto booking)
@@ -1311,7 +1311,9 @@
       }
 
       var room = availableRooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
-      return room?.Name ?? roomId;
+      return string.IsNullOrWhiteSpace(room?.Name)
+        ? L["Dashboard.Reservations.UnknownRoom", "Unknown room"]
+        : room.Name;
     }
 
     private void SetWidgetVisibleCount(string widgetId, int count)

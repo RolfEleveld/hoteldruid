@@ -24,12 +24,12 @@ namespace HotelDruid.Client.Services
         string? Gender = null,
         string? Title = null,
         string? Language = null,
-        string? DateOfBirth = null,
+        DateTime? DateOfBirth = null,
         string? BirthCity = null,
         string? BirthRegion = null,
         string? BirthNation = null,
         string? DocumentNumber = null,
-        string? DocumentExpiry = null,
+        DateTime? DocumentExpiry = null,
         string? DocumentType = null,
         string? DocumentCity = null,
         string? DocumentRegion = null,
@@ -54,7 +54,9 @@ namespace HotelDruid.Client.Services
         int? MaxOrderNumber = null,
         string? CompanionIds = null,
         string? DocumentsSent = null,
-        string? CreatedAt = null
+        DateTime? CreatedAt = null,
+        string? HostCreated = null,
+        int? CreatedBy = null
     );
 
     public class ClientApiService : IClientApiService

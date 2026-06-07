@@ -780,7 +780,7 @@
         }
 
         var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
-        return room?.Name ?? roomId;
+        return string.IsNullOrWhiteSpace(room?.Name) ? "Unknown room" : room.Name;
     }
 
     private string GetClientName(string? clientId)
@@ -793,7 +793,7 @@
         var client = clients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
         if (client is null)
         {
-            return clientId;
+            return "Unknown client";
         }
 
         if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
@@ -801,7 +801,7 @@
             return $"{client.LastName}, {client.FirstName}";
         }
 
-        return client.LastName ?? client.FirstName ?? client.Id ?? clientId;
+        return client.LastName ?? client.FirstName ?? "Unknown client";
     }
 
     private string GetBookingLabel(BookingDto booking)

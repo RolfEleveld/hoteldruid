@@ -32,10 +32,15 @@ public class BookingsPageIntegrationTests : TestContext
             new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
         });
 
-        clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>());
+        clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>
+        {
+            new("client-1", "Adams", "Anna"),
+            new("client-2", "Brown", "Ben")
+        });
         roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<HotelDruid.Client.Services.RoomDto>
         {
             new HotelDruid.Client.Services.RoomDto("room-77", "Room 77", 2, 1, "A", 1, 0, true),
+            new HotelDruid.Client.Services.RoomDto("room-1", "Room 1", 2, 1, "A", 1, 0, true),
             new HotelDruid.Client.Services.RoomDto("room-2", "Room 2", 2, 1, "A", 2, 0, true)
         });
 
@@ -57,9 +62,9 @@ public class BookingsPageIntegrationTests : TestContext
         });
 
         var itemsInOrder = component.FindAll(".list-group-item");
-        itemsInOrder[0].TextContent.Should().Contain("2026 — client-1");
+        itemsInOrder[0].TextContent.Should().Contain("2026 — Adams Anna");
         itemsInOrder[0].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
-        itemsInOrder[1].TextContent.Should().Contain("2026 — client-2");
+        itemsInOrder[1].TextContent.Should().Contain("2026 — Brown Ben");
 
         component.Find("button.btn.btn-sm.btn-primary.mb-2").Click();
 
@@ -80,7 +85,7 @@ public class BookingsPageIntegrationTests : TestContext
         component.WaitForAssertion(() =>
         {
             component.Markup.Should().Contain("Room 77");
-            component.Markup.Should().Contain("room-77");
+            component.Markup.Should().NotContain("room-77");
         });
     }
 }

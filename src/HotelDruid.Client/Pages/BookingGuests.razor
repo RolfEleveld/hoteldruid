@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @inject IBookingGuestApiService BookingGuestApi
+@inject IClientApiService ClientApi
 @inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
@@ -28,7 +29,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.ClientId</div>
+                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
                             <small>Booking: @r.BookingId (Guest #@r.GuestNumber)</small>
                         </li>
                     }
@@ -42,7 +43,7 @@
                 <div class="row g-2">
                     <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6"><label>Booking ID</label><input class="form-control" @bind="form.BookingId" /></div>
-                    <div class="col-6"><label>Client ID</label><input class="form-control" @bind="form.ClientId" /></div>
+                    <div class="col-6"><label>Client</label><input class="form-control" @bind="form.ClientId" /></div>
                     <div class="col-6"><label>Guest Number</label><input class="form-control" type="number" @bind="form.GuestNumber" /></div>
                 </div>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
@@ -59,7 +60,7 @@
                 <dl>
                     <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>Booking ID</dt><dd>@selected.BookingId</dd>
-                    <dt>Client ID</dt><dd>@selected.ClientId</dd>
+                    <dt>Client</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
                     <dt>Guest Number</dt><dd>@selected.GuestNumber</dd>
                 </dl>
                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
@@ -83,6 +84,7 @@
     public bool? StartNew { get; set; }
 
     private List<BookingGuestClientDto>? records;
+    private List<ClientDto> clients = new();
     private BookingGuestClientDto? selected;
     private bool editing, isNew;
     private string errorMsg = "";
@@ -92,6 +94,7 @@
     protected override async Task OnInitializedAsync()
     {
         filterYear = YearQuery ?? ActiveYearService.CurrentYear;
+        clients = await ClientApi.GetAllAsync();
         await LoadAll();
         ApplyQueryContext();
     }
@@ -170,6 +173,27 @@
         if (selected?.Id is null) return;
         try { await BookingGuestApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
         catch { errorMsg = "Delete failed."; }
+    }
+
+    private string GetClientDisplayName(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return "Unknown client";
+        }
+
+        var client = clients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
+        if (client is null)
+        {
+            return "Unknown client";
+        }
+
+        if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
+        {
+            return $"{client.LastName}, {client.FirstName}";
+        }
+
+        return client.LastName ?? client.FirstName ?? "Unknown client";
     }
 
     private class FormModel

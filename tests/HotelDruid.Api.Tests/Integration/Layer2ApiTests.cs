@@ -15,7 +15,22 @@ public class Layer2ApiTests : IAsyncLifetime
     private string _testDataRoot = null!;
     private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    private class ClientDto { public string? Id { get; set; } public string? LastName { get; set; } public string? FirstName { get; set; } public string? Email { get; set; } public string? Phone { get; set; } public string? City { get; set; } }
+    private class ClientDto
+    {
+        public string? Id { get; set; }
+        public string? LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+        public string? City { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public DateTime? DocumentExpiry { get; set; }
+        public string? DocumentType { get; set; }
+        public string? Phone3 { get; set; }
+        public string? Email3 { get; set; }
+        public string? Nationality { get; set; }
+        public DateTime? CreatedAt { get; set; }
+    }
     private class ClientDataDto { public string? Id { get; set; } public string? ClientId { get; set; } public int? Number { get; set; } public string? Type { get; set; } public string? Text1 { get; set; } }
     private class UserPrivilegeDto { public string? Id { get; set; } public int? UserId { get; set; } public int? Year { get; set; } public string? AllowedRules { get; set; } public string? BookingInsertPriv { get; set; } }
     private class UserRelationDto { public string? Id { get; set; } public int? UserId { get; set; } public int? NationId { get; set; } public int? RegionId { get; set; } public int? CityId { get; set; } }
@@ -90,6 +105,65 @@ public class Layer2ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var dto = await ReadAs<ClientDto>(r);
         Assert.Equal("999", dto?.Phone);
+    }
+
+    [Fact]
+    public async Task Client_List_CanFilterByLastName()
+    {
+        await _client.PostAsync("/api/clients", Json(new { LastName = "Rossi", FirstName = "Anna" }));
+        await _client.PostAsync("/api/clients", Json(new { LastName = "Verdi", FirstName = "Luca" }));
+
+        var r = await _client.GetAsync("/api/clients?lastName=ross");
+
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        var list = await ReadAs<List<ClientDto>>(r);
+        Assert.Single(list!);
+        Assert.Equal("Rossi", list[0].LastName);
+    }
+
+    [Fact]
+    public async Task Client_Create_AndGet_RoundTripsExtendedFields()
+    {
+        var birthDate = new DateTime(1988, 4, 2, 0, 0, 0, DateTimeKind.Utc);
+        var expiryDate = new DateTime(2031, 7, 14, 0, 0, 0, DateTimeKind.Utc);
+        var create = await _client.PostAsync("/api/clients", Json(new
+        {
+            LastName = "Conti",
+            FirstName = "Sara",
+            DateOfBirth = birthDate,
+            DocumentExpiry = expiryDate,
+            DocumentType = "Passport",
+            Phone3 = "+39-333-0003",
+            Email3 = "pec@example.com",
+            Nationality = "IT"
+        }));
+        var created = await ReadAs<ClientDto>(create);
+
+        var r = await _client.GetAsync($"/api/clients/{created!.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        var dto = await ReadAs<ClientDto>(r);
+        Assert.Equal(birthDate, dto?.DateOfBirth);
+        Assert.Equal(expiryDate, dto?.DocumentExpiry);
+        Assert.Equal("Passport", dto?.DocumentType);
+        Assert.Equal("+39-333-0003", dto?.Phone3);
+        Assert.Equal("pec@example.com", dto?.Email3);
+        Assert.Equal("IT", dto?.Nationality);
+    }
+
+    [Fact]
+    public async Task Client_Update_PreservesCreatedAt_WhenOmitted()
+    {
+        var create = await _client.PostAsync("/api/clients", Json(new { LastName = "Audit", FirstName = "Trail" }));
+        var created = await ReadAs<ClientDto>(create);
+        Assert.NotNull(created);
+        Assert.NotNull(created!.CreatedAt);
+
+        var update = await _client.PutAsync($"/api/clients/{created.Id}", Json(new { LastName = "Audit", FirstName = "Trail Updated" }));
+
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var updated = await ReadAs<ClientDto>(update);
+        Assert.Equal(created.CreatedAt, updated?.CreatedAt);
     }
 
     [Fact]

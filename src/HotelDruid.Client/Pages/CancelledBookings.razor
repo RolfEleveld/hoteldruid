@@ -1,6 +1,8 @@
 @page "/cancelled-bookings"
 @using HotelDruid.Client.Services
 @inject ICancelledBookingApiService CancelledBookingApi
+@inject IClientApiService ClientApi
+@inject IRoomApiService RoomApiService
 @inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
@@ -26,7 +28,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.ClientId</div>
+                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
                             <small>@r.ArrivalDate → @r.DepartureDate | Cancelled: @r.CancelledAt</small>
                         </li>
                     }
@@ -39,8 +41,8 @@
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
                     <dt>Year</dt><dd>@selected.Year</dd>
-                    <dt>Client ID</dt><dd>@selected.ClientId</dd>
-                    <dt>Room ID</dt><dd>@selected.RoomId</dd>
+                    <dt>Client</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
+                    <dt>Room</dt><dd>@GetRoomDisplayName(selected.RoomId)</dd>
                     <dt>Status</dt><dd>@selected.Status</dd>
                     <dt>Arrival</dt><dd>@selected.ArrivalDate</dd>
                     <dt>Departure</dt><dd>@selected.DepartureDate</dd>
@@ -56,6 +58,8 @@
 
 @code {
     private List<CancelledBookingClientDto>? records;
+    private List<ClientDto> clients = new();
+    private List<RoomDto> rooms = new();
     private CancelledBookingClientDto? selected;
     private string errorMsg = "";
     private int? filterYear;
@@ -63,6 +67,8 @@
     protected override async Task OnInitializedAsync()
     {
         filterYear = ActiveYearService.CurrentYear;
+        clients = await ClientApi.GetAllAsync();
+        rooms = await RoomApiService.GetRoomsAsync();
         await LoadAll();
     }
 
@@ -75,6 +81,38 @@
         if (selected?.Id is null) return;
         try { await CancelledBookingApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
         catch { errorMsg = "Delete failed."; }
+    }
+
+    private string GetClientDisplayName(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return "Unknown client";
+        }
+
+        var client = clients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
+        if (client is null)
+        {
+            return "Unknown client";
+        }
+
+        if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
+        {
+            return $"{client.LastName}, {client.FirstName}";
+        }
+
+        return client.LastName ?? client.FirstName ?? "Unknown client";
+    }
+
+    private string GetRoomDisplayName(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return "Unassigned room";
+        }
+
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(room?.Name) ? "Unknown room" : room.Name;
     }
 }
 

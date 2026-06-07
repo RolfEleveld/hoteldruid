@@ -1791,6 +1791,8 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
     var exists = await store.ExistsAsync("clients", id);
     if (!exists) return Results.NotFound();
     if (string.IsNullOrWhiteSpace(request.LastName)) return Results.BadRequest(new { error = "LastName is required" });
+    var existing = await store.GetAsync<ClientStorageModel>("clients", id);
+    if (existing is null) return Results.NotFound();
     var storage = new ClientStorageModel
     {
         LastName = request.LastName, FirstName = request.FirstName, Nickname = request.Nickname,
@@ -1806,8 +1808,10 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
         Email = request.Email, Email2 = request.Email2, Email3 = request.Email3,
         TaxCode = request.TaxCode, VatNumber = request.VatNumber, Notes = request.Notes,
         MaxOrderNumber = request.MaxOrderNumber, CompanionIds = request.CompanionIds,
-        DocumentsSent = request.DocumentsSent, CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
-        HostCreated = request.HostCreated, CreatedBy = request.CreatedBy
+        DocumentsSent = request.DocumentsSent,
+        CreatedAt = request.CreatedAt ?? existing.CreatedAt ?? DateTime.UtcNow,
+        HostCreated = request.HostCreated ?? existing.HostCreated,
+        CreatedBy = request.CreatedBy ?? existing.CreatedBy
     };
     await store.UpdateAsync("clients", id, storage);
     return Results.Ok(ToClientFullDto(id, storage));

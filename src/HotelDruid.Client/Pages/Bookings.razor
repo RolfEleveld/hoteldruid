@@ -36,7 +36,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.ClientId</div>
+                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
                             <small>@FormatDate(r.ArrivalDate) → @FormatDate(r.DepartureDate) (@r.Status)</small>
                         </li>
                     }
@@ -58,8 +58,8 @@
                                 @foreach (var room in roomMatches)
                                 {
                                     <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectRoom(room)">
-                                        <div class="fw-semibold">@room.Name</div>
-                                        <small class="text-muted">@L["bookings.room", "Room ID"]: @room.Id · @L["rooms.capacityLabel", "Capacity"]: @room.Capacity</small>
+                                        <div class="fw-semibold">@GetRoomDisplayName(room.Id)</div>
+                                        <small class="text-muted">@L["bookings.room", "Room"]: @GetRoomDisplayName(room.Id) · @L["rooms.capacityLabel", "Capacity"]: @room.Capacity</small>
                                     </button>
                                 }
                             </div>
@@ -72,8 +72,8 @@
                             <div class="border rounded p-2 bg-light-subtle">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold">@selectedRoom.Name</div>
-                                        <small class="text-muted">@L["bookings.room", "Room ID"]: @selectedRoom.Id · @L["rooms.capacityLabel", "Capacity"]: @selectedRoom.Capacity</small>
+                                        <div class="fw-semibold">@GetRoomDisplayName(selectedRoom.Id)</div>
+                                        <small class="text-muted">@L["bookings.room", "Room"]: @GetRoomDisplayName(selectedRoom.Id) · @L["rooms.capacityLabel", "Capacity"]: @selectedRoom.Capacity</small>
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearRoomSelection">@L["bookings.clearSelection", "Clear"]</button>
                                 </div>
@@ -103,7 +103,7 @@
                         <label>@L["bookings.clientSearchLabel", "Find existing client"]</label>
                         <input class="form-control"
                                value="@clientSearch"
-                               placeholder="@L["bookings.clientSearchPlaceholder", "Type last name, first name, email, phone, or ID"]"
+                               placeholder="@L["bookings.clientSearchPlaceholder", "Type last name, first name, email, or phone"]"
                                @oninput="OnClientSearchChanged" />
                     </div>
 
@@ -129,7 +129,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-semibold">@ClientDisplayName(selectedClient)</div>
-                                        <small class="text-muted">@L["bookings.idLabel", "ID"]: @selectedClient.Id · @selectedClient.Email · @selectedClient.Phone</small>
+                                        <small class="text-muted">@selectedClient.Email · @selectedClient.Phone</small>
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearClientSelection">@L["bookings.clearSelection", "Clear"]</button>
                                 </div>
@@ -181,8 +181,8 @@
                 <h5 class="mt-1">@L["common.details"]</h5>
                 <dl>
                     <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
-                    <dt>@L["bookings.client", "Client"]</dt><dd>@selected.ClientId</dd>
-                    <dt>@L["bookings.room", "Room"]</dt><dd>@selected.RoomId</dd>
+                    <dt>@L["bookings.client", "Client"]</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
+                    <dt>@L["bookings.room", "Room"]</dt><dd>@GetRoomDisplayName(selected.RoomId)</dd>
                     <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
                     <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
                     <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
@@ -657,6 +657,33 @@
             || (!string.IsNullOrWhiteSpace(room.Id) && room.Id.Contains(term, StringComparison.OrdinalIgnoreCase));
     }
 
+    private string GetClientDisplayName(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return L["bookings.unknownClient", "Unknown client"];
+        }
+
+        var client = knownClients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
+        return client is null ? L["bookings.unknownClient", "Unknown client"] : ClientDisplayName(client);
+    }
+
+    private string GetRoomDisplayName(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return L["bookings.unassignedRoom", "Unassigned room"];
+        }
+
+        var room = knownRooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        if (room is null)
+        {
+            return L["bookings.unknownRoom", "Unknown room"];
+        }
+
+        return string.IsNullOrWhiteSpace(room.Name) ? L["bookings.unknownRoom", "Unknown room"] : room.Name;
+    }
+
     private string TranslateBookingSaveError(Exception ex)
     {
         return ex.Message switch
@@ -679,7 +706,7 @@
     private static string ClientDisplayName(ClientRecord client)
     {
         var fullName = string.Join(" ", new[] { client.LastName, client.FirstName }.Where(x => !string.IsNullOrWhiteSpace(x)));
-        return string.IsNullOrWhiteSpace(fullName) ? (client.Id ?? string.Empty) : fullName;
+        return string.IsNullOrWhiteSpace(fullName) ? "Unknown client" : fullName;
     }
 
     private class FormModel

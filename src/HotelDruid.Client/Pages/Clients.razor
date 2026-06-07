@@ -1,118 +1,255 @@
 @page "/clients"
-@using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
+@using Microsoft.AspNetCore.Components
 @inject IClientApiService ClientApi
-@inject NavigationManager Navigation
-
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@implements IAsyncDisposable
 
 <PageTitle>@L["clients.title", "Clients"]</PageTitle>
-<div class="container-fluid assets-manager">
-    <div class="row">
-        <div class="col-md-3 border-end">
-            <h5 class="mt-3">Clients</h5>
-            <button class="btn btn-sm btn-primary mb-2" @onclick="NewClient">+ New</button>
-            @if (clients is null)
+
+<div class="container-fluid clients-manager">
+    <div class="row g-3 h-100">
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["clients.title", "Clients"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewClient">@L["clients.add", "Add Client"]</button>
+
+                    <div class="mb-3">
+                        <label class="form-label">@L["clients.searchLabel", "Find client"]</label>
+                        <input type="text" class="form-control" @bind="filterText" @bind:event="oninput" placeholder="@L["clients.searchPlaceholder", "Search by name, email, phone, or city"]" />
+                    </div>
+
+                    @if (clients is null)
+                    {
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
+                    }
+                    else if (FilteredClients.Count == 0)
+                    {
+                        <div class="alert alert-info">@L["clients.emptyList", "No clients registered"]</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var client in FilteredClients)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action @(selectedClient?.Id == client.Id ? "active" : string.Empty)" @onclick="() => SelectClient(client)">
+                                    <div class="fw-semibold">@GetDisplayName(client)</div>
+                                    <small class="text-muted">@GetListMeta(client)</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            @if (editModel is not null)
             {
-                <p><em>@L["common.loading", "Loading..."]</em></p>
-            }
-            else if (clients.Count == 0)
-            {
-                <p class="text-muted">@L["clients.emptyList", "No clients registered"]</p>
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">@(string.IsNullOrWhiteSpace(editModel.Id) ? L["clients.newClient", "New Client"] : GetDisplayName(editModel))</h3>
+                                <small class="text-muted">@L["clients.manageClient", "Manage guest profile details"]</small>
+                            </div>
+                            <div class="status-badge">
+                                @if (isSaving)
+                                {
+                                    <span class="badge bg-warning">@L["common.saving", "Saving..."]</span>
+                                }
+                                else if (!string.IsNullOrEmpty(lastError))
+                                {
+                                    <span class="badge bg-danger">@L["common.error", "Error"]</span>
+                                }
+                                else if (isSaved)
+                                {
+                                    <span class="badge bg-success">@L["common.saved", "Saved"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">@L["common.unsaved", "Unsaved changes"]</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(lastError))
+                        {
+                            <div class="alert alert-danger alert-sm mt-2 mb-0">@lastError</div>
+                        }
+                    </div>
+
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <form @oninput="OnEditorChanged" @onchange="OnEditorChanged">
+                            <section class="client-section client-section-personal">
+                                <h4 class="client-section-title">@L["clients.section.personal", "Personal Data"]</h4>
+                                <div class="row g-2">
+                                    <div class="col-md-4"><label class="form-label">@L["clients.titleLabel", "Title"]</label><input type="text" class="form-control" @bind="editModel.Title" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.lastNameLabel", "Last Name"] <span class="text-danger">*</span></label><input type="text" class="form-control" @bind="editModel.LastName" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.firstNameLabel", "First Name"]</label><input type="text" class="form-control" @bind="editModel.FirstName" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.nicknameLabel", "Nickname"]</label><input type="text" class="form-control" @bind="editModel.Nickname" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.genderLabel", "Gender"]</label><input type="text" class="form-control" @bind="editModel.Gender" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.languageLabel", "Language"]</label><input type="text" class="form-control" @bind="editModel.Language" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.nationalityLabel", "Nationality"]</label><input type="text" class="form-control" @bind="editModel.Nationality" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.dateOfBirthLabel", "Date of Birth"]</label><input type="date" class="form-control" @bind="editModel.DateOfBirth" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.birthNationLabel", "Birth Nation"]</label><input type="text" class="form-control" @bind="editModel.BirthNation" @bind:event="oninput" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.birthRegionLabel", "Birth Region"]</label><input type="text" class="form-control" @bind="editModel.BirthRegion" @bind:event="oninput" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.birthCityLabel", "Birth City"]</label><input type="text" class="form-control" @bind="editModel.BirthCity" @bind:event="oninput" /></div>
+                                </div>
+                            </section>
+
+                            <section class="client-section client-section-contact">
+                                <h4 class="client-section-title">@L["clients.section.contact", "Contacts"]</h4>
+                                <div class="row g-2">
+                                    <div class="col-md-4"><label class="form-label">@L["clients.phoneLabel", "Phone"]</label><input type="text" class="form-control" @bind="editModel.Phone" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.phone2Label", "Phone 2"]</label><input type="text" class="form-control" @bind="editModel.Phone2" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.phone3Label", "Phone 3"]</label><input type="text" class="form-control" @bind="editModel.Phone3" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.emailLabel", "Email"]</label><input type="email" class="form-control" @bind="editModel.Email" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.email2Label", "Email 2"]</label><input type="email" class="form-control" @bind="editModel.Email2" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.email3Label", "Certified Email / Destination Code"]</label><input type="text" class="form-control" @bind="editModel.Email3" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.faxLabel", "Fax"]</label><input type="text" class="form-control" @bind="editModel.Fax" @bind:event="oninput" /></div>
+                                </div>
+                            </section>
+
+                            <section class="client-section client-section-address">
+                                <h4 class="client-section-title">@L["clients.section.residence", "Residence"]</h4>
+                                <div class="row g-2">
+                                    <div class="col-md-4"><label class="form-label">@L["clients.streetLabel", "Street"]</label><input type="text" class="form-control" @bind="editModel.Street" @bind:event="oninput" /></div>
+                                    <div class="col-md-2"><label class="form-label">@L["clients.streetNumberLabel", "Street No"]</label><input type="text" class="form-control" @bind="editModel.StreetNumber" @bind:event="oninput" /></div>
+                                    <div class="col-md-2"><label class="form-label">@L["clients.postalCodeLabel", "Postal Code"]</label><input type="text" class="form-control" @bind="editModel.PostalCode" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.cityLabel", "City"]</label><input type="text" class="form-control" @bind="editModel.City" @bind:event="oninput" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.regionLabel", "Region"]</label><input type="text" class="form-control" @bind="editModel.Region" @bind:event="oninput" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.nationLabel", "Nation"]</label><input type="text" class="form-control" @bind="editModel.Nation" @bind:event="oninput" /></div>
+                                </div>
+                            </section>
+
+                            <section class="client-section client-section-document">
+                                <h4 class="client-section-title">@L["clients.section.document", "Document"]</h4>
+                                <div class="row g-2">
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentTypeLabel", "Document Type"]</label><input type="text" class="form-control" @bind="editModel.DocumentType" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentNumberLabel", "Document Number"]</label><input type="text" class="form-control" @bind="editModel.DocumentNumber" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentExpiryLabel", "Document Expiry"]</label><input type="date" class="form-control" @bind="editModel.DocumentExpiry" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentNationLabel", "Document Nation"]</label><input type="text" class="form-control" @bind="editModel.DocumentNation" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentRegionLabel", "Document Region"]</label><input type="text" class="form-control" @bind="editModel.DocumentRegion" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.documentCityLabel", "Document City"]</label><input type="text" class="form-control" @bind="editModel.DocumentCity" @bind:event="oninput" /></div>
+                                </div>
+                            </section>
+
+                            <section class="client-section client-section-tax">
+                                <h4 class="client-section-title">@L["clients.section.tax", "Tax Data"]</h4>
+                                <div class="row g-2">
+                                    <div class="col-md-4"><label class="form-label">@L["clients.taxCodeLabel", "Tax Code"]</label><input type="text" class="form-control" @bind="editModel.TaxCode" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.vatNumberLabel", "VAT Number"]</label><input type="text" class="form-control" @bind="editModel.VatNumber" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.maxOrderLabel", "Max Order Number"]</label><input type="number" min="0" class="form-control" @bind="editModel.MaxOrderNumber" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.companionIdsLabel", "Companion IDs"]</label><input type="text" class="form-control" @bind="editModel.CompanionIds" @bind:event="oninput" /></div>
+                                    <div class="col-md-6"><label class="form-label">@L["clients.documentsSentLabel", "Documents Sent"]</label><input type="text" class="form-control" @bind="editModel.DocumentsSent" @bind:event="oninput" /></div>
+                                </div>
+                            </section>
+
+                            <section class="client-section client-section-notes">
+                                <h4 class="client-section-title">@L["clients.section.notes", "Notes"]</h4>
+                                <textarea class="form-control" rows="3" @bind="editModel.Notes" @bind:event="oninput"></textarea>
+                                <small class="form-text text-muted">@L["clients.notesHelp", "Capture anything the front desk needs to remember for this guest."]</small>
+                            </section>
+                        </form>
+                    </div>
+
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveClient" disabled="@isSaving">@L["common.save", "Save"]</button>
+                            <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick="ResetEditor" disabled="@isSaving">@L["common.cancel", "Cancel"]</button>
+                            @if (!string.IsNullOrWhiteSpace(editModel.Id))
+                            {
+                                <button type="button" class="btn btn-info flex-grow-1" @onclick="DuplicateClient" disabled="@isSaving">@L["clients.duplicate", "Duplicate"]</button>
+                                <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteClient" disabled="@isSaving">@L["common.delete", "Delete"]</button>
+                            }
+                        </div>
+                    </div>
+                </div>
             }
             else
             {
-                <ul class="list-group">
-                    @foreach (var c in clients)
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p>@L["clients.selectPrompt", "Select a client from the list or add a new one"]</p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["common.details", "Details"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (CurrentPreview is null)
                     {
-                        <li class="list-group-item list-group-item-action @(selected?.Id == c.Id ? "active" : "")"
-                            style="cursor:pointer" @onclick="() => SelectClient(c)">
-                            <div class="fw-bold">@c.LastName@(c.FirstName is not null ? $", {c.FirstName}" : "")</div>
-                            <small>@c.Email @c.City</small>
-                        </li>
+                        <div class="alert alert-info mb-0">@L["clients.previewEmpty", "Client details will appear here once you select or create a record."]</div>
                     }
-                </ul>
-            }
-        </div>
-        <div class="col-md-6 border-end">
-            @if (editing)
-            {
-                <h5 class="mt-3">@(isNew ? "New Client" : "Edit Client")</h5>
-                <div class="mb-3">
-                    <h6 class="text-muted">Personal</h6>
-                    <div class="row g-2">
-                        <div class="col-6"><label>Last Name *</label><input class="form-control" @bind="form.LastName" /></div>
-                        <div class="col-6"><label>First Name</label><input class="form-control" @bind="form.FirstName" /></div>
-                        <div class="col-6"><label>Nickname</label><input class="form-control" @bind="form.Nickname" /></div>
-                        <div class="col-6"><label>Gender</label><input class="form-control" @bind="form.Gender" /></div>
-                        <div class="col-6"><label>Title</label><input class="form-control" @bind="form.Title" /></div>
-                        <div class="col-6"><label>Language</label><input class="form-control" @bind="form.Language" /></div>
-                    </div>
+                    else
+                    {
+                        <div class="client-summary-card">
+                            <div class="client-summary-name">@GetDisplayName(CurrentPreview)</div>
+                            <div class="client-summary-meta">@GetListMeta(CurrentPreview)</div>
+                        </div>
+
+                        <dl class="client-detail-grid mt-3">
+                            <dt>@L["clients.languageLabel", "Language"]</dt><dd>@DisplayValue(CurrentPreview.Language)</dd>
+                            <dt>@L["clients.nationalityLabel", "Nationality"]</dt><dd>@DisplayValue(CurrentPreview.Nationality)</dd>
+                            <dt>@L["clients.dateOfBirthLabel", "Date of Birth"]</dt><dd>@DisplayDate(CurrentPreview.DateOfBirth)</dd>
+                            <dt>@L["clients.phoneLabel", "Phone"]</dt><dd>@DisplayValue(CurrentPreview.Phone)</dd>
+                            <dt>@L["clients.phone2Label", "Phone 2"]</dt><dd>@DisplayValue(CurrentPreview.Phone2)</dd>
+                            <dt>@L["clients.phone3Label", "Phone 3"]</dt><dd>@DisplayValue(CurrentPreview.Phone3)</dd>
+                            <dt>@L["clients.emailLabel", "Email"]</dt><dd>@DisplayValue(CurrentPreview.Email)</dd>
+                            <dt>@L["clients.email3Label", "Certified Email / Destination Code"]</dt><dd>@DisplayValue(CurrentPreview.Email3)</dd>
+                            <dt>@L["clients.cityLabel", "City"]</dt><dd>@DisplayValue(CurrentPreview.City)</dd>
+                            <dt>@L["clients.nationLabel", "Nation"]</dt><dd>@DisplayValue(CurrentPreview.Nation)</dd>
+                            <dt>@L["clients.documentTypeLabel", "Document Type"]</dt><dd>@DisplayValue(CurrentPreview.DocumentType)</dd>
+                            <dt>@L["clients.documentNumberLabel", "Document Number"]</dt><dd>@DisplayValue(CurrentPreview.DocumentNumber)</dd>
+                            <dt>@L["clients.documentExpiryLabel", "Document Expiry"]</dt><dd>@DisplayDate(CurrentPreview.DocumentExpiry)</dd>
+                            <dt>@L["clients.taxCodeLabel", "Tax Code"]</dt><dd>@DisplayValue(CurrentPreview.TaxCode)</dd>
+                            <dt>@L["clients.vatNumberLabel", "VAT Number"]</dt><dd>@DisplayValue(CurrentPreview.VatNumber)</dd>
+                        </dl>
+                    }
                 </div>
-                <div class="mb-3">
-                    <h6 class="text-muted">Contact</h6>
-                    <div class="row g-2">
-                        <div class="col-6"><label>Phone</label><input class="form-control" @bind="form.Phone" /></div>
-                        <div class="col-6"><label>Phone 2</label><input class="form-control" @bind="form.Phone2" /></div>
-                        <div class="col-6"><label>Email</label><input class="form-control" @bind="form.Email" /></div>
-                        <div class="col-6"><label>Email 2</label><input class="form-control" @bind="form.Email2" /></div>
-                        <div class="col-6"><label>Fax</label><input class="form-control" @bind="form.Fax" /></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <h6 class="text-muted">Address</h6>
-                    <div class="row g-2">
-                        <div class="col-6"><label>Nation</label><input class="form-control" @bind="form.Nation" /></div>
-                        <div class="col-6"><label>Region</label><input class="form-control" @bind="form.Region" /></div>
-                        <div class="col-6"><label>City</label><input class="form-control" @bind="form.City" /></div>
-                        <div class="col-6"><label>Street</label><input class="form-control" @bind="form.Street" /></div>
-                        <div class="col-4"><label>Street No</label><input class="form-control" @bind="form.StreetNumber" /></div>
-                        <div class="col-4"><label>Postal Code</label><input class="form-control" @bind="form.PostalCode" /></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <h6 class="text-muted">Document</h6>
-                    <div class="row g-2">
-                        <div class="col-6"><label>Doc Type</label><input class="form-control" @bind="form.DocumentType" /></div>
-                        <div class="col-6"><label>Doc Number</label><input class="form-control" @bind="form.DocumentNumber" /></div>
-                        <div class="col-6"><label>Doc Nation</label><input class="form-control" @bind="form.DocumentNation" /></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <h6 class="text-muted">Business</h6>
-                    <div class="row g-2">
-                        <div class="col-6"><label>Tax Code</label><input class="form-control" @bind="form.TaxCode" /></div>
-                        <div class="col-6"><label>VAT Number</label><input class="form-control" @bind="form.VatNumber" /></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <h6 class="text-muted">Notes</h6>
-                    <textarea class="form-control" rows="3" @bind="form.Notes"></textarea>
-                </div>
-                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
-                <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
-                <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
-            }
-        </div>
-        <div class="col-md-3">
-            @if (selected is not null && !editing)
-            {
-                <h5 class="mt-3">@L["common.details", "Details"]</h5>
-                <dl>
-                    <dt>Last Name</dt><dd>@selected.LastName</dd>
-                    <dt>First Name</dt><dd>@selected.FirstName</dd>
-                    <dt>Email</dt><dd>@selected.Email</dd>
-                    <dt>Phone</dt><dd>@selected.Phone</dd>
-                    <dt>City</dt><dd>@selected.City</dd>
-                    <dt>Nation</dt><dd>@selected.Nation</dd>
-                    <dt>Tax Code</dt><dd>@selected.TaxCode</dd>
-                </dl>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
-                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
-            }
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+.clients-manager { height: calc(100vh - 100px); }
+.clients-manager .panel { border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+.clients-manager .panel-heading { background-color: #f5f5f5; border-bottom: 1px solid #ddd; padding: 10px 15px; }
+.clients-manager .panel-body { padding: 15px; }
+.clients-manager .panel-footer { background-color: #f5f5f5; border-top: 1px solid #ddd; padding: 10px 15px; }
+.status-badge { display: flex; gap: 5px; }
+.alert-sm { padding: 8px 12px; margin-bottom: 0; font-size: 0.875rem; }
+.client-section { border-left: 4px solid #d8dee7; border-radius: 4px; background: #fff; padding: 14px; margin-bottom: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04); }
+.client-section-personal { border-left-color: #4caf50; }
+.client-section-contact { border-left-color: #9c27b0; }
+.client-section-address { border-left-color: #2196f3; }
+.client-section-document { border-left-color: #ff9800; }
+.client-section-tax { border-left-color: #00bcd4; }
+.client-section-notes { border-left-color: #607d8b; }
+.client-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.client-summary-card { border-radius: 6px; background: linear-gradient(135deg, #17324d 0%, #274f78 100%); color: #fff; padding: 1rem; }
+.client-summary-name { font-size: 1.1rem; font-weight: 700; }
+.client-summary-meta { font-size: 0.875rem; opacity: 0.9; }
+.client-detail-grid { display: grid; grid-template-columns: minmax(0, 140px) minmax(0, 1fr); gap: 0.4rem 0.75rem; }
+.client-detail-grid dt { margin: 0; font-weight: 700; }
+.client-detail-grid dd { margin: 0; }
+.btn-group > .btn { border-radius: 0; }
+.btn-group > .btn:first-child { border-radius: 4px 0 0 4px; }
+.btn-group > .btn:last-child { border-radius: 0 4px 4px 0; }
+</style>
 
 @code {
     [SupplyParameterFromQuery(Name = "selectedId")]
@@ -122,16 +259,28 @@
     public bool? EditRequested { get; set; }
 
     private List<ClientDto>? clients;
-    private ClientDto? selected;
-    private bool editing;
-    private bool isNew;
-    private string errorMsg = "";
-    private FormModel form = new();
+    private ClientDto? selectedClient;
+    private ClientEditModel? editModel;
+    private bool isSaving;
+    private bool isSaved = true;
+    private bool hasUnsavedChanges;
+    private string? lastError;
+    private string? statusMessage = string.Empty;
+    private string filterText = string.Empty;
+    private System.Timers.Timer? autoSaveTimer;
+
+    private List<ClientDto> FilteredClients => (clients ?? new())
+        .Where(client => MatchesFilter(client, filterText))
+        .ToList();
+
+    private ClientDto? CurrentPreview => editModel?.ToDto() ?? selectedClient;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAll();
+        statusMessage = L["common.noChanges", "No changes"];
+        await LoadClients();
         ApplySelectedClientFromQuery();
+        InitializeAutoSaveTimer();
     }
 
     protected override Task OnParametersSetAsync()
@@ -140,7 +289,20 @@
         return Task.CompletedTask;
     }
 
-    private async Task LoadAll()
+    private void InitializeAutoSaveTimer()
+    {
+        autoSaveTimer = new System.Timers.Timer(1500);
+        autoSaveTimer.Elapsed += async (_, _) =>
+        {
+            if (hasUnsavedChanges && editModel is not null && !isSaving)
+            {
+                await InvokeAsync(SaveClient);
+            }
+        };
+        autoSaveTimer.AutoReset = false;
+    }
+
+    private async Task LoadClients()
     {
         clients = (await ClientApi.GetAllAsync())
             .OrderBy(client => client.LastName, StringComparer.OrdinalIgnoreCase)
@@ -156,109 +318,356 @@
             return;
         }
 
-        var client = clients.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
-        if (client is null)
+        var requestedClient = clients.FirstOrDefault(client => string.Equals(client.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (requestedClient is not null && !string.Equals(selectedClient?.Id, requestedClient.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            SelectClient(requestedClient);
+        }
+    }
+
+    private void SelectClient(ClientDto client)
+    {
+        selectedClient = client;
+        editModel = ClientEditModel.FromDto(client);
+        isSaved = true;
+        hasUnsavedChanges = false;
+        lastError = null;
+        statusMessage = L["common.noChanges", "No changes"];
+        ClearAutoSaveTimer();
+    }
+
+    private void AddNewClient()
+    {
+        selectedClient = null;
+        editModel = new ClientEditModel();
+        isSaved = false;
+        hasUnsavedChanges = false;
+        lastError = null;
+        statusMessage = L["common.unsaved", "Unsaved changes"];
+    }
+
+    private void OnEditorChanged(ChangeEventArgs _)
+    {
+        if (editModel is null)
         {
             return;
         }
 
-        SelectClient(client);
-        if (EditRequested == true)
+        isSaved = false;
+        hasUnsavedChanges = true;
+        lastError = null;
+        statusMessage = L["common.unsaved", "Unsaved changes"];
+        autoSaveTimer?.Stop();
+        autoSaveTimer?.Start();
+    }
+
+    private void ResetEditor()
+    {
+        lastError = null;
+        ClearAutoSaveTimer();
+
+        if (selectedClient is not null)
         {
-            EditSelected();
+            editModel = ClientEditModel.FromDto(selectedClient);
+            isSaved = true;
+            hasUnsavedChanges = false;
+            statusMessage = L["common.noChanges", "No changes"];
+        }
+        else
+        {
+            editModel = null;
+            isSaved = true;
+            hasUnsavedChanges = false;
+            statusMessage = L["common.noChanges", "No changes"];
         }
     }
 
-    private void NewClient()
-    {
-        form = new();
-        isNew = true;
-        editing = true;
-        selected = null;
-        errorMsg = "";
-    }
+    private void ClearAutoSaveTimer() => autoSaveTimer?.Stop();
 
-    private void SelectClient(ClientDto c)
+    private async Task SaveClient()
     {
-        selected = c;
-        editing = false;
-        errorMsg = "";
-    }
-
-    private void EditSelected()
-    {
-        if (selected is null) return;
-        form = new()
+        if (editModel is null || isSaving)
         {
-            LastName = selected.LastName, FirstName = selected.FirstName, Nickname = selected.Nickname,
-            Gender = selected.Gender, Title = selected.Title, Language = selected.Language,
-            Phone = selected.Phone, Phone2 = selected.Phone2, Fax = selected.Fax,
-            Email = selected.Email, Email2 = selected.Email2,
-            Nation = selected.Nation, Region = selected.Region, City = selected.City,
-            Street = selected.Street, StreetNumber = selected.StreetNumber, PostalCode = selected.PostalCode,
-            DocumentType = selected.DocumentType, DocumentNumber = selected.DocumentNumber,
-            DocumentNation = selected.DocumentNation,
-            TaxCode = selected.TaxCode, VatNumber = selected.VatNumber, Notes = selected.Notes
-        };
-        isNew = false;
-        editing = true;
-        errorMsg = "";
-    }
+            return;
+        }
 
-    private async Task Save()
-    {
-        if (string.IsNullOrWhiteSpace(form.LastName)) { errorMsg = "Last Name is required."; return; }
-        var dto = new ClientDto(
-            selected?.Id, form.LastName, form.FirstName, form.Nickname, form.Gender, form.Title, form.Language,
-            null, null, null, null, form.DocumentNumber, null, form.DocumentType, null, null, form.DocumentNation,
-            null, form.Nation, form.Region, form.City, form.Street, form.StreetNumber, form.PostalCode,
-            form.Phone, form.Phone2, null, form.Fax, form.Email, form.Email2, null,
-            form.TaxCode, form.VatNumber, form.Notes);
+        if (string.IsNullOrWhiteSpace(editModel.LastName))
+        {
+            lastError = L["clients.lastNameRequired", "Last Name is required."];
+            return;
+        }
+
+        isSaving = true;
+        lastError = null;
+        hasUnsavedChanges = false;
+
         try
         {
-            if (isNew) await ClientApi.CreateAsync(dto);
-            else await ClientApi.UpdateAsync(selected!.Id!, dto);
-            editing = false;
-            await LoadAll();
+            var dto = editModel.ToDto();
+            string? savedId;
+            if (string.IsNullOrWhiteSpace(editModel.Id))
+            {
+                savedId = await ClientApi.CreateAsync(dto);
+            }
+            else
+            {
+                await ClientApi.UpdateAsync(editModel.Id, dto);
+                savedId = editModel.Id;
+            }
+
+            await LoadClients();
+            if (!string.IsNullOrWhiteSpace(savedId))
+            {
+                selectedClient = clients?.FirstOrDefault(client => string.Equals(client.Id, savedId, StringComparison.OrdinalIgnoreCase))
+                    ?? await ClientApi.GetByIdAsync(savedId);
+            }
+
+            if (selectedClient is not null)
+            {
+                editModel = ClientEditModel.FromDto(selectedClient);
+            }
+
+            isSaved = true;
+            statusMessage = L["common.saved", "Saved"];
         }
-        catch { errorMsg = "Save failed."; }
+        catch (Exception ex)
+        {
+            hasUnsavedChanges = true;
+            lastError = string.Format(L["clients.saveFailed", "Failed to save client: {0}"], ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    private void Cancel() { editing = false; errorMsg = ""; }
-
-    private async Task DeleteSelected()
+    private void DuplicateClient()
     {
-        if (selected?.Id is null) return;
-        try { await ClientApi.DeleteAsync(selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = "Delete failed."; }
+        if (editModel is null)
+        {
+            return;
+        }
+
+        editModel = editModel.CloneForDuplicate();
+        selectedClient = null;
+        isSaved = false;
+        hasUnsavedChanges = true;
+        statusMessage = L["common.unsaved", "Unsaved changes"];
     }
 
-    private class FormModel
+    private async Task DeleteClient()
     {
+        if (editModel?.Id is null)
+        {
+            return;
+        }
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm", string.Format(L["clients.deleteConfirm", "Are you sure you want to delete client {0}?"], GetDisplayName(editModel)));
+        if (!confirmed)
+        {
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            await ClientApi.DeleteAsync(editModel.Id);
+            await LoadClients();
+            selectedClient = null;
+            editModel = null;
+            isSaved = true;
+            lastError = null;
+            statusMessage = L["common.saved", "Saved"];
+        }
+        catch (Exception ex)
+        {
+            lastError = string.Format(L["clients.deleteFailed", "Failed to delete client: {0}"], ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static bool MatchesFilter(ClientDto client, string filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return true;
+        }
+
+        var term = filter.Trim();
+        return GetDisplayName(client).Contains(term, StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(client.Email) && client.Email.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.Phone) && client.Phone.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(client.City) && client.City.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetDisplayName(ClientDto client)
+        => !string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName)
+            ? $"{client.LastName}, {client.FirstName}"
+            : client.LastName ?? client.FirstName ?? client.Nickname ?? "Unknown client";
+
+    private static string GetDisplayName(ClientEditModel client)
+        => !string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName)
+            ? $"{client.LastName}, {client.FirstName}"
+            : client.LastName ?? client.FirstName ?? client.Nickname ?? "Unknown client";
+
+    private static string GetListMeta(ClientDto client)
+    {
+        var parts = new[] { client.Email, client.Phone, client.City }.Where(part => !string.IsNullOrWhiteSpace(part)).ToList();
+        return parts.Count == 0 ? "No additional details" : string.Join(" · ", parts);
+    }
+
+    private static string GetListMeta(ClientEditModel client)
+    {
+        var parts = new[] { client.Email, client.Phone, client.City }.Where(part => !string.IsNullOrWhiteSpace(part)).ToList();
+        return parts.Count == 0 ? "No additional details" : string.Join(" · ", parts);
+    }
+
+    private static string DisplayValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string DisplayDate(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
+
+    public ValueTask DisposeAsync()
+    {
+        autoSaveTimer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed class ClientEditModel
+    {
+        public string? Id { get; set; }
         public string? LastName { get; set; }
         public string? FirstName { get; set; }
         public string? Nickname { get; set; }
         public string? Gender { get; set; }
         public string? Title { get; set; }
         public string? Language { get; set; }
-        public string? Phone { get; set; }
-        public string? Phone2 { get; set; }
-        public string? Fax { get; set; }
-        public string? Email { get; set; }
-        public string? Email2 { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? BirthCity { get; set; }
+        public string? BirthRegion { get; set; }
+        public string? BirthNation { get; set; }
+        public string? DocumentNumber { get; set; }
+        public DateTime? DocumentExpiry { get; set; }
+        public string? DocumentType { get; set; }
+        public string? DocumentCity { get; set; }
+        public string? DocumentRegion { get; set; }
+        public string? DocumentNation { get; set; }
+        public string? Nationality { get; set; }
         public string? Nation { get; set; }
         public string? Region { get; set; }
         public string? City { get; set; }
         public string? Street { get; set; }
         public string? StreetNumber { get; set; }
         public string? PostalCode { get; set; }
-        public string? DocumentType { get; set; }
-        public string? DocumentNumber { get; set; }
-        public string? DocumentNation { get; set; }
+        public string? Phone { get; set; }
+        public string? Phone2 { get; set; }
+        public string? Phone3 { get; set; }
+        public string? Fax { get; set; }
+        public string? Email { get; set; }
+        public string? Email2 { get; set; }
+        public string? Email3 { get; set; }
         public string? TaxCode { get; set; }
         public string? VatNumber { get; set; }
         public string? Notes { get; set; }
+        public int? MaxOrderNumber { get; set; }
+        public string? CompanionIds { get; set; }
+        public string? DocumentsSent { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public string? HostCreated { get; set; }
+        public int? CreatedBy { get; set; }
+
+        public ClientDto ToDto() => new(
+            Id, LastName, FirstName, Nickname, Gender, Title, Language,
+            DateOfBirth, BirthCity, BirthRegion, BirthNation, DocumentNumber,
+            DocumentExpiry, DocumentType, DocumentCity, DocumentRegion, DocumentNation,
+            Nationality, Nation, Region, City, Street, StreetNumber, PostalCode,
+            Phone, Phone2, Phone3, Fax, Email, Email2, Email3,
+            TaxCode, VatNumber, Notes, MaxOrderNumber, CompanionIds, DocumentsSent,
+            CreatedAt, HostCreated, CreatedBy);
+
+        public ClientEditModel CloneForDuplicate() => new()
+        {
+            LastName = LastName,
+            FirstName = FirstName,
+            Nickname = Nickname,
+            Gender = Gender,
+            Title = Title,
+            Language = Language,
+            DateOfBirth = DateOfBirth,
+            BirthCity = BirthCity,
+            BirthRegion = BirthRegion,
+            BirthNation = BirthNation,
+            DocumentNumber = DocumentNumber,
+            DocumentExpiry = DocumentExpiry,
+            DocumentType = DocumentType,
+            DocumentCity = DocumentCity,
+            DocumentRegion = DocumentRegion,
+            DocumentNation = DocumentNation,
+            Nationality = Nationality,
+            Nation = Nation,
+            Region = Region,
+            City = City,
+            Street = Street,
+            StreetNumber = StreetNumber,
+            PostalCode = PostalCode,
+            Phone = Phone,
+            Phone2 = Phone2,
+            Phone3 = Phone3,
+            Fax = Fax,
+            Email = Email,
+            Email2 = Email2,
+            Email3 = Email3,
+            TaxCode = TaxCode,
+            VatNumber = VatNumber,
+            Notes = Notes,
+            MaxOrderNumber = MaxOrderNumber,
+            CompanionIds = CompanionIds,
+            DocumentsSent = DocumentsSent
+        };
+
+        public static ClientEditModel FromDto(ClientDto dto) => new()
+        {
+            Id = dto.Id,
+            LastName = dto.LastName,
+            FirstName = dto.FirstName,
+            Nickname = dto.Nickname,
+            Gender = dto.Gender,
+            Title = dto.Title,
+            Language = dto.Language,
+            DateOfBirth = dto.DateOfBirth,
+            BirthCity = dto.BirthCity,
+            BirthRegion = dto.BirthRegion,
+            BirthNation = dto.BirthNation,
+            DocumentNumber = dto.DocumentNumber,
+            DocumentExpiry = dto.DocumentExpiry,
+            DocumentType = dto.DocumentType,
+            DocumentCity = dto.DocumentCity,
+            DocumentRegion = dto.DocumentRegion,
+            DocumentNation = dto.DocumentNation,
+            Nationality = dto.Nationality,
+            Nation = dto.Nation,
+            Region = dto.Region,
+            City = dto.City,
+            Street = dto.Street,
+            StreetNumber = dto.StreetNumber,
+            PostalCode = dto.PostalCode,
+            Phone = dto.Phone,
+            Phone2 = dto.Phone2,
+            Phone3 = dto.Phone3,
+            Fax = dto.Fax,
+            Email = dto.Email,
+            Email2 = dto.Email2,
+            Email3 = dto.Email3,
+            TaxCode = dto.TaxCode,
+            VatNumber = dto.VatNumber,
+            Notes = dto.Notes,
+            MaxOrderNumber = dto.MaxOrderNumber,
+            CompanionIds = dto.CompanionIds,
+            DocumentsSent = dto.DocumentsSent,
+            CreatedAt = dto.CreatedAt,
+            HostCreated = dto.HostCreated,
+            CreatedBy = dto.CreatedBy
+        };
     }
 }
-
-
