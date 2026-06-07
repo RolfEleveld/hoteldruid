@@ -35,8 +35,8 @@
                     @foreach (var r in records)
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
-                            style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
+                            style="cursor:pointer" @onclick="() => SelectRecordAndEdit(r)">
+                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>                            
                             <small>@FormatDate(r.ArrivalDate) → @FormatDate(r.DepartureDate) (@r.Status)</small>
                         </li>
                     }
@@ -71,10 +71,10 @@
                         <div class="col-12">
                             <div class="border rounded p-2 bg-light-subtle">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <div>
+                                    <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToRoom(selectedRoom.Id)">
                                         <div class="fw-semibold">@GetRoomDisplayName(selectedRoom.Id)</div>
                                         <small class="text-muted">@L["bookings.room", "Room"]: @GetRoomDisplayName(selectedRoom.Id) · @L["rooms.capacityLabel", "Capacity"]: @selectedRoom.Capacity</small>
-                                    </div>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearRoomSelection">@L["bookings.clearSelection", "Clear"]</button>
                                 </div>
                             </div>
@@ -127,10 +127,10 @@
                         <div class="col-12">
                             <div class="border rounded p-2 bg-light-subtle">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <div>
+                                    <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToClient(selectedClient.Id)">
                                         <div class="fw-semibold">@ClientDisplayName(selectedClient)</div>
                                         <small class="text-muted">@selectedClient.Email · @selectedClient.Phone</small>
-                                    </div>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearClientSelection">@L["bookings.clearSelection", "Clear"]</button>
                                 </div>
                             </div>
@@ -172,6 +172,11 @@
                 <div class="mt-3">
                     <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
                     <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+                    @if (selected is not null && !isNew)
+                    {
+                        <button class="btn btn-warning ms-2" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
+                        <button class="btn btn-danger ms-2" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
+                    }
                 </div>
             }
         </div>
@@ -181,8 +186,28 @@
                 <h5 class="mt-1">@L["common.details"]</h5>
                 <dl>
                     <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
-                    <dt>@L["bookings.client", "Client"]</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
-                    <dt>@L["bookings.room", "Room"]</dt><dd>@GetRoomDisplayName(selected.RoomId)</dd>
+                    <dt>@L["bookings.client", "Client"]</dt>
+                    <dd>
+                        @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+                        {
+                            <a href="/clients?selectedId=@selected.ClientId">@GetClientDisplayName(selected.ClientId)</a>
+                        }
+                        else
+                        {
+                            <text>-</text>
+                        }
+                    </dd>
+                    <dt>@L["bookings.room", "Room"]</dt>
+                    <dd>
+                        @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                        {
+                            <a href="/rooms?selectedId=@selected.RoomId">@GetRoomDisplayName(selected.RoomId)</a>
+                        }
+                        else
+                        {
+                            <text>-</text>
+                        }
+                    </dd>
                     <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
                     <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
                     <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
@@ -191,9 +216,16 @@
                     <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                     <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                 </dl>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["bookings.editBooking", "Edit Booking"]</button>
-                <button class="btn btn-sm btn-outline-warning me-1" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
-                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
+                <div class="mt-3">
+                    @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+                    {
+                        <a class="btn btn-sm btn-outline-primary me-1" href="/clients?selectedId=@selected.ClientId">@L["bookings.openClient", "Open client"]</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                    {
+                        <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@selected.RoomId">@L["bookings.openRoom", "Open room"]</a>
+                    }
+                </div>
             }
         </div>
     </div>
@@ -271,14 +303,18 @@
         var record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
         if (record is null)
         {
-            return;
+            records = (await BookingApi.ListAsync()).OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+                .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+            if (record is null)
+            {
+                return;
+            }
         }
 
         SelectRecord(record);
-        if (EditRequested == true)
-        {
-            await EditSelected();
-        }
+        await EditSelected();
     }
     private async Task ApplyFilter() => await LoadAll();
 
@@ -295,6 +331,12 @@
         errorMsg = "";
         ResetClientSelection();
         InitializeRoomSelectionForCurrentForm();
+    }
+
+    private async Task SelectRecordAndEdit(BookingDto r)
+    {
+        selected = r;
+        await EditSelected();
     }
 
     private void SelectRecord(BookingDto r) { selected = r; editing = false; }
@@ -640,6 +682,35 @@
         roomMatches.Clear();
     }
 
+    private void GoToClient(string? clientId, bool edit = false)
+    {
+      if (string.IsNullOrWhiteSpace(clientId))
+      {
+        Navigation.NavigateTo("/clients");
+        return;
+      }
+
+      var route = $"/clients?selectedId={Uri.EscapeDataString(clientId)}";
+      if (edit)
+      {
+        route += "&edit=true";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private void GoToRoom(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            Navigation.NavigateTo("/rooms");
+            return;
+        }
+
+        var route = $"/rooms?selectedId={Uri.EscapeDataString(roomId)}";
+        Navigation.NavigateTo(route);
+    }
+    
     private static bool ContainsClientSearch(ClientRecord client, string term)
     {
         return (!string.IsNullOrWhiteSpace(client.LastName) && client.LastName.Contains(term, StringComparison.OrdinalIgnoreCase))

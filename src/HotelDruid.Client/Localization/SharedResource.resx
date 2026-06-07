@@ -378,6 +378,8 @@
   <data name="bookings.year" xml:space="preserve"><value>Year</value></data>
   <data name="bookings.client" xml:space="preserve"><value>Client</value></data>
   <data name="bookings.room" xml:space="preserve"><value>Room ID</value></data>
+  <data name="bookings.openClient" xml:space="preserve"><value>Open client</value></data>
+  <data name="bookings.openRoom" xml:space="preserve"><value>Open room</value></data>
   <data name="bookings.status" xml:space="preserve"><value>Status</value></data>
   <data name="bookings.arrivalDate" xml:space="preserve"><value>Arrival Date</value></data>
   <data name="bookings.departureDate" xml:space="preserve"><value>Departure Date</value></data>

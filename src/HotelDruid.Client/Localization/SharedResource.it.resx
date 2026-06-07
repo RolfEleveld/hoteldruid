@@ -351,6 +351,8 @@
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>Sei sicuro di voler eliminare la camera {0}?</value></data>
   <data name="bookings.arrivalRequired" xml:space="preserve"><value>La data di arrivo e obbligatoria.</value></data>
   <data name="bookings.roomRequired" xml:space="preserve"><value>La camera e obbligatoria.</value></data>
+  <data name="bookings.openClient" xml:space="preserve"><value>Apri cliente</value></data>
+  <data name="bookings.openRoom" xml:space="preserve"><value>Apri camera</value></data>
   <data name="bookings.departureRequired" xml:space="preserve"><value>La data di partenza e obbligatoria.</value></data>
   <data name="bookings.departureAfterArrival" xml:space="preserve"><value>La data di partenza deve essere successiva alla data di arrivo.</value></data>
   <data name="bookings.roomSearchLabel" xml:space="preserve"><value>Cerca camera</value></data>
