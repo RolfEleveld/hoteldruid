@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using HotelDruid.Api.Models;
@@ -137,8 +138,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
             ClientFirstName = client?.FirstName ?? string.Empty,
             ClientFullName = FormatFullName(client?.Title, client?.FirstName, client?.LastName),
             ClientTitle = client?.Title ?? string.Empty,
-            ClientEmail = client?.Email ?? string.Empty,
-            ClientPhone = client?.Phone ?? string.Empty,
+            ClientEmail = GetPrimaryEmail(client),
+            ClientPhone = GetPrimaryPhone(client),
             ClientStreet = client?.Street ?? string.Empty,
             ClientStreetNumber = client?.StreetNumber ?? string.Empty,
             ClientCity = client?.City ?? string.Empty,
@@ -359,11 +360,35 @@ public sealed class DocumentRenderService : IDocumentRenderService
             LastName = c?.LastName ?? string.Empty,
             FirstName = c?.FirstName ?? string.Empty,
             FullName = FormatFullName(c?.Title, c?.FirstName, c?.LastName),
-            Email = c?.Email ?? string.Empty,
-            Phone = c?.Phone ?? string.Empty,
+            Email = GetPrimaryEmail(c),
+            Phone = GetPrimaryPhone(c),
             Nationality = c?.Nationality ?? string.Empty,
             DateOfBirth = c?.DateOfBirth?.ToString("yyyy-MM-dd") ?? string.Empty
         };
+
+    private static string GetPrimaryPhone(ClientStorageModel? client)
+    {
+        if (client is null)
+            return string.Empty;
+
+        var candidate = client.Phones?.FirstOrDefault(phone => !string.IsNullOrWhiteSpace(phone));
+        if (!string.IsNullOrWhiteSpace(candidate))
+            return candidate.Trim();
+
+        return client.Phone ?? client.Phone2 ?? client.Phone3 ?? string.Empty;
+    }
+
+    private static string GetPrimaryEmail(ClientStorageModel? client)
+    {
+        if (client is null)
+            return string.Empty;
+
+        var candidate = client.Emails?.FirstOrDefault(email => !string.IsNullOrWhiteSpace(email));
+        if (!string.IsNullOrWhiteSpace(candidate))
+            return candidate.Trim();
+
+        return client.Email ?? client.Email2 ?? client.Email3 ?? string.Empty;
+    }
 
     private static string SafeFilename(string value) =>
         string.IsNullOrWhiteSpace(value)

@@ -44,7 +44,6 @@ namespace HotelDruid.Client.Services
         string? Phone = null,
         string? Phone2 = null,
         string? Phone3 = null,
-        string? Fax = null,
         string? Email = null,
         string? Email2 = null,
         string? Email3 = null,
@@ -56,7 +55,9 @@ namespace HotelDruid.Client.Services
         string? DocumentsSent = null,
         DateTime? CreatedAt = null,
         string? HostCreated = null,
-        int? CreatedBy = null
+        int? CreatedBy = null,
+        List<string>? Phones = null,
+        List<string>? Emails = null
     );
 
     public class ClientApiService : IClientApiService

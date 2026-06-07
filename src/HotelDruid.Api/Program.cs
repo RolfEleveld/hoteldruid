@@ -1729,19 +1729,46 @@ app.MapDelete("/api/settings/{userId:int}/{key}", async (int userId, string key,
 
 // --- Clients (clienti) ---
 
-ClientFullDto ToClientFullDto(string id, ClientStorageModel s) => new(
-    id, s.LastName, s.FirstName, s.Nickname, s.Gender, s.Title, s.Language,
-    s.DateOfBirth, s.BirthCity, s.BirthRegion, s.BirthNation,
-    s.DocumentNumber, s.DocumentExpiry, s.DocumentType, s.DocumentCity, s.DocumentRegion, s.DocumentNation,
-    s.Nationality, s.Nation, s.Region, s.City, s.Street, s.StreetNumber, s.PostalCode,
-    s.Phone, s.Phone2, s.Phone3, s.Fax, s.Email, s.Email2, s.Email3,
-    s.TaxCode, s.VatNumber, s.Notes, s.MaxOrderNumber, s.CompanionIds, s.DocumentsSent,
-    s.CreatedAt, s.HostCreated, s.CreatedBy);
+ClientFullDto ToClientFullDto(string id, ClientStorageModel s)
+{
+    var phones = GetCanonicalContactList(s.Phones, s.Phone, s.Phone2, s.Phone3);
+    var emails = GetCanonicalContactList(s.Emails, s.Email, s.Email2, s.Email3);
+
+    return new(
+        id, s.LastName, s.FirstName, s.Nickname, s.Gender, s.Title, s.Language,
+        s.DateOfBirth, s.BirthCity, s.BirthRegion, s.BirthNation,
+        s.DocumentNumber, s.DocumentExpiry, s.DocumentType, s.DocumentCity, s.DocumentRegion, s.DocumentNation,
+        s.Nationality, s.Nation, s.Region, s.City, s.Street, s.StreetNumber, s.PostalCode,
+        s.Phone ?? phones.ElementAtOrDefault(0), s.Phone2 ?? phones.ElementAtOrDefault(1), s.Phone3 ?? phones.ElementAtOrDefault(2),
+        s.Email ?? emails.ElementAtOrDefault(0), s.Email2 ?? emails.ElementAtOrDefault(1), s.Email3 ?? emails.ElementAtOrDefault(2),
+        s.TaxCode, s.VatNumber, s.Notes, s.MaxOrderNumber, s.CompanionIds, s.DocumentsSent,
+        s.CreatedAt, s.HostCreated, s.CreatedBy,
+        phones, emails);
+}
+
+static List<string> GetCanonicalContactList(IEnumerable<string?>? values, params string?[] legacyValues)
+{
+    var list = values?
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Select(value => value!.Trim())
+        .ToList() ?? new List<string>();
+
+    if (list.Any())
+        return list;
+
+    return legacyValues
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Select(value => value!.Trim())
+        .ToList();
+}
 
 app.MapPost("/api/clients", async (ClientFullDto request, IKeyValueStore store) =>
 {
     if (string.IsNullOrWhiteSpace(request.LastName))
         return Results.BadRequest(new { error = "LastName is required" });
+    var phones = GetCanonicalContactList(request.Phones, request.Phone, request.Phone2, request.Phone3);
+    var emails = GetCanonicalContactList(request.Emails, request.Email, request.Email2, request.Email3);
+
     var storage = new ClientStorageModel
     {
         LastName = request.LastName, FirstName = request.FirstName, Nickname = request.Nickname,
@@ -1753,8 +1780,9 @@ app.MapPost("/api/clients", async (ClientFullDto request, IKeyValueStore store) 
         DocumentNation = request.DocumentNation, Nationality = request.Nationality,
         Nation = request.Nation, Region = request.Region, City = request.City,
         Street = request.Street, StreetNumber = request.StreetNumber, PostalCode = request.PostalCode,
-        Phone = request.Phone, Phone2 = request.Phone2, Phone3 = request.Phone3, Fax = request.Fax,
-        Email = request.Email, Email2 = request.Email2, Email3 = request.Email3,
+        Phones = phones, Emails = emails,
+        Phone = request.Phone ?? phones.ElementAtOrDefault(0), Phone2 = request.Phone2 ?? phones.ElementAtOrDefault(1), Phone3 = request.Phone3 ?? phones.ElementAtOrDefault(2),
+        Email = request.Email ?? emails.ElementAtOrDefault(0), Email2 = request.Email2 ?? emails.ElementAtOrDefault(1), Email3 = request.Email3 ?? emails.ElementAtOrDefault(2),
         TaxCode = request.TaxCode, VatNumber = request.VatNumber, Notes = request.Notes,
         MaxOrderNumber = request.MaxOrderNumber, CompanionIds = request.CompanionIds,
         DocumentsSent = request.DocumentsSent, CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
@@ -1793,6 +1821,9 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
     if (string.IsNullOrWhiteSpace(request.LastName)) return Results.BadRequest(new { error = "LastName is required" });
     var existing = await store.GetAsync<ClientStorageModel>("clients", id);
     if (existing is null) return Results.NotFound();
+    var phones = GetCanonicalContactList(request.Phones, request.Phone, request.Phone2, request.Phone3);
+    var emails = GetCanonicalContactList(request.Emails, request.Email, request.Email2, request.Email3);
+
     var storage = new ClientStorageModel
     {
         LastName = request.LastName, FirstName = request.FirstName, Nickname = request.Nickname,
@@ -1804,8 +1835,9 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
         DocumentNation = request.DocumentNation, Nationality = request.Nationality,
         Nation = request.Nation, Region = request.Region, City = request.City,
         Street = request.Street, StreetNumber = request.StreetNumber, PostalCode = request.PostalCode,
-        Phone = request.Phone, Phone2 = request.Phone2, Phone3 = request.Phone3, Fax = request.Fax,
-        Email = request.Email, Email2 = request.Email2, Email3 = request.Email3,
+        Phones = phones, Emails = emails,
+        Phone = request.Phone ?? phones.ElementAtOrDefault(0), Phone2 = request.Phone2 ?? phones.ElementAtOrDefault(1), Phone3 = request.Phone3 ?? phones.ElementAtOrDefault(2),
+        Email = request.Email ?? emails.ElementAtOrDefault(0), Email2 = request.Email2 ?? emails.ElementAtOrDefault(1), Email3 = request.Email3 ?? emails.ElementAtOrDefault(2),
         TaxCode = request.TaxCode, VatNumber = request.VatNumber, Notes = request.Notes,
         MaxOrderNumber = request.MaxOrderNumber, CompanionIds = request.CompanionIds,
         DocumentsSent = request.DocumentsSent,

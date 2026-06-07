@@ -1,8 +1,12 @@
 @page "/clients"
+@page "/clients/new"
 @using HotelDruid.Client.Services
 @using Microsoft.AspNetCore.Components
+@using System.Net.Mail
+@using System.Text.RegularExpressions
 @inject IClientApiService ClientApi
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
 @implements IAsyncDisposable
 
@@ -90,12 +94,47 @@
                             <section class="client-section client-section-personal">
                                 <h4 class="client-section-title">@L["clients.section.personal", "Personal Data"]</h4>
                                 <div class="row g-2">
-                                    <div class="col-md-4"><label class="form-label">@L["clients.titleLabel", "Title"]</label><input type="text" class="form-control" @bind="editModel.Title" @bind:event="oninput" /></div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@L["clients.titleLabel", "Title"]</label>
+                                        <select class="form-select" @bind="editModel.Title">
+                                            <option value="">@L["clients.titleSelectPlaceholder", "Select title"]</option>
+                                            @foreach (var option in TitleOptions)
+                                            {
+                                                <option value="@option">@option</option>
+                                            }
+                                        </select>
+                                    </div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.lastNameLabel", "Last Name"] <span class="text-danger">*</span></label><input type="text" class="form-control" @bind="editModel.LastName" @bind:event="oninput" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.firstNameLabel", "First Name"]</label><input type="text" class="form-control" @bind="editModel.FirstName" @bind:event="oninput" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.nicknameLabel", "Nickname"]</label><input type="text" class="form-control" @bind="editModel.Nickname" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.genderLabel", "Gender"]</label><input type="text" class="form-control" @bind="editModel.Gender" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.languageLabel", "Language"]</label><input type="text" class="form-control" @bind="editModel.Language" @bind:event="oninput" /></div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@L["clients.genderLabel", "Gender"]</label>
+                                        <select class="form-select" @bind="editModel.Gender">
+                                            <option value="">@L["clients.genderSelectPlaceholder", "Select gender"]</option>
+                                            @foreach (var gender in GenderOptions)
+                                            {
+                                                <option value="@gender.Value">@L[gender.ResourceKey]</option>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(editModel.Gender) && !GenderOptions.Any(g => string.Equals(g.Value, editModel.Gender, StringComparison.OrdinalIgnoreCase)))
+                                            {
+                                                <option value="@editModel.Gender">@string.Format(L["clients.genderOption.Unknown", "Unknown: {0}"], editModel.Gender)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@L["clients.languageLabel", "Language"]</label>
+                                        <select class="form-select" @bind="editModel.Language">
+                                            <option value="">@L["clients.languageSelectPlaceholder", "Select language"]</option>
+                                            @foreach (var language in SupportedLanguages)
+                                            {
+                                                <option value="@language.Value">@L[language.ResourceKey]</option>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(editModel.Language) && !SupportedLanguages.Any(l => string.Equals(l.Value, editModel.Language, StringComparison.OrdinalIgnoreCase)))
+                                            {
+                                                <option value="@editModel.Language">@string.Format(L["clients.languageOption.Unknown", "Unknown: {0}"], editModel.Language)</option>
+                                            }
+                                        </select>
+                                    </div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.nationalityLabel", "Nationality"]</label><input type="text" class="form-control" @bind="editModel.Nationality" @bind:event="oninput" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.dateOfBirthLabel", "Date of Birth"]</label><input type="date" class="form-control" @bind="editModel.DateOfBirth" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.birthNationLabel", "Birth Nation"]</label><input type="text" class="form-control" @bind="editModel.BirthNation" @bind:event="oninput" /></div>
@@ -104,57 +143,134 @@
                                 </div>
                             </section>
 
-                            <section class="client-section client-section-contact">
-                                <h4 class="client-section-title">@L["clients.section.contact", "Contacts"]</h4>
-                                <div class="row g-2">
-                                    <div class="col-md-4"><label class="form-label">@L["clients.phoneLabel", "Phone"]</label><input type="text" class="form-control" @bind="editModel.Phone" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.phone2Label", "Phone 2"]</label><input type="text" class="form-control" @bind="editModel.Phone2" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.phone3Label", "Phone 3"]</label><input type="text" class="form-control" @bind="editModel.Phone3" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.emailLabel", "Email"]</label><input type="email" class="form-control" @bind="editModel.Email" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.email2Label", "Email 2"]</label><input type="email" class="form-control" @bind="editModel.Email2" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.email3Label", "Certified Email / Destination Code"]</label><input type="text" class="form-control" @bind="editModel.Email3" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.faxLabel", "Fax"]</label><input type="text" class="form-control" @bind="editModel.Fax" @bind:event="oninput" /></div>
+                            @if (editModel is not null && (showContactSection || HasContacts(editModel)))
+                            {
+                                <section class="client-section client-section-contact">
+                                    <h4 class="client-section-title">@L["clients.section.contact", "Contacts"]</h4>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label">@L["clients.phoneLabel", "Phone Numbers"]</label>
+                                            @if (editModel.Phones.Any())
+                                            {
+                                                @foreach (var phoneIndex in Enumerable.Range(0, editModel.Phones.Count))
+                                                {
+                                                    <div class="input-group mb-2" @key="phoneIndex">
+                                                        <input type="tel" inputmode="tel" class="form-control @(GetFieldCssClass(GetPhoneFieldName(phoneIndex)))" value="@editModel.Phones[phoneIndex]" @oninput="e => UpdatePhone(phoneIndex, e.Value?.ToString())" @onfocus="() => SetFocusedField(GetPhoneFieldName(phoneIndex))" @onblur="ClearFocusedField" />
+                                                        <button type="button" class="btn btn-outline-danger" @onclick="() => RemovePhone(phoneIndex)">×</button>
+                                                    </div>
+                                                    @if (TryGetFieldWarning(GetPhoneFieldName(phoneIndex)) is string phoneWarning)
+                                                    {
+                                                        <div class="invalid-feedback d-block">@phoneWarning</div>
+                                                    }
+                                                }
+                                            }
+                                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddPhone">@L["clients.addPhone", "Add phone"]</button>
+                                            @if (!editModel.Phones.Any())
+                                            {
+                                                <div class="form-text">@L["clients.addPhoneGuide", "Add phone numbers as needed; empty lines are hidden."]</div>
+                                            }
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">@L["clients.emailLabel", "Email Addresses"]</label>
+                                            @if (editModel.Emails.Any())
+                                            {
+                                                @foreach (var emailIndex in Enumerable.Range(0, editModel.Emails.Count))
+                                                {
+                                                    <div class="input-group mb-2" @key="emailIndex">
+                                                        <input type="email" class="form-control @(GetFieldCssClass(GetEmailFieldName(emailIndex)))" value="@editModel.Emails[emailIndex]" @oninput="e => UpdateEmail(emailIndex, e.Value?.ToString())" @onfocus="() => SetFocusedField(GetEmailFieldName(emailIndex))" @onblur="ClearFocusedField" />
+                                                        <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveEmail(emailIndex)">×</button>
+                                                    </div>
+                                                    @if (TryGetFieldWarning(GetEmailFieldName(emailIndex)) is string emailWarning)
+                                                    {
+                                                        <div class="invalid-feedback d-block">@emailWarning</div>
+                                                    }
+                                                }
+                                            }
+                                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddEmail">@L["clients.addEmail", "Add email"]</button>
+                                            @if (!editModel.Emails.Any())
+                                            {
+                                                <div class="form-text">@L["clients.addEmailGuide", "Add email addresses as needed; empty lines are hidden."]</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </section>
+                            }
+                            else if (editModel is not null)
+                            {
+                                <div class="client-section client-section-contact">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ShowContactSection">@L["clients.addContactSection", "Add contacts"]</button>
+                                    <div class="form-text">@L["clients.contactSectionGuide", "Add phone or email details for this client."]</div>
                                 </div>
-                            </section>
+                            }
 
-                            <section class="client-section client-section-address">
-                                <h4 class="client-section-title">@L["clients.section.residence", "Residence"]</h4>
-                                <div class="row g-2">
-                                    <div class="col-md-4"><label class="form-label">@L["clients.streetLabel", "Street"]</label><input type="text" class="form-control" @bind="editModel.Street" @bind:event="oninput" /></div>
-                                    <div class="col-md-2"><label class="form-label">@L["clients.streetNumberLabel", "Street No"]</label><input type="text" class="form-control" @bind="editModel.StreetNumber" @bind:event="oninput" /></div>
-                                    <div class="col-md-2"><label class="form-label">@L["clients.postalCodeLabel", "Postal Code"]</label><input type="text" class="form-control" @bind="editModel.PostalCode" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.cityLabel", "City"]</label><input type="text" class="form-control" @bind="editModel.City" @bind:event="oninput" /></div>
-                                    <div class="col-md-6"><label class="form-label">@L["clients.regionLabel", "Region"]</label><input type="text" class="form-control" @bind="editModel.Region" @bind:event="oninput" /></div>
-                                    <div class="col-md-6"><label class="form-label">@L["clients.nationLabel", "Nation"]</label><input type="text" class="form-control" @bind="editModel.Nation" @bind:event="oninput" /></div>
+                            @if (editModel is not null && (showResidenceSection || HasResidence(editModel)))
+                            {
+                                <section class="client-section client-section-address">
+                                    <h4 class="client-section-title">@L["clients.section.address", "Address"]</h4>
+                                    <div class="row g-2">
+                                        <div class="col-md-8"><label class="form-label">@L["clients.streetLabel", "Street"]</label><input type="text" class="form-control" @bind="editModel.Street" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.streetNumberLabel", "Street No"]</label><input type="text" class="form-control" @bind="editModel.StreetNumber" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.postalCodeLabel", "Postal Code"]</label><input type="text" class="form-control" @bind="editModel.PostalCode" @bind:event="oninput" /></div>
+                                        <div class="col-md-8"><label class="form-label">@L["clients.cityLabel", "City"]</label><input type="text" class="form-control" @bind="editModel.City" @bind:event="oninput" /></div>
+                                        <div class="col-md-6"><label class="form-label">@L["clients.regionLabel", "Region"]</label><input type="text" class="form-control" @bind="editModel.Region" @bind:event="oninput" /></div>
+                                        <div class="col-md-6"><label class="form-label">@L["clients.nationLabel", "Nation"]</label><input type="text" class="form-control" @bind="editModel.Nation" @bind:event="oninput" /></div>
+                                    </div>
+                                </section>
+                            }
+                            else if (editModel is not null)
+                            {
+                                <div class="client-section client-section-address">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ShowResidenceSection">@L["clients.addAddressSection", "Add address"]</button>
+                                    <div class="form-text">@L["clients.addressSectionGuide", "Add address information when available."]</div>
                                 </div>
-                            </section>
+                            }
 
-                            <section class="client-section client-section-document">
-                                <h4 class="client-section-title">@L["clients.section.document", "Document"]</h4>
-                                <div class="row g-2">
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentTypeLabel", "Document Type"]</label><input type="text" class="form-control" @bind="editModel.DocumentType" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentNumberLabel", "Document Number"]</label><input type="text" class="form-control" @bind="editModel.DocumentNumber" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentExpiryLabel", "Document Expiry"]</label><input type="date" class="form-control" @bind="editModel.DocumentExpiry" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentNationLabel", "Document Nation"]</label><input type="text" class="form-control" @bind="editModel.DocumentNation" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentRegionLabel", "Document Region"]</label><input type="text" class="form-control" @bind="editModel.DocumentRegion" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.documentCityLabel", "Document City"]</label><input type="text" class="form-control" @bind="editModel.DocumentCity" @bind:event="oninput" /></div>
+                            @if (editModel is not null && (showDocumentSection || HasDocument(editModel)))
+                            {
+                                <section class="client-section client-section-document">
+                                    <h4 class="client-section-title">@L["clients.section.document", "Document"]</h4>
+                                    <div class="row g-2">
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentTypeLabel", "Document Type"]</label><input type="text" class="form-control" @bind="editModel.DocumentType" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentNumberLabel", "Document Number"]</label><input type="text" class="form-control" @bind="editModel.DocumentNumber" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentExpiryLabel", "Document Expiry"]</label><input type="date" class="form-control" @bind="editModel.DocumentExpiry" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentNationLabel", "Document Nation"]</label><input type="text" class="form-control" @bind="editModel.DocumentNation" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentRegionLabel", "Document Region"]</label><input type="text" class="form-control" @bind="editModel.DocumentRegion" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.documentCityLabel", "Document City"]</label><input type="text" class="form-control" @bind="editModel.DocumentCity" @bind:event="oninput" /></div>
+                                    </div>
+                                </section>
+                            }
+                            else if (editModel is not null)
+                            {
+                                <div class="client-section client-section-document">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ShowDocumentSection">@L["clients.addDocumentSection", "Add document details"]</button>
+                                    <div class="form-text">@L["clients.documentSectionGuide", "Add identification data when needed."]</div>
                                 </div>
-                            </section>
+                            }
 
-                            <section class="client-section client-section-tax">
-                                <h4 class="client-section-title">@L["clients.section.tax", "Tax Data"]</h4>
-                                <div class="row g-2">
-                                    <div class="col-md-4"><label class="form-label">@L["clients.taxCodeLabel", "Tax Code"]</label><input type="text" class="form-control" @bind="editModel.TaxCode" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.vatNumberLabel", "VAT Number"]</label><input type="text" class="form-control" @bind="editModel.VatNumber" @bind:event="oninput" /></div>
-                                    <div class="col-md-4"><label class="form-label">@L["clients.maxOrderLabel", "Max Order Number"]</label><input type="number" min="0" class="form-control" @bind="editModel.MaxOrderNumber" /></div>
-                                    <div class="col-md-6"><label class="form-label">@L["clients.companionIdsLabel", "Companion IDs"]</label><input type="text" class="form-control" @bind="editModel.CompanionIds" @bind:event="oninput" /></div>
-                                    <div class="col-md-6"><label class="form-label">@L["clients.documentsSentLabel", "Documents Sent"]</label><input type="text" class="form-control" @bind="editModel.DocumentsSent" @bind:event="oninput" /></div>
+                            @if (editModel is not null && (showTaxSection || HasTaxData(editModel)))
+                            {
+                                <section class="client-section client-section-tax">
+                                    <h4 class="client-section-title">@L["clients.section.tax", "Tax Data"]</h4>
+                                    <div class="row g-2">
+                                        <div class="col-md-4"><label class="form-label">@L["clients.taxCodeLabel", "Tax Code"]</label><input type="text" class="form-control" @bind="editModel.TaxCode" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.vatNumberLabel", "VAT Number"]</label><input type="text" class="form-control" @bind="editModel.VatNumber" @bind:event="oninput" /></div>
+                                        <div class="col-md-4"><label class="form-label">@L["clients.maxOrderLabel", "Max Order Number"]</label><input type="number" min="0" class="form-control" @bind="editModel.MaxOrderNumber" /></div>
+                                        <div class="col-md-6"><label class="form-label">@L["clients.companionIdsLabel", "Companion IDs"]</label><input type="text" class="form-control" @bind="editModel.CompanionIds" @bind:event="oninput" /></div>
+                                        <div class="col-md-6"><label class="form-label">@L["clients.documentsSentLabel", "Documents Sent"]</label><input type="text" class="form-control" @bind="editModel.DocumentsSent" @bind:event="oninput" /></div>
+                                    </div>
+                                </section>
+                            }
+                            else if (editModel is not null)
+                            {
+                                <div class="client-section client-section-tax">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ShowTaxSection">@L["clients.addTaxSection", "Add tax data"]</button>
+                                    <div class="form-text">@L["clients.taxSectionGuide", "Add tax-related fields only when required."]</div>
                                 </div>
-                            </section>
+                            }
 
                             <section class="client-section client-section-notes">
                                 <h4 class="client-section-title">@L["clients.section.notes", "Notes"]</h4>
-                                <textarea class="form-control" rows="3" @bind="editModel.Notes" @bind:event="oninput"></textarea>
+                                <textarea class="form-control" rows="3" @bind="editModel!.Notes" @bind:event="oninput"></textarea>
                                 <small class="form-text text-muted">@L["clients.notesHelp", "Capture anything the front desk needs to remember for this guest."]</small>
                             </section>
                         </form>
@@ -200,23 +316,20 @@
                             <div class="client-summary-meta">@GetListMeta(CurrentPreview)</div>
                         </div>
 
-                        <dl class="client-detail-grid mt-3">
-                            <dt>@L["clients.languageLabel", "Language"]</dt><dd>@DisplayValue(CurrentPreview.Language)</dd>
-                            <dt>@L["clients.nationalityLabel", "Nationality"]</dt><dd>@DisplayValue(CurrentPreview.Nationality)</dd>
-                            <dt>@L["clients.dateOfBirthLabel", "Date of Birth"]</dt><dd>@DisplayDate(CurrentPreview.DateOfBirth)</dd>
-                            <dt>@L["clients.phoneLabel", "Phone"]</dt><dd>@DisplayValue(CurrentPreview.Phone)</dd>
-                            <dt>@L["clients.phone2Label", "Phone 2"]</dt><dd>@DisplayValue(CurrentPreview.Phone2)</dd>
-                            <dt>@L["clients.phone3Label", "Phone 3"]</dt><dd>@DisplayValue(CurrentPreview.Phone3)</dd>
-                            <dt>@L["clients.emailLabel", "Email"]</dt><dd>@DisplayValue(CurrentPreview.Email)</dd>
-                            <dt>@L["clients.email3Label", "Certified Email / Destination Code"]</dt><dd>@DisplayValue(CurrentPreview.Email3)</dd>
-                            <dt>@L["clients.cityLabel", "City"]</dt><dd>@DisplayValue(CurrentPreview.City)</dd>
-                            <dt>@L["clients.nationLabel", "Nation"]</dt><dd>@DisplayValue(CurrentPreview.Nation)</dd>
-                            <dt>@L["clients.documentTypeLabel", "Document Type"]</dt><dd>@DisplayValue(CurrentPreview.DocumentType)</dd>
-                            <dt>@L["clients.documentNumberLabel", "Document Number"]</dt><dd>@DisplayValue(CurrentPreview.DocumentNumber)</dd>
-                            <dt>@L["clients.documentExpiryLabel", "Document Expiry"]</dt><dd>@DisplayDate(CurrentPreview.DocumentExpiry)</dd>
-                            <dt>@L["clients.taxCodeLabel", "Tax Code"]</dt><dd>@DisplayValue(CurrentPreview.TaxCode)</dd>
-                            <dt>@L["clients.vatNumberLabel", "VAT Number"]</dt><dd>@DisplayValue(CurrentPreview.VatNumber)</dd>
-                        </dl>
+                        var previewFields = GetPreviewDetails(CurrentPreview).ToList();
+                        @if (previewFields.Any())
+                        {
+                            <dl class="client-detail-grid mt-3">
+                                @foreach (var field in previewFields)
+                                {
+                                    <dt>@field.Label</dt><dd>@field.Value</dd>
+                                }
+                            </dl>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0">@L["clients.previewEmpty", "Client details will appear here once you select or create a record."]</div>
+                        }
                     }
                 </div>
             </div>
@@ -261,6 +374,10 @@
     private List<ClientDto>? clients;
     private ClientDto? selectedClient;
     private ClientEditModel? editModel;
+    private bool showContactSection;
+    private bool showResidenceSection;
+    private bool showDocumentSection;
+    private bool showTaxSection;
     private bool isSaving;
     private bool isSaved = true;
     private bool hasUnsavedChanges;
@@ -269,11 +386,39 @@
     private string filterText = string.Empty;
     private System.Timers.Timer? autoSaveTimer;
 
+    private static readonly (string Value, string ResourceKey)[] GenderOptions = new[]
+    {
+        ("male", "clients.genderOption.Male"),
+        ("female", "clients.genderOption.Female"),
+        ("diverse", "clients.genderOption.Diverse")
+    };
+
+    private const string PhoneExampleNumber = "+391234567890";
+
+    private static readonly (string Value, string ResourceKey)[] SupportedLanguages = new[]
+    {
+        ("it", "clients.languageOption.Italian"),
+        ("es", "clients.languageOption.Spanish"),
+        ("en", "clients.languageOption.English")
+    };
+
+    private static readonly string[] TitleOptions = new[] { "Mr", "Mrs", "Ms", "Dr", "Prof", "Mx" };
+
     private List<ClientDto> FilteredClients => (clients ?? new())
         .Where(client => MatchesFilter(client, filterText))
         .ToList();
 
-    private ClientDto? CurrentPreview => editModel?.ToDto() ?? selectedClient;
+    private const string FieldPhone = "Phone";
+    private const string FieldPhone2 = "Phone2";
+    private const string FieldPhone3 = "Phone3";
+    private const string FieldEmail = "Email";
+    private const string FieldEmail2 = "Email2";
+    private const string FieldEmail3 = "Email3";
+
+    private Dictionary<string, string> fieldWarnings = new(StringComparer.OrdinalIgnoreCase);
+    private string? focusedField;
+
+    private ClientDto? CurrentPreview => selectedClient;
 
     protected override async Task OnInitializedAsync()
     {
@@ -286,7 +431,19 @@
     protected override Task OnParametersSetAsync()
     {
         ApplySelectedClientFromQuery();
+        EnsureNewClientRoute();
         return Task.CompletedTask;
+    }
+
+    private void EnsureNewClientRoute()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/');
+        if (string.Equals(path, "clients/new", StringComparison.OrdinalIgnoreCase)
+            && editModel is null
+            && selectedClient is null)
+        {
+            AddNewClient();
+        }
     }
 
     private void InitializeAutoSaveTimer()
@@ -329,21 +486,31 @@
     {
         selectedClient = client;
         editModel = ClientEditModel.FromDto(client);
+        InitializeSectionVisibility();
         isSaved = true;
         hasUnsavedChanges = false;
         lastError = null;
         statusMessage = L["common.noChanges", "No changes"];
+        fieldWarnings.Clear();
+        focusedField = null;
         ClearAutoSaveTimer();
     }
 
     private void AddNewClient()
     {
         selectedClient = null;
-        editModel = new ClientEditModel();
+        editModel = new ClientEditModel
+        {
+            Phones = new List<string>(),
+            Emails = new List<string>()
+        };
+        InitializeSectionVisibility();
         isSaved = false;
         hasUnsavedChanges = false;
         lastError = null;
         statusMessage = L["common.unsaved", "Unsaved changes"];
+        fieldWarnings.Clear();
+        focusedField = null;
     }
 
     private void OnEditorChanged(ChangeEventArgs _)
@@ -357,6 +524,7 @@
         hasUnsavedChanges = true;
         lastError = null;
         statusMessage = L["common.unsaved", "Unsaved changes"];
+        ValidateInlineFields();
         autoSaveTimer?.Stop();
         autoSaveTimer?.Start();
     }
@@ -384,6 +552,51 @@
 
     private void ClearAutoSaveTimer() => autoSaveTimer?.Stop();
 
+    private void SetFocusedField(string fieldName) => focusedField = fieldName;
+    private void ClearFocusedField() => focusedField = null;
+    private string GetFieldCssClass(string fieldName) => fieldWarnings.ContainsKey(fieldName) ? "is-invalid" : string.Empty;
+    private string? TryGetFieldWarning(string fieldName) => fieldWarnings.TryGetValue(fieldName, out var warning) ? warning : null;
+
+    private void ValidateInlineFields()
+    {
+        fieldWarnings.Clear();
+        if (editModel is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(editModel.Language) && !HotelDruid.Shared.ClientFieldMappings.IsSupportedLanguage(editModel.Language))
+        {
+            fieldWarnings["Language"] = L["clients.languageInvalid", "Language must be one of the supported values: it, es, en."];
+        }
+        else if (string.IsNullOrWhiteSpace(editModel.Language))
+        {
+            fieldWarnings["Language"] = L["clients.languageRequired", "Language is required."];
+        }
+
+        if (!string.IsNullOrWhiteSpace(editModel.Gender) && !HotelDruid.Shared.ClientFieldMappings.IsSupportedGender(editModel.Gender))
+        {
+            fieldWarnings["Gender"] = L["clients.genderInvalid", "Gender must be one of the supported values."];
+        }
+
+        for (var i = 0; i < editModel.Emails.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(editModel.Emails[i]) && !IsValidEmail(editModel.Emails[i]))
+            {
+                fieldWarnings[GetEmailFieldName(i)] = L["clients.emailInvalid", "Email must be a valid address."];
+            }
+        }
+
+        for (var i = 0; i < editModel.Phones.Count; i++)
+        {
+            var normalizedPhone = NormalizePhoneNumber(editModel.Phones[i]);
+            if (!string.IsNullOrWhiteSpace(editModel.Phones[i]) && !IsValidPhoneNumber(normalizedPhone))
+            {
+                fieldWarnings[GetPhoneFieldName(i)] = L["clients.phoneInvalid", "Phone numbers must be E.164 formatted, for example +391234567890."];
+            }
+        }
+    }
+
     private async Task SaveClient()
     {
         if (editModel is null || isSaving)
@@ -395,6 +608,63 @@
         {
             lastError = L["clients.lastNameRequired", "Last Name is required."];
             return;
+        }
+
+        fieldWarnings.Clear();
+        if (string.IsNullOrWhiteSpace(editModel.Language))
+        {
+            fieldWarnings["Language"] = L["clients.languageRequired", "Language is required."];
+        }
+        else if (!HotelDruid.Shared.ClientFieldMappings.IsSupportedLanguage(editModel.Language))
+        {
+            fieldWarnings["Language"] = L["clients.languageInvalid", "Language must be one of the supported values: it, es, en."];
+        }
+
+        editModel.LastName = NormalizeName(editModel.LastName);
+        editModel.FirstName = NormalizeName(editModel.FirstName);
+        editModel.Language = HotelDruid.Shared.ClientFieldMappings.GetCanonicalLanguage(editModel.Language) ?? editModel.Language?.Trim();
+        editModel.Gender = HotelDruid.Shared.ClientFieldMappings.GetCanonicalGender(editModel.Gender) ?? editModel.Gender?.Trim();
+
+        editModel.Emails = editModel.Emails
+            .Select(NormalizeEmail)
+            .Where(email => !string.IsNullOrWhiteSpace(email))
+            .Select(email => email!)
+            .ToList();
+
+        editModel.Email = editModel.Emails.ElementAtOrDefault(0);
+        editModel.Email2 = editModel.Emails.ElementAtOrDefault(1);
+        editModel.Email3 = editModel.Emails.ElementAtOrDefault(2);
+
+        for (var i = 0; i < editModel.Emails.Count; i++)
+        {
+            if (!IsValidEmail(editModel.Emails[i]))
+            {
+                fieldWarnings[GetEmailFieldName(i)] = L["clients.emailInvalid", "Email must be a valid address."];
+            }
+        }
+
+        editModel.Phones = editModel.Phones
+            .Select(NormalizePhoneNumber)
+            .Where(phone => !string.IsNullOrWhiteSpace(phone))
+            .Select(phone => phone!)
+            .ToList();
+
+        for (var i = 0; i < editModel.Phones.Count; i++)
+        {
+            if (!IsValidPhoneNumber(editModel.Phones[i]))
+            {
+                fieldWarnings[GetPhoneFieldName(i)] = L["clients.phoneInvalid", "Phone numbers must be E.164 formatted, for example +391234567890."];
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(editModel.VatNumber))
+        {
+            editModel.VatNumber = NormalizeVatNumber(editModel.VatNumber);
+            if (!IsValidEuropeanVatNumber(editModel.VatNumber))
+            {
+                lastError = L["clients.vatNumberInvalid", "VAT Number must be in European format with country prefix."];
+                return;
+            }
         }
 
         isSaving = true;
@@ -425,6 +695,8 @@
             if (selectedClient is not null)
             {
                 editModel = ClientEditModel.FromDto(selectedClient);
+                InitializeSectionVisibility();
+                ValidateInlineFields();
             }
 
             isSaved = true;
@@ -449,6 +721,7 @@
         }
 
         editModel = editModel.CloneForDuplicate();
+        InitializeSectionVisibility();
         selectedClient = null;
         isSaved = false;
         hasUnsavedChanges = true;
@@ -521,12 +794,300 @@
 
     private static string GetListMeta(ClientEditModel client)
     {
-        var parts = new[] { client.Email, client.Phone, client.City }.Where(part => !string.IsNullOrWhiteSpace(part)).ToList();
+        var parts = new[] { client.City }
+            .Concat(client.Phones ?? Enumerable.Empty<string>())
+            .Concat(client.Emails ?? Enumerable.Empty<string>())
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .ToList();
         return parts.Count == 0 ? "No additional details" : string.Join(" · ", parts);
     }
 
     private static string DisplayValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string DisplayDate(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
+
+    private static string GetPhoneFieldName(int index) => index switch
+    {
+        0 => "Phone1",
+        1 => "Phone2",
+        2 => "Phone3",
+        _ => $"Phone{index + 1}"
+    };
+
+    private static string GetEmailFieldName(int index) => index switch
+    {
+        0 => "Email",
+        1 => "Email2",
+        2 => "Email3",
+        _ => $"Email{index + 1}"
+    };
+
+    private void AddPhone()
+    {
+        if (editModel is null || editModel.Phones.Count >= 3)
+        {
+            return;
+        }
+
+        editModel.Phones.Add(string.Empty);
+        hasUnsavedChanges = true;
+    }
+
+    private void RemovePhone(int index)
+    {
+        if (editModel is null || index < 0 || index >= editModel.Phones.Count)
+        {
+            return;
+        }
+
+        editModel.Phones.RemoveAt(index);
+        for (var i = 0; i < 3; i++)
+        {
+            fieldWarnings.Remove(GetPhoneFieldName(i));
+        }
+        hasUnsavedChanges = true;
+    }
+
+    private void UpdatePhone(int index, string? value)
+    {
+        if (editModel is null || index < 0 || index >= editModel.Phones.Count)
+        {
+            return;
+        }
+
+        editModel.Phones[index] = value ?? string.Empty;
+        hasUnsavedChanges = true;
+    }
+
+    private void AddEmail()
+    {
+        if (editModel is null || editModel.Emails.Count >= 3)
+        {
+            return;
+        }
+
+        editModel.Emails.Add(string.Empty);
+        hasUnsavedChanges = true;
+    }
+
+    private void RemoveEmail(int index)
+    {
+        if (editModel is null || index < 0 || index >= editModel.Emails.Count)
+        {
+            return;
+        }
+
+        editModel.Emails.RemoveAt(index);
+        for (var i = 0; i < 3; i++)
+        {
+            fieldWarnings.Remove(GetEmailFieldName(i));
+        }
+        hasUnsavedChanges = true;
+    }
+
+    private void UpdateEmail(int index, string? value)
+    {
+        if (editModel is null || index < 0 || index >= editModel.Emails.Count)
+        {
+            return;
+        }
+
+        editModel.Emails[index] = value ?? string.Empty;
+        hasUnsavedChanges = true;
+    }
+
+    private void InitializeSectionVisibility()
+    {
+        if (editModel is null)
+        {
+            return;
+        }
+
+        showContactSection = HasContacts(editModel);
+        showResidenceSection = HasResidence(editModel);
+        showDocumentSection = HasDocument(editModel);
+        showTaxSection = HasTaxData(editModel);
+    }
+
+    private static bool HasContacts(ClientEditModel model)
+        => model.Phones.Any(p => !string.IsNullOrWhiteSpace(p)) || model.Emails.Any(e => !string.IsNullOrWhiteSpace(e));
+
+    private static bool HasResidence(ClientEditModel model)
+        => !string.IsNullOrWhiteSpace(model.Street)
+            || !string.IsNullOrWhiteSpace(model.StreetNumber)
+            || !string.IsNullOrWhiteSpace(model.PostalCode)
+            || !string.IsNullOrWhiteSpace(model.City)
+            || !string.IsNullOrWhiteSpace(model.Region)
+            || !string.IsNullOrWhiteSpace(model.Nation);
+
+    private static bool HasDocument(ClientEditModel model)
+        => !string.IsNullOrWhiteSpace(model.DocumentType)
+            || !string.IsNullOrWhiteSpace(model.DocumentNumber)
+            || model.DocumentExpiry.HasValue
+            || !string.IsNullOrWhiteSpace(model.DocumentNation)
+            || !string.IsNullOrWhiteSpace(model.DocumentRegion)
+            || !string.IsNullOrWhiteSpace(model.DocumentCity);
+
+    private static bool HasTaxData(ClientEditModel model)
+        => !string.IsNullOrWhiteSpace(model.TaxCode)
+            || !string.IsNullOrWhiteSpace(model.VatNumber)
+            || model.MaxOrderNumber.HasValue
+            || !string.IsNullOrWhiteSpace(model.CompanionIds)
+            || !string.IsNullOrWhiteSpace(model.DocumentsSent);
+
+    private void ShowContactSection()
+    {
+        if (editModel is null)
+        {
+            return;
+        }
+
+        showContactSection = true;
+        if (!editModel.Phones.Any())
+        {
+            editModel.Phones.Add(string.Empty);
+        }
+
+        if (!editModel.Emails.Any())
+        {
+            editModel.Emails.Add(string.Empty);
+        }
+    }
+
+    private void ShowResidenceSection()
+    {
+        showResidenceSection = true;
+    }
+
+    private void ShowDocumentSection()
+    {
+        showDocumentSection = true;
+    }
+
+    private void ShowTaxSection()
+    {
+        showTaxSection = true;
+    }
+
+    private IEnumerable<(string Label, string Value)> GetPreviewDetails(ClientDto client)
+    {
+        var details = new List<(string Label, string Value)>();
+        AddPreviewDetail(details, L["clients.languageLabel", "Language"], GetLanguageLabel(client.Language));
+        AddPreviewDetail(details, L["clients.genderLabel", "Gender"], GetGenderLabel(client.Gender));
+        AddPreviewDetail(details, L["clients.nationalityLabel", "Nationality"], client.Nationality);
+        AddPreviewDetail(details, L["clients.dateOfBirthLabel", "Date of Birth"], DisplayDate(client.DateOfBirth));
+        AddPreviewDetail(details, L["clients.phoneLabel", "Phone"], client.Phone);
+        AddPreviewDetail(details, L["clients.phone2Label", "Phone 2"], client.Phone2);
+        AddPreviewDetail(details, L["clients.phone3Label", "Phone 3"], client.Phone3);
+        AddPreviewDetail(details, L["clients.emailLabel", "Email"], client.Email);
+        AddPreviewDetail(details, L["clients.email3Label", "Certified Email / Destination Code"], client.Email3);
+        AddPreviewDetail(details, L["clients.cityLabel", "City"], client.City);
+        AddPreviewDetail(details, L["clients.nationLabel", "Nation"], client.Nation);
+        AddPreviewDetail(details, L["clients.documentTypeLabel", "Document Type"], client.DocumentType);
+        AddPreviewDetail(details, L["clients.documentNumberLabel", "Document Number"], client.DocumentNumber);
+        AddPreviewDetail(details, L["clients.documentExpiryLabel", "Document Expiry"], DisplayDate(client.DocumentExpiry));
+        AddPreviewDetail(details, L["clients.taxCodeLabel", "Tax Code"], client.TaxCode);
+        AddPreviewDetail(details, L["clients.vatNumberLabel", "VAT Number"], client.VatNumber);
+        return details;
+    }
+
+    private static void AddPreviewDetail(List<(string Label, string Value)> details, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && value.Trim() != "-")
+        {
+            details.Add((label, value.Trim()));
+        }
+    }
+
+    private string? GetGenderLabel(string? gender)
+    {
+        if (string.IsNullOrWhiteSpace(gender))
+        {
+            return null;
+        }
+
+        var canonical = HotelDruid.Shared.ClientFieldMappings.GetCanonicalGender(gender);
+        if (!string.IsNullOrWhiteSpace(canonical))
+        {
+            var option = GenderOptions.First(option => string.Equals(option.Value, canonical, StringComparison.OrdinalIgnoreCase));
+            return L[option.ResourceKey].Value;
+        }
+
+        return gender.Trim();
+    }
+
+    private string? GetLanguageLabel(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return null;
+        }
+
+        var canonical = HotelDruid.Shared.ClientFieldMappings.GetCanonicalLanguage(language);
+        if (!string.IsNullOrWhiteSpace(canonical))
+        {
+            var option = SupportedLanguages.First(option => string.Equals(option.Value, canonical, StringComparison.OrdinalIgnoreCase));
+            return L[option.ResourceKey].Value;
+        }
+
+        return language.Trim();
+    }
+
+    private static bool IsValidLanguage(string? language)
+        => !string.IsNullOrWhiteSpace(language) && SupportedLanguages.Any(x => string.Equals(x.Value, language, StringComparison.OrdinalIgnoreCase));
+
+    private static string? NormalizeName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return name?.Trim();
+        var trimmed = name.Trim().ToLowerInvariant();
+        return System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed);
+    }
+
+    private static string? NormalizeEmail(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static bool IsValidEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        try
+        {
+            _ = new MailAddress(email.Trim());
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string? NormalizePhoneNumber(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return null;
+        var trimmed = phone.Trim();
+        if (string.Equals(trimmed, PhoneExampleNumber, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var cleaned = new string(trimmed.Where(c => char.IsDigit(c) || c == '+').ToArray());
+        if (cleaned.StartsWith("+") && Regex.IsMatch(cleaned, @"^\+[1-9][0-9]{1,14}$"))
+        {
+            return cleaned;
+        }
+
+        return trimmed;
+    }
+
+    private static bool IsValidPhoneNumber(string? phone)
+        => !string.IsNullOrWhiteSpace(phone) && Regex.IsMatch(phone.Trim(), "^\\+[1-9][0-9]{1,14}$");
+
+    private static string? NormalizeVatNumber(string? vatNumber)
+        => string.IsNullOrWhiteSpace(vatNumber) ? null : new string(vatNumber.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+
+    private static bool IsValidEuropeanVatNumber(string? vatNumber)
+        => !string.IsNullOrWhiteSpace(vatNumber) && Regex.IsMatch(vatNumber.Trim(), "^[A-Z]{2}[A-Z0-9]{8,12}$");
 
     public ValueTask DisposeAsync()
     {
@@ -560,10 +1121,11 @@
         public string? Street { get; set; }
         public string? StreetNumber { get; set; }
         public string? PostalCode { get; set; }
+        public List<string> Phones { get; set; } = new();
+        public List<string> Emails { get; set; } = new();
         public string? Phone { get; set; }
         public string? Phone2 { get; set; }
         public string? Phone3 { get; set; }
-        public string? Fax { get; set; }
         public string? Email { get; set; }
         public string? Email2 { get; set; }
         public string? Email3 { get; set; }
@@ -582,9 +1144,11 @@
             DateOfBirth, BirthCity, BirthRegion, BirthNation, DocumentNumber,
             DocumentExpiry, DocumentType, DocumentCity, DocumentRegion, DocumentNation,
             Nationality, Nation, Region, City, Street, StreetNumber, PostalCode,
-            Phone, Phone2, Phone3, Fax, Email, Email2, Email3,
+            Phones.ElementAtOrDefault(0), Phones.ElementAtOrDefault(1), Phones.ElementAtOrDefault(2), Emails.ElementAtOrDefault(0), Emails.ElementAtOrDefault(1), Emails.ElementAtOrDefault(2),
             TaxCode, VatNumber, Notes, MaxOrderNumber, CompanionIds, DocumentsSent,
-            CreatedAt, HostCreated, CreatedBy);
+            CreatedAt, HostCreated, CreatedBy,
+            Phones: new List<string>(Phones.Where(phone => !string.IsNullOrWhiteSpace(phone)).Select(phone => phone!.Trim())),
+            Emails: new List<string>(Emails.Where(email => !string.IsNullOrWhiteSpace(email)).Select(email => email!.Trim())));
 
         public ClientEditModel CloneForDuplicate() => new()
         {
@@ -611,10 +1175,11 @@
             Street = Street,
             StreetNumber = StreetNumber,
             PostalCode = PostalCode,
+            Phones = new List<string>(Phones),
+            Emails = new List<string>(Emails),
             Phone = Phone,
             Phone2 = Phone2,
             Phone3 = Phone3,
-            Fax = Fax,
             Email = Email,
             Email2 = Email2,
             Email3 = Email3,
@@ -652,13 +1217,22 @@
             Street = dto.Street,
             StreetNumber = dto.StreetNumber,
             PostalCode = dto.PostalCode,
-            Phone = dto.Phone,
-            Phone2 = dto.Phone2,
-            Phone3 = dto.Phone3,
-            Fax = dto.Fax,
-            Email = dto.Email,
-            Email2 = dto.Email2,
-            Email3 = dto.Email3,
+            Phones = dto.Phones is not null && dto.Phones.Any()
+                ? new List<string>(dto.Phones.Where(phone => !string.IsNullOrWhiteSpace(phone)).Select(phone => phone!.Trim()))
+                : new List<string>(new[] { dto.Phone, dto.Phone2, dto.Phone3 }
+                    .Where(phone => !string.IsNullOrWhiteSpace(phone))
+                    .Select(phone => phone!.Trim())),
+            Emails = dto.Emails is not null && dto.Emails.Any()
+                ? new List<string>(dto.Emails.Where(email => !string.IsNullOrWhiteSpace(email)).Select(email => email!.Trim()))
+                : new List<string>(new[] { dto.Email, dto.Email2, dto.Email3 }
+                    .Where(email => !string.IsNullOrWhiteSpace(email))
+                    .Select(email => email!.Trim())),
+            Phone = dto.Phone ?? dto.Phones?.ElementAtOrDefault(0),
+            Phone2 = dto.Phone2 ?? dto.Phones?.ElementAtOrDefault(1),
+            Phone3 = dto.Phone3 ?? dto.Phones?.ElementAtOrDefault(2),
+            Email = dto.Email ?? dto.Emails?.ElementAtOrDefault(0),
+            Email2 = dto.Email2 ?? dto.Emails?.ElementAtOrDefault(1),
+            Email3 = dto.Email3 ?? dto.Emails?.ElementAtOrDefault(2),
             TaxCode = dto.TaxCode,
             VatNumber = dto.VatNumber,
             Notes = dto.Notes,

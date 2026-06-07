@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Bunit;
 using FluentAssertions;
@@ -42,5 +43,57 @@ public class ClientsPageIntegrationTests : TestContext
         items[0].TextContent.Should().Contain("Adams, Anna");
         items[1].TextContent.Should().Contain("Adams, Ben");
         items[2].TextContent.Should().Contain("Brown, Zoe");
+    }
+
+    [Fact]
+    public void ClientsPage_AddPhoneAndEmail_ExpandsContactFields()
+    {
+        var component = RenderComponent<Clients>();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add Client")).Click();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add contacts")).Click();
+
+        var initialPhoneCount = component.FindAll(".client-section-contact input[type=tel]").Count;
+        var initialEmailCount = component.FindAll(".client-section-contact input[type=email]").Count;
+
+        component.FindAll("button").First(b => b.TextContent.Contains("Add phone")).Click();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add email")).Click();
+
+        component.FindAll(".client-section-contact input[type=tel]").Count.Should().Be(initialPhoneCount + 1);
+        component.FindAll(".client-section-contact input[type=email]").Count.Should().Be(initialEmailCount + 1);
+
+        component.FindAll("button").First(b => b.TextContent.Contains("Add phone")).Click();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add email")).Click();
+
+        component.FindAll(".client-section-contact input[type=tel]").Count.Should().Be(initialPhoneCount + 2);
+        component.FindAll(".client-section-contact input[type=email]").Count.Should().Be(initialEmailCount + 2);
+    }
+
+    [Fact]
+    public void ClientsPage_RemovePhoneAndEmail_UpdatesContactFields()
+    {
+        var component = RenderComponent<Clients>();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add Client")).Click();
+        component.FindAll("button").First(b => b.TextContent.Contains("Add contacts")).Click();
+
+        var addPhone = component.FindAll("button").First(b => b.TextContent.Contains("Add phone"));
+        var addEmail = component.FindAll("button").First(b => b.TextContent.Contains("Add email"));
+
+        addPhone.Click();
+        addPhone.Click();
+        addEmail.Click();
+        addEmail.Click();
+
+        var phoneInputs = component.FindAll(".client-section-contact input[type=tel]");
+        phoneInputs.Should().HaveCount(3);
+
+        var emailInputs = component.FindAll(".client-section-contact input[type=email]");
+        emailInputs.Should().HaveCount(3);
+
+        phoneInputs[0].NextElementSibling!.Click();
+        component.FindAll(".client-section-contact input[type=tel]").Count.Should().Be(2);
+
+        emailInputs = component.FindAll(".client-section-contact input[type=email]");
+        emailInputs[0].NextElementSibling!.Click();
+        component.FindAll(".client-section-contact input[type=email]").Count.Should().Be(2);
     }
 }

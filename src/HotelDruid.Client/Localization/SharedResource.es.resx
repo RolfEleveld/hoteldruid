@@ -39,6 +39,93 @@
   <data name="Index.Feature.Clients.Title" xml:space="preserve"><value>Clientes</value></data>
   <data name="Index.Feature.Clients.Subtitle" xml:space="preserve"><value>Gestión de huéspedes</value></data>
   <data name="Index.Feature.Clients.Button" xml:space="preserve"><value>Gestionar clientes</value></data>
+  <data name="clients.title" xml:space="preserve"><value>Clientes</value></data>
+  <data name="clients.add" xml:space="preserve"><value>Agregar cliente</value></data>
+  <data name="clients.searchLabel" xml:space="preserve"><value>Buscar cliente</value></data>
+  <data name="clients.searchPlaceholder" xml:space="preserve"><value>Buscar por nombre, email, teléfono o ciudad</value></data>
+  <data name="clients.emptyList" xml:space="preserve"><value>No hay clientes registrados</value></data>
+  <data name="clients.newClient" xml:space="preserve"><value>Nuevo cliente</value></data>
+  <data name="clients.manageClient" xml:space="preserve"><value>Administrar detalles del perfil del huésped</value></data>
+  <data name="clients.section.personal" xml:space="preserve"><value>Datos personales</value></data>
+  <data name="clients.section.contact" xml:space="preserve"><value>Contactos</value></data>
+  <data name="clients.section.address" xml:space="preserve"><value>Dirección</value></data>
+  <data name="clients.section.document" xml:space="preserve"><value>Documento</value></data>
+  <data name="clients.section.tax" xml:space="preserve"><value>Datos fiscales</value></data>
+  <data name="clients.section.notes" xml:space="preserve"><value>Notas</value></data>
+  <data name="clients.titleLabel" xml:space="preserve"><value>Título</value></data>
+  <data name="clients.titleSelectPlaceholder" xml:space="preserve"><value>Seleccione título</value></data>
+  <data name="clients.lastNameLabel" xml:space="preserve"><value>Apellido</value></data>
+  <data name="clients.firstNameLabel" xml:space="preserve"><value>Nombre</value></data>
+  <data name="clients.nicknameLabel" xml:space="preserve"><value>Apodo</value></data>
+  <data name="clients.genderLabel" xml:space="preserve"><value>Género</value></data>
+  <data name="clients.genderSelectPlaceholder" xml:space="preserve"><value>Seleccione género</value></data>
+  <data name="clients.genderOption.Male" xml:space="preserve"><value>Masculino</value></data>
+  <data name="clients.genderOption.Female" xml:space="preserve"><value>Femenino</value></data>
+  <data name="clients.genderOption.Diverse" xml:space="preserve"><value>Diverso</value></data>
+  <data name="clients.genderOption.Unknown" xml:space="preserve"><value>Desconocido: {0}</value></data>
+  <data name="clients.genderInvalid" xml:space="preserve"><value>El género debe ser uno de los valores admitidos.</value></data>
+  <data name="clients.languageLabel" xml:space="preserve"><value>Idioma</value></data>
+  <data name="clients.languageSelectPlaceholder" xml:space="preserve"><value>Seleccione idioma</value></data>
+  <data name="clients.languageOption.Unknown" xml:space="preserve"><value>Desconocido: {0}</value></data>
+  <data name="clients.languageOption.Italian" xml:space="preserve"><value>Italiano</value></data>
+  <data name="clients.languageOption.Spanish" xml:space="preserve"><value>Español</value></data>
+  <data name="clients.languageOption.English" xml:space="preserve"><value>Inglés</value></data>
+  <data name="clients.languageRequired" xml:space="preserve"><value>El idioma es obligatorio.</value></data>
+  <data name="clients.phoneHint" xml:space="preserve"><value>El teléfono debe usar el formato E.164, por ejemplo +391234567890.</value></data>
+  <data name="clients.emailHint" xml:space="preserve"><value>Introduce una dirección de correo válida como user@example.com.</value></data>
+  <data name="clients.nationalityLabel" xml:space="preserve"><value>Nacionalidad</value></data>
+  <data name="clients.dateOfBirthLabel" xml:space="preserve"><value>Fecha de nacimiento</value></data>
+  <data name="clients.birthNationLabel" xml:space="preserve"><value>País de nacimiento</value></data>
+  <data name="clients.birthRegionLabel" xml:space="preserve"><value>Región de nacimiento</value></data>
+  <data name="clients.birthCityLabel" xml:space="preserve"><value>Ciudad de nacimiento</value></data>
+  <data name="clients.phoneLabel" xml:space="preserve"><value>Teléfono</value></data>
+  <data name="clients.addPhone" xml:space="preserve"><value>Agregar teléfono</value></data>
+  <data name="clients.addPhoneGuide" xml:space="preserve"><value>Agrega números de teléfono según sea necesario; las líneas vacías se ocultan.</value></data>
+  <data name="clients.addEmail" xml:space="preserve"><value>Agregar correo</value></data>
+  <data name="clients.addEmailGuide" xml:space="preserve"><value>Agrega direcciones de correo según sea necesario; las líneas vacías se ocultan.</value></data>
+  <data name="clients.addContactSection" xml:space="preserve"><value>Agregar contactos</value></data>
+  <data name="clients.contactSectionGuide" xml:space="preserve"><value>Agrega detalles de teléfono o correo para este cliente.</value></data>
+  <data name="clients.addAddressSection" xml:space="preserve"><value>Agregar dirección</value></data>
+  <data name="clients.addressSectionGuide" xml:space="preserve"><value>Agrega la información de dirección cuando esté disponible.</value></data>
+  <data name="clients.addDocumentSection" xml:space="preserve"><value>Agregar detalles del documento</value></data>
+  <data name="clients.documentSectionGuide" xml:space="preserve"><value>Agrega los datos de identificación cuando sea necesario.</value></data>
+  <data name="clients.addTaxSection" xml:space="preserve"><value>Agregar datos fiscales</value></data>
+  <data name="clients.taxSectionGuide" xml:space="preserve"><value>Agrega los campos fiscales solo cuando sean necesarios.</value></data>
+  <data name="clients.phone2Label" xml:space="preserve"><value>Teléfono 2</value></data>
+  <data name="clients.phone3Label" xml:space="preserve"><value>Teléfono 3</value></data>
+  <data name="clients.emailLabel" xml:space="preserve"><value>Correo electrónico</value></data>
+  <data name="clients.email2Label" xml:space="preserve"><value>Correo electrónico 2</value></data>
+  <data name="clients.email3Label" xml:space="preserve"><value>Correo electrónico certificado / Código de destino</value></data>
+  <data name="clients.streetLabel" xml:space="preserve"><value>Calle</value></data>
+  <data name="clients.streetNumberLabel" xml:space="preserve"><value>Número</value></data>
+  <data name="clients.postalCodeLabel" xml:space="preserve"><value>Código postal</value></data>
+  <data name="clients.cityLabel" xml:space="preserve"><value>Ciudad</value></data>
+  <data name="clients.regionLabel" xml:space="preserve"><value>Región</value></data>
+  <data name="clients.nationLabel" xml:space="preserve"><value>País</value></data>
+  <data name="clients.documentTypeLabel" xml:space="preserve"><value>Tipo de documento</value></data>
+  <data name="clients.documentNumberLabel" xml:space="preserve"><value>Número de documento</value></data>
+  <data name="clients.documentExpiryLabel" xml:space="preserve"><value>Vencimiento del documento</value></data>
+  <data name="clients.documentNationLabel" xml:space="preserve"><value>País del documento</value></data>
+  <data name="clients.documentRegionLabel" xml:space="preserve"><value>Región del documento</value></data>
+  <data name="clients.documentCityLabel" xml:space="preserve"><value>Ciudad del documento</value></data>
+  <data name="clients.taxCodeLabel" xml:space="preserve"><value>Código fiscal</value></data>
+  <data name="clients.vatNumberLabel" xml:space="preserve"><value>Número de IVA</value></data>
+  <data name="clients.maxOrderLabel" xml:space="preserve"><value>Número máximo de orden</value></data>
+  <data name="clients.companionIdsLabel" xml:space="preserve"><value>IDs de acompañantes</value></data>
+  <data name="clients.documentsSentLabel" xml:space="preserve"><value>Documentos enviados</value></data>
+  <data name="clients.notesHelp" xml:space="preserve"><value>Captura cualquier información que la recepción necesite recordar para este huésped, incluidas notas temporales que luego copiarás a los campos correctos.</value></data>
+  <data name="clients.duplicate" xml:space="preserve"><value>Duplicar</value></data>
+  <data name="clients.selectPrompt" xml:space="preserve"><value>Seleccione un cliente de la lista o agregue uno nuevo</value></data>
+  <data name="clients.previewEmpty" xml:space="preserve"><value>Los detalles del cliente aparecerán aquí una vez que seleccione o cree un registro.</value></data>
+  <data name="clients.lastNameRequired" xml:space="preserve"><value>El apellido es obligatorio.</value></data>
+  <data name="clients.languageInvalid" xml:space="preserve"><value>El idioma debe ser uno de los valores soportados: it, es, en.</value></data>
+  <data name="clients.titleInvalid" xml:space="preserve"><value>El título debe ser uno de los valores soportados.</value></data>
+  <data name="clients.emailInvalid" xml:space="preserve"><value>El correo electrónico debe ser una dirección válida.</value></data>
+  <data name="clients.phoneInvalid" xml:space="preserve"><value>Los números de teléfono deben tener formato E.164, por ejemplo +391234567890.</value></data>
+  <data name="clients.vatNumberInvalid" xml:space="preserve"><value>El número de IVA debe tener formato europeo con prefijo de país.</value></data>
+  <data name="clients.saveFailed" xml:space="preserve"><value>Error al guardar cliente: {0}</value></data>
+  <data name="clients.deleteConfirm" xml:space="preserve"><value>¿Está seguro de que desea eliminar al cliente {0}?</value></data>
+  <data name="clients.deleteFailed" xml:space="preserve"><value>Error al eliminar cliente: {0}</value></data>
   <data name="Index.Feature.Calendar.Title" xml:space="preserve"><value>Calendario</value></data>
   <data name="Index.Feature.Calendar.Subtitle" xml:space="preserve"><value>Vista de calendario</value></data>
   <data name="Index.Feature.Calendar.Button" xml:space="preserve"><value>Ver calendario</value></data>

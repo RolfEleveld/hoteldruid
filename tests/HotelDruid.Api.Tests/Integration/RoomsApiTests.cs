@@ -1008,12 +1008,14 @@ public class LedgerApiTests : IAsyncLifetime
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
     private string _testDataRoot = null!;
+    private string? _previousDataRoot = null;
 
     public async Task InitializeAsync()
     {
         _testDataRoot = Path.Combine(Path.GetTempPath(), $"ledger-tests-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDataRoot);
-        Environment.SetEnvironmentVariable("HotelDruid_DATAROOT", _testDataRoot);
+        _previousDataRoot = Environment.GetEnvironmentVariable("HOTELDRUID_DATAROOT");
+        Environment.SetEnvironmentVariable("HOTELDRUID_DATAROOT", _testDataRoot);
 
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder => builder.UseSetting("DataRoot", _testDataRoot));
@@ -1026,6 +1028,15 @@ public class LedgerApiTests : IAsyncLifetime
     {
         _client?.Dispose();
         _factory?.Dispose();
+
+        if (_previousDataRoot is null)
+        {
+            Environment.SetEnvironmentVariable("HOTELDRUID_DATAROOT", null);
+        }
+        else
+        {
+            Environment.SetEnvironmentVariable("HOTELDRUID_DATAROOT", _previousDataRoot);
+        }
 
         if (Directory.Exists(_testDataRoot))
         {

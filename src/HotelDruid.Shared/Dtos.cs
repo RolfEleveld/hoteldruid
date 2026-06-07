@@ -29,7 +29,6 @@ public record ClientDto(
     string? Phone = null,
     string? Phone2 = null,
     string? Phone3 = null,
-    string? Fax = null,
     string? Email = null,
     string? Email2 = null,
     string? Email3 = null,

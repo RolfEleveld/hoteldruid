@@ -21,13 +21,17 @@ public class Layer2ApiTests : IAsyncLifetime
         public string? LastName { get; set; }
         public string? FirstName { get; set; }
         public string? Email { get; set; }
+        public string? Email2 { get; set; }
+        public string? Email3 { get; set; }
+        public List<string>? Emails { get; set; }
         public string? Phone { get; set; }
+        public string? Phone2 { get; set; }
+        public string? Phone3 { get; set; }
+        public List<string>? Phones { get; set; }
         public string? City { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public DateTime? DocumentExpiry { get; set; }
         public string? DocumentType { get; set; }
-        public string? Phone3 { get; set; }
-        public string? Email3 { get; set; }
         public string? Nationality { get; set; }
         public DateTime? CreatedAt { get; set; }
     }
@@ -66,6 +70,49 @@ public class Layer2ApiTests : IAsyncLifetime
         var dto = await ReadAs<ClientDto>(r);
         Assert.NotNull(dto?.Id);
         Assert.Equal("Rossi", dto.LastName);
+    }
+
+    [Fact]
+    public async Task Client_Create_WithPhoneAndEmailArrays_ReturnsArraysAndLegacyFields()
+    {
+        var create = await _client.PostAsync("/api/clients", Json(new
+        {
+            LastName = "Neri",
+            FirstName = "Luca",
+            Phones = new[] { "111", "222" },
+            Emails = new[] { "first@example.com", "second@example.com" }
+        }));
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var dto = await ReadAs<ClientDto>(create);
+
+        Assert.NotNull(dto?.Id);
+        Assert.Equal(new[] { "111", "222" }, dto.Phones);
+        Assert.Equal(new[] { "first@example.com", "second@example.com" }, dto.Emails);
+        Assert.Equal("111", dto.Phone);
+        Assert.Equal("222", dto.Phone2);
+        Assert.Equal("first@example.com", dto.Email);
+        Assert.Equal("second@example.com", dto.Email2);
+    }
+
+    [Fact]
+    public async Task Client_Create_WithLegacyPhoneAndEmail_PopulatesArraysOnResponse()
+    {
+        var create = await _client.PostAsync("/api/clients", Json(new
+        {
+            LastName = "Legacy",
+            Phone = "111",
+            Phone2 = "222",
+            Email = "first@example.com",
+            Email2 = "second@example.com"
+        }));
+
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var dto = await ReadAs<ClientDto>(create);
+
+        Assert.NotNull(dto?.Id);
+        Assert.Equal(new[] { "111", "222" }, dto.Phones);
+        Assert.Equal(new[] { "first@example.com", "second@example.com" }, dto.Emails);
     }
 
     [Fact]

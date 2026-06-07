@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HotelDruid.Shared;
 
 namespace HotelDruid.Api.Models;
@@ -204,10 +205,11 @@ public class ClientStorageModel
     public string? Street { get; set; }
     public string? StreetNumber { get; set; }
     public string? PostalCode { get; set; }
+    public List<string>? Phones { get; set; }
+    public List<string>? Emails { get; set; }
     public string? Phone { get; set; }
     public string? Phone2 { get; set; }
     public string? Phone3 { get; set; }
-    public string? Fax { get; set; }
     public string? Email { get; set; }
     public string? Email2 { get; set; }
     public string? Email3 { get; set; }
@@ -287,7 +289,7 @@ public class GroupMembershipStorageModel
     public int? CreatedBy { get; set; }
 }
 
-public record ClientFullDto(string? Id, string? LastName, string? FirstName, string? Nickname, string? Gender, string? Title, string? Language, DateTime? DateOfBirth, string? BirthCity, string? BirthRegion, string? BirthNation, string? DocumentNumber, DateTime? DocumentExpiry, string? DocumentType, string? DocumentCity, string? DocumentRegion, string? DocumentNation, string? Nationality, string? Nation, string? Region, string? City, string? Street, string? StreetNumber, string? PostalCode, string? Phone, string? Phone2, string? Phone3, string? Fax, string? Email, string? Email2, string? Email3, string? TaxCode, string? VatNumber, string? Notes, int? MaxOrderNumber, string? CompanionIds, string? DocumentsSent, DateTime? CreatedAt, string? HostCreated, int? CreatedBy);
+public record ClientFullDto(string? Id, string? LastName, string? FirstName, string? Nickname, string? Gender, string? Title, string? Language, DateTime? DateOfBirth, string? BirthCity, string? BirthRegion, string? BirthNation, string? DocumentNumber, DateTime? DocumentExpiry, string? DocumentType, string? DocumentCity, string? DocumentRegion, string? DocumentNation, string? Nationality, string? Nation, string? Region, string? City, string? Street, string? StreetNumber, string? PostalCode, string? Phone, string? Phone2, string? Phone3, string? Email, string? Email2, string? Email3, string? TaxCode, string? VatNumber, string? Notes, int? MaxOrderNumber, string? CompanionIds, string? DocumentsSent, DateTime? CreatedAt, string? HostCreated, int? CreatedBy, List<string>? Phones = null, List<string>? Emails = null);
 
 public record ClientDataDto(string? Id, string? ClientId, int? Number, string? Type, string? Text1, string? Text2, string? Text3, string? Text4, string? Text5, string? Text6, string? Text7, string? Text8, DateTime? CreatedAt, string? HostCreated, int? CreatedBy);
 
