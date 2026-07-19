@@ -1,6 +1,10 @@
 @page "/inventory"
 @using HotelDruid.Client.Services
+@using Microsoft.AspNetCore.Components
 @inject IInventoryApiService InventoryApi
+@inject IAssetApiService AssetApi
+@inject IWarehouseApiService WarehouseApi
+@inject IRoomApiService RoomApi
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -11,8 +15,8 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["inventory.title", "Inventory"]</h5>
-                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> Add Item</button>
+                    <h5 class="card-title">@L["inventory.listTitle", "List of Inventory"]</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> @L["inventory.addItem", "Add Item"]</button>
                     @if (rows == null)
                     {
                         <div>@L["common.loading", "Loading..."]</div>
@@ -26,7 +30,7 @@
                         <div class="list-group">
                             @foreach (var r in rows)
                             {
-                                <a class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")" @onclick="() => Select(r)">@r.AssetId (@r.Quantity)</a>
+                                <a class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")" @onclick="() => Select(r)">@GetInventoryListLabel(r)</a>
                             }
                         </div>
                     }
@@ -37,15 +41,64 @@
         <div class="col-md-5">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["inventory.title", "Inventory"]</h5>
+                    <h5 class="card-title">@L["inventory.updateTitle", "Update Inventory"]</h5>
                     @if (!string.IsNullOrWhiteSpace(validationMessage))
                     {
                         <div class="alert alert-warning" role="alert">@validationMessage</div>
                     }
-                    <div class="mb-3"><label class="form-label">Asset ID</label><input class="form-control" @bind="edit.AssetId" /></div>
-                    <div class="mb-3"><label class="form-label">Room</label><input class="form-control" @bind="edit.RoomId" /></div>
-                    <div class="mb-3"><label class="form-label">Warehouse ID</label><input class="form-control" @bind="edit.WarehouseId" /></div>
-                    <div class="mb-3"><label class="form-label">Quantity</label><input type="number" class="form-control" @bind="edit.Quantity" /></div>
+                    <div class="mb-3">
+                        <label class="form-label">@L["inventory.asset", "Asset"]</label>
+                        <input class="form-control" @bind="edit.AssetId" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@L["inventory.room", "Room"]</label>
+                        <select class="form-select" @bind="edit.RoomId" @bind:after="OnRoomChanged">
+                            <option value="">@L["inventory.none", "None"]</option>
+                            @foreach (var room in rooms)
+                            {
+                                <option value="@room.Id">@room.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@L["inventory.warehouse", "Warehouse"]</label>
+                        <input class="form-control"
+                               value="@warehouseSearch"
+                               placeholder="@L["inventory.selectWarehouse", "Select warehouse..."]"
+                               @oninput="OnWarehouseSearchChanged" />
+
+                        @if (warehouseMatches.Count > 0)
+                        {
+                            <div class="list-group mt-2">
+                                @foreach (var warehouse in warehouseMatches)
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectWarehouse(warehouse)">
+                                        <div class="fw-semibold">@ResolveWarehouseDisplayName(warehouse)</div>
+                                        <small class="text-muted">@L["inventory.warehouse", "Warehouse"]: @ResolveWarehouseDisplayName(warehouse)</small>
+                                    </button>
+                                }
+                            </div>
+                        }
+
+                        @if (selectedWarehouse is not null)
+                        {
+                            <div class="border rounded p-2 bg-light-subtle mt-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">@ResolveWarehouseDisplayName(selectedWarehouse)</div>
+                                        <small class="text-muted">@L["inventory.warehouse", "Warehouse"]: @ResolveWarehouseDisplayName(selectedWarehouse)</small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearWarehouseSelection">@L["bookings.clearSelection", "Clear"]</button>
+                                </div>
+                            </div>
+                        }
+
+                        @if (selectedWarehouse is null && !string.IsNullOrWhiteSpace(warehouseSearch))
+                        {
+                            <div class="text-muted small mt-2">@L["inventory.noWarehouseMatch", "No warehouse matches this search."]</div>
+                        }
+                    </div>
+                    <div class="mb-3"><label class="form-label">@L["inventory.quantity", "Quantity"]</label><input type="number" class="form-control" @bind="edit.Quantity" min="0" /></div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" @onclick="Save">@L["common.save", "Save"]</button>
                         @if (selected != null)
@@ -60,15 +113,18 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["inventory.title", "Inventory"]</h5>
+                    <h5 class="card-title">@L["inventory.detailsTitle", "Inventory details"]</h5>
                     @if (selected != null)
                     {
                         <dl class="row">
-                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
-                            <dt class="col-4">Asset</dt><dd class="col-8">@selected.AssetId</dd>
+                            <dt class="col-4">@L["inventory.id", "ID"]</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">@L["inventory.asset", "Asset"]</dt><dd class="col-8">@ResolveAssetName(selected.AssetId)</dd>
+                            <dt class="col-4">@L["inventory.room", "Room"]</dt><dd class="col-8">@ResolveRoomName(selected.RoomId)</dd>
+                            <dt class="col-4">@L["inventory.warehouse", "Warehouse"]</dt><dd class="col-8">@ResolveWarehouseName(selected.WarehouseId)</dd>
+                            <dt class="col-4">@L["inventory.quantity", "Quantity"]</dt><dd class="col-8">@selected.Quantity</dd>
                         </dl>
                     }
-                    else { <div class="text-muted">Select an inventory item</div> }
+                    else { <div class="text-muted">@L["inventory.selectPrompt", "Select an inventory item"]</div> }
                 </div>
             </div>
         </div>
@@ -76,20 +132,60 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
     private List<InventoryDto>? rows;
+    private List<AssetDto> assets = new();
+    private List<RoomDto> rooms = new();
+    private List<WarehouseDto> warehouses = new();
+    private List<WarehouseDto> warehouseMatches = new();
     private InventoryDto? selected;
+    private WarehouseDto? selectedWarehouse;
     private InventoryEditModel edit = new();
     private string? validationMessage;
+    private string warehouseSearch = string.Empty;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+        await Load();
+        ApplySelectedInventoryFromQuery();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplySelectedInventoryFromQuery();
+        return Task.CompletedTask;
+    }
 
     private async Task Load() => rows = await InventoryApi.GetInventoryAsync();
+
+    private void ApplySelectedInventoryFromQuery()
+    {
+        if (rows is null || string.IsNullOrWhiteSpace(SelectedId))
+            return;
+
+        var target = rows.FirstOrDefault(r => string.Equals(r.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (target is null)
+            return;
+
+        Select(target);
+    }
+
+    private async Task LoadLookups()
+    {
+        assets = await AssetApi.GetAssetsAsync();
+        rooms = await RoomApi.GetRoomsAsync();
+        warehouses = await WarehouseApi.GetWarehousesAsync();
+    }
 
     private void Select(InventoryDto r)
     {
         validationMessage = null;
         selected = r;
         edit = InventoryEditModel.FromDto(r);
+        InitializeWarehouseSelectionForCurrentEdit();
     }
 
     private void AddNew()
@@ -97,11 +193,27 @@
         validationMessage = null;
         selected = null;
         edit = new InventoryEditModel();
+        ResetWarehouseSelection();
     }
 
     private async Task Save()
     {
         validationMessage = null;
+        if (selectedWarehouse is not null)
+            edit.WarehouseId = selectedWarehouse.Id;
+
+        if (string.IsNullOrWhiteSpace(edit.AssetId))
+        {
+            validationMessage = L["inventory.validation.assetRequired", "Select an asset."];
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(edit.RoomId) && string.IsNullOrWhiteSpace(edit.WarehouseId))
+        {
+            validationMessage = L["inventory.validation.locationRequired", "Select a room or a warehouse."];
+            return;
+        }
+
         var dto = edit.ToDto();
         if (selected == null) await InventoryApi.CreateInventoryAsync(dto);
         else
@@ -115,6 +227,75 @@
         }
 
         await Load();
+    }
+
+    private void OnRoomChanged()
+    {
+        // Keep warehouse selection when room changes so reassignment can preserve both links.
+    }
+
+    private async Task OnWarehouseSearchChanged(ChangeEventArgs args)
+    {
+        warehouseSearch = args.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(warehouseSearch))
+        {
+            warehouseMatches.Clear();
+            if (selectedWarehouse is null)
+                edit.WarehouseId = null;
+            return;
+        }
+
+        var term = warehouseSearch.Trim();
+        warehouseMatches = warehouses
+            .Where(w => ContainsWarehouseSearch(w, term))
+            .OrderBy(w => w.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(w => w.Id, StringComparer.OrdinalIgnoreCase)
+            .Take(8)
+            .ToList();
+        await Task.CompletedTask;
+    }
+
+    private void SelectWarehouse(WarehouseDto warehouse)
+    {
+        selectedWarehouse = warehouse;
+        edit.WarehouseId = warehouse.Id;
+        warehouseSearch = ResolveWarehouseDisplayName(warehouse);
+        warehouseMatches.Clear();
+    }
+
+    private void ClearWarehouseSelection()
+    {
+        selectedWarehouse = null;
+        edit.WarehouseId = null;
+        warehouseSearch = string.Empty;
+        warehouseMatches.Clear();
+    }
+
+    private void InitializeWarehouseSelectionForCurrentEdit()
+    {
+        selectedWarehouse = null;
+        warehouseMatches.Clear();
+        warehouseSearch = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(edit.WarehouseId))
+            return;
+
+        selectedWarehouse = warehouses.FirstOrDefault(w => string.Equals(w.Id, edit.WarehouseId, StringComparison.OrdinalIgnoreCase));
+        if (selectedWarehouse is not null)
+        {
+            warehouseSearch = ResolveWarehouseDisplayName(selectedWarehouse);
+            return;
+        }
+
+        warehouseSearch = edit.WarehouseId;
+    }
+
+    private void ResetWarehouseSelection()
+    {
+        selectedWarehouse = null;
+        warehouseSearch = string.Empty;
+        warehouseMatches.Clear();
     }
 
     private async Task Delete()
@@ -137,13 +318,13 @@
         selectedId = string.Empty;
         if (selected == null || string.IsNullOrWhiteSpace(selected.Id))
         {
-            validationMessage = "Unable to continue: the selected inventory item has no valid ID.";
+            validationMessage = L["inventory.validation.missingSelectedId", "Unable to continue: the selected inventory item has no valid ID."];
             return false;
         }
 
         if (rows?.Any(r => string.Equals(r.Id, selected.Id, StringComparison.Ordinal)) != true)
         {
-            validationMessage = "The selected inventory item is no longer available. Refresh and try again.";
+            validationMessage = L["inventory.validation.itemUnavailable", "The selected inventory item is no longer available. Refresh and try again."];
             return false;
         }
 
@@ -151,15 +332,67 @@
         return true;
     }
 
+    private string GetInventoryListLabel(InventoryDto item)
+    {
+        var assetName = ResolveAssetName(item.AssetId);
+        var location = !string.IsNullOrWhiteSpace(item.WarehouseId)
+            ? ResolveWarehouseName(item.WarehouseId)
+            : ResolveRoomName(item.RoomId);
+
+        return string.IsNullOrWhiteSpace(location)
+            ? $"{assetName} ({item.Quantity})"
+            : $"{assetName} - {location} ({item.Quantity})";
+    }
+
+    private string ResolveAssetName(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return L["inventory.none", "None"];
+
+        var asset = assets.FirstOrDefault(a => string.Equals(a.Id, id, StringComparison.Ordinal));
+        return asset?.Name ?? id;
+    }
+
+    private string ResolveRoomName(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return L["inventory.none", "None"];
+
+        var room = rooms.FirstOrDefault(r => string.Equals(r.Id, id, StringComparison.Ordinal));
+        return room?.Name ?? id;
+    }
+
+    private string ResolveWarehouseName(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return L["inventory.none", "None"];
+
+        var warehouse = warehouses.FirstOrDefault(w => string.Equals(w.Id, id, StringComparison.Ordinal));
+        return warehouse?.Name ?? id;
+    }
+
+    private string ResolveWarehouseDisplayName(WarehouseDto warehouse)
+    {
+        if (!string.IsNullOrWhiteSpace(warehouse.Name))
+            return warehouse.Name;
+        return warehouse.Id ?? L["inventory.unknownWarehouse", "Unknown warehouse"];
+    }
+
+    private static bool ContainsWarehouseSearch(WarehouseDto warehouse, string term)
+    {
+        return (!string.IsNullOrWhiteSpace(warehouse.Name) && warehouse.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(warehouse.Id) && warehouse.Id.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
     private class InventoryEditModel
     {
-        public string AssetId { get; set; } = string.Empty;
+        public string? AssetId { get; set; }
         public string? RoomId { get; set; }
         public string? WarehouseId { get; set; }
         public int Quantity { get; set; } = 0;
 
         public InventoryDto ToDto() => new(Id: string.Empty, AssetId: AssetId, RoomId: RoomId, WarehouseId: WarehouseId, Quantity: Quantity, MinQuantityDefault: null, RequiredOnCheckin: null, CreatedAt: null);
-        public static InventoryEditModel FromDto(InventoryDto d) => new() { AssetId = d.AssetId ?? string.Empty, RoomId = d.RoomId, WarehouseId = d.WarehouseId, Quantity = d.Quantity };
+        public static InventoryEditModel FromDto(InventoryDto d) => new() { AssetId = d.AssetId, RoomId = d.RoomId, WarehouseId = d.WarehouseId, Quantity = d.Quantity };
     }
 }
 

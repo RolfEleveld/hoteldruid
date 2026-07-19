@@ -349,6 +349,34 @@
   <data name="rooms.deleteFailed" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>¿Está seguro de que desea eliminar la habitación {0}?</value></data>
+  <data name="DashboardInventory.FilterPlaceholder" xml:space="preserve"><value>Filtrar inventario</value></data>
+  <data name="DashboardInventory.Loading" xml:space="preserve"><value>Cargando inventario...</value></data>
+  <data name="DashboardInventory.FilterEmpty" xml:space="preserve"><value>Ningún artículo de inventario coincide con el filtro actual.</value></data>
+  <data name="DashboardInventory.AssignedRoom" xml:space="preserve"><value>Habitación</value></data>
+  <data name="DashboardInventory.UnassignedRoom" xml:space="preserve"><value>Habitación sin asignar</value></data>
+  <data name="DashboardInventory.Quantity" xml:space="preserve"><value>Cant.</value></data>
+  <data name="inventory.title" xml:space="preserve"><value>Inventario</value></data>
+  <data name="inventory.listTitle" xml:space="preserve"><value>Lista de inventario</value></data>
+  <data name="inventory.updateTitle" xml:space="preserve"><value>Actualizar inventario</value></data>
+  <data name="inventory.detailsTitle" xml:space="preserve"><value>Detalles del inventario</value></data>
+  <data name="inventory.addItem" xml:space="preserve"><value>Agregar artículo</value></data>
+  <data name="inventory.asset" xml:space="preserve"><value>Activo</value></data>
+  <data name="inventory.room" xml:space="preserve"><value>Habitación</value></data>
+  <data name="inventory.warehouse" xml:space="preserve"><value>Almacén</value></data>
+  <data name="inventory.quantity" xml:space="preserve"><value>Cantidad</value></data>
+  <data name="inventory.quantityShort" xml:space="preserve"><value>Cant.</value></data>
+  <data name="inventory.id" xml:space="preserve"><value>ID</value></data>
+  <data name="inventory.none" xml:space="preserve"><value>Ninguno</value></data>
+  <data name="inventory.selectAsset" xml:space="preserve"><value>Seleccione activo...</value></data>
+  <data name="inventory.selectWarehouse" xml:space="preserve"><value>Seleccione almacén...</value></data>
+  <data name="inventory.selectPrompt" xml:space="preserve"><value>Seleccione un artículo de inventario</value></data>
+  <data name="inventory.empty" xml:space="preserve"><value>No hay artículos de inventario</value></data>
+  <data name="inventory.noWarehouseMatch" xml:space="preserve"><value>Ningún almacén coincide con esta búsqueda.</value></data>
+  <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Almacén desconocido</value></data>
+  <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Seleccione un activo.</value></data>
+  <data name="inventory.validation.locationRequired" xml:space="preserve"><value>Seleccione una habitación o un almacén.</value></data>
+  <data name="inventory.validation.missingSelectedId" xml:space="preserve"><value>No se puede continuar: el artículo seleccionado no tiene un ID válido.</value></data>
+  <data name="inventory.validation.itemUnavailable" xml:space="preserve"><value>El artículo seleccionado ya no está disponible. Actualice e intente nuevamente.</value></data>
   <data name="bookings.arrivalRequired" xml:space="preserve"><value>La fecha de llegada es obligatoria.</value></data>
   <data name="bookings.roomRequired" xml:space="preserve"><value>La habitacion es obligatoria.</value></data>
   <data name="bookings.openClient" xml:space="preserve"><value>Abrir cliente</value></data>

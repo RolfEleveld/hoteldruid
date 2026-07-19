@@ -86,6 +86,12 @@
   <data name="DashboardRooms.Compact.Off" xml:space="preserve"><value>Expanded</value></data>
   <data name="DashboardRooms.IncludeWithoutBeds" xml:space="preserve"><value>Include rooms without beds</value></data>
   <data name="DashboardRooms.FilterEmpty" xml:space="preserve"><value>No rooms match the current filter.</value></data>
+  <data name="DashboardInventory.FilterPlaceholder" xml:space="preserve"><value>Filter inventory</value></data>
+  <data name="DashboardInventory.Loading" xml:space="preserve"><value>Loading inventory...</value></data>
+  <data name="DashboardInventory.FilterEmpty" xml:space="preserve"><value>No inventory items match the current filter.</value></data>
+  <data name="DashboardInventory.AssignedRoom" xml:space="preserve"><value>Room</value></data>
+  <data name="DashboardInventory.UnassignedRoom" xml:space="preserve"><value>Unassigned room</value></data>
+  <data name="DashboardInventory.Quantity" xml:space="preserve"><value>Qty</value></data>
   <data name="Dashboard.Widget.VisibleCount.Reservations" xml:space="preserve"><value>Reservations To Display</value></data>
   <data name="Dashboard.Widget.VisibleCount.Arrivals" xml:space="preserve"><value>Arrivals To Display</value></data>
   <data name="Dashboard.Widget.VisibleCount.Stays" xml:space="preserve"><value>Stays To Display</value></data>
@@ -270,6 +276,28 @@
   <data name="rooms.deleteFailed" xml:space="preserve"><value>Failed to delete room: {0}</value></data>
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Failed to delete room: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>Are you sure you want to delete room {0}?</value></data>
+  <data name="inventory.title" xml:space="preserve"><value>Inventory</value></data>
+  <data name="inventory.listTitle" xml:space="preserve"><value>List of Inventory</value></data>
+  <data name="inventory.updateTitle" xml:space="preserve"><value>Update Inventory</value></data>
+  <data name="inventory.detailsTitle" xml:space="preserve"><value>Inventory details</value></data>
+  <data name="inventory.addItem" xml:space="preserve"><value>Add Item</value></data>
+  <data name="inventory.asset" xml:space="preserve"><value>Asset</value></data>
+  <data name="inventory.room" xml:space="preserve"><value>Room</value></data>
+  <data name="inventory.warehouse" xml:space="preserve"><value>Warehouse</value></data>
+  <data name="inventory.quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="inventory.quantityShort" xml:space="preserve"><value>Qty</value></data>
+  <data name="inventory.id" xml:space="preserve"><value>ID</value></data>
+  <data name="inventory.none" xml:space="preserve"><value>None</value></data>
+  <data name="inventory.selectAsset" xml:space="preserve"><value>Select asset...</value></data>
+  <data name="inventory.selectWarehouse" xml:space="preserve"><value>Select warehouse...</value></data>
+  <data name="inventory.selectPrompt" xml:space="preserve"><value>Select an inventory item</value></data>
+  <data name="inventory.empty" xml:space="preserve"><value>No inventory items</value></data>
+  <data name="inventory.noWarehouseMatch" xml:space="preserve"><value>No warehouse matches this search.</value></data>
+  <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Unknown warehouse</value></data>
+  <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Select an asset.</value></data>
+  <data name="inventory.validation.locationRequired" xml:space="preserve"><value>Select a room or a warehouse.</value></data>
+  <data name="inventory.validation.missingSelectedId" xml:space="preserve"><value>Unable to continue: the selected inventory item has no valid ID.</value></data>
+  <data name="inventory.validation.itemUnavailable" xml:space="preserve"><value>The selected inventory item is no longer available. Refresh and try again.</value></data>
   <data name="clients.title" xml:space="preserve"><value>Clients</value></data>
   <data name="clients.add" xml:space="preserve"><value>Add Client</value></data>
   <data name="clients.searchLabel" xml:space="preserve"><value>Find client</value></data>

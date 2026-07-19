@@ -928,21 +928,27 @@ app.MapGet("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
 
 app.MapGet("/api/inventory", async (IKeyValueStore store, string? assetId, string? roomId, string? warehouseId) =>
 {
-    // Basic filtering implemented client-side in this prototype by listing and filtering
-    var all = await store.ListAsync<InventoryStorageModel>("inventory");
-    var filtered = all.AsEnumerable();
-    if (!string.IsNullOrEmpty(assetId)) filtered = filtered.Where(x => x.AssetId == assetId);
-    if (!string.IsNullOrEmpty(roomId)) filtered = filtered.Where(x => x.RoomId == roomId);
-    if (!string.IsNullOrEmpty(warehouseId)) filtered = filtered.Where(x => x.WarehouseId == warehouseId);
-
+    // Inventory rows must be materialized by entry id because storage does not embed id in payload.
     var idx = await store.GetIndexAsync("inventory");
     var list = new List<InventoryDto>();
-    foreach (var item in filtered)
+
+    foreach (var entry in idx)
     {
-        // try to find id by AssetId or by searching idx (best-effort)
-        var id = idx.FirstOrDefault(kvp => kvp.Value == item.AssetId).Key ?? "";
+        var id = entry.Value;
+        var item = await store.GetAsync<InventoryStorageModel>("inventory", id);
+        if (item is null)
+            continue;
+
+        if (!string.IsNullOrEmpty(assetId) && !string.Equals(item.AssetId, assetId, StringComparison.Ordinal))
+            continue;
+        if (!string.IsNullOrEmpty(roomId) && !string.Equals(item.RoomId, roomId, StringComparison.Ordinal))
+            continue;
+        if (!string.IsNullOrEmpty(warehouseId) && !string.Equals(item.WarehouseId, warehouseId, StringComparison.Ordinal))
+            continue;
+
         list.Add(new InventoryDto(id, item.AssetId, item.RoomId, item.WarehouseId, item.Quantity, item.MinQuantityDefault, item.RequiredOnCheckin, item.CreatedAt));
     }
+
     return Results.Ok(list);
 }).WithName("ListInventory");
 

@@ -164,6 +164,7 @@ public class AssetsApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, invResp.StatusCode);
         var createdInv = JsonSerializer.Deserialize<InventoryDto>(await invResp.Content.ReadAsStringAsync());
         Assert.NotNull(createdInv);
+        Assert.False(string.IsNullOrWhiteSpace(createdInv!.Id));
 
         // Get inventory by id
         var getInv = await _client.GetAsync($"/api/inventory/{createdInv!.Id}");
@@ -175,6 +176,7 @@ public class AssetsApiTests : IAsyncLifetime
         var invList = JsonSerializer.Deserialize<List<InventoryDto>>(await listByAsset.Content.ReadAsStringAsync());
         Assert.NotNull(invList);
         Assert.Contains(invList!, i => i.AssetId == createdAsset.Id);
+        Assert.Contains(invList!, i => i.Id == createdInv.Id && i.WarehouseId == createdWh.Id);
 
         // Cleanup
         await _client.DeleteAsync($"/api/inventory/{createdInv.Id}");
@@ -348,6 +350,8 @@ public class AssetsApiTests : IAsyncLifetime
         var whList = JsonSerializer.Deserialize<List<InventoryDto>>(await listByWh1.Content.ReadAsStringAsync());
         Assert.NotNull(whList);
         Assert.Contains(whList!, i => i.WarehouseId == wh1.Id);
+        Assert.All(whList!, i => Assert.False(string.IsNullOrWhiteSpace(i.Id)));
+        Assert.Contains(whList!, i => i.Id == inv1!.Id);
         Assert.DoesNotContain(whList!, i => i.WarehouseId == wh2.Id);
 
         // Cleanup

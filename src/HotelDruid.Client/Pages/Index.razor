@@ -7,6 +7,7 @@
 @using HotelDruid.Client.Services
 @inject HttpClient Http
 @inject IRoomApiService RoomApiService
+@inject IInventoryApiService InventoryApiService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IActiveYearService ActiveYearService
@@ -465,6 +466,42 @@
           @WidgetHeader("inventory", "bi-boxes", L["Index.Feature.Inventory.Title"], "Dashboard.Widget.VisibleCount.Inventory", "Dashboard.Widget.Menu.AddInventoryItem", "/inventory")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Inventory.Subtitle"]</p>
+
+            <div class="room-widget-toolbar mb-2">
+              <input class="form-control form-control-sm"
+                     placeholder="@L["DashboardInventory.FilterPlaceholder", "Filter inventory"]"
+                     @bind="inventorySearch"
+                     @bind:event="oninput" />
+            </div>
+
+            @if (inventoryLoading)
+            {
+              <p class="small text-muted">@L["DashboardInventory.Loading", "Loading inventory..."]</p>
+            }
+            else
+            {
+              var visibleInventory = GetVisibleInventory();
+
+              if (!visibleInventory.Any())
+              {
+                <p class="small text-muted">@L["DashboardInventory.FilterEmpty", "No inventory items match the current filter."]</p>
+              }
+              else
+              {
+                <ul class="list-group list-group-flush actionable-room-list mb-3">
+                  @foreach (var item in visibleInventory.Take(GetWidgetVisibleCount("inventory")))
+                  {
+                    <li class="list-group-item px-0 py-2">
+                      <button type="button" class="btn btn-link p-0 text-start room-link" @onclick="() => GoToInventoryManagement(item.Id)">
+                        <span class="fw-semibold room-link-title">@GetInventoryDisplayName(item)</span>
+                        <span class="text-muted small room-link-meta">@L["DashboardInventory.AssignedRoom", "Room"]: @GetInventoryAssignedRoom(item) · @L["DashboardInventory.Quantity", "Qty"]: @item.Quantity</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            }
+
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-outline-dark btn-sm" href="/inventory">@L["Index.Feature.Inventory.Button"]</a>
             </div>
@@ -572,7 +609,9 @@
     private List<ClientDto>? clients;
     private List<BookingDto>? bookings;
     private List<RoomDto> availableRooms = new();
+    private List<InventoryDto> availableInventory = new();
     private bool roomsLoading;
+    private bool inventoryLoading;
     private string activeYearDisplay = DateTime.Now.Year.ToString();
     private string hotelName = "Welcome to HotelDruid";
     private string hotelNameDraft = string.Empty;
@@ -624,6 +663,7 @@
     private const string ArrivalsLookAheadDaysSettingKey = "DashboardArrivalsLookAheadDays";
 
     private string roomsSearch = string.Empty;
+    private string inventorySearch = string.Empty;
     private RoomSortMode roomSortMode = RoomSortMode.Priority;
     private bool showRoomsWithoutBeds = true;
     private bool compactRoomsView = true;
@@ -662,6 +702,7 @@
           ApplySystemDefaults();
 
           await LoadRoomsAsync();
+          await LoadInventoryAsync();
         }
         catch
         {
@@ -1357,6 +1398,23 @@
       }
     }
 
+    private async Task LoadInventoryAsync()
+    {
+      try
+      {
+        inventoryLoading = true;
+        var inventory = await InventoryApiService.GetInventoryAsync();
+        availableInventory = inventory
+          .OrderBy(i => GetInventoryDisplayName(i), StringComparer.OrdinalIgnoreCase)
+          .ThenBy(i => i.Id, StringComparer.OrdinalIgnoreCase)
+          .ToList();
+      }
+      finally
+      {
+        inventoryLoading = false;
+      }
+    }
+
     private async Task SavePreferencesAsync()
     {
       try
@@ -1520,6 +1578,7 @@
       compactRoomsView = true;
       arrivalsLookAheadDays = 0;
       roomsSearch = string.Empty;
+      inventorySearch = string.Empty;
 
       await SavePreferencesAsync();
       await SaveSystemDefaultsAsync();
@@ -1697,6 +1756,57 @@
       openArrivalMenuId = null;
       openDepartureMenuId = null;
       Navigation.NavigateTo($"/rooms?selectedId={roomId}");
+    }
+
+    private void GoToInventoryManagement(string? inventoryId = null)
+    {
+      openMenuWidgetId = null;
+      openRoomMenuId = null;
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      var route = "/inventory";
+      if (!string.IsNullOrWhiteSpace(inventoryId))
+      {
+        route += $"?selectedId={Uri.EscapeDataString(inventoryId)}";
+      }
+
+      Navigation.NavigateTo(route);
+    }
+
+    private List<InventoryDto> GetVisibleInventory()
+    {
+      IEnumerable<InventoryDto> query = availableInventory;
+
+      if (!string.IsNullOrWhiteSpace(inventorySearch))
+      {
+        var term = inventorySearch.Trim();
+        query = query.Where(i =>
+          (!string.IsNullOrWhiteSpace(i.AssetId) && i.AssetId.Contains(term, StringComparison.OrdinalIgnoreCase))
+          || GetInventoryAssignedRoom(i).Contains(term, StringComparison.OrdinalIgnoreCase));
+      }
+
+      return query
+        .OrderBy(i => GetInventoryDisplayName(i), StringComparer.OrdinalIgnoreCase)
+        .ThenBy(i => GetInventoryAssignedRoom(i), StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    }
+
+    private string GetInventoryDisplayName(InventoryDto inventory)
+    {
+      return string.IsNullOrWhiteSpace(inventory.AssetId) ? L["inventory.none", "None"] : inventory.AssetId;
+    }
+
+    private string GetInventoryAssignedRoom(InventoryDto inventory)
+    {
+      if (string.IsNullOrWhiteSpace(inventory.RoomId))
+      {
+        return L["DashboardInventory.UnassignedRoom", "Unassigned room"];
+      }
+
+      return GetRoomDisplayName(inventory.RoomId);
     }
 
     private async Task DeleteRoomAsync(string roomId)
