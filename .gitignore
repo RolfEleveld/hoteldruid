@@ -19,6 +19,7 @@ hoteldruid/dati
 
 # Build / packaging artifacts
 /artifacts/
+/.build/
 
 # Temporary publish staging folders
 /_client_publish/

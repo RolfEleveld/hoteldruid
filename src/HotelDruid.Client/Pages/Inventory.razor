@@ -5,32 +5,47 @@
 @inject IAssetApiService AssetApi
 @inject IWarehouseApiService WarehouseApi
 @inject IRoomApiService RoomApi
+@inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["inventory.title", "Inventory"]</PageTitle>
 
 <div class="container-fluid inventory-manager">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["inventory.listTitle", "List of Inventory"]</h5>
-                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> @L["inventory.addItem", "Add Item"]</button>
+    <div class="row g-3 h-100">
+        <!-- LEFT: Inventory List -->
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["inventory.listTitle", "List of Inventory"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNew">
+                        <span class="bi bi-plus"></span> @L["inventory.addItem", "Add Item"]
+                    </button>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm" @bind="inventoryListFilter" @bind:event="oninput"
+                               placeholder="@L["inventory.searchPlaceholder", "Search by asset, room, or warehouse"]" />
+                    </div>
                     @if (rows == null)
                     {
-                        <div>@L["common.loading", "Loading..."]</div>
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
                     }
-                    else if (rows.Count == 0)
+                    else if (FilteredRows.Count == 0)
                     {
                         <div class="alert alert-info">@L["inventory.emptyList", "No inventory items yet."]</div>
                     }
                     else
                     {
                         <div class="list-group">
-                            @foreach (var r in rows)
+                            @foreach (var r in FilteredRows)
                             {
-                                <a class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")" @onclick="() => Select(r)">@GetInventoryListLabel(r)</a>
+                                <button type="button" class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")" @onclick="() => Select(r)">
+                                    <div class="fw-semibold">@GetAssetName(r)</div>
+                                    <small class="text-muted">@GetLocationName(r) · @r.Quantity</small>
+                                </button>
                             }
                         </div>
                     }
@@ -38,91 +53,147 @@
             </div>
         </div>
 
-        <div class="col-md-5">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["inventory.updateTitle", "Update Inventory"]</h5>
-                    @if (!string.IsNullOrWhiteSpace(validationMessage))
-                    {
-                        <div class="alert alert-warning" role="alert">@validationMessage</div>
-                    }
-                    <div class="mb-3">
-                        <label class="form-label">@L["inventory.asset", "Asset"]</label>
-                        <input class="form-control" @bind="edit.AssetId" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">@L["inventory.room", "Room"]</label>
-                        <select class="form-select" @bind="edit.RoomId" @bind:after="OnRoomChanged">
-                            <option value="">@L["inventory.none", "None"]</option>
-                            @foreach (var room in rooms)
-                            {
-                                <option value="@room.Id">@room.Name</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">@L["inventory.warehouse", "Warehouse"]</label>
-                        <input class="form-control"
-                               value="@warehouseSearch"
-                               placeholder="@L["inventory.selectWarehouse", "Select warehouse..."]"
-                               @oninput="OnWarehouseSearchChanged" />
-
-                        @if (warehouseMatches.Count > 0)
+        <!-- MIDDLE: Edit Form -->
+        <div class="col-md-6">
+            @if (selected != null || rows?.Count == 0 || editingNew)
+            {
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">@(editingNew ? L["inventory.addItem", "Add Item"] : GetInventoryListLabel(selected!))</h3>
+                                <small class="text-muted">@L["inventory.updateTitle", "Update Inventory"]</small>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(validationMessage))
                         {
-                            <div class="list-group mt-2">
-                                @foreach (var warehouse in warehouseMatches)
+                            <div class="alert alert-warning alert-sm mt-2 mb-0" role="alert">@validationMessage</div>
+                        }
+                    </div>
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <div class="mb-3">
+                            <label class="form-label">@L["inventory.asset", "Asset"]</label>
+                            <input class="form-control" @bind="edit.AssetId" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">@L["inventory.room", "Room"]</label>
+                            <select class="form-select" @bind="edit.RoomId" @bind:after="OnRoomChanged">
+                                <option value="">@L["inventory.none", "None"]</option>
+                                @foreach (var room in rooms)
                                 {
-                                    <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectWarehouse(warehouse)">
-                                        <div class="fw-semibold">@ResolveWarehouseDisplayName(warehouse)</div>
-                                        <small class="text-muted">@L["inventory.warehouse", "Warehouse"]: @ResolveWarehouseDisplayName(warehouse)</small>
-                                    </button>
+                                    <option value="@room.Id">@room.Name</option>
                                 }
-                            </div>
-                        }
-
-                        @if (selectedWarehouse is not null)
-                        {
-                            <div class="border rounded p-2 bg-light-subtle mt-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="fw-semibold">@ResolveWarehouseDisplayName(selectedWarehouse)</div>
-                                        <small class="text-muted">@L["inventory.warehouse", "Warehouse"]: @ResolveWarehouseDisplayName(selectedWarehouse)</small>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearWarehouseSelection">@L["bookings.clearSelection", "Clear"]</button>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">@L["inventory.warehouse", "Warehouse"]</label>
+                            <input class="form-control"
+                                   value="@warehouseSearch"
+                                   placeholder="@L["inventory.selectWarehouse", "Select warehouse..."]"
+                                   @oninput="OnWarehouseSearchChanged" />
+                            @if (warehouseMatches.Count > 0)
+                            {
+                                <div class="list-group mt-2">
+                                    @foreach (var warehouse in warehouseMatches)
+                                    {
+                                        <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectWarehouse(warehouse)">
+                                            <div class="fw-semibold">@ResolveWarehouseDisplayName(warehouse)</div>
+                                        </button>
+                                    }
                                 </div>
-                            </div>
-                        }
-
-                        @if (selectedWarehouse is null && !string.IsNullOrWhiteSpace(warehouseSearch))
-                        {
-                            <div class="text-muted small mt-2">@L["inventory.noWarehouseMatch", "No warehouse matches this search."]</div>
-                        }
+                            }
+                            @if (selectedWarehouse is not null)
+                            {
+                                <div class="border rounded p-2 bg-light-subtle mt-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="fw-semibold">@ResolveWarehouseDisplayName(selectedWarehouse)</div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearWarehouseSelection">@L["bookings.clearSelection", "Clear"]</button>
+                                    </div>
+                                </div>
+                            }
+                            @if (selectedWarehouse is null && !string.IsNullOrWhiteSpace(warehouseSearch))
+                            {
+                                <div class="text-muted small mt-2">@L["inventory.noWarehouseMatch", "No warehouse matches this search."]</div>
+                            }
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">@L["inventory.quantity", "Quantity"]</label>
+                            <input type="number" class="form-control" @bind="edit.Quantity" min="0" />
+                        </div>
                     </div>
-                    <div class="mb-3"><label class="form-label">@L["inventory.quantity", "Quantity"]</label><input type="number" class="form-control" @bind="edit.Quantity" min="0" /></div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">@L["common.save", "Save"]</button>
-                        @if (selected != null)
-                        {
-                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete", "Delete"]</button>
-                        }
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-primary flex-grow-1" @onclick="Save">@L["common.save", "Save"]</button>
+                            @if (selected != null)
+                            {
+                                <button class="btn btn-danger flex-grow-1" @onclick="Delete">@L["common.delete", "Delete"]</button>
+                            }
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
+                        <p>@L["inventory.selectPrompt", "Select an inventory item"]</p>
+                    </div>
+                </div>
+            }
         </div>
 
+        <!-- RIGHT: Details -->
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["inventory.detailsTitle", "Inventory details"]</h5>
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["inventory.detailsTitle", "Inventory details"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
                     @if (selected != null)
                     {
                         <dl class="row">
-                            <dt class="col-4">@L["inventory.id", "ID"]</dt><dd class="col-8">@selected.Id</dd>
-                            <dt class="col-4">@L["inventory.asset", "Asset"]</dt><dd class="col-8">@ResolveAssetName(selected.AssetId)</dd>
-                            <dt class="col-4">@L["inventory.room", "Room"]</dt><dd class="col-8">@ResolveRoomName(selected.RoomId)</dd>
-                            <dt class="col-4">@L["inventory.warehouse", "Warehouse"]</dt><dd class="col-8">@ResolveWarehouseName(selected.WarehouseId)</dd>
-                            <dt class="col-4">@L["inventory.quantity", "Quantity"]</dt><dd class="col-8">@selected.Quantity</dd>
+                            <dt class="col-5">@L["inventory.id", "ID"]</dt><dd class="col-7">@selected.Id</dd>
+                            <dt class="col-5">@L["inventory.asset", "Asset"]</dt><dd class="col-7">@ResolveAssetName(selected.AssetId)</dd>
+                            <dt class="col-5">@L["inventory.room", "Room"]</dt><dd class="col-7">@ResolveRoomName(selected.RoomId)</dd>
+                            <dt class="col-5">@L["inventory.warehouse", "Warehouse"]</dt>
+                            <dd class="col-7">
+                                @if (!string.IsNullOrWhiteSpace(selected.WarehouseId))
+                                {
+                                    <button class="btn btn-link p-0" @onclick="() => GoToWarehouse(selected.WarehouseId)">@ResolveWarehouseName(selected.WarehouseId)</button>
+                                }
+                                else { @L["inventory.none", "None"] }
+                            </dd>
+                            <dt class="col-5">@L["inventory.quantity", "Quantity"]</dt><dd class="col-7">@selected.Quantity</dd>
                         </dl>
+
+                        @if (!string.IsNullOrWhiteSpace(selected.AssetId))
+                        {
+                            var otherLocations = GetSameAssetLocations(selected);
+                            <hr />
+                            <h6>@L["inventory.assetLocations", "Other locations for this asset"]</h6>
+                            @if (otherLocations.Any())
+                            {
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var loc in otherLocations)
+                                    {
+                                        <li class="list-group-item px-0 py-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="small">
+                                                    @if (!string.IsNullOrWhiteSpace(loc.WarehouseId))
+                                                    {
+                                                        <button class="btn btn-link btn-sm p-0" @onclick="() => GoToWarehouse(loc.WarehouseId)">@ResolveWarehouseName(loc.WarehouseId)</button>
+                                                    }
+                                                    else { @ResolveRoomName(loc.RoomId) }
+                                                </span>
+                                                <span class="badge bg-secondary">@loc.Quantity</span>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else { <p class="text-muted small">@L["inventory.assetLocationsEmpty", "No other locations for this asset."]</p> }
+                        }
                     }
                     else { <div class="text-muted">@L["inventory.selectPrompt", "Select an inventory item"]</div> }
                 </div>
@@ -145,6 +216,27 @@
     private InventoryEditModel edit = new();
     private string? validationMessage;
     private string warehouseSearch = string.Empty;
+    private string inventoryListFilter = string.Empty;
+    private bool editingNew;
+
+    private List<InventoryDto> FilteredRows
+    {
+        get
+        {
+            if (rows is null) return new();
+            if (string.IsNullOrWhiteSpace(inventoryListFilter)) return rows;
+            var term = inventoryListFilter.Trim();
+            return rows.Where(r =>
+                ResolveAssetName(r.AssetId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || ResolveRoomName(r.RoomId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || ResolveWarehouseName(r.WarehouseId).Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private string GetAssetName(InventoryDto item) => ResolveAssetName(item.AssetId);
+    private string GetLocationName(InventoryDto item) =>
+        !string.IsNullOrWhiteSpace(item.WarehouseId) ? ResolveWarehouseName(item.WarehouseId) : ResolveRoomName(item.RoomId);
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,6 +276,7 @@
     {
         validationMessage = null;
         selected = r;
+        editingNew = false;
         edit = InventoryEditModel.FromDto(r);
         InitializeWarehouseSelectionForCurrentEdit();
     }
@@ -192,6 +285,7 @@
     {
         validationMessage = null;
         selected = null;
+        editingNew = true;
         edit = new InventoryEditModel();
         ResetWarehouseSelection();
     }
@@ -382,6 +476,25 @@
     {
         return (!string.IsNullOrWhiteSpace(warehouse.Name) && warehouse.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
             || (!string.IsNullOrWhiteSpace(warehouse.Id) && warehouse.Id.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private List<InventoryDto> GetSameAssetLocations(InventoryDto current)
+    {
+        if (rows is null || string.IsNullOrWhiteSpace(current.AssetId))
+            return new();
+
+        return rows
+            .Where(r => string.Equals(r.AssetId, current.AssetId, StringComparison.OrdinalIgnoreCase)
+                     && !string.Equals(r.Id, current.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => ResolveWarehouseName(r.WarehouseId))
+            .ThenBy(r => ResolveRoomName(r.RoomId))
+            .ToList();
+    }
+
+    private void GoToWarehouse(string? warehouseId)
+    {
+        if (string.IsNullOrWhiteSpace(warehouseId)) return;
+        Navigation.NavigateTo($"/warehouses?id={Uri.EscapeDataString(warehouseId)}");
     }
 
     private class InventoryEditModel

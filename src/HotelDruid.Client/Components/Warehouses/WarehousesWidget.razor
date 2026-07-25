@@ -2,6 +2,7 @@
 @using HotelDruid.Client.Services
 @inject IWarehouseApiService WarehouseApi
 @inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Navigation
 
 <div class="rpanels">
     <div class="rbox">
@@ -17,12 +18,23 @@
             }
             else
             {
-                <table class="t1"><thead><tr><th>Name</th><th>Code</th></tr></thead><tbody>
-                    @foreach (var w in Items.Take(5))
-                    {
-                        <tr><td>@w.Name</td><td>@w.Code</td></tr>
-                    }
-                </tbody></table>
+                <input type="text" class="form-control mb-3" placeholder="@L["DashboardInventory.FilterPlaceholder", "Filter warehouses"]" @bind="SearchFilter" @oninput="OnSearchChanged" />
+                @if (FilteredItems.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var w in FilteredItems)
+                        {
+                            <a href="/warehouses?id=@w.Id" class="list-group-item list-group-item-action">
+                                <div class="fw-semibold">@w.Name</div>
+                                <small class="text-muted">@w.Code</small>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">@L["DashboardInventory.FilterEmpty", "No warehouses match the current filter."]</p>
+                }
             }
         </div>
     </div>
@@ -30,7 +42,9 @@
 
 @code {
     private List<WarehouseDto> Items = new();
+    private List<WarehouseDto> FilteredItems = new();
     private bool Loading = false;
+    private string SearchFilter = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,11 +57,33 @@
         {
             Loading = true;
             Items = await WarehouseApi.GetWarehousesAsync();
+            FilteredItems = Items.ToList();
         }
         catch { }
         finally { Loading = false; }
     }
 
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        SearchFilter = e.Value?.ToString() ?? string.Empty;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchFilter))
+        {
+            FilteredItems = Items.ToList();
+        }
+        else
+        {
+            var lowerSearch = SearchFilter.ToLowerInvariant();
+            FilteredItems = Items
+                .Where(w => (w.Name?.Contains(lowerSearch, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                           (w.Code?.Contains(lowerSearch, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+        }
+    }
 }
 
 

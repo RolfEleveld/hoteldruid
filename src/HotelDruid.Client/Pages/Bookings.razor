@@ -15,222 +15,265 @@
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["bookings.title", "Bookings"]</PageTitle>
-<div class="container-fluid">
-    <div class="row align-items-center mb-2 mt-2">
-        <div class="col-auto"><h5 class="mb-0">@L["bookings.header", "Bookings"]</h5></div>
-        <div class="col-auto">
-            <label class="me-1">@L["bookings.filterYear", "Year"]:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["bookings.load", "Load"]</button>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-3 border-end">
-            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ @L["bookings.new", "New"]</button>
-            @if (records is null) { <p><em>@L["common.loading", "Loading..."]</em></p> }
-            else if (records.Count == 0) { <p class="text-muted">@L["bookings.emptyList", "No bookings"]</p> }
-            else
-            {
-                <ul class="list-group">
-                    @foreach (var r in records)
+<div class="container-fluid bookings-manager">
+    <div class="row g-3 h-100">
+        <!-- LEFT: Bookings List -->
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["bookings.title", "Bookings"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="NewRecord">
+                        <span class="bi bi-plus"></span> @L["bookings.new", "New"]
+                    </button>
+                    <div class="d-flex gap-1 mb-3">
+                        <input class="form-control form-control-sm" type="number" @bind="filterYear" placeholder="@L["bookings.filterYear", "Year"]" style="width:80px" />
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="ApplyFilter">@L["bookings.load", "Load"]</button>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm" @bind="listFilter" @bind:event="oninput"
+                               placeholder="@L["bookings.searchPlaceholder", "Search by client, room, status, or year"]" />
+                    </div>
+                    @if (records is null)
                     {
-                        <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
-                            style="cursor:pointer" @onclick="() => SelectRecordAndEdit(r)">
-                            <div class="fw-bold">@r.Year — @GetClientDisplayName(r.ClientId)</div>                            
-                            <small>@FormatDate(r.ArrivalDate) → @FormatDate(r.DepartureDate) (@r.Status)</small>
-                        </li>
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
                     }
-                </ul>
-            }
+                    else if (FilteredRecords.Count == 0)
+                    {
+                        <div class="alert alert-info">@L["bookings.emptyList", "No bookings"]</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var r in FilteredRecords)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
+                                        @onclick="() => SelectRecordAndEdit(r)">
+                                    <div class="fw-semibold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
+                                    <small class="text-muted">@FormatDate(r.ArrivalDate) → @FormatDate(r.DepartureDate) (@r.Status)</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
-        <div class="col-md-6 border-end">
+
+        <!-- MIDDLE: Edit Form -->
+        <div class="col-md-6">
             @if (editing)
             {
-                <h5 class="mt-1">@(isNew ? L["bookings.newBooking", "New Booking"] : L["bookings.editBooking", "Edit Booking"])</h5>
-                <div class="row g-2">
-                    <div class="col-6"><label>@L["bookings.year", "Year"] *</label><input class="form-control" type="number" @bind="form.Year" /></div>
-                    <div class="col-6"><label>@L["bookings.roomSearchLabel", "Find room"] *</label><input class="form-control" value="@roomSearch" placeholder="@L["bookings.roomSearchPlaceholder", "Type room name or ID"]" @oninput="OnRoomSearchChanged" /></div>
-
-                    @if (roomMatches.Count > 0)
-                    {
-                        <div class="col-12">
-                            <div class="list-group">
-                                @foreach (var room in roomMatches)
-                                {
-                                    <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectRoom(room)">
-                                        <div class="fw-semibold">@GetRoomDisplayName(room.Id)</div>
-                                        <small class="text-muted">@L["bookings.room", "Room"]: @GetRoomDisplayName(room.Id) · @L["rooms.capacityLabel", "Capacity"]: @room.Capacity</small>
-                                    </button>
-                                }
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">@(isNew ? L["bookings.newBooking", "New Booking"] : $"{selected?.Year} — {GetClientDisplayName(selected?.ClientId)}")</h3>
+                                <small class="text-muted">@L["bookings.editBooking", "Edit Booking"]</small>
                             </div>
+                            @if (!string.IsNullOrEmpty(errorMsg))
+                            {
+                                <span class="badge bg-danger">@L["common.error", "Error"]</span>
+                            }
                         </div>
-                    }
-
-                    @if (selectedRoom is not null)
-                    {
-                        <div class="col-12">
-                            <div class="border rounded p-2 bg-light-subtle">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToRoom(selectedRoom.Id)">
-                                        <div class="fw-semibold">@GetRoomDisplayName(selectedRoom.Id)</div>
-                                        <small class="text-muted">@L["bookings.room", "Room"]: @GetRoomDisplayName(selectedRoom.Id) · @L["rooms.capacityLabel", "Capacity"]: @selectedRoom.Capacity</small>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearRoomSelection">@L["bookings.clearSelection", "Clear"]</button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-
-                    @if (selectedRoom is null && !string.IsNullOrWhiteSpace(roomSearch))
-                    {
-                        <div class="col-12">
-                            <div class="text-muted small">@L["bookings.noRoomMatch", "No room matches this search."]</div>
-                        </div>
-                    }
-
-                    <div class="col-6"><label>@L["bookings.status", "Status"]</label><input class="form-control" @bind="form.Status" /></div>
-                    <div class="col-6"><label>@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
-                    <div class="col-6"><label>@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
-                    <div class="col-6"><label>@L["bookings.actualArrivalDateOptional", "Actual Arrival Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualArrivalDate" /></div>
-                    <div class="col-6"><label>@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" /></div>
-                    <div class="col-6"><label>@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
-                    <div class="col-12"><label>@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
-
-                    <div class="col-12 mt-3">
-                        <h6 class="text-muted mb-2">@L["bookings.client", "Client"]</h6>
+                        @if (!string.IsNullOrEmpty(errorMsg))
+                        {
+                            <div class="alert alert-danger alert-sm mt-2 mb-0">@errorMsg</div>
+                        }
                     </div>
-                    <div class="col-12">
-                        <label>@L["bookings.clientSearchLabel", "Find existing client"]</label>
-                        <input class="form-control"
-                               value="@clientSearch"
-                               placeholder="@L["bookings.clientSearchPlaceholder", "Type last name, first name, email, or phone"]"
-                               @oninput="OnClientSearchChanged" />
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label">@L["bookings.year", "Year"] *</label><input class="form-control" type="number" @bind="form.Year" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.status", "Status"]</label><input class="form-control" @bind="form.Status" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.actualArrivalDateOptional", "Actual Arrival Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualArrivalDate" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
+                            <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
+
+                            <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.roomSearchLabel", "Find room"] *</h6></div>
+                            <div class="col-12"><input class="form-control" value="@roomSearch" placeholder="@L["bookings.roomSearchPlaceholder", "Type room name or ID"]" @oninput="OnRoomSearchChanged" /></div>
+                            @if (roomMatches.Count > 0)
+                            {
+                                <div class="col-12">
+                                    <div class="list-group">
+                                        @foreach (var room in roomMatches)
+                                        {
+                                            <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectRoom(room)">
+                                                <div class="fw-semibold">@GetRoomDisplayName(room.Id)</div>
+                                                <small class="text-muted">@L["rooms.capacityLabel", "Capacity"]: @room.Capacity</small>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            @if (selectedRoom is not null)
+                            {
+                                <div class="col-12">
+                                    <div class="border rounded p-2 bg-light-subtle">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToRoom(selectedRoom.Id)">
+                                                <div class="fw-semibold">@GetRoomDisplayName(selectedRoom.Id)</div>
+                                                <small class="text-muted">@L["rooms.capacityLabel", "Capacity"]: @selectedRoom.Capacity</small>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearRoomSelection">@L["bookings.clearSelection", "Clear"]</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if (selectedRoom is null && !string.IsNullOrWhiteSpace(roomSearch))
+                            {
+                                <div class="col-12 text-muted small">@L["bookings.noRoomMatch", "No room matches this search."]</div>
+                            }
+
+                            <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.clientSearchLabel", "Find existing client"]</h6></div>
+                            <div class="col-12">
+                                <input class="form-control" value="@clientSearch"
+                                       placeholder="@L["bookings.clientSearchPlaceholder", "Type last name, first name, email, or phone"]"
+                                       @oninput="OnClientSearchChanged" />
+                            </div>
+                            @if (clientMatches.Count > 0)
+                            {
+                                <div class="col-12">
+                                    <div class="list-group">
+                                        @foreach (var client in clientMatches)
+                                        {
+                                            <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectClient(client)">
+                                                <div class="fw-semibold">@ClientDisplayName(client)</div>
+                                                <small class="text-muted">@client.Email @client.Phone @client.City</small>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            @if (selectedClient is not null)
+                            {
+                                <div class="col-12">
+                                    <div class="border rounded p-2 bg-light-subtle">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToClient(selectedClient.Id)">
+                                                <div class="fw-semibold">@ClientDisplayName(selectedClient)</div>
+                                                <small class="text-muted">@selectedClient.Email · @selectedClient.Phone</small>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearClientSelection">@L["bookings.clearSelection", "Clear"]</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if (selectedClient is null && !creatingNewClient && !string.IsNullOrWhiteSpace(clientSearch))
+                            {
+                                <div class="col-12">
+                                    <div class="text-muted small">@L["bookings.noClientMatch", "No existing client matches this search."]</div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-1" @onclick="EnableInlineClientCreate">@L["bookings.createClientInline", "Enter new client details"]</button>
+                                </div>
+                            }
+                            @if (creatingNewClient)
+                            {
+                                <div class="col-12 mt-2">
+                                    <div class="border rounded p-3">
+                                        <div class="row g-2">
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientLastName", "Last Name"] *</label><input class="form-control" @bind="clientForm.LastName" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientFirstName", "First Name"]</label><input class="form-control" @bind="clientForm.FirstName" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientNickname", "Nickname"]</label><input class="form-control" @bind="clientForm.Nickname" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientLanguage", "Language"]</label><input class="form-control" @bind="clientForm.Language" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientPhone", "Phone"]</label><input class="form-control" @bind="clientForm.Phone" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientEmail", "Email"]</label><input class="form-control" @bind="clientForm.Email" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientNation", "Nation"]</label><input class="form-control" @bind="clientForm.Nation" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientCity", "City"]</label><input class="form-control" @bind="clientForm.City" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientDocumentType", "Document Type"]</label><input class="form-control" @bind="clientForm.DocumentType" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientDocumentNumber", "Document Number"]</label><input class="form-control" @bind="clientForm.DocumentNumber" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientTaxCode", "Tax Code"]</label><input class="form-control" @bind="clientForm.TaxCode" /></div>
+                                            <div class="col-6"><label class="form-label">@L["bookings.clientVatNumber", "VAT Number"]</label><input class="form-control" @bind="clientForm.VatNumber" /></div>
+                                            <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="clientForm.Notes" /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
                     </div>
-
-                    @if (clientMatches.Count > 0)
-                    {
-                        <div class="col-12">
-                            <div class="list-group">
-                                @foreach (var client in clientMatches)
-                                {
-                                    <button type="button" class="list-group-item list-group-item-action" @onclick="() => SelectClient(client)">
-                                        <div class="fw-semibold">@ClientDisplayName(client)</div>
-                                        <small class="text-muted">@client.Email @client.Phone @client.City</small>
-                                    </button>
-                                }
-                            </div>
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-primary flex-grow-1" @onclick="Save">@L["common.save", "Save"]</button>
+                            <button class="btn btn-secondary flex-grow-1" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+                            @if (selected is not null && !isNew)
+                            {
+                                <button class="btn btn-warning flex-grow-1" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
+                                <button class="btn btn-danger flex-grow-1" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
+                            }
                         </div>
-                    }
-
-                    @if (selectedClient is not null)
-                    {
-                        <div class="col-12">
-                            <div class="border rounded p-2 bg-light-subtle">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToClient(selectedClient.Id)">
-                                        <div class="fw-semibold">@ClientDisplayName(selectedClient)</div>
-                                        <small class="text-muted">@selectedClient.Email · @selectedClient.Phone</small>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearClientSelection">@L["bookings.clearSelection", "Clear"]</button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-
-                    @if (selectedClient is null && !creatingNewClient && !string.IsNullOrWhiteSpace(clientSearch))
-                    {
-                        <div class="col-12">
-                            <div class="text-muted small">@L["bookings.noClientMatch", "No existing client matches this search."]</div>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-1" @onclick="EnableInlineClientCreate">@L["bookings.createClientInline", "Enter new client details"]</button>
-                        </div>
-                    }
-
-                    @if (creatingNewClient)
-                    {
-                        <div class="col-12 mt-2">
-                            <div class="border rounded p-3">
-                                <div class="row g-2">
-                                    <div class="col-6"><label>@L["bookings.clientLastName", "Last Name"] *</label><input class="form-control" @bind="clientForm.LastName" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientFirstName", "First Name"]</label><input class="form-control" @bind="clientForm.FirstName" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientNickname", "Nickname"]</label><input class="form-control" @bind="clientForm.Nickname" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientLanguage", "Language"]</label><input class="form-control" @bind="clientForm.Language" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientPhone", "Phone"]</label><input class="form-control" @bind="clientForm.Phone" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientEmail", "Email"]</label><input class="form-control" @bind="clientForm.Email" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientNation", "Nation"]</label><input class="form-control" @bind="clientForm.Nation" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientCity", "City"]</label><input class="form-control" @bind="clientForm.City" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientDocumentType", "Document Type"]</label><input class="form-control" @bind="clientForm.DocumentType" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientDocumentNumber", "Document Number"]</label><input class="form-control" @bind="clientForm.DocumentNumber" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientTaxCode", "Tax Code"]</label><input class="form-control" @bind="clientForm.TaxCode" /></div>
-                                    <div class="col-6"><label>@L["bookings.clientVatNumber", "VAT Number"]</label><input class="form-control" @bind="clientForm.VatNumber" /></div>
-                                    <div class="col-12"><label>@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="clientForm.Notes" /></div>
-                                </div>
-                            </div>
-                        </div>
-                    }
+                    </div>
                 </div>
-                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
-                <div class="mt-3">
-                    <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
-                    <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
-                    @if (selected is not null && !isNew)
-                    {
-                        <button class="btn btn-warning ms-2" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
-                        <button class="btn btn-danger ms-2" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
-                    }
+            }
+            else
+            {
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
+                        <p>@L["bookings.selectPrompt", "Select a booking from the list or create a new one"]</p>
+                    </div>
                 </div>
             }
         </div>
+
+        <!-- RIGHT: Details -->
         <div class="col-md-3">
-            @if (selected is not null && !editing)
-            {
-                <h5 class="mt-1">@L["common.details"]</h5>
-                <dl>
-                    <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
-                    <dt>@L["bookings.client", "Client"]</dt>
-                    <dd>
-                        @if (!string.IsNullOrWhiteSpace(selected.ClientId))
-                        {
-                            <a href="/clients?selectedId=@selected.ClientId">@GetClientDisplayName(selected.ClientId)</a>
-                        }
-                        else
-                        {
-                            <text>-</text>
-                        }
-                    </dd>
-                    <dt>@L["bookings.room", "Room"]</dt>
-                    <dd>
-                        @if (!string.IsNullOrWhiteSpace(selected.RoomId))
-                        {
-                            <a href="/rooms?selectedId=@selected.RoomId">@GetRoomDisplayName(selected.RoomId)</a>
-                        }
-                        else
-                        {
-                            <text>-</text>
-                        }
-                    </dd>
-                    <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
-                    <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
-                    <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
-                    <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
-                    <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
-                    <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
-                    <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
-                </dl>
-                <div class="mt-3">
-                    @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["common.details", "Details"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (selected is not null && !editing)
                     {
-                        <a class="btn btn-sm btn-outline-primary me-1" href="/clients?selectedId=@selected.ClientId">@L["bookings.openClient", "Open client"]</a>
+                        <dl>
+                            <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
+                            <dt>@L["bookings.client", "Client"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+                                {
+                                    <a href="/clients?selectedId=@selected.ClientId">@GetClientDisplayName(selected.ClientId)</a>
+                                }
+                                else { <text>-</text> }
+                            </dd>
+                            <dt>@L["bookings.room", "Room"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                                {
+                                    <a href="/rooms?selectedId=@selected.RoomId">@GetRoomDisplayName(selected.RoomId)</a>
+                                }
+                                else { <text>-</text> }
+                            </dd>
+                            <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
+                            <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
+                            <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
+                            <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
+                            <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
+                            <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
+                        </dl>
+                        <hr />
+                        <div class="d-flex flex-column gap-2">
+                            @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="/clients?selectedId=@selected.ClientId">@L["bookings.openClient", "Open client"]</a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@selected.RoomId">@L["bookings.openRoom", "Open room"]</a>
+                            }
+                        </div>
                     }
-                    @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                    else if (selected is null)
                     {
-                        <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@selected.RoomId">@L["bookings.openRoom", "Open room"]</a>
+                        <div class="text-muted">@L["bookings.selectPrompt", "Select a booking from the list or create a new one"]</div>
                     }
                 </div>
-            }
+            </div>
         </div>
     </div>
 </div>
-
 @code {
     [SupplyParameterFromQuery(Name = "selectedId")]
     public string? SelectedId { get; set; }
@@ -255,8 +298,25 @@
     private bool editing, isNew;
     private string errorMsg = "";
     private int? filterYear;
+    private string listFilter = string.Empty;
     private FormModel form = new();
     private ClientFormModel clientForm = new();
+
+    private List<BookingDto> FilteredRecords
+    {
+        get
+        {
+            if (records is null) return new();
+            if (string.IsNullOrWhiteSpace(listFilter)) return records;
+            var term = listFilter.Trim();
+            return records.Where(r =>
+                GetClientDisplayName(r.ClientId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || GetRoomDisplayName(r.RoomId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || (r.Status?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || r.Year.ToString().Contains(term))
+                .ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

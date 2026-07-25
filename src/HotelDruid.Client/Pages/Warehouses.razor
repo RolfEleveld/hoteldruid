@@ -1,32 +1,48 @@
 @page "/warehouses"
 @using HotelDruid.Client.Services
 @inject IWarehouseApiService WarehouseApi
+@inject IInventoryApiService InventoryApi
+@inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["warehouses.title", "Warehouses"]</PageTitle>
 
 <div class="container-fluid warehouses-manager">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["warehouses.title", "Warehouses"]</h5>
-                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"> <span class="bi bi-plus"></span> Add Warehouse</button>
+    <div class="row g-3 h-100">
+        <!-- LEFT: Warehouse List -->
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["warehouses.title", "Warehouses"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNew">
+                        <span class="bi bi-plus"></span> @L["warehouses.add", "Add Warehouse"]
+                    </button>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm" @bind="warehouseListFilter" @bind:event="oninput"
+                               placeholder="@L["warehouses.filterPlaceholder", "Filter warehouses"]" />
+                    </div>
                     @if (items == null)
                     {
-                        <div>@L["common.loading", "Loading..."]</div>
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
                     }
-                    else if (items.Count == 0)
+                    else if (FilteredItems.Count == 0)
                     {
                         <div class="alert alert-info">@L["warehouses.emptyList", "No warehouses yet."]</div>
                     }
                     else
                     {
                         <div class="list-group">
-                            @foreach (var w in items)
+                            @foreach (var w in FilteredItems)
                             {
-                                <a class="list-group-item list-group-item-action @(selected?.Id == w.Id ? "active" : "")" @onclick="() => Select(w)">@w.Name</a>
+                                <button type="button" class="list-group-item list-group-item-action @(selected?.Id == w.Id ? "active" : "")" @onclick="() => Select(w)">
+                                    <div class="fw-semibold">@w.Name</div>
+                                    <small class="text-muted">@w.Code</small>
+                                </button>
                             }
                         </div>
                     }
@@ -34,42 +50,93 @@
             </div>
         </div>
 
-        <div class="col-md-5">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["warehouses.title", "Warehouses"]</h5>
-                    @if (!string.IsNullOrWhiteSpace(validationMessage))
-                    {
-                        <div class="alert alert-warning" role="alert">@validationMessage</div>
-                    }
-                    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" @bind="edit.Name" /></div>
-                    <div class="mb-3"><label class="form-label">Code</label><input class="form-control" @bind="edit.Code" /></div>
-                    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" @bind="edit.Description"></textarea></div>
-                    <div class="mb-3"><label class="form-label">Floor Number</label><input class="form-control" @bind="edit.FloorNumber" /></div>
-                    <div class="mb-3"><label class="form-label">House Number</label><input class="form-control" @bind="edit.HouseNumber" /></div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">@L["common.save", "Save"]</button>
-                        @if (selected != null)
+        <!-- MIDDLE: Edit Form -->
+        <div class="col-md-6">
+            @if (selected != null || editingNew)
+            {
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">@(editingNew ? L["warehouses.newWarehouse", "New Warehouse"] : (selected?.Name ?? string.Empty))</h3>
+                                <small class="text-muted">@L["warehouses.editTitle", "Manage Warehouse"]</small>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(validationMessage))
                         {
-                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete", "Delete"]</button>
+                            <div class="alert alert-warning alert-sm mt-2 mb-0" role="alert">@validationMessage</div>
                         }
                     </div>
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <div class="mb-3"><label class="form-label">@L["warehouses.nameLabel", "Name"]</label><input class="form-control" @bind="edit.Name" /></div>
+                        <div class="mb-3"><label class="form-label">@L["warehouses.codeLabel", "Code"]</label><input class="form-control" @bind="edit.Code" /></div>
+                        <div class="mb-3"><label class="form-label">@L["warehouses.descriptionLabel", "Description"]</label><textarea class="form-control" @bind="edit.Description"></textarea></div>
+                        <div class="mb-3"><label class="form-label">@L["warehouses.floorLabel", "Floor Number"]</label><input class="form-control" @bind="edit.FloorNumber" /></div>
+                        <div class="mb-3"><label class="form-label">@L["warehouses.houseLabel", "House Number"]</label><input class="form-control" @bind="edit.HouseNumber" /></div>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-primary flex-grow-1" @onclick="Save">@L["common.save", "Save"]</button>
+                            @if (selected != null)
+                            {
+                                <button class="btn btn-danger flex-grow-1" @onclick="Delete">@L["common.delete", "Delete"]</button>
+                            }
+                        </div>
+                    </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
+                        <p>@L["warehouses.selectPrompt", "Select a warehouse"]</p>
+                    </div>
+                </div>
+            }
         </div>
 
+        <!-- RIGHT: Details -->
         <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">@L["warehouses.title", "Warehouses"]</h5>
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["warehouses.detailsTitle", "Warehouse details"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
                     @if (selected != null)
                     {
                         <dl class="row">
-                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
-                            <dt class="col-4">Code</dt><dd class="col-8">@selected.Code</dd>
+                            <dt class="col-5">ID</dt><dd class="col-7">@selected.Id</dd>
+                            <dt class="col-5">@L["warehouses.codeLabel", "Code"]</dt><dd class="col-7">@selected.Code</dd>
                         </dl>
+                        <hr />
+                        <h6>@L["warehouses.inventoryTitle", "Inventory in this warehouse"]</h6>
+                        @if (warehouseInventory is null)
+                        {
+                            <p class="text-muted small">@L["common.loading", "Loading..."]</p>
+                        }
+                        else if (!warehouseInventory.Any())
+                        {
+                            <p class="text-muted small">@L["warehouses.inventoryEmpty", "No inventory stored in this warehouse."]</p>
+                        }
+                        else
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var inv in warehouseInventory)
+                                {
+                                    <li class="list-group-item px-0 py-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <button class="btn btn-link btn-sm p-0 text-start" @onclick="() => GoToInventory(inv.Id)">
+                                                @(inv.AssetId ?? L["inventory.none", "None"].ToString())
+                                            </button>
+                                            <span class="badge bg-secondary">@inv.Quantity</span>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
                     }
-                    else { <div class="text-muted">Select a warehouse</div> }
+                    else { <div class="text-muted">@L["warehouses.selectPrompt", "Select a warehouse"]</div> }
                 </div>
             </div>
         </div>
@@ -77,29 +144,93 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "id")]
+    public string? SelectedId { get; set; }
+
     private List<WarehouseDto>? items;
+    private List<InventoryDto>? warehouseInventory;
     private WarehouseDto? selected;
     private WarehouseEditModel edit = new();
     private string? validationMessage;
+    private string warehouseListFilter = string.Empty;
+    private bool editingNew;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    private List<WarehouseDto> FilteredItems
+    {
+        get
+        {
+            if (items is null) return new();
+            if (string.IsNullOrWhiteSpace(warehouseListFilter)) return items;
+            var term = warehouseListFilter.Trim();
+            return items.Where(w =>
+                (w.Name?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (w.Code?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        ApplySelectedWarehouseFromQuery();
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        ApplySelectedWarehouseFromQuery();
+        return Task.CompletedTask;
+    }
+
+    private void ApplySelectedWarehouseFromQuery()
+    {
+        if (items is null || string.IsNullOrWhiteSpace(SelectedId))
+            return;
+
+        var warehouse = items.FirstOrDefault(w => string.Equals(w.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (warehouse is not null)
+        {
+            Select(warehouse);
+            Navigation.NavigateTo("/warehouses", replace: true);
+        }
+    }
 
     private async Task Load()
     {
         items = await WarehouseApi.GetWarehousesAsync();
     }
 
+    private async Task LoadWarehouseInventory(string warehouseId)
+    {
+        warehouseInventory = null;
+        var all = await InventoryApi.GetInventoryAsync();
+        warehouseInventory = all
+            .Where(i => string.Equals(i.WarehouseId, warehouseId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(i => i.AssetId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private void GoToInventory(string? inventoryId)
+    {
+        if (string.IsNullOrWhiteSpace(inventoryId)) return;
+        Navigation.NavigateTo($"/inventory?selectedId={Uri.EscapeDataString(inventoryId)}");
+    }
+
     private void Select(WarehouseDto w)
     {
         validationMessage = null;
         selected = w;
+        editingNew = false;
         edit = WarehouseEditModel.FromDto(w);
+        if (!string.IsNullOrWhiteSpace(w.Id))
+            _ = LoadWarehouseInventory(w.Id);
     }
 
     private void AddNew()
     {
         validationMessage = null;
         selected = null;
+        editingNew = true;
+        warehouseInventory = null;
         edit = new WarehouseEditModel();
     }
 

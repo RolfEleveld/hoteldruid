@@ -138,6 +138,21 @@
   <data name="Index.Feature.Calendar.Title" xml:space="preserve"><value>Calendario</value></data>
   <data name="Index.Feature.Calendar.Subtitle" xml:space="preserve"><value>Vista de calendario</value></data>
   <data name="Index.Feature.Calendar.Button" xml:space="preserve"><value>Ver calendario</value></data>
+  <data name="calendar.title" xml:space="preserve"><value>Calendario de habitaciones</value></data>
+  <data name="calendar.months" xml:space="preserve"><value>Meses</value></data>
+  <data name="calendar.roomColumn" xml:space="preserve"><value>Habitación</value></data>
+  <data name="calendar.loading" xml:space="preserve"><value>Cargando calendario...</value></data>
+  <data name="calendar.noRooms" xml:space="preserve"><value>No hay habitaciones disponibles.</value></data>
+  <data name="calendar.prev" xml:space="preserve"><value>Anterior</value></data>
+  <data name="calendar.current" xml:space="preserve"><value>Actual</value></data>
+  <data name="calendar.next" xml:space="preserve"><value>Siguiente</value></data>
+  <data name="calendar.roomBookingCount" xml:space="preserve"><value>{0} reserva(s) en esta habitación</value></data>
+  <data name="calendar.noRoomBookings" xml:space="preserve"><value>No hay reservas asignadas a esta habitación.</value></data>
+  <data name="calendar.dayBookingCount" xml:space="preserve"><value>{0} reserva(s)</value></data>
+  <data name="calendar.noDayBookings" xml:space="preserve"><value>Sin ocupación de habitaciones en esta fecha.</value></data>
+  <data name="calendar.roomPrefix" xml:space="preserve"><value>Habitación</value></data>
+  <data name="calendar.summaryRooms" xml:space="preserve"><value>{0} habitaciones</value></data>
+  <data name="calendar.summaryBookings" xml:space="preserve"><value>{0} reservas</value></data>
   <data name="Index.Feature.Reports.Title" xml:space="preserve"><value>Informes</value></data>
   <data name="Index.Feature.Reports.Subtitle" xml:space="preserve"><value>Información operativa y exportaciones</value></data>
   <data name="Index.Feature.Reports.Button" xml:space="preserve"><value>Ver informes</value></data>
@@ -349,6 +364,22 @@
   <data name="rooms.deleteFailed" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Error al eliminar la habitación: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>¿Está seguro de que desea eliminar la habitación {0}?</value></data>
+  <data name="warehouses.title" xml:space="preserve"><value>Almacenes</value></data>
+  <data name="warehouses.emptyList" xml:space="preserve"><value>Sin almacenes aún.</value></data>
+  <data name="warehouses.add" xml:space="preserve"><value>Agregar almacén</value></data>
+  <data name="warehouses.newWarehouse" xml:space="preserve"><value>Nuevo almacén</value></data>
+  <data name="warehouses.nameLabel" xml:space="preserve"><value>Nombre</value></data>
+  <data name="warehouses.codeLabel" xml:space="preserve"><value>Código</value></data>
+  <data name="warehouses.descriptionLabel" xml:space="preserve"><value>Descripción</value></data>
+  <data name="warehouses.floorLabel" xml:space="preserve"><value>Número de planta</value></data>
+  <data name="warehouses.houseLabel" xml:space="preserve"><value>Número de casa</value></data>
+  <data name="warehouses.editTitle" xml:space="preserve"><value>Gestionar almacén</value></data>
+  <data name="warehouses.filterPlaceholder" xml:space="preserve"><value>Filtrar almacenes</value></data>
+  <data name="warehouses.filterEmpty" xml:space="preserve"><value>Ningún almacén coincide con el filtro actual.</value></data>
+  <data name="warehouses.detailsTitle" xml:space="preserve"><value>Detalles del almacén</value></data>
+  <data name="warehouses.selectPrompt" xml:space="preserve"><value>Seleccione un almacén</value></data>
+  <data name="warehouses.inventoryTitle" xml:space="preserve"><value>Inventario en este almacén</value></data>
+  <data name="warehouses.inventoryEmpty" xml:space="preserve"><value>No hay inventario almacenado en este almacén.</value></data>
   <data name="DashboardInventory.FilterPlaceholder" xml:space="preserve"><value>Filtrar inventario</value></data>
   <data name="DashboardInventory.Loading" xml:space="preserve"><value>Cargando inventario...</value></data>
   <data name="DashboardInventory.FilterEmpty" xml:space="preserve"><value>Ningún artículo de inventario coincide con el filtro actual.</value></data>
@@ -371,6 +402,9 @@
   <data name="inventory.selectWarehouse" xml:space="preserve"><value>Seleccione almacén...</value></data>
   <data name="inventory.selectPrompt" xml:space="preserve"><value>Seleccione un artículo de inventario</value></data>
   <data name="inventory.empty" xml:space="preserve"><value>No hay artículos de inventario</value></data>
+  <data name="inventory.emptyList" xml:space="preserve"><value>Sin artículos de inventario aún.</value></data>
+  <data name="inventory.assetLocations" xml:space="preserve"><value>Otras ubicaciones para este activo</value></data>
+  <data name="inventory.assetLocationsEmpty" xml:space="preserve"><value>No hay otras ubicaciones para este activo.</value></data>
   <data name="inventory.noWarehouseMatch" xml:space="preserve"><value>Ningún almacén coincide con esta búsqueda.</value></data>
   <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Almacén desconocido</value></data>
   <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Seleccione un activo.</value></data>

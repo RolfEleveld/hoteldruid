@@ -48,6 +48,21 @@
   <data name="Index.Feature.Calendar.Title" xml:space="preserve"><value>Calendar</value></data>
   <data name="Index.Feature.Calendar.Subtitle" xml:space="preserve"><value>Calendar view</value></data>
   <data name="Index.Feature.Calendar.Button" xml:space="preserve"><value>View Calendar</value></data>
+  <data name="calendar.title" xml:space="preserve"><value>Room Calendar</value></data>
+  <data name="calendar.months" xml:space="preserve"><value>Months</value></data>
+  <data name="calendar.roomColumn" xml:space="preserve"><value>Room</value></data>
+  <data name="calendar.loading" xml:space="preserve"><value>Loading calendar...</value></data>
+  <data name="calendar.noRooms" xml:space="preserve"><value>No rooms available.</value></data>
+  <data name="calendar.prev" xml:space="preserve"><value>Previous</value></data>
+  <data name="calendar.current" xml:space="preserve"><value>Current</value></data>
+  <data name="calendar.next" xml:space="preserve"><value>Next</value></data>
+  <data name="calendar.roomBookingCount" xml:space="preserve"><value>{0} booking(s) in this room</value></data>
+  <data name="calendar.noRoomBookings" xml:space="preserve"><value>No bookings assigned to this room.</value></data>
+  <data name="calendar.dayBookingCount" xml:space="preserve"><value>{0} booking(s)</value></data>
+  <data name="calendar.noDayBookings" xml:space="preserve"><value>No room occupancy on this date.</value></data>
+  <data name="calendar.roomPrefix" xml:space="preserve"><value>Room</value></data>
+  <data name="calendar.summaryRooms" xml:space="preserve"><value>{0} rooms</value></data>
+  <data name="calendar.summaryBookings" xml:space="preserve"><value>{0} bookings</value></data>
   <data name="Index.Feature.Reports.Title" xml:space="preserve"><value>Reports</value></data>
   <data name="Index.Feature.Reports.Subtitle" xml:space="preserve"><value>Operational insights and exports</value></data>
   <data name="Index.Feature.Reports.Button" xml:space="preserve"><value>View Reports</value></data>
@@ -276,6 +291,22 @@
   <data name="rooms.deleteFailed" xml:space="preserve"><value>Failed to delete room: {0}</value></data>
   <data name="rooms.deleteFailedStatus" xml:space="preserve"><value>Failed to delete room: {0}</value></data>
   <data name="rooms.deleteConfirm" xml:space="preserve"><value>Are you sure you want to delete room {0}?</value></data>
+  <data name="warehouses.title" xml:space="preserve"><value>Warehouses</value></data>
+  <data name="warehouses.emptyList" xml:space="preserve"><value>No warehouses yet.</value></data>
+  <data name="warehouses.add" xml:space="preserve"><value>Add Warehouse</value></data>
+  <data name="warehouses.newWarehouse" xml:space="preserve"><value>New Warehouse</value></data>
+  <data name="warehouses.nameLabel" xml:space="preserve"><value>Name</value></data>
+  <data name="warehouses.codeLabel" xml:space="preserve"><value>Code</value></data>
+  <data name="warehouses.descriptionLabel" xml:space="preserve"><value>Description</value></data>
+  <data name="warehouses.floorLabel" xml:space="preserve"><value>Floor Number</value></data>
+  <data name="warehouses.houseLabel" xml:space="preserve"><value>House Number</value></data>
+  <data name="warehouses.editTitle" xml:space="preserve"><value>Manage Warehouse</value></data>
+  <data name="warehouses.filterPlaceholder" xml:space="preserve"><value>Filter warehouses</value></data>
+  <data name="warehouses.filterEmpty" xml:space="preserve"><value>No warehouses match the current filter.</value></data>
+  <data name="warehouses.detailsTitle" xml:space="preserve"><value>Warehouse details</value></data>
+  <data name="warehouses.selectPrompt" xml:space="preserve"><value>Select a warehouse</value></data>
+  <data name="warehouses.inventoryTitle" xml:space="preserve"><value>Inventory in this warehouse</value></data>
+  <data name="warehouses.inventoryEmpty" xml:space="preserve"><value>No inventory stored in this warehouse.</value></data>
   <data name="inventory.title" xml:space="preserve"><value>Inventory</value></data>
   <data name="inventory.listTitle" xml:space="preserve"><value>List of Inventory</value></data>
   <data name="inventory.updateTitle" xml:space="preserve"><value>Update Inventory</value></data>
@@ -292,6 +323,11 @@
   <data name="inventory.selectWarehouse" xml:space="preserve"><value>Select warehouse...</value></data>
   <data name="inventory.selectPrompt" xml:space="preserve"><value>Select an inventory item</value></data>
   <data name="inventory.empty" xml:space="preserve"><value>No inventory items</value></data>
+  <data name="inventory.emptyList" xml:space="preserve"><value>No inventory items yet.</value></data>
+  <data name="inventory.searchLabel" xml:space="preserve"><value>Filter inventory</value></data>
+  <data name="inventory.searchPlaceholder" xml:space="preserve"><value>Search by asset, room, or warehouse</value></data>
+  <data name="inventory.assetLocations" xml:space="preserve"><value>Other locations for this asset</value></data>
+  <data name="inventory.assetLocationsEmpty" xml:space="preserve"><value>No other locations for this asset.</value></data>
   <data name="inventory.noWarehouseMatch" xml:space="preserve"><value>No warehouse matches this search.</value></data>
   <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Unknown warehouse</value></data>
   <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Select an asset.</value></data>
@@ -396,10 +432,13 @@
   <data name="clients.deleteFailed" xml:space="preserve"><value>Failed to delete client: {0}</value></data>
   <data name="bookings.title" xml:space="preserve"><value>Bookings</value></data>
   <data name="bookings.header" xml:space="preserve"><value>Bookings</value></data>
+  <data name="bookings.searchLabel" xml:space="preserve"><value>Filter bookings</value></data>
+  <data name="bookings.searchPlaceholder" xml:space="preserve"><value>Search by client, room, status, or year</value></data>
   <data name="bookings.filterYear" xml:space="preserve"><value>Year</value></data>
   <data name="bookings.load" xml:space="preserve"><value>Load</value></data>
   <data name="bookings.new" xml:space="preserve"><value>New</value></data>
   <data name="bookings.emptyList" xml:space="preserve"><value>No bookings</value></data>
+  <data name="bookings.selectPrompt" xml:space="preserve"><value>Select a booking from the list or create a new one</value></data>
   <data name="bookings.newBooking" xml:space="preserve"><value>New Booking</value></data>
   <data name="bookings.editBooking" xml:space="preserve"><value>Edit Booking</value></data>
   <data name="bookings.cancelBooking" xml:space="preserve"><value>Cancel Booking</value></data>
