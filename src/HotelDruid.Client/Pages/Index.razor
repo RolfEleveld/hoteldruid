@@ -109,7 +109,7 @@
             }
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
-              <a class="btn btn-outline-primary btn-sm" href="/bookings">@L["Index.Feature.Reservations.Button"]</a>
+              <a class="btn btn-outline-primary btn-sm" href="/bookings?view=reservations">@L["Index.Feature.Reservations.Button"]</a>
             </div>
           </div>
         </div>
@@ -172,7 +172,7 @@
 
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-success btn-sm" href="/bookings/new">@L["Index.QuickAction.NewReservation"]</a>
-              <a class="btn btn-outline-secondary btn-sm" href="/bookings?view=arrivals">@L["Dashboard.Arrivals.Button"]</a>
+              <a class="btn btn-outline-secondary btn-sm" href="@GetArrivalsPageRoute()">@L["Dashboard.Arrivals.Button"]</a>
             </div>
           </div>
         </div>
@@ -645,6 +645,10 @@
     private SystemConfiguration? systemConfiguration;
     private List<ClientDto>? clients;
     private List<BookingDto>? bookings;
+    private List<BookingDto>? reservations;
+    private List<BookingDto>? arrivals;
+    private List<BookingDto>? currentStays;
+    private List<BookingDto>? departures;
     private List<RoomDto> availableRooms = new();
     private List<InventoryDto> availableInventory = new();
     private List<WarehouseDto> availableWarehouses = new();
@@ -740,6 +744,8 @@
           systemConfiguration = await TryGetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
 
           ApplySystemDefaults();
+
+          await ReloadLifecycleCollectionsAsync();
 
           await LoadRoomsAsync();
           await LoadInventoryAsync();
@@ -1112,7 +1118,7 @@
     private List<RoomDto> GetVisibleRooms()
     {
       IEnumerable<RoomDto> query = availableRooms;
-      var unavailableRoomIds = GetUnavailableRoomIds(bookings, DateOnly.FromDateTime(DateTime.UtcNow));
+      var unavailableRoomIds = GetUnavailableRoomIds(GetCurrentStays());
 
       if (!showRoomsWithoutBeds)
       {
@@ -1150,13 +1156,12 @@
 
     private List<BookingDto> GetVisibleReservations()
     {
-      if (bookings is null)
+      if (reservations is null)
       {
         return new List<BookingDto>();
       }
 
-      return bookings
-        .Where(booking => !IsNonBlockingStatus(booking.Status) && !TryParseDate(booking.ActualArrivalDate).HasValue)
+      return reservations
         .OrderByDescending(GetBookingSortDate)
         .ThenByDescending(booking => booking.Year)
         .ThenByDescending(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
@@ -1166,14 +1171,12 @@
 
     private List<BookingDto> GetCurrentStays()
     {
-      if (bookings is null)
+      if (currentStays is null)
       {
         return new List<BookingDto>();
       }
 
-      var today = DateOnly.FromDateTime(DateTime.UtcNow);
-      return bookings
-        .Where(booking => IsCurrentStay(booking, today))
+      return currentStays
         .OrderBy(booking => GetRoomDisplayName(booking.RoomId), StringComparer.OrdinalIgnoreCase)
         .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
         .Take(GetWidgetVisibleCount("stays"))
@@ -1182,14 +1185,12 @@
 
     private List<BookingDto> GetPendingArrivals()
     {
-      if (bookings is null)
+      if (arrivals is null)
       {
         return new List<BookingDto>();
       }
 
-      var today = DateOnly.FromDateTime(DateTime.UtcNow);
-      return bookings
-        .Where(booking => IsPendingArrival(booking, today, arrivalsLookAheadDays))
+      return arrivals
         .OrderBy(booking => TryParseDate(booking.ArrivalDate) ?? DateOnly.MaxValue)
         .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
         .Take(GetWidgetVisibleCount("arrivals"))
@@ -1198,18 +1199,29 @@
 
     private List<BookingDto> GetPendingDepartures()
     {
-      if (bookings is null)
+      if (departures is null)
       {
         return new List<BookingDto>();
       }
 
-      var today = DateOnly.FromDateTime(DateTime.UtcNow);
-      return bookings
-        .Where(booking => IsPendingDeparture(booking, today))
+      return departures
         .OrderBy(booking => GetRoomDisplayName(booking.RoomId), StringComparer.OrdinalIgnoreCase)
         .ThenBy(booking => GetBookingClientDisplayName(booking), StringComparer.OrdinalIgnoreCase)
         .Take(GetWidgetVisibleCount("departures"))
         .ToList();
+    }
+
+    private async Task ReloadLifecycleCollectionsAsync()
+    {
+      reservations = await TryGetFromJsonAsync<List<BookingDto>>("/api/bookings/reservations");
+      arrivals = await TryGetFromJsonAsync<List<BookingDto>>($"/api/bookings/arrivals?lookAheadDays={Math.Max(0, arrivalsLookAheadDays)}");
+      currentStays = await TryGetFromJsonAsync<List<BookingDto>>("/api/bookings/stays");
+      departures = await TryGetFromJsonAsync<List<BookingDto>>("/api/bookings/departures");
+    }
+
+    private string GetArrivalsPageRoute()
+    {
+      return $"/bookings?view=arrivals&lookAheadDays={Math.Max(0, arrivalsLookAheadDays)}";
     }
 
     private static DateOnly GetBookingSortDate(BookingDto booking)
@@ -1226,6 +1238,11 @@
     {
       if (string.IsNullOrWhiteSpace(booking.RoomId)
           || IsNonBlockingStatus(booking.Status))
+      {
+        return false;
+      }
+
+      if (TryParseDate(booking.ActualDepartureDate).HasValue)
       {
         return false;
       }
@@ -1256,6 +1273,11 @@
         return false;
       }
 
+      if (TryParseDate(booking.ActualDepartureDate).HasValue)
+      {
+        return false;
+      }
+
       var arrival = TryParseDate(booking.ArrivalDate);
       var departure = TryParseDate(booking.DepartureDate);
       if (!arrival.HasValue || !departure.HasValue || departure.Value <= arrival.Value)
@@ -1275,6 +1297,11 @@
         return false;
       }
 
+      if (TryParseDate(booking.ActualDepartureDate).HasValue)
+      {
+        return false;
+      }
+
       var actualArrival = TryParseDate(booking.ActualArrivalDate);
       var departure = TryParseDate(booking.DepartureDate);
       if (!actualArrival.HasValue || !departure.HasValue || departure.Value <= actualArrival.Value)
@@ -1285,7 +1312,7 @@
       return departure.Value == today;
     }
 
-    private static HashSet<string> GetUnavailableRoomIds(IEnumerable<BookingDto>? currentBookings, DateOnly today)
+    private static HashSet<string> GetUnavailableRoomIds(IEnumerable<BookingDto>? currentBookings)
     {
       var unavailable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
       if (currentBookings is null)
@@ -1295,7 +1322,7 @@
 
       foreach (var booking in currentBookings)
       {
-        if (IsCurrentStay(booking, today) && !string.IsNullOrWhiteSpace(booking.RoomId))
+        if (!string.IsNullOrWhiteSpace(booking.RoomId))
         {
           unavailable.Add(booking.RoomId);
         }
@@ -1950,6 +1977,7 @@
         Status = string.IsNullOrWhiteSpace(booking.Status) ? "Arrived" : booking.Status,
         Notes = booking.Notes,
         ActualArrivalDate = now,
+        ActualDepartureDate = booking.ActualDepartureDate,
         ActualGuestCount = booking.ActualGuestCount.HasValue && booking.ActualGuestCount.Value > 0 ? booking.ActualGuestCount.Value : 1,
         PrepaidAmount = booking.PrepaidAmount
       };
@@ -1966,6 +1994,8 @@
       {
         booking.ActualGuestCount = 1;
       }
+
+      await ReloadLifecycleCollectionsAsync();
 
       StateHasChanged();
     }
@@ -1991,6 +2021,7 @@
       public string? Status { get; set; }
       public string? Notes { get; set; }
       public string? ActualArrivalDate { get; set; }
+      public string? ActualDepartureDate { get; set; }
       public int? ActualGuestCount { get; set; }
       public double? PrepaidAmount { get; set; }
     }

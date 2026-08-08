@@ -90,6 +90,7 @@
                             <div class="col-6"><label class="form-label">@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualArrivalDateOptional", "Actual Arrival Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualArrivalDate" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.actualDepartureDateOptional", "Actual Checkout Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualDepartureDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
                             <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
@@ -249,6 +250,7 @@
                             <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
                             <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
                             <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
+                            <dt>@L["bookings.actualDepartureDate", "Actual Checkout Date"]</dt><dd>@FormatDate(selected.ActualDepartureDate)</dd>
                             <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
@@ -283,6 +285,12 @@
 
     [SupplyParameterFromQuery(Name = "roomId")]
     public string? RoomIdQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? ViewQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "lookAheadDays")]
+    public int? LookAheadDaysQuery { get; set; }
 
     private List<BookingDto>? records;
     private BookingDto? selected;
@@ -345,9 +353,34 @@
         return string.Equals(relative, "bookings/new", StringComparison.OrdinalIgnoreCase);
     }
 
+    private Task<List<BookingDto>> LoadRecordsAsync(int? year)
+    {
+        if (string.Equals(ViewQuery, "stays", StringComparison.OrdinalIgnoreCase))
+        {
+            return BookingApi.ListStaysAsync(year);
+        }
+
+        if (string.Equals(ViewQuery, "arrivals", StringComparison.OrdinalIgnoreCase))
+        {
+            return BookingApi.ListArrivalsAsync(year, LookAheadDaysQuery ?? 0);
+        }
+
+        if (string.Equals(ViewQuery, "departures", StringComparison.OrdinalIgnoreCase))
+        {
+            return BookingApi.ListDeparturesAsync(year);
+        }
+
+        if (string.Equals(ViewQuery, "reservations", StringComparison.OrdinalIgnoreCase))
+        {
+            return BookingApi.ListReservationsAsync(year);
+        }
+
+        return BookingApi.ListAsync(year);
+    }
+
     private async Task LoadAll()
     {
-        records = (await BookingApi.ListAsync(filterYear))
+        records = (await LoadRecordsAsync(filterYear))
             .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
             .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -363,7 +396,7 @@
         var record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
         if (record is null)
         {
-            records = (await BookingApi.ListAsync()).OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+            records = (await LoadRecordsAsync(null)).OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
                 .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
@@ -414,6 +447,7 @@
             DepartureDate = selected.DepartureDate,
             Notes = selected.Notes,
             ActualArrivalDate = selected.ActualArrivalDate,
+            ActualDepartureDate = selected.ActualDepartureDate,
             ActualGuestCount = selected.ActualGuestCount,
             PrepaidAmount = selected.PrepaidAmount
         };
@@ -447,6 +481,9 @@
         if (form.ActualGuestCount.HasValue && !form.ActualArrivalDate.HasValue) { errorMsg = L["bookings.actualArrivalRequiredWithGuestCount", "Actual Arrival Date is required when Guests On Arrival is set."]; return; }
         if (form.ActualGuestCount.HasValue && form.ActualGuestCount.Value <= 0) { errorMsg = L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."]; return; }
         if (form.ActualArrivalDate.HasValue && form.DepartureDate.HasValue && form.ActualArrivalDate.Value >= form.DepartureDate.Value) { errorMsg = L["bookings.actualArrivalBeforeDeparture", "Actual Arrival Date must be before Departure Date."]; return; }
+        if (form.ActualDepartureDate.HasValue && !form.ActualArrivalDate.HasValue) { errorMsg = L["bookings.actualArrivalRequiredWithDeparture", "Actual Arrival Date is required when Actual Checkout Date is set."]; return; }
+        if (form.ActualDepartureDate.HasValue && form.DepartureDate.HasValue && form.ActualDepartureDate.Value > form.DepartureDate.Value) { errorMsg = L["bookings.actualDepartureAfterPlanned", "Actual Checkout Date cannot be after Departure Date."]; return; }
+        if (form.ActualDepartureDate.HasValue && form.ActualArrivalDate.HasValue && form.ActualDepartureDate.Value < form.ActualArrivalDate.Value) { errorMsg = L["bookings.actualDepartureBeforeArrival", "Actual Checkout Date must be on or after Actual Arrival Date."]; return; }
         if (form.PrepaidAmount.HasValue && form.PrepaidAmount.Value < 0) { errorMsg = L["bookings.prepaidAmountNonNegative", "Prepaid Amount must be greater than or equal to zero."]; return; }
 
         var bookingClientId = await ResolveClientIdForSave();
@@ -466,7 +503,8 @@
             form.Notes,
             form.ActualArrivalDate,
             form.ActualGuestCount,
-            form.PrepaidAmount);
+            form.PrepaidAmount,
+            form.ActualDepartureDate);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
@@ -827,6 +865,9 @@
             "ActualArrivalDate is required when ActualGuestCount is provided" => L["bookings.actualArrivalRequiredWithGuestCount", "Actual Arrival Date is required when Guests On Arrival is set."],
             "ActualGuestCount must be greater than zero" => L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."],
             "ActualArrivalDate must be before DepartureDate" => L["bookings.actualArrivalBeforeDeparture", "Actual Arrival Date must be before Departure Date."],
+            "ActualArrivalDate is required when ActualDepartureDate is provided" => L["bookings.actualArrivalRequiredWithDeparture", "Actual Arrival Date is required when Actual Checkout Date is set."],
+            "ActualDepartureDate cannot be after DepartureDate" => L["bookings.actualDepartureAfterPlanned", "Actual Checkout Date cannot be after Departure Date."],
+            "ActualDepartureDate must be on or after ActualArrivalDate" => L["bookings.actualDepartureBeforeArrival", "Actual Checkout Date must be on or after Actual Arrival Date."],
             _ when !string.IsNullOrWhiteSpace(ex.Message) => L["bookings.saveFailedStatus", ex.Message],
             _ => L["bookings.saveFailed", "Save failed."]
         };
@@ -848,6 +889,7 @@
         public DateOnly? DepartureDate { get; set; }
         public string? Notes { get; set; }
         public DateOnly? ActualArrivalDate { get; set; }
+        public DateOnly? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
     }

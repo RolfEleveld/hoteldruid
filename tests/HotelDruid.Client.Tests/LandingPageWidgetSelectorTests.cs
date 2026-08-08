@@ -72,6 +72,42 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
             return JsonResponse(bookings);
         }
 
+        if (method == HttpMethod.Get && path.Equals("/api/bookings/stays", StringComparison.OrdinalIgnoreCase))
+        {
+            var parsed = ParseBookings(bookings);
+            var stays = GetCurrentStays(parsed, request.RequestUri?.Query);
+            return JsonResponse(stays);
+        }
+
+        if (method == HttpMethod.Get && path.Equals("/api/bookings/reservations", StringComparison.OrdinalIgnoreCase))
+        {
+            var parsed = ParseBookings(bookings);
+            var reservations = GetReservations(parsed, request.RequestUri?.Query);
+            return JsonResponse(reservations);
+        }
+
+        if (method == HttpMethod.Get && path.Equals("/api/bookings/arrivals", StringComparison.OrdinalIgnoreCase))
+        {
+            var parsed = ParseBookings(bookings);
+            var arrivals = GetArrivals(parsed, request.RequestUri?.Query);
+            return JsonResponse(arrivals);
+        }
+
+        if (method == HttpMethod.Get && path.Equals("/api/bookings/departures", StringComparison.OrdinalIgnoreCase))
+        {
+            var parsed = ParseBookings(bookings);
+            var departures = GetDepartures(parsed, request.RequestUri?.Query);
+            return JsonResponse(departures);
+        }
+
+        if (method == HttpMethod.Put && path.StartsWith("/api/bookings/", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+        }
+
         if (method == HttpMethod.Get && path.Equals("/api/system/configuration", StringComparison.OrdinalIgnoreCase))
         {
             return JsonResponse(new
@@ -101,6 +137,189 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         });
+    }
+
+    private static List<MockBooking> ParseBookings(object[] sourceBookings)
+    {
+        var serialized = JsonSerializer.Serialize(sourceBookings);
+        return JsonSerializer.Deserialize<List<MockBooking>>(serialized, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        }) ?? new List<MockBooking>();
+    }
+
+    private static object[] GetCurrentStays(IEnumerable<MockBooking> sourceBookings, string? query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var year = TryReadYearQuery(query);
+        return sourceBookings
+            .Where(b => (!year.HasValue || b.Year == year.Value) && IsStay(b, today))
+            .Select(b => new
+            {
+                b.Id,
+                b.Year,
+                b.ClientId,
+                b.RoomId,
+                b.ArrivalDate,
+                b.DepartureDate,
+                b.Status,
+                b.ActualArrivalDate,
+                b.ActualGuestCount,
+                b.PrepaidAmount,
+                b.Notes
+            })
+            .ToArray<object>();
+    }
+
+    private static object[] GetReservations(IEnumerable<MockBooking> sourceBookings, string? query)
+    {
+        var year = TryReadYearQuery(query);
+        return sourceBookings
+            .Where(b => (!year.HasValue || b.Year == year.Value) && IsReservation(b))
+            .Select(ToApiShape)
+            .ToArray<object>();
+    }
+
+    private static object[] GetArrivals(IEnumerable<MockBooking> sourceBookings, string? query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var year = TryReadYearQuery(query);
+        var lookAheadDays = TryReadIntQuery(query, "lookAheadDays") ?? 0;
+        var latest = today.AddDays(Math.Max(0, lookAheadDays));
+
+        return sourceBookings
+            .Where(b => (!year.HasValue || b.Year == year.Value)
+                && IsReservation(b)
+                && TryParseDate(b.ArrivalDate).HasValue
+                && today <= TryParseDate(b.ArrivalDate)!.Value
+                && TryParseDate(b.ArrivalDate)!.Value <= latest)
+            .Select(ToApiShape)
+            .ToArray<object>();
+    }
+
+    private static object[] GetDepartures(IEnumerable<MockBooking> sourceBookings, string? query)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var year = TryReadYearQuery(query);
+
+        return sourceBookings
+            .Where(b => (!year.HasValue || b.Year == year.Value)
+                && !string.IsNullOrWhiteSpace(b.RoomId)
+                && !IsNonBlockingStatus(b.Status)
+                && TryParseDate(b.ActualArrivalDate).HasValue
+                && TryParseDate(b.DepartureDate).HasValue
+                && TryParseDate(b.DepartureDate)!.Value > TryParseDate(b.ActualArrivalDate)!.Value
+                && TryParseDate(b.DepartureDate)!.Value == today)
+            .Select(ToApiShape)
+            .ToArray<object>();
+    }
+
+    private static bool IsReservation(MockBooking booking)
+    {
+        var arrival = TryParseDate(booking.ArrivalDate);
+        var departure = TryParseDate(booking.DepartureDate);
+
+        return !IsNonBlockingStatus(booking.Status)
+            && !TryParseDate(booking.ActualArrivalDate).HasValue
+            && arrival.HasValue
+            && departure.HasValue
+            && departure.Value > arrival.Value;
+    }
+
+    private static bool IsStay(MockBooking booking, DateOnly today)
+    {
+        var actualArrival = TryParseDate(booking.ActualArrivalDate);
+        var departure = TryParseDate(booking.DepartureDate);
+
+        return !string.IsNullOrWhiteSpace(booking.RoomId)
+            && !IsNonBlockingStatus(booking.Status)
+            && actualArrival.HasValue
+            && departure.HasValue
+            && departure.Value > actualArrival.Value
+            && booking.ActualGuestCount.HasValue
+            && booking.ActualGuestCount.Value > 0
+            && actualArrival.Value <= today
+            && today < departure.Value;
+    }
+
+    private static object ToApiShape(MockBooking booking)
+    {
+        return new
+        {
+            booking.Id,
+            booking.Year,
+            booking.ClientId,
+            booking.RoomId,
+            booking.ArrivalDate,
+            booking.DepartureDate,
+            booking.Status,
+            booking.ActualArrivalDate,
+            booking.ActualGuestCount,
+            booking.PrepaidAmount,
+            booking.Notes
+        };
+    }
+
+    private static bool IsNonBlockingStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return false;
+        }
+
+        return status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("void", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("deleted", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DateOnly? TryParseDate(string? value)
+    {
+        return DateOnly.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    private static int? TryReadYearQuery(string? query)
+    {
+        return TryReadIntQuery(query, "year");
+    }
+
+    private static int? TryReadIntQuery(string? query, string key)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        var segments = query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            var pair = segment.Split('=', 2);
+            if (pair.Length != 2 || !pair[0].Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (int.TryParse(Uri.UnescapeDataString(pair[1]), out var year))
+            {
+                return year;
+            }
+        }
+
+        return null;
+    }
+
+    private sealed class MockBooking
+    {
+        public string? Id { get; set; }
+        public int Year { get; set; }
+        public string? ClientId { get; set; }
+        public string? RoomId { get; set; }
+        public string? ArrivalDate { get; set; }
+        public string? DepartureDate { get; set; }
+        public string? Status { get; set; }
+        public string? Notes { get; set; }
+        public string? ActualArrivalDate { get; set; }
+        public int? ActualGuestCount { get; set; }
+        public double? PrepaidAmount { get; set; }
     }
 }
 
@@ -152,6 +371,14 @@ public class LandingPageWidgetSelectorTests : TestContext
             new("room-8", "Room 8", 2, 1, "A", 8, 0, true)
         });
         Services.AddScoped(_ => roomApi.Object);
+
+        var inventoryApi = new Mock<IInventoryApiService>();
+        inventoryApi.Setup(x => x.GetInventoryAsync()).ReturnsAsync(new List<InventoryDto>());
+        Services.AddScoped(_ => inventoryApi.Object);
+
+        var warehouseApi = new Mock<IWarehouseApiService>();
+        warehouseApi.Setup(x => x.GetWarehousesAsync()).ReturnsAsync(new List<WarehouseDto>());
+        Services.AddScoped(_ => warehouseApi.Object);
 
         var client = new HttpClient(new LandingPageMockHandler()) { BaseAddress = new Uri("http://localhost/") };
         Services.AddScoped(_ => client);
@@ -333,6 +560,40 @@ public class LandingPageWidgetSelectorTests : TestContext
             Assert.Single(stayRows);
             Assert.Contains("Room 1", stayRows[0].TextContent);
             Assert.DoesNotContain("Room 2", stayRows[0].TextContent);
+        });
+    }
+
+    [Fact]
+    public void StaysWidget_ShouldRender_BookingWithActualArrivalAsStay()
+    {
+        using var localContext = new TestContext();
+        localContext.Services.AddClientLocalizationTestSupport();
+
+        var roomApi = new Mock<IRoomApiService>();
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A", 1, 0, true)
+        });
+        localContext.Services.AddScoped(_ => roomApi.Object);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var client = new HttpClient(new LandingPageMockHandler(
+        [
+            new { id = "stay-1", year = 2026, clientId = "client-1", roomId = "room-1", arrivalDate = today.AddDays(-3).ToString("yyyy-MM-dd"), departureDate = today.AddDays(2).ToString("yyyy-MM-dd"), actualArrivalDate = today.AddDays(-3).ToString("yyyy-MM-dd"), actualGuestCount = 2, status = "Confirmed" },
+            new { id = "res-1", year = 2026, clientId = "client-2", roomId = "room-1", arrivalDate = today.AddDays(3).ToString("yyyy-MM-dd"), departureDate = today.AddDays(5).ToString("yyyy-MM-dd"), status = "Confirmed" }
+        ]))
+        { BaseAddress = new Uri("http://localhost/") };
+        localContext.Services.AddScoped(_ => client);
+        localContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var component = localContext.RenderComponent<IndexPage>();
+
+        component.WaitForAssertion(() =>
+        {
+            var stayRows = component.FindAll(".border-danger .list-group-item");
+            Assert.Single(stayRows);
+            Assert.Contains("Room 1", stayRows[0].TextContent);
+            Assert.Contains("Dashboard.Stays.ActiveBadge", component.Markup);
         });
     }
 

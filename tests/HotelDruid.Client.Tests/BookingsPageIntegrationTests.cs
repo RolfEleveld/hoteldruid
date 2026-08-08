@@ -32,6 +32,26 @@ public class BookingsPageIntegrationTests : TestContext
             new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
         });
 
+        bookingApi.Setup(x => x.ListStaysAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
+        {
+            new("stay-1", 2026, "client-1", "room-1", new DateOnly(2026, 8, 6), new DateOnly(2026, 8, 10), "Confirmed", "Checked in", new DateOnly(2026, 8, 6), 2)
+        });
+
+        bookingApi.Setup(x => x.ListReservationsAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
+        {
+            new("res-1", 2026, "client-2", "room-2", new DateOnly(2026, 8, 11), new DateOnly(2026, 8, 14), "Confirmed", "Reservation")
+        });
+
+        bookingApi.Setup(x => x.ListArrivalsAsync(It.IsAny<int?>(), It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
+        {
+            new("arr-1", 2026, "client-2", "room-2", new DateOnly(2026, 8, 8), new DateOnly(2026, 8, 10), "Confirmed", "Arrival expected")
+        });
+
+        bookingApi.Setup(x => x.ListDeparturesAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
+        {
+            new("dep-1", 2026, "client-1", "room-1", new DateOnly(2026, 8, 6), new DateOnly(2026, 8, 8), "Confirmed", "Departure", new DateOnly(2026, 8, 6), 2, null, new DateOnly(2026, 8, 8))
+        });
+
         clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>
         {
             new("client-1", "Adams", "Anna"),
@@ -66,12 +86,14 @@ public class BookingsPageIntegrationTests : TestContext
         itemsInOrder[0].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
         itemsInOrder[1].TextContent.Should().Contain("2026 — Brown Ben");
 
-        component.Find("button.btn.btn-sm.btn-primary.mb-2").Click();
+        itemsInOrder[0].Click();
 
         component.WaitForAssertion(() =>
         {
-            component.FindAll("input[type='date']").Should().HaveCount(3);
+            component.FindAll("input[type='date']").Should().HaveCount(4);
         });
+
+        component.Markup.Should().Contain("Actual Checkout Date");
     }
 
     [Fact]
@@ -87,5 +109,78 @@ public class BookingsPageIntegrationTests : TestContext
             component.Markup.Should().Contain("Room 77");
             component.Markup.Should().NotContain("room-77");
         });
+    }
+
+    [Fact]
+    public void BookingsPage_ViewStays_ShouldUseStaysApiForLeftColumn()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=stays");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+            items[0].TextContent.Should().Contain("2026 — Adams Anna");
+            items[0].TextContent.Should().Contain("2026-08-06 → 2026-08-10");
+        });
+
+        bookingApi.Verify(x => x.ListStaysAsync(2026), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void BookingsPage_ViewArrivals_ShouldUseArrivalsApiForLeftColumn()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=arrivals&lookAheadDays=2");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+            items[0].TextContent.Should().Contain("2026 — Brown Ben");
+        });
+
+        bookingApi.Verify(x => x.ListArrivalsAsync(2026, 2), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void BookingsPage_ViewDepartures_ShouldUseDeparturesApiForLeftColumn()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=departures");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+            items[0].TextContent.Should().Contain("2026 — Adams Anna");
+        });
+
+        bookingApi.Verify(x => x.ListDeparturesAsync(2026), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void BookingsPage_ViewReservations_ShouldUseReservationsApiForLeftColumn()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=reservations");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+            items[0].TextContent.Should().Contain("2026 — Brown Ben");
+        });
+
+        bookingApi.Verify(x => x.ListReservationsAsync(2026), Times.AtLeastOnce);
     }
 }

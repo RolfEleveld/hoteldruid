@@ -255,5 +255,63 @@ public class CanonicalMapperTests
         Assert.Equal("room2", reconstructed[0].NeighboringRooms);
         Assert.Equal("Corner room", reconstructed[0].Comments);
     }
+
+    [Fact]
+    public void ToCanonicalBookings_And_FromCanonicalBookings_PreserveActualDepartureDate()
+    {
+        var bookings = new[]
+        {
+            new BookingDto(
+                Id: "b1",
+                Year: 2026,
+                ClientId: "c1",
+                RoomId: "r1",
+                ArrivalDate: new DateOnly(2026, 8, 1),
+                DepartureDate: new DateOnly(2026, 8, 5),
+                Status: "CheckedOut",
+                Notes: "late checkout",
+                ActualArrivalDate: new DateOnly(2026, 8, 1),
+                ActualGuestCount: 2,
+                PrepaidAmount: 100,
+                ActualDepartureDate: new DateOnly(2026, 8, 5))
+        };
+
+        var canonical = _mapper.ToCanonicalBookings(bookings);
+        var reconstructed = _mapper.FromCanonicalBookings(canonical);
+
+        Assert.Single(reconstructed);
+        Assert.Equal(new DateOnly(2026, 8, 5), reconstructed[0].ActualDepartureDate);
+        Assert.Equal("CheckedOut", reconstructed[0].Status);
+    }
+
+    [Fact]
+    public void FromCanonicalBookings_MissingActualDepartureDate_DefaultsToNull()
+    {
+        var canonical = new CanonicalData(
+            TableName: "prenotazioni",
+            RowCount: 1,
+            Rows: new()
+            {
+                new()
+                {
+                    ["idprenotazioni"] = "b2",
+                    ["anno"] = 2026,
+                    ["idclienti"] = "c2",
+                    ["idappartamenti"] = "r2",
+                    ["datainizio"] = "2026-08-10",
+                    ["datafine"] = "2026-08-12",
+                    ["stato"] = "Confirmed",
+                    ["dataarrivoeffettiva"] = "2026-08-10",
+                    ["actual_guest_count"] = 1
+                }
+            },
+            Columns: new());
+
+        var bookings = _mapper.FromCanonicalBookings(canonical);
+
+        Assert.Single(bookings);
+        Assert.Null(bookings[0].ActualDepartureDate);
+        Assert.Equal(new DateOnly(2026, 8, 10), bookings[0].ActualArrivalDate);
+    }
 }
 

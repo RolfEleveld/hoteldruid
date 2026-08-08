@@ -25,6 +25,7 @@ public class Layer4ApiTests : IAsyncLifetime
         public string? ArrivalDate { get; set; }
         public string? DepartureDate { get; set; }
         public string? ActualArrivalDate { get; set; }
+        public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
     }
@@ -103,6 +104,167 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_StaysEndpoint_ReturnsOnlyCurrentStays_ByWidgetRules()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2024,
+            ClientId = "StayClient",
+            RoomId = "101",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(2).ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2024,
+            ClientId = "NoActualArrival",
+            RoomId = "102",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(1).ToString("yyyy-MM-dd")
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2024,
+            ClientId = "DepartedToday",
+            RoomId = "103",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(-3).ToString("yyyy-MM-dd"),
+            DepartureDate = today.ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-3).ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2024,
+            ClientId = "CancelledStay",
+            RoomId = "104",
+            Status = "Cancelled",
+            ArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(1).ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+
+        var response = await _client.GetAsync("/api/bookings/stays?year=2024");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var stays = await ReadAs<List<BookingDto>>(response);
+        Assert.NotNull(stays);
+        Assert.Single(stays!);
+        Assert.Equal("StayClient", stays[0].ClientId);
+    }
+
+    [Fact]
+    public async Task Booking_LifecycleEndpoints_ClassifyStatesConsistently()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2025,
+            ClientId = "ReservationClient",
+            RoomId = "201",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(5).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(7).ToString("yyyy-MM-dd")
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2025,
+            ClientId = "ArrivalClient",
+            RoomId = "202",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(1).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(3).ToString("yyyy-MM-dd")
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2025,
+            ClientId = "DepartureClient",
+            RoomId = "203",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            DepartureDate = today.ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2025,
+            ClientId = "CancelledClient",
+            RoomId = "204",
+            Status = "Cancelled",
+            ArrivalDate = today.ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(1).ToString("yyyy-MM-dd")
+        }));
+
+        var reservationsResponse = await _client.GetAsync("/api/bookings/reservations?year=2025");
+        Assert.Equal(HttpStatusCode.OK, reservationsResponse.StatusCode);
+        var reservations = await ReadAs<List<BookingDto>>(reservationsResponse);
+        Assert.NotNull(reservations);
+        Assert.Contains(reservations!, r => r.ClientId == "ReservationClient");
+        Assert.Contains(reservations!, r => r.ClientId == "ArrivalClient");
+        Assert.DoesNotContain(reservations!, r => r.ClientId == "DepartureClient");
+
+        var arrivalsResponse = await _client.GetAsync("/api/bookings/arrivals?year=2025&lookAheadDays=2");
+        Assert.Equal(HttpStatusCode.OK, arrivalsResponse.StatusCode);
+        var arrivals = await ReadAs<List<BookingDto>>(arrivalsResponse);
+        Assert.NotNull(arrivals);
+        Assert.Contains(arrivals!, r => r.ClientId == "ArrivalClient");
+        Assert.DoesNotContain(arrivals!, r => r.ClientId == "ReservationClient");
+
+        var departuresResponse = await _client.GetAsync("/api/bookings/departures?year=2025");
+        Assert.Equal(HttpStatusCode.OK, departuresResponse.StatusCode);
+        var departures = await ReadAs<List<BookingDto>>(departuresResponse);
+        Assert.NotNull(departures);
+        Assert.Contains(departures!, r => r.ClientId == "DepartureClient");
+        Assert.DoesNotContain(departures!, r => r.ClientId == "CancelledClient");
+    }
+
+    [Fact]
+    public async Task Booking_LifecycleEndpoints_ExcludeCheckedOutBookings()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2025,
+            ClientId = "CheckedOutClient",
+            RoomId = "205",
+            Status = "Confirmed",
+            ArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            DepartureDate = today.ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-2).ToString("yyyy-MM-dd"),
+            ActualDepartureDate = today.ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+
+        var staysResponse = await _client.GetAsync("/api/bookings/stays?year=2025");
+        Assert.Equal(HttpStatusCode.OK, staysResponse.StatusCode);
+        var stays = await ReadAs<List<BookingDto>>(staysResponse);
+        Assert.NotNull(stays);
+        Assert.DoesNotContain(stays!, b => b.ClientId == "CheckedOutClient");
+
+        var departuresResponse = await _client.GetAsync("/api/bookings/departures?year=2025");
+        Assert.Equal(HttpStatusCode.OK, departuresResponse.StatusCode);
+        var departures = await ReadAs<List<BookingDto>>(departuresResponse);
+        Assert.NotNull(departures);
+        Assert.DoesNotContain(departures!, b => b.ClientId == "CheckedOutClient");
+    }
+
+    [Fact]
     public async Task Booking_ListAfterCreate_ReturnsFreshData()
     {
         await _client.PostAsync("/api/bookings", Json(new { Year = 2090, ClientId = "Phase3-A", ArrivalDate = "2090-01-01", DepartureDate = "2090-01-03" }));
@@ -158,6 +320,41 @@ public class Layer4ApiTests : IAsyncLifetime
         Assert.Equal("2024-08-02", dto?.ActualArrivalDate);
         Assert.Equal(2, dto?.ActualGuestCount);
         Assert.Equal(125.50, dto?.PrepaidAmount);
+    }
+
+    [Fact]
+    public async Task Booking_Update_WithActualDeparture_PersistsValue()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2024,
+            ClientId = "C003Y",
+            Status = "CheckedIn",
+            ArrivalDate = "2024-08-01",
+            DepartureDate = "2024-08-06",
+            ActualArrivalDate = "2024-08-01",
+            ActualGuestCount = 2
+        }));
+        var created = await ReadAs<BookingDto>(create);
+
+        var update = await _client.PutAsync(
+            $"/api/bookings/2024/{created!.Id}",
+            Json(new
+            {
+                Year = 2024,
+                ClientId = "C003Y",
+                Status = "CheckedOut",
+                ArrivalDate = "2024-08-01",
+                DepartureDate = "2024-08-06",
+                ActualArrivalDate = "2024-08-01",
+                ActualDepartureDate = "2024-08-05",
+                ActualGuestCount = 2,
+                PrepaidAmount = 125.50
+            }));
+
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var dto = await ReadAs<BookingDto>(update);
+        Assert.Equal("2024-08-05", dto?.ActualDepartureDate);
     }
 
     [Fact]

@@ -53,7 +53,8 @@ public record BookingDto(
     string? Notes = null,
     DateOnly? ActualArrivalDate = null,
     int? ActualGuestCount = null,
-    double? PrepaidAmount = null
+    double? PrepaidAmount = null,
+    DateOnly? ActualDepartureDate = null
 );
 
 public record BookingCostDto(

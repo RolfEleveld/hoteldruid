@@ -55,6 +55,9 @@ public interface ICanonicalMapper
     CanonicalData ToCanonicalInventory(InventoryDto[] inventory);
     InventoryDto[] FromCanonicalInventory(CanonicalData data);
 
+    CanonicalData ToCanonicalBookings(BookingDto[] bookings);
+    BookingDto[] FromCanonicalBookings(CanonicalData data);
+
     /// <summary>
     /// Get value from row with flexible field name handling
     /// Handles all aliases
