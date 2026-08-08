@@ -108,6 +108,22 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
             });
         }
 
+        if (method == HttpMethod.Post
+            && (path.Contains("/check-in", StringComparison.OrdinalIgnoreCase)
+                || path.Contains("/check-out", StringComparison.OrdinalIgnoreCase)
+                || path.Contains("/no-show", StringComparison.OrdinalIgnoreCase)))
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+        }
+
+        if (method == HttpMethod.Post && path.Contains("/cancel", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+        }
+
         if (method == HttpMethod.Get && path.Equals("/api/system/configuration", StringComparison.OrdinalIgnoreCase))
         {
             return JsonResponse(new
@@ -164,6 +180,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
                 b.DepartureDate,
                 b.Status,
                 b.ActualArrivalDate,
+                b.ActualDepartureDate,
                 b.ActualGuestCount,
                 b.PrepaidAmount,
                 b.Notes
@@ -207,6 +224,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
                 && !string.IsNullOrWhiteSpace(b.RoomId)
                 && !IsNonBlockingStatus(b.Status)
                 && TryParseDate(b.ActualArrivalDate).HasValue
+                && !TryParseDate(b.ActualDepartureDate).HasValue
                 && TryParseDate(b.DepartureDate).HasValue
                 && TryParseDate(b.DepartureDate)!.Value > TryParseDate(b.ActualArrivalDate)!.Value
                 && TryParseDate(b.DepartureDate)!.Value == today)
@@ -221,6 +239,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
         return !IsNonBlockingStatus(booking.Status)
             && !TryParseDate(booking.ActualArrivalDate).HasValue
+            && !TryParseDate(booking.ActualDepartureDate).HasValue
             && arrival.HasValue
             && departure.HasValue
             && departure.Value > arrival.Value;
@@ -234,6 +253,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
         return !string.IsNullOrWhiteSpace(booking.RoomId)
             && !IsNonBlockingStatus(booking.Status)
             && actualArrival.HasValue
+            && !TryParseDate(booking.ActualDepartureDate).HasValue
             && departure.HasValue
             && departure.Value > actualArrival.Value
             && booking.ActualGuestCount.HasValue
@@ -254,6 +274,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
             booking.DepartureDate,
             booking.Status,
             booking.ActualArrivalDate,
+            booking.ActualDepartureDate,
             booking.ActualGuestCount,
             booking.PrepaidAmount,
             booking.Notes
@@ -318,6 +339,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
         public string? Status { get; set; }
         public string? Notes { get; set; }
         public string? ActualArrivalDate { get; set; }
+        public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
     }
@@ -522,7 +544,8 @@ public class LandingPageWidgetSelectorTests : TestContext
                 .ToList();
 
             Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Mark No-Show", items);
+            Assert.Contains("Cancel Booking", items);
         });
     }
 
@@ -635,10 +658,7 @@ public class LandingPageWidgetSelectorTests : TestContext
                 .Select(x => x.TextContent.Trim())
                 .ToList();
 
-            Assert.Contains("Dashboard.Stays.Action.OpenReservation", items);
-            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
-            Assert.Contains("Dashboard.Stays.Action.AddGuests", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Check Out", items);
         });
     }
 
@@ -681,7 +701,7 @@ public class LandingPageWidgetSelectorTests : TestContext
                 .ToList();
 
             Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Mark No-Show", items);
         });
     }
 
@@ -726,9 +746,7 @@ public class LandingPageWidgetSelectorTests : TestContext
                 .Select(x => x.TextContent.Trim())
                 .ToList();
 
-            Assert.Contains("Dashboard.Stays.Action.OpenReservation", items);
-            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Check Out", items);
         });
     }
 

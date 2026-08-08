@@ -199,10 +199,15 @@
                         <div class="btn-group w-100" role="group">
                             <button class="btn btn-primary flex-grow-1" @onclick="Save">@L["common.save", "Save"]</button>
                             <button class="btn btn-secondary flex-grow-1" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
-                            @if (selected is not null && !isNew)
+                            @if (CanMarkArrivedSelected)
                             {
-                                <button class="btn btn-warning flex-grow-1" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
-                                <button class="btn btn-danger flex-grow-1" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
+                                <button class="btn btn-info flex-grow-1" @onclick="CheckInSelected">@L["Dashboard.Reservations.Menu.Arrived", "Arrived"]</button>
+                                <button class="btn btn-warning flex-grow-1" @onclick="MarkNoShowSelected">@L["bookings.markNoShow", "Mark No-Show"]</button>
+                                <button class="btn btn-outline-danger flex-grow-1" @onclick="CancelBooking">@L["bookings.cancelBooking", "Cancel Booking"]</button>
+                            }
+                            else if (CanCheckOutSelected)
+                            {
+                                <button class="btn btn-dark flex-grow-1" @onclick="CheckOutSelected">@L["bookings.checkOut", "Check Out"]</button>
                             }
                         </div>
                     </div>
@@ -309,6 +314,16 @@
     private string listFilter = string.Empty;
     private FormModel form = new();
     private ClientFormModel clientForm = new();
+
+    private bool CanMarkArrivedSelected
+        => selected is not null
+           && !isNew
+           && IsPreArrivalBooking(selected);
+
+    private bool CanCheckOutSelected
+        => selected is not null
+           && !isNew
+           && IsCheckedInBooking(selected);
 
     private List<BookingDto> FilteredRecords
     {
@@ -531,11 +546,117 @@
         catch { errorMsg = L["bookings.cancelFailed", "Cancel failed."]; }
     }
 
-    private async Task DeleteSelected()
+    private async Task CheckInSelected()
     {
-        if (selected?.Id is null) return;
-        try { await BookingApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = L["bookings.deleteFailed", "Delete failed."]; }
+        if (selected?.Id is null)
+        {
+            return;
+        }
+
+        var actualArrival = form.ActualArrivalDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var actualGuestCount = form.ActualGuestCount ?? 1;
+        if (actualGuestCount <= 0)
+        {
+            errorMsg = L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."];
+            return;
+        }
+
+        try
+        {
+            await BookingApi.CheckInAsync(selected.Year, selected.Id, new BookingCheckInRequest(actualArrival, actualGuestCount, "CheckedIn"));
+            editing = false;
+            await LoadAll();
+        }
+        catch (Exception ex)
+        {
+            errorMsg = TranslateBookingSaveError(ex);
+        }
+    }
+
+    private async Task CheckOutSelected()
+    {
+        if (selected?.Id is null)
+        {
+            return;
+        }
+
+        var checkoutDate = form.ActualDepartureDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        try
+        {
+            await BookingApi.CheckOutAsync(selected.Year, selected.Id, new BookingCheckOutRequest(checkoutDate, "CheckedOut"));
+            editing = false;
+            await LoadAll();
+        }
+        catch (Exception ex)
+        {
+            errorMsg = TranslateBookingSaveError(ex);
+        }
+    }
+
+    private async Task MarkNoShowSelected()
+    {
+        if (selected?.Id is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(form.Notes))
+        {
+            errorMsg = L["bookings.noShowNotesRequired", "Notes are required for no-show."];
+            return;
+        }
+
+        try
+        {
+            await BookingApi.MarkNoShowAsync(selected.Year, selected.Id, new BookingNoShowRequest(form.Notes, "NoShow"));
+            editing = false;
+            await LoadAll();
+        }
+        catch (Exception ex)
+        {
+            errorMsg = TranslateBookingSaveError(ex);
+        }
+    }
+
+    private static bool IsPreArrivalBooking(BookingDto booking)
+    {
+        if (IsNonBlockingBookingStatus(booking.Status)
+            || booking.ActualArrivalDate.HasValue
+            || booking.ActualDepartureDate.HasValue
+            || !booking.ArrivalDate.HasValue
+            || !booking.DepartureDate.HasValue)
+        {
+            return false;
+        }
+
+        return booking.DepartureDate.Value > booking.ArrivalDate.Value;
+    }
+
+    private static bool IsCheckedInBooking(BookingDto booking)
+    {
+        if (IsNonBlockingBookingStatus(booking.Status)
+            || !booking.ActualArrivalDate.HasValue
+            || booking.ActualDepartureDate.HasValue
+            || !booking.DepartureDate.HasValue)
+        {
+            return false;
+        }
+
+        return booking.DepartureDate.Value > booking.ActualArrivalDate.Value;
+    }
+
+    private static bool IsNonBlockingBookingStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return false;
+        }
+
+        return status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("void", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("no-show", StringComparison.OrdinalIgnoreCase)
+               || status.Contains("noshow", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task OnClientSearchChanged(ChangeEventArgs args)
@@ -868,6 +989,11 @@
             "ActualArrivalDate is required when ActualDepartureDate is provided" => L["bookings.actualArrivalRequiredWithDeparture", "Actual Arrival Date is required when Actual Checkout Date is set."],
             "ActualDepartureDate cannot be after DepartureDate" => L["bookings.actualDepartureAfterPlanned", "Actual Checkout Date cannot be after Departure Date."],
             "ActualDepartureDate must be on or after ActualArrivalDate" => L["bookings.actualDepartureBeforeArrival", "Actual Checkout Date must be on or after Actual Arrival Date."],
+            "ActualArrivalDate is required" => L["bookings.actualArrivalRequiredWithGuestCount", "Actual Arrival Date is required when Guests On Arrival is set."],
+            "ActualArrivalDate is required when checking out" => L["bookings.actualArrivalRequiredWithDeparture", "Actual Arrival Date is required when Actual Checkout Date is set."],
+            "Cannot check in a booking that is already checked out" => L["bookings.alreadyCheckedOut", "Booking is already checked out."],
+            "Cannot mark no-show after check-in" => L["bookings.noShowAfterCheckIn", "Cannot mark no-show after check-in."],
+            "Notes are required for no-show" => L["bookings.noShowNotesRequired", "Notes are required for no-show."],
             _ when !string.IsNullOrWhiteSpace(ex.Message) => L["bookings.saveFailedStatus", ex.Message],
             _ => L["bookings.saveFailed", "Save failed."]
         };

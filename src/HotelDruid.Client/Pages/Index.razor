@@ -86,15 +86,9 @@
                         @if (openReservationMenuId == GetBookingMenuKey(booking))
                         {
                           <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-                            <button class="dropdown-item" @onclick="() => GoToBooking(booking.Id, booking.Year, edit: true)">@L["Dashboard.Reservations.Action.OpenReservation"]</button>
                             <button class="dropdown-item" @onclick="() => MarkBookingArrivedAsync(booking)">@L["Dashboard.Reservations.Menu.Arrived"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(booking.Id, booking.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(booking.Id, booking.ClientId, booking.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
-                            @if (!string.IsNullOrWhiteSpace(booking.ClientId))
-                            {
-                              <button class="dropdown-item" @onclick="() => GoToClient(booking.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
-                              <button class="dropdown-item" @onclick="() => GoToClientWishes(booking.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
-                            }
+                            <button class="dropdown-item" @onclick="() => MarkBookingNoShowAsync(booking)">@L["bookings.markNoShow", "Mark No-Show"]</button>
+                            <button class="dropdown-item" @onclick="() => CancelBookingAsync(booking)">@L["bookings.cancelBooking", "Cancel Booking"]</button>
                           </div>
                         }
                       </div>
@@ -149,14 +143,8 @@
                         @if (openArrivalMenuId == GetBookingMenuKey(arrival))
                         {
                           <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-                            <button class="dropdown-item" @onclick="() => GoToBooking(arrival.Id, arrival.Year, edit: true)">@L["Dashboard.Reservations.Action.OpenReservation"]</button>
                             <button class="dropdown-item" @onclick="() => MarkBookingArrivedAsync(arrival)">@L["Dashboard.Reservations.Menu.Arrived"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(arrival.Id, arrival.ClientId, arrival.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
-                            @if (!string.IsNullOrWhiteSpace(arrival.ClientId))
-                            {
-                              <button class="dropdown-item" @onclick="() => GoToClient(arrival.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
-                              <button class="dropdown-item" @onclick="() => GoToClientWishes(arrival.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
-                            }
+                            <button class="dropdown-item" @onclick="() => MarkBookingNoShowAsync(arrival)">@L["bookings.markNoShow", "Mark No-Show"]</button>
                           </div>
                         }
                       </div>
@@ -212,14 +200,7 @@
                         @if (openStayMenuId == GetBookingMenuKey(stay))
                         {
                           <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-                            <button class="dropdown-item" @onclick="() => GoToBooking(stay.Id, stay.Year, edit: true)">@L["Dashboard.Stays.Action.OpenReservation"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(stay.Id, stay.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingGuests(stay.Id, stay.ClientId, stay.Year)">@L["Dashboard.Stays.Action.AddGuests"]</button>
-                            @if (!string.IsNullOrWhiteSpace(stay.ClientId))
-                            {
-                              <button class="dropdown-item" @onclick="() => GoToClient(stay.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
-                              <button class="dropdown-item" @onclick="() => GoToClientWishes(stay.ClientId)">@L["Dashboard.Stays.Action.RecordWishes"]</button>
-                            }
+                            <button class="dropdown-item" @onclick="() => MarkBookingCheckedOutAsync(stay)">@L["bookings.checkOut", "Check Out"]</button>
                           </div>
                         }
                       </div>
@@ -275,12 +256,7 @@
                         @if (openDepartureMenuId == GetBookingMenuKey(departure))
                         {
                           <div class="dropdown-menu dropdown-menu-end show shadow-sm dashboard-dropdown">
-                            <button class="dropdown-item" @onclick="() => GoToBooking(departure.Id, departure.Year, edit: true)">@L["Dashboard.Stays.Action.OpenReservation"]</button>
-                            <button class="dropdown-item" @onclick="() => GoToBookingCosts(departure.Id, departure.Year)">@L["Dashboard.Stays.Action.AddCosts"]</button>
-                            @if (!string.IsNullOrWhiteSpace(departure.ClientId))
-                            {
-                              <button class="dropdown-item" @onclick="() => GoToClient(departure.ClientId)">@L["Dashboard.Stays.Action.OpenClient"]</button>
-                            }
+                            <button class="dropdown-item" @onclick="() => MarkBookingCheckedOutAsync(departure)">@L["bookings.checkOut", "Check Out"]</button>
                           </div>
                         }
                       </div>
@@ -1957,39 +1933,28 @@
       openDepartureMenuId = null;
 
       if (string.IsNullOrWhiteSpace(booking.Id)
-          || booking.Year <= 0
-          || string.IsNullOrWhiteSpace(booking.ClientId)
-          || string.IsNullOrWhiteSpace(booking.ArrivalDate)
-          || string.IsNullOrWhiteSpace(booking.DepartureDate))
+          || booking.Year <= 0)
       {
         GoToBooking(booking.Id, booking.Year, edit: true);
         return;
       }
 
-      var now = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+      var today = DateOnly.FromDateTime(DateTime.UtcNow);
       var payload = new
       {
-        Year = booking.Year,
-        ClientId = booking.ClientId,
-        RoomId = booking.RoomId,
-        ArrivalDate = booking.ArrivalDate,
-        DepartureDate = booking.DepartureDate,
-        Status = string.IsNullOrWhiteSpace(booking.Status) ? "Arrived" : booking.Status,
-        Notes = booking.Notes,
-        ActualArrivalDate = now,
-        ActualDepartureDate = booking.ActualDepartureDate,
-        ActualGuestCount = booking.ActualGuestCount.HasValue && booking.ActualGuestCount.Value > 0 ? booking.ActualGuestCount.Value : 1,
-        PrepaidAmount = booking.PrepaidAmount
+        actualArrivalDate = today.ToString("yyyy-MM-dd"),
+        actualGuestCount = booking.ActualGuestCount.HasValue && booking.ActualGuestCount.Value > 0 ? booking.ActualGuestCount.Value : 1,
+        status = "CheckedIn"
       };
 
-      var response = await Http.PutAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}", payload);
+      var response = await Http.PostAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}/check-in", payload);
       if (!response.IsSuccessStatusCode)
       {
         GoToBooking(booking.Id, booking.Year, edit: true);
         return;
       }
 
-      booking.ActualArrivalDate = now;
+      booking.ActualArrivalDate = today.ToString("yyyy-MM-dd");
       if (!booking.ActualGuestCount.HasValue || booking.ActualGuestCount.Value <= 0)
       {
         booking.ActualGuestCount = 1;
@@ -1997,6 +1962,90 @@
 
       await ReloadLifecycleCollectionsAsync();
 
+      StateHasChanged();
+    }
+
+    private async Task MarkBookingCheckedOutAsync(BookingDto booking)
+    {
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      if (string.IsNullOrWhiteSpace(booking.Id) || booking.Year <= 0)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      var payload = new
+      {
+        actualDepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd"),
+        status = "CheckedOut"
+      };
+
+      var response = await Http.PostAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}/check-out", payload);
+      if (!response.IsSuccessStatusCode)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      await ReloadLifecycleCollectionsAsync();
+      StateHasChanged();
+    }
+
+    private async Task MarkBookingNoShowAsync(BookingDto booking)
+    {
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      if (string.IsNullOrWhiteSpace(booking.Id) || booking.Year <= 0)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      var payload = new
+      {
+        notes = "Marked as no-show from lifecycle action",
+        status = "NoShow"
+      };
+
+      var response = await Http.PostAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}/no-show", payload);
+      if (!response.IsSuccessStatusCode)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      await ReloadLifecycleCollectionsAsync();
+      StateHasChanged();
+    }
+
+    private async Task CancelBookingAsync(BookingDto booking)
+    {
+      openReservationMenuId = null;
+      openStayMenuId = null;
+      openArrivalMenuId = null;
+      openDepartureMenuId = null;
+
+      if (string.IsNullOrWhiteSpace(booking.Id) || booking.Year <= 0)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      var response = await Http.PostAsync($"/api/bookings/{booking.Year}/{booking.Id}/cancel", null);
+      if (!response.IsSuccessStatusCode)
+      {
+        GoToBooking(booking.Id, booking.Year, edit: true);
+        return;
+      }
+
+      await ReloadLifecycleCollectionsAsync();
       StateHasChanged();
     }
 

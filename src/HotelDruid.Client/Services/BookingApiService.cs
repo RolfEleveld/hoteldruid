@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -7,6 +8,10 @@ using HotelDruid.Shared;
 
 namespace HotelDruid.Client.Services
 {
+    public sealed record BookingCheckInRequest(DateOnly ActualArrivalDate, int ActualGuestCount, string? Status = null);
+    public sealed record BookingCheckOutRequest(DateOnly ActualDepartureDate, string? Status = null);
+    public sealed record BookingNoShowRequest(string Notes, string? Status = null);
+
     internal sealed class BookingApiErrorResponse
     {
         public string? Error { get; set; }
@@ -24,6 +29,9 @@ namespace HotelDruid.Client.Services
         Task UpdateAsync(int year, string id, BookingDto dto);
         Task DeleteAsync(int year, string id);
         Task CancelAsync(int year, string id);
+        Task<BookingDto?> CheckInAsync(int year, string id, BookingCheckInRequest request);
+        Task<BookingDto?> CheckOutAsync(int year, string id, BookingCheckOutRequest request);
+        Task<BookingDto?> MarkNoShowAsync(int year, string id, BookingNoShowRequest request);
     }
 
     public class BookingApiService : IBookingApiService
@@ -141,6 +149,27 @@ namespace HotelDruid.Client.Services
         {
             var resp = await _httpClient.PostAsync($"/api/bookings/{year}/{id}/cancel", null);
             resp.EnsureSuccessStatusCode();
+        }
+
+        public async Task<BookingDto?> CheckInAsync(int year, string id, BookingCheckInRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"/api/bookings/{year}/{id}/check-in", request, _json);
+            await EnsureSuccessOrThrowAsync(response);
+            return JsonSerializer.Deserialize<BookingDto>(await response.Content.ReadAsStringAsync(), _json);
+        }
+
+        public async Task<BookingDto?> CheckOutAsync(int year, string id, BookingCheckOutRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"/api/bookings/{year}/{id}/check-out", request, _json);
+            await EnsureSuccessOrThrowAsync(response);
+            return JsonSerializer.Deserialize<BookingDto>(await response.Content.ReadAsStringAsync(), _json);
+        }
+
+        public async Task<BookingDto?> MarkNoShowAsync(int year, string id, BookingNoShowRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"/api/bookings/{year}/{id}/no-show", request, _json);
+            await EnsureSuccessOrThrowAsync(response);
+            return JsonSerializer.Deserialize<BookingDto>(await response.Content.ReadAsStringAsync(), _json);
         }
 
         private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response)

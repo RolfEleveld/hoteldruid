@@ -24,6 +24,7 @@ public class Layer4ApiTests : IAsyncLifetime
         public string? Status { get; set; }
         public string? ArrivalDate { get; set; }
         public string? DepartureDate { get; set; }
+        public string? Notes { get; set; }
         public string? ActualArrivalDate { get; set; }
         public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
@@ -262,6 +263,99 @@ public class Layer4ApiTests : IAsyncLifetime
         var departures = await ReadAs<List<BookingDto>>(departuresResponse);
         Assert.NotNull(departures);
         Assert.DoesNotContain(departures!, b => b.ClientId == "CheckedOutClient");
+    }
+
+    [Fact]
+    public async Task Booking_CheckInEndpoint_RequiresGuestCount_AndPersistsArrival()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var create = await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2026,
+            ClientId = "C-CHECKIN",
+            RoomId = "R-CHECKIN",
+            Status = "Confirmed",
+            ArrivalDate = today.ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(2).ToString("yyyy-MM-dd")
+        }));
+        var created = await ReadAs<BookingDto>(create);
+
+        var invalid = await _client.PostAsync($"/api/bookings/2026/{created!.Id}/check-in", Json(new { ActualArrivalDate = today.ToString("yyyy-MM-dd") }));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        var valid = await _client.PostAsync($"/api/bookings/2026/{created.Id}/check-in", Json(new
+        {
+            ActualArrivalDate = today.ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2,
+            Status = "CheckedIn"
+        }));
+        Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+
+        var dto = await ReadAs<BookingDto>(valid);
+        Assert.Equal(today.ToString("yyyy-MM-dd"), dto?.ActualArrivalDate);
+        Assert.Equal(2, dto?.ActualGuestCount);
+    }
+
+    [Fact]
+    public async Task Booking_CheckOutEndpoint_RequiresActualDepartureDate_AndPersistsCheckout()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var create = await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2026,
+            ClientId = "C-CHECKOUT",
+            RoomId = "R-CHECKOUT",
+            Status = "CheckedIn",
+            ArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(1).ToString("yyyy-MM-dd"),
+            ActualArrivalDate = today.AddDays(-1).ToString("yyyy-MM-dd"),
+            ActualGuestCount = 2
+        }));
+        var created = await ReadAs<BookingDto>(create);
+
+        var invalid = await _client.PostAsync($"/api/bookings/2026/{created!.Id}/check-out", Json(new { Status = "CheckedOut" }));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        var valid = await _client.PostAsync($"/api/bookings/2026/{created.Id}/check-out", Json(new
+        {
+            ActualDepartureDate = today.ToString("yyyy-MM-dd"),
+            Status = "CheckedOut"
+        }));
+        Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+
+        var dto = await ReadAs<BookingDto>(valid);
+        Assert.Equal(today.ToString("yyyy-MM-dd"), dto?.ActualDepartureDate);
+        Assert.Equal("CheckedOut", dto?.Status);
+    }
+
+    [Fact]
+    public async Task Booking_NoShowEndpoint_RequiresNotes_AndSetsStatus()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var create = await _client.PostAsync("/api/bookings", Json(new
+        {
+            Year = 2026,
+            ClientId = "C-NOSHOW",
+            RoomId = "R-NOSHOW",
+            Status = "Confirmed",
+            ArrivalDate = today.ToString("yyyy-MM-dd"),
+            DepartureDate = today.AddDays(2).ToString("yyyy-MM-dd")
+        }));
+        var created = await ReadAs<BookingDto>(create);
+
+        var invalid = await _client.PostAsync($"/api/bookings/2026/{created!.Id}/no-show", Json(new { Status = "NoShow" }));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        var valid = await _client.PostAsync($"/api/bookings/2026/{created.Id}/no-show", Json(new
+        {
+            Notes = "Guest did not arrive",
+            Status = "NoShow"
+        }));
+        Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+
+        var dto = await ReadAs<BookingDto>(valid);
+        Assert.Equal("NoShow", dto?.Status);
+        Assert.Equal("Guest did not arrive", dto?.Notes);
     }
 
     [Fact]

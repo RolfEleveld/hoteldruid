@@ -429,6 +429,62 @@
   <data name="bookings.actualArrivalRequiredWithGuestCount" xml:space="preserve"><value>La data arrivo effettiva e obbligatoria quando e impostato Ospiti all'arrivo.</value></data>
   <data name="bookings.actualGuestCountPositive" xml:space="preserve"><value>Ospiti all'arrivo deve essere maggiore di zero.</value></data>
   <data name="bookings.actualArrivalBeforeDeparture" xml:space="preserve"><value>La data arrivo effettiva deve essere precedente alla data di partenza.</value></data>
+  <data name="bookings.actualDepartureDate" xml:space="preserve"><value>Data checkout effettiva</value></data>
+  <data name="bookings.actualDepartureDateOptional" xml:space="preserve"><value>Data checkout effettiva (facoltativa)</value></data>
+  <data name="bookings.actualArrivalRequiredWithDeparture" xml:space="preserve"><value>La data arrivo effettiva e obbligatoria quando e impostata la data checkout effettiva.</value></data>
+  <data name="bookings.actualDepartureAfterPlanned" xml:space="preserve"><value>La data checkout effettiva non puo essere successiva alla data di partenza.</value></data>
+  <data name="bookings.actualDepartureBeforeArrival" xml:space="preserve"><value>La data checkout effettiva deve essere uguale o successiva alla data arrivo effettiva.</value></data>
+  <data name="bookings.alreadyCheckedOut" xml:space="preserve"><value>La prenotazione e gia in checkout.</value></data>
+  <data name="bookings.checkOut" xml:space="preserve"><value>Check-out</value></data>
+  <data name="bookings.markNoShow" xml:space="preserve"><value>Segna no-show</value></data>
+  <data name="bookings.noShowAfterCheckIn" xml:space="preserve"><value>Impossibile segnare no-show dopo il check-in.</value></data>
+  <data name="bookings.noShowNotesRequired" xml:space="preserve"><value>Le note sono obbligatorie per il no-show.</value></data>
+  <data name="bookings.unassignedRoom" xml:space="preserve"><value>Camera non assegnata</value></data>
+  <data name="bookings.unknownClient" xml:space="preserve"><value>Cliente sconosciuto</value></data>
+  <data name="bookings.unknownRoom" xml:space="preserve"><value>Camera sconosciuta</value></data>
   <data name="bookings.prepaidAmountNonNegative" xml:space="preserve"><value>L'importo prepagato deve essere maggiore o uguale a zero.</value></data>
+  <data name="bookings.title" xml:space="preserve"><value>Prenotazioni</value></data>
+  <data name="bookings.header" xml:space="preserve"><value>Prenotazioni</value></data>
+  <data name="bookings.searchLabel" xml:space="preserve"><value>Filtra prenotazioni</value></data>
+  <data name="bookings.searchPlaceholder" xml:space="preserve"><value>Cerca per cliente, camera, stato o anno</value></data>
+  <data name="bookings.filterYear" xml:space="preserve"><value>Anno</value></data>
+  <data name="bookings.load" xml:space="preserve"><value>Carica</value></data>
+  <data name="bookings.new" xml:space="preserve"><value>Nuovo</value></data>
+  <data name="bookings.emptyList" xml:space="preserve"><value>Nessuna prenotazione</value></data>
+  <data name="bookings.selectPrompt" xml:space="preserve"><value>Seleziona una prenotazione dalla lista o creane una nuova</value></data>
+  <data name="bookings.newBooking" xml:space="preserve"><value>Nuova prenotazione</value></data>
+  <data name="bookings.editBooking" xml:space="preserve"><value>Modifica prenotazione</value></data>
+  <data name="bookings.cancelBooking" xml:space="preserve"><value>Annulla prenotazione</value></data>
+  <data name="bookings.year" xml:space="preserve"><value>Anno</value></data>
+  <data name="bookings.client" xml:space="preserve"><value>Cliente</value></data>
+  <data name="bookings.room" xml:space="preserve"><value>ID camera</value></data>
+  <data name="bookings.status" xml:space="preserve"><value>Stato</value></data>
+  <data name="bookings.arrivalDate" xml:space="preserve"><value>Data di arrivo</value></data>
+  <data name="bookings.departureDate" xml:space="preserve"><value>Data di partenza</value></data>
+  <data name="bookings.notes" xml:space="preserve"><value>Note</value></data>
+  <data name="bookings.clientSearchLabel" xml:space="preserve"><value>Cerca cliente esistente</value></data>
+  <data name="bookings.clientSearchPlaceholder" xml:space="preserve"><value>Digita cognome, nome, email, telefono o ID</value></data>
+  <data name="bookings.clearSelection" xml:space="preserve"><value>Cancella</value></data>
+  <data name="bookings.clientLastName" xml:space="preserve"><value>Cognome</value></data>
+  <data name="bookings.clientFirstName" xml:space="preserve"><value>Nome</value></data>
+  <data name="bookings.clientNickname" xml:space="preserve"><value>Soprannome</value></data>
+  <data name="bookings.clientLanguage" xml:space="preserve"><value>Lingua</value></data>
+  <data name="bookings.clientPhone" xml:space="preserve"><value>Telefono</value></data>
+  <data name="bookings.clientEmail" xml:space="preserve"><value>Email</value></data>
+  <data name="bookings.clientNation" xml:space="preserve"><value>Nazione</value></data>
+  <data name="bookings.clientCity" xml:space="preserve"><value>Citta</value></data>
+  <data name="bookings.clientDocumentType" xml:space="preserve"><value>Tipo documento</value></data>
+  <data name="bookings.clientDocumentNumber" xml:space="preserve"><value>Numero documento</value></data>
+  <data name="bookings.clientTaxCode" xml:space="preserve"><value>Codice fiscale</value></data>
+  <data name="bookings.clientVatNumber" xml:space="preserve"><value>Partita IVA</value></data>
+  <data name="bookings.createClientInline" xml:space="preserve"><value>Inserisci nuovi dati cliente</value></data>
+  <data name="bookings.noClientMatch" xml:space="preserve"><value>Nessun cliente esistente corrisponde a questa ricerca.</value></data>
+  <data name="bookings.yearRequired" xml:space="preserve"><value>L'anno e obbligatorio.</value></data>
+  <data name="bookings.clientRequired" xml:space="preserve"><value>Seleziona un cliente esistente o inserisci nuovi dati cliente.</value></data>
+  <data name="bookings.clientLastNameRequired" xml:space="preserve"><value>Il cognome e obbligatorio per un nuovo cliente.</value></data>
+  <data name="bookings.clientCreateFailed" xml:space="preserve"><value>Creazione cliente non riuscita.</value></data>
+  <data name="bookings.saveFailed" xml:space="preserve"><value>Salvataggio non riuscito.</value></data>
   <data name="bookings.saveFailedStatus" xml:space="preserve"><value>Salvataggio non riuscito: {0}</value></data>
+  <data name="bookings.cancelFailed" xml:space="preserve"><value>Annullamento non riuscito.</value></data>
+  <data name="bookings.deleteFailed" xml:space="preserve"><value>Eliminazione non riuscita.</value></data>
 </root>

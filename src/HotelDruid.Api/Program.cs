@@ -2743,6 +2743,72 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     return Results.NoContent();
 }).WithName("CancelBooking");
 
+app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (!request.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "ActualArrivalDate is required" });
+    if (!request.ActualGuestCount.HasValue || request.ActualGuestCount.Value <= 0)
+        return Results.BadRequest(new { error = "ActualGuestCount must be greater than zero" });
+    if (!booking.DepartureDate.HasValue || request.ActualArrivalDate.Value >= booking.DepartureDate.Value)
+        return Results.BadRequest(new { error = "ActualArrivalDate must be before DepartureDate" });
+    if (booking.ActualDepartureDate.HasValue)
+        return Results.BadRequest(new { error = "Cannot check in a booking that is already checked out" });
+
+    booking.ActualArrivalDate = request.ActualArrivalDate.Value;
+    booking.ActualGuestCount = request.ActualGuestCount.Value;
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "CheckedIn" : request.Status;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("CheckInBooking");
+
+app.MapPost("/api/bookings/{year:int}/{id}/check-out", async (int year, string id, BookingCheckOutRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (!request.ActualDepartureDate.HasValue)
+        return Results.BadRequest(new { error = "ActualDepartureDate is required" });
+    if (!booking.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "ActualArrivalDate is required when checking out" });
+    if (request.ActualDepartureDate.Value < booking.ActualArrivalDate.Value)
+        return Results.BadRequest(new { error = "ActualDepartureDate must be on or after ActualArrivalDate" });
+    if (booking.DepartureDate.HasValue && request.ActualDepartureDate.Value > booking.DepartureDate.Value)
+        return Results.BadRequest(new { error = "ActualDepartureDate cannot be after DepartureDate" });
+
+    booking.ActualDepartureDate = request.ActualDepartureDate.Value;
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "CheckedOut" : request.Status;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("CheckOutBooking");
+
+app.MapPost("/api/bookings/{year:int}/{id}/no-show", async (int year, string id, BookingNoShowRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (booking.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "Cannot mark no-show after check-in" });
+    if (string.IsNullOrWhiteSpace(request.Notes))
+        return Results.BadRequest(new { error = "Notes are required for no-show" });
+
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "NoShow" : request.Status;
+    booking.Notes = request.Notes;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("MarkBookingNoShow");
+
 // --- Layer 4: BookingCosts (costiprenotazione{year}) ---
 
 BookingCostDto ToBookingCostDto(string id, BookingCostStorageModel s) => new(id, s.Year, s.BookingId, s.TariffId, s.Amount, s.Description);
@@ -3298,3 +3364,7 @@ app.MapGet("/api/documents/render/{type}/{number:int}",
     }).WithName("RenderDocument");
 
 app.Run();
+
+record BookingCheckInRequest(DateOnly? ActualArrivalDate, int? ActualGuestCount, string? Status);
+record BookingCheckOutRequest(DateOnly? ActualDepartureDate, string? Status);
+record BookingNoShowRequest(string? Notes, string? Status);

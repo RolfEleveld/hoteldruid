@@ -183,4 +183,75 @@ public class BookingsPageIntegrationTests : TestContext
 
         bookingApi.Verify(x => x.ListReservationsAsync(2026), Times.AtLeastOnce);
     }
+
+    [Fact]
+    public void BookingsPage_ViewArrivals_ShouldShow_Arrived_And_NoShow_Actions()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=arrivals&lookAheadDays=2");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+        });
+
+        component.FindAll(".list-group-item")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Markup.Should().Contain("Arrived");
+            component.Markup.Should().Contain("Mark No-Show");
+            component.Markup.Should().Contain("Cancel Booking");
+            component.Markup.Should().NotContain("Delete");
+        });
+    }
+
+    [Fact]
+    public void BookingsPage_DefaultView_PreArrivalBooking_ShouldShow_Arrived_Action_And_No_Delete()
+    {
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(2);
+        });
+
+        component.FindAll(".list-group-item")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Markup.Should().Contain("Arrived");
+            component.Markup.Should().Contain("Mark No-Show");
+            component.Markup.Should().Contain("Cancel Booking");
+            component.Markup.Should().NotContain("Delete");
+        });
+    }
+
+    [Fact]
+    public void BookingsPage_ViewStays_ShouldShow_CheckOut_Action_OnlyForStageTransition()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?view=stays");
+
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(1);
+        });
+
+        component.FindAll(".list-group-item")[0].Click();
+
+        component.WaitForAssertion(() =>
+        {
+            component.Markup.Should().Contain("Check Out");
+            component.Markup.Should().NotContain("Mark No-Show");
+            component.Markup.Should().NotContain("Cancel Booking");
+        });
+    }
 }

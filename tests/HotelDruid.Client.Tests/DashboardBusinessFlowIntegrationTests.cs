@@ -138,7 +138,8 @@ public class DashboardBusinessFlowIntegrationTests
         {
             var items = component.FindAll(".border-primary .dropdown-menu.show .dropdown-item").Select(x => x.TextContent.Trim()).ToList();
             Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Mark No-Show", items);
+            Assert.Contains("Cancel Booking", items);
         });
 
         component.FindAll("button[title='Dashboard.Arrivals.RowMenu']")[0].Click();
@@ -146,23 +147,21 @@ public class DashboardBusinessFlowIntegrationTests
         {
             var items = component.FindAll(".border-secondary .dropdown-menu.show .dropdown-item").Select(x => x.TextContent.Trim()).ToList();
             Assert.Contains("Dashboard.Reservations.Menu.Arrived", items);
-            Assert.Contains("Dashboard.Stays.Action.AddGuests", items);
+            Assert.Contains("Mark No-Show", items);
         });
 
         component.FindAll("button[title='Dashboard.Stays.RowMenu']")[0].Click();
         component.WaitForAssertion(() =>
         {
             var items = component.FindAll(".border-danger .dropdown-menu.show .dropdown-item").Select(x => x.TextContent.Trim()).ToList();
-            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
-            Assert.Contains("Dashboard.Stays.Action.OpenClient", items);
+            Assert.Contains("Check Out", items);
         });
 
         component.FindAll("button[title='Dashboard.Departures.RowMenu']")[0].Click();
         component.WaitForAssertion(() =>
         {
             var items = component.FindAll(".border-dark .dropdown-menu.show .dropdown-item").Select(x => x.TextContent.Trim()).ToList();
-            Assert.Contains("Dashboard.Stays.Action.OpenReservation", items);
-            Assert.Contains("Dashboard.Stays.Action.AddCosts", items);
+            Assert.Contains("Check Out", items);
         });
     }
 
