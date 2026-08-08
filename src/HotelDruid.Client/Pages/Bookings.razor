@@ -231,9 +231,14 @@
                     <h3 class="panel-title">@L["common.details", "Details"]</h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
-                    @if (selected is not null && !editing)
+                    @if (selected is not null)
                     {
-                        <dl>
+                        <div class="booking-summary-card">
+                            <div class="booking-summary-name">@GetBookingSummaryTitle(selected)</div>
+                            <div class="booking-summary-meta">@GetBookingSummaryMeta(selected)</div>
+                        </div>
+
+                        <dl class="booking-detail-grid mt-3">
                             <dt>@L["bookings.year", "Year"]</dt><dd>@selected.Year</dd>
                             <dt>@L["bookings.client", "Client"]</dt>
                             <dd>
@@ -260,8 +265,59 @@
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                         </dl>
-                        <hr />
-                        <div class="d-flex flex-column gap-2">
+
+                        <section class="booking-section booking-section-guest mt-3">
+                            <h4 class="booking-section-title">@L["bookings.guestDetailsTitle", "Guest Details"]</h4>
+                            @if (GetSelectedGuestClient() is { } guestClient)
+                            {
+                                <div class="booking-summary-card booking-summary-card-guest">
+                                    <div class="booking-summary-name"><a class="booking-summary-link" href="@GetClientUrl(guestClient.Id)">@GetClientDisplayName(guestClient.Id)</a></div>
+                                    <div class="booking-summary-meta">@GetGuestProfileSummary(guestClient)</div>
+                                </div>
+
+                                var guestFields = GetGuestDetailFields(guestClient).ToList();
+                                @if (guestFields.Any())
+                                {
+                                    <dl class="booking-detail-grid mt-3">
+                                        @foreach (var field in guestFields)
+                                        {
+                                            <dt>@field.Label</dt><dd>@field.Value</dd>
+                                        }
+                                    </dl>
+                                }
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mb-0">@L["bookings.unknownClient", "Unknown client"]</div>
+                            }
+                        </section>
+
+                        <section class="booking-section booking-section-history mt-3">
+                            <h4 class="booking-section-title">@L["bookings.guestHistoryTitle", "Other Bookings"]</h4>
+                            @if (isGuestHistoryLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                                <span class="ms-2">@L["common.loading", "Loading..."]</span>
+                            }
+                            else if (selectedGuestBookings is null || !selectedGuestBookings.Any())
+                            {
+                                <div class="alert alert-info mb-0">@L["bookings.noGuestHistory", "No other bookings found for this guest."]</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var booking in selectedGuestBookings.Take(5))
+                                    {
+                                        <a class="list-group-item list-group-item-action" href="@GetBookingUrl(booking)">
+                                            <div class="fw-semibold">@GetBookingSummaryTitle(booking)</div>
+                                            <div class="small text-muted">@GetBookingSummaryMeta(booking)</div>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </section>
+
+                        <div class="d-flex flex-column gap-2 mt-3">
                             @if (!string.IsNullOrWhiteSpace(selected.ClientId))
                             {
                                 <a class="btn btn-sm btn-outline-primary" href="/clients?selectedId=@selected.ClientId">@L["bookings.openClient", "Open client"]</a>
@@ -303,12 +359,14 @@
     private List<RoomRecord> knownRooms = new();
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
+    private List<BookingDto>? selectedGuestBookings;
     private ClientRecord? selectedClient;
     private RoomRecord? selectedRoom;
     private bool creatingNewClient;
     private string clientSearch = string.Empty;
     private string roomSearch = string.Empty;
     private bool editing, isNew;
+    private bool isGuestHistoryLoading;
     private string errorMsg = "";
     private int? filterYear;
     private string listFilter = string.Empty;
@@ -444,13 +502,19 @@
     private async Task SelectRecordAndEdit(BookingDto r)
     {
         selected = r;
+        await LoadSelectedGuestHistoryAsync();
         await EditSelected();
     }
 
-    private void SelectRecord(BookingDto r) { selected = r; editing = false; }
+    private void SelectRecord(BookingDto r)
+    {
+        selected = r;
+        editing = false;
+    }
 
     private async Task EditSelected()
     {
+        await LoadSelectedGuestHistoryAsync();
         if (selected is null) return;
         form = new()
         {
@@ -615,6 +679,33 @@
         catch (Exception ex)
         {
             errorMsg = TranslateBookingSaveError(ex);
+        }
+    }
+
+    private async Task LoadSelectedGuestHistoryAsync()
+    {
+        selectedGuestBookings = null;
+
+        if (selected is null || string.IsNullOrWhiteSpace(selected.ClientId))
+        {
+            return;
+        }
+
+        try
+        {
+            isGuestHistoryLoading = true;
+            var bookings = await BookingApi.ListAsync();
+            selectedGuestBookings = bookings
+                .Where(booking => string.Equals(booking.ClientId, selected.ClientId, StringComparison.OrdinalIgnoreCase)
+                    && (!string.Equals(booking.Id, selected.Id, StringComparison.OrdinalIgnoreCase) || booking.Year != selected.Year))
+                .OrderByDescending(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+                .ThenByDescending(booking => booking.Year)
+                .ThenByDescending(booking => booking.Id)
+                .ToList();
+        }
+        finally
+        {
+            isGuestHistoryLoading = false;
         }
     }
 
@@ -972,6 +1063,136 @@
         return string.IsNullOrWhiteSpace(room.Name) ? L["bookings.unknownRoom", "Unknown room"] : room.Name;
     }
 
+    private ClientRecord? GetSelectedGuestClient()
+    {
+        if (selected is null || string.IsNullOrWhiteSpace(selected.ClientId))
+        {
+            return null;
+        }
+
+        return knownClients.FirstOrDefault(client => string.Equals(client.Id, selected.ClientId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string GetBookingSummaryTitle(BookingDto booking)
+    {
+        var clientName = GetClientDisplayName(booking.ClientId);
+        var roomName = GetRoomDisplayName(booking.RoomId);
+        return $"{booking.Year} — {clientName} · {roomName}";
+    }
+
+    private string GetBookingSummaryMeta(BookingDto booking)
+    {
+        var parts = new List<string>();
+        parts.Add($"{FormatDate(booking.ArrivalDate)} → {FormatDate(booking.DepartureDate)}");
+
+        if (!string.IsNullOrWhiteSpace(booking.Status))
+        {
+            parts.Add(booking.Status);
+        }
+
+        if (booking.ActualArrivalDate.HasValue || booking.ActualDepartureDate.HasValue)
+        {
+            parts.Add($"{FormatDate(booking.ActualArrivalDate)} / {FormatDate(booking.ActualDepartureDate)}");
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    private static string GetBookingUrl(BookingDto booking)
+    {
+        if (booking is null || string.IsNullOrWhiteSpace(booking.Id))
+        {
+            return "/bookings";
+        }
+
+        return $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}";
+    }
+
+    private static string GetClientUrl(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return "/clients";
+        }
+
+        return $"/clients?selectedId={Uri.EscapeDataString(clientId)}";
+    }
+
+    private string GetGuestProfileSummary(ClientRecord guestClient)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(guestClient.City))
+        {
+            parts.Add(guestClient.City);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Nation))
+        {
+            parts.Add(guestClient.Nation);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Email))
+        {
+            parts.Add(guestClient.Email);
+        }
+
+        return parts.Count == 0 ? L["clients.previewEmpty", "Client details will appear here once you select or create a record."] : string.Join(" · ", parts);
+    }
+
+    private IEnumerable<(string Label, string Value)> GetGuestDetailFields(ClientRecord guestClient)
+    {
+        if (!string.IsNullOrWhiteSpace(guestClient.Phone))
+        {
+            yield return (L["bookings.clientPhone", "Phone"], guestClient.Phone);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Email))
+        {
+            yield return (L["bookings.clientEmail", "Email"], guestClient.Email);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.City))
+        {
+            yield return (L["bookings.clientCity", "City"], guestClient.City);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Nation))
+        {
+            yield return (L["bookings.clientNation", "Nation"], guestClient.Nation);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Language))
+        {
+            yield return (L["bookings.clientLanguage", "Language"], guestClient.Language);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.DocumentType))
+        {
+            yield return (L["bookings.clientDocumentType", "Document Type"], guestClient.DocumentType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.DocumentNumber))
+        {
+            yield return (L["bookings.clientDocumentNumber", "Document Number"], guestClient.DocumentNumber);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.TaxCode))
+        {
+            yield return (L["bookings.clientTaxCode", "Tax Code"], guestClient.TaxCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.VatNumber))
+        {
+            yield return (L["bookings.clientVatNumber", "VAT Number"], guestClient.VatNumber);
+        }
+
+        if (!string.IsNullOrWhiteSpace(guestClient.Notes))
+        {
+            yield return (L["bookings.notes", "Notes"], guestClient.Notes);
+        }
+    }
+
     private string TranslateBookingSaveError(Exception ex)
     {
         return ex.Message switch
@@ -1039,6 +1260,35 @@
 
     private static string FormatDate(DateOnly? date) => date?.ToString("yyyy-MM-dd") ?? "-";
 }
+
+<style>
+.bookings-manager { height: 100%; min-height: 0; }
+.bookings-manager .panel { border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+.bookings-manager .panel-heading { background-color: #f5f5f5; border-bottom: 1px solid #ddd; padding: 10px 15px; }
+.bookings-manager .panel-body { padding: 15px; }
+.bookings-manager .panel-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+    padding: 10px 15px;
+}
+.booking-summary-card { border-radius: 6px; background: linear-gradient(135deg, #17324d 0%, #274f78 100%); color: #fff; padding: 1rem; }
+.booking-summary-card-guest { background: linear-gradient(135deg, #214a30 0%, #38725a 100%); }
+.booking-summary-name { font-size: 1.1rem; font-weight: 700; }
+.booking-summary-meta { font-size: 0.875rem; opacity: 0.9; }
+.booking-detail-grid { display: grid; grid-template-columns: minmax(0, 140px) minmax(0, 1fr); gap: 0.4rem 0.75rem; }
+.booking-detail-grid dt { margin: 0; font-weight: 700; }
+.booking-detail-grid dd { margin: 0; }
+.booking-section { border-left: 4px solid #d8dee7; border-radius: 4px; background: #fff; padding: 14px; margin-bottom: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04); }
+.booking-section-guest { border-left-color: #4caf50; }
+.booking-section-history { border-left-color: #2196f3; }
+.booking-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.btn-group > .btn { border-radius: 0; }
+.btn-group > .btn:first-child { border-radius: 4px 0 0 4px; }
+.btn-group > .btn:last-child { border-radius: 0 4px 4px 0; }
+</style>
 
 
 

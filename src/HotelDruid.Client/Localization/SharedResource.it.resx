@@ -443,6 +443,9 @@
   <data name="bookings.unknownClient" xml:space="preserve"><value>Cliente sconosciuto</value></data>
   <data name="bookings.unknownRoom" xml:space="preserve"><value>Camera sconosciuta</value></data>
   <data name="bookings.prepaidAmountNonNegative" xml:space="preserve"><value>L'importo prepagato deve essere maggiore o uguale a zero.</value></data>
+  <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Dettagli ospite</value></data>
+  <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Altre prenotazioni</value></data>
+  <data name="bookings.noGuestHistory" xml:space="preserve"><value>Nessun'altra prenotazione trovata per questo ospite.</value></data>
   <data name="bookings.title" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.header" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.searchLabel" xml:space="preserve"><value>Filtra prenotazioni</value></data>

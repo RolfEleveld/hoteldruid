@@ -28,6 +28,7 @@ public class BookingsPageIntegrationTests : TestContext
 
         bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
         {
+            new("b-0", 2026, "client-1", "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3), "Confirmed", "Older booking"),
             new("b-2", 2026, "client-2", "room-2", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 3), "Pending", "Second booking"),
             new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
         });
@@ -78,13 +79,15 @@ public class BookingsPageIntegrationTests : TestContext
         component.WaitForAssertion(() =>
         {
             var items = component.FindAll(".list-group-item");
-            items.Should().HaveCount(2);
+            items.Should().HaveCount(3);
         });
 
         var itemsInOrder = component.FindAll(".list-group-item");
         itemsInOrder[0].TextContent.Should().Contain("2026 — Adams Anna");
-        itemsInOrder[0].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
-        itemsInOrder[1].TextContent.Should().Contain("2026 — Brown Ben");
+        itemsInOrder[0].TextContent.Should().Contain("2026-05-01 → 2026-05-03");
+        itemsInOrder[1].TextContent.Should().Contain("2026 — Adams Anna");
+        itemsInOrder[1].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
+        itemsInOrder[2].TextContent.Should().Contain("2026 — Brown Ben");
 
         itemsInOrder[0].Click();
 
@@ -94,6 +97,9 @@ public class BookingsPageIntegrationTests : TestContext
         });
 
         component.Markup.Should().Contain("Actual Checkout Date");
+        component.Markup.Should().Contain("Guest Details");
+        component.Markup.Should().Contain("Other Bookings");
+        component.Markup.Should().Contain("/clients?selectedId=client-1");
     }
 
     [Fact]
@@ -217,7 +223,7 @@ public class BookingsPageIntegrationTests : TestContext
         component.WaitForAssertion(() =>
         {
             var items = component.FindAll(".list-group-item");
-            items.Should().HaveCount(2);
+            items.Should().HaveCount(3);
         });
 
         component.FindAll(".list-group-item")[0].Click();

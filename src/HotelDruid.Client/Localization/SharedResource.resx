@@ -486,6 +486,9 @@
   <data name="bookings.actualGuestCountPositive" xml:space="preserve"><value>Guests On Arrival must be greater than zero.</value></data>
   <data name="bookings.actualArrivalBeforeDeparture" xml:space="preserve"><value>Actual Arrival Date must be before Departure Date.</value></data>
   <data name="bookings.prepaidAmountNonNegative" xml:space="preserve"><value>Prepaid Amount must be greater than or equal to zero.</value></data>
+  <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Guest Details</value></data>
+  <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Other Bookings</value></data>
+  <data name="bookings.noGuestHistory" xml:space="preserve"><value>No other bookings found for this guest.</value></data>
   <data name="bookings.actualDepartureDate" xml:space="preserve"><value>Actual Checkout Date</value></data>
   <data name="bookings.actualDepartureDateOptional" xml:space="preserve"><value>Actual Checkout Date (optional)</value></data>
   <data name="bookings.actualArrivalRequiredWithDeparture" xml:space="preserve"><value>Actual Arrival Date is required when Actual Checkout Date is set.</value></data>
