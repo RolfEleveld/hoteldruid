@@ -126,10 +126,11 @@ public class ExportService : IExportService
             var assets = await _store.ListAsync<AssetDto>("assets");
             var warehouses = await _store.ListAsync<WarehouseDto>("warehouses");
             var inventory = await _store.ListAsync<InventoryDto>("inventory");
+            var bookings = await CollectBookingsDataAsync();
             var systemConfigurations = await _store.ListAsync<SystemConfiguration>("system_configuration");
 
-            _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows",
-                rooms.Length, assets.Count, warehouses.Count, inventory.Count);
+            _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows, {BookingCount} bookings",
+                rooms.Length, assets.Count, warehouses.Count, inventory.Count, bookings.Length);
 
             // Step 2: Convert to canonical format
             tracker.ProgressPercent = 40;
@@ -138,7 +139,8 @@ public class ExportService : IExportService
                 ["rooms"] = _canonicalMapper.ToCanonical(rooms),
                 ["assets"] = _canonicalMapper.ToCanonicalAssets(assets.ToArray()),
                 ["warehouses"] = _canonicalMapper.ToCanonicalWarehouses(warehouses.ToArray()),
-                ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory.ToArray())
+                ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory.ToArray()),
+                ["bookings"] = _canonicalMapper.ToCanonicalBookings(bookings)
             };
 
             if (systemConfigurations.Count > 0)
@@ -182,6 +184,45 @@ public class ExportService : IExportService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error collecting rooms data");
+            throw;
+        }
+    }
+
+    private async Task<BookingDto[]> CollectBookingsDataAsync()
+    {
+        try
+        {
+            var index = await _store.GetIndexAsync("bookings");
+            var bookings = new List<BookingDto>();
+
+            foreach (var kvp in index)
+            {
+                var storage = await _store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+                if (storage is null)
+                {
+                    continue;
+                }
+
+                bookings.Add(new BookingDto(
+                    Id: kvp.Value,
+                    Year: storage.Year,
+                    ClientId: storage.ClientId,
+                    RoomId: storage.RoomId,
+                    ArrivalDate: storage.ArrivalDate,
+                    DepartureDate: storage.DepartureDate,
+                    Status: storage.Status,
+                    Notes: storage.Notes,
+                    ActualArrivalDate: storage.ActualArrivalDate,
+                    ActualGuestCount: storage.ActualGuestCount,
+                    PrepaidAmount: storage.PrepaidAmount,
+                    ActualDepartureDate: storage.ActualDepartureDate));
+            }
+
+            return bookings.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error collecting bookings data");
             throw;
         }
     }

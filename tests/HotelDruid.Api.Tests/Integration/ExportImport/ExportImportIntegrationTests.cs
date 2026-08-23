@@ -351,6 +351,104 @@ public class ExportImportIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ApiDistributor_Imports_Bookings_WithMissingActualDepartureDate_FallbacksToNull()
+    {
+        var canonicalData = new Dictionary<string, CanonicalData>
+        {
+            ["bookings"] = new CanonicalData(
+                TableName: "prenotazioni",
+                RowCount: 1,
+                Rows: new()
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["idprenotazioni"] = "b100",
+                        ["anno"] = 2026,
+                        ["idclienti"] = "c100",
+                        ["idappartamenti"] = "r100",
+                        ["datainizio"] = "2026-08-10",
+                        ["datafine"] = "2026-08-12",
+                        ["stato"] = "Confirmed",
+                        ["dataarrivoeffettiva"] = "2026-08-10",
+                        ["actual_guest_count"] = 2
+                    }
+                },
+                Columns: new())
+        };
+
+        var result = await _apiDistributor.DistributeAsync(canonicalData);
+
+        Assert.True(result.ByTable["bookings"].Success);
+        Assert.Equal(1, result.ByTable["bookings"].ImportedCount);
+
+        var index = await _roomsStore.GetIndexAsync("bookings");
+        Assert.Single(index);
+        var bookingId = index.Values.First();
+        var stored = await _roomsStore.GetAsync<BookingStorageModel>("bookings", bookingId);
+        Assert.NotNull(stored);
+        Assert.Equal(new DateOnly(2026, 8, 10), stored!.ArrivalDate);
+        Assert.Null(stored.ActualDepartureDate);
+    }
+
+    [Fact]
+    public async Task ExportService_Exports_Bookings_IncludingActualDepartureDate()
+    {
+        await _roomsStore.CreateAsync("bookings", "2026_b200", new BookingStorageModel
+        {
+            Year = 2026,
+            ClientId = "c200",
+            RoomId = "r200",
+            ArrivalDate = new DateOnly(2026, 8, 1),
+            DepartureDate = new DateOnly(2026, 8, 5),
+            ActualArrivalDate = new DateOnly(2026, 8, 1),
+            ActualDepartureDate = new DateOnly(2026, 8, 5),
+            ActualGuestCount = 2,
+            Status = "CheckedOut"
+        });
+
+        var exportId = await _exportService.CreateExportPackageAsync();
+
+        ExportStatusResponse? status = null;
+        for (var i = 0; i < 50; i++)
+        {
+            status = await _exportService.GetExportStatusAsync(exportId);
+            if (status.Status is "completed" or "failed")
+            {
+                break;
+            }
+
+            await Task.Delay(50);
+        }
+
+        Assert.NotNull(status);
+        Assert.Equal("completed", status!.Status);
+
+        var exportsDir = Path.Combine(_tempDirectory, "exports");
+        var zipPath = Directory.GetFiles(exportsDir, "*.zip")
+            .OrderByDescending(path => File.GetCreationTimeUtc(path))
+            .First();
+
+        var extractDir = Path.Combine(_tempDirectory, $"extract_bookings_{exportId}");
+        Directory.CreateDirectory(extractDir);
+        System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractDir);
+
+        var bookingsPath = Path.Combine(extractDir, "data", "tables", "bookings.json");
+        Assert.True(File.Exists(bookingsPath));
+
+        var json = await File.ReadAllTextAsync(bookingsPath);
+        var exportedTable = System.Text.Json.JsonSerializer.Deserialize<CanonicalData>(json, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        });
+
+        Assert.NotNull(exportedTable);
+        Assert.Equal("bookings", exportedTable!.TableName);
+        Assert.True(exportedTable.RowCount >= 1);
+        Assert.Contains(exportedTable.Rows, row => row.ContainsKey("actual_departure_date") && row["actual_departure_date"]?.ToString() == "2026-08-05");
+    }
+
+    [Fact]
     public async Task MultipleExports_AreIndependent()
     {
         // Arrange

@@ -69,6 +69,12 @@ public class ApiDistributor : IApiDistributor
                         if (invResult.Success) totalImported += invResult.ImportedCount;
                         else if (invResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, invResult.ErrorMessage));
                         break;
+                    case "bookings":
+                        var bookingResult = await ImportBookingsAsync(tableData);
+                        results[normalizedTable] = bookingResult;
+                        if (bookingResult.Success) totalImported += bookingResult.ImportedCount;
+                        else if (bookingResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, bookingResult.ErrorMessage));
+                        break;
                     case "system_configuration":
                         var configResult = await ImportSystemConfigurationAsync(tableData);
                         results[normalizedTable] = configResult;
@@ -79,7 +85,7 @@ public class ApiDistributor : IApiDistributor
                     default:
                         _logger.LogWarning("Cannot import unknown table: {TableName}", sourceTableName);
                         errors.Add(new ImportError(sourceTableName, 
-                            $"Unknown table type '{sourceTableName}'. Only 'rooms' is currently supported."));
+                            $"Unknown table type '{sourceTableName}'."));
                         break;
                 }
             }
@@ -256,6 +262,67 @@ public class ApiDistributor : IApiDistributor
         {
             _logger.LogError(ex, "Error importing inventory");
             return new TableImportResult(TableName: "inventory", ImportedCount: 0, Success: false, ErrorMessage: ex.Message);
+        }
+    }
+
+    private async Task<TableImportResult> ImportBookingsAsync(CanonicalData tableData)
+    {
+        try
+        {
+            _logger.LogInformation("Importing {Count} bookings", tableData.RowCount);
+            var bookings = _canonicalMapper.FromCanonicalBookings(tableData);
+            var imported = 0;
+
+            foreach (var booking in bookings)
+            {
+                if (booking.Year <= 0 || string.IsNullOrWhiteSpace(booking.ClientId) || !booking.ArrivalDate.HasValue || !booking.DepartureDate.HasValue)
+                {
+                    _logger.LogWarning("Skipping invalid booking row. Year={Year}, ClientId={ClientId}", booking.Year, booking.ClientId);
+                    continue;
+                }
+
+                var logicalKey = !string.IsNullOrWhiteSpace(booking.Id)
+                    ? $"{booking.Year}_{booking.Id}"
+                    : $"{booking.Year}_{Guid.NewGuid():N}";
+
+                var storage = new BookingStorageModel
+                {
+                    Year = booking.Year,
+                    ClientId = booking.ClientId,
+                    RoomId = booking.RoomId,
+                    ArrivalDate = booking.ArrivalDate,
+                    DepartureDate = booking.DepartureDate,
+                    Status = booking.Status,
+                    Notes = booking.Notes,
+                    ActualArrivalDate = booking.ActualArrivalDate,
+                    // Backward compatibility: missing field remains null.
+                    ActualDepartureDate = booking.ActualDepartureDate,
+                    ActualGuestCount = booking.ActualGuestCount,
+                    PrepaidAmount = booking.PrepaidAmount
+                };
+
+                try
+                {
+                    await _store.CreateAsync<BookingStorageModel>("bookings", logicalKey, storage);
+                    imported++;
+                }
+                catch (InvalidOperationException)
+                {
+                    var index = await _store.GetIndexAsync("bookings");
+                    if (index.TryGetValue(logicalKey, out var existingId))
+                    {
+                        await _store.UpdateAsync("bookings", existingId, storage);
+                        imported++;
+                    }
+                }
+            }
+
+            return new TableImportResult(TableName: "bookings", ImportedCount: imported, Success: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing bookings");
+            return new TableImportResult(TableName: "bookings", ImportedCount: 0, Success: false, ErrorMessage: ex.Message);
         }
     }
 

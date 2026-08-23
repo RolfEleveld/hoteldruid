@@ -457,6 +457,8 @@ public class CanonicalMapper : ICanonicalMapper
     private const string WarehousesHotelDruidName = "magazzini";
     private const string InventoryTableName = "inventory";
     private const string InventoryHotelDruidName = "relinventario";
+    private const string BookingsTableName = "bookings";
+    private const string BookingsHotelDruidName = "prenotazioni";
 
     public CanonicalMapper(ILogger<CanonicalMapper> logger, NamingConfiguration? naming = null)
     {
@@ -500,11 +502,90 @@ public class CanonicalMapper : ICanonicalMapper
             "assets" => AssetsHotelDruidName,
             "warehouses" => WarehousesHotelDruidName,
             "inventory" => InventoryHotelDruidName,
+            "bookings" => BookingsHotelDruidName,
             _ => table
         };
     }
 
     // --- Assets / Warehouses / Inventory canonicalization ---
+
+    public CanonicalData ToCanonicalBookings(BookingDto[] bookings)
+    {
+        var columns = new List<ColumnDefinition>
+        {
+            new("id", "string", true, "Booking identifier"),
+            new("year", "integer", false, "Booking year"),
+            new("client_id", "string", false, "Client reference"),
+            new("room_id", "string", true, "Room reference"),
+            new("arrival_date", "string", false, "Planned arrival date"),
+            new("departure_date", "string", false, "Planned departure date"),
+            new("status", "string", true, "Booking status"),
+            new("notes", "string", true, "Notes"),
+            new("actual_arrival_date", "string", true, "Actual check-in date"),
+            new("actual_guest_count", "integer", true, "Guest count on arrival"),
+            new("prepaid_amount", "number", true, "Prepaid amount"),
+            new("actual_departure_date", "string", true, "Actual checkout date")
+        };
+
+        var rows = bookings.Select(b => new Dictionary<string, object?>
+        {
+            ["id"] = b.Id,
+            ["year"] = b.Year,
+            ["client_id"] = b.ClientId,
+            ["room_id"] = b.RoomId,
+            ["arrival_date"] = b.ArrivalDate?.ToString("yyyy-MM-dd"),
+            ["departure_date"] = b.DepartureDate?.ToString("yyyy-MM-dd"),
+            ["status"] = b.Status,
+            ["notes"] = b.Notes,
+            ["actual_arrival_date"] = b.ActualArrivalDate?.ToString("yyyy-MM-dd"),
+            ["actual_guest_count"] = b.ActualGuestCount,
+            ["prepaid_amount"] = b.PrepaidAmount,
+            ["actual_departure_date"] = b.ActualDepartureDate?.ToString("yyyy-MM-dd")
+        }).ToList();
+
+        return new CanonicalData(TableName: BookingsTableName, RowCount: bookings.Length, Rows: rows, Columns: columns);
+    }
+
+    public BookingDto[] FromCanonicalBookings(CanonicalData data)
+    {
+        var normalized = NormalizeTableName(data.TableName);
+        if (normalized != "bookings")
+            throw new InvalidOperationException($"Cannot map table '{data.TableName}' to bookings.");
+
+        var results = new List<BookingDto>();
+        foreach (var row in data.Rows)
+        {
+            var id = GetFirstString(row, "id", "booking_id", "idprenotazioni", "idprenotazione");
+            var year = ParseInt(GetFirstValue(row, "year", "anno")) ?? 0;
+            var clientId = GetFirstString(row, "client_id", "clientId", "idclienti", "idcliente");
+            var roomId = GetFirstString(row, "room_id", "roomId", "idappartamenti", "idappartamento");
+            var arrivalDate = ParseDateOnly(GetFirstValue(row, "arrival_date", "arrivalDate", "start_date", "datainizio"));
+            var departureDate = ParseDateOnly(GetFirstValue(row, "departure_date", "departureDate", "end_date", "datafine"));
+            var status = GetFirstString(row, "status", "stato");
+            var notes = GetFirstString(row, "notes", "note", "nota");
+            var actualArrivalDate = ParseDateOnly(GetFirstValue(row, "actual_arrival_date", "actualArrivalDate", "actualarrivaldate", "dataarrivoeffettiva"));
+            var actualGuestCount = ParseInt(GetFirstValue(row, "actual_guest_count", "actualGuestCount", "actualguestcount", "numadulti"));
+            var prepaidAmount = ParseDouble(GetFirstValue(row, "prepaid_amount", "prepaidAmount", "prepagato", "prezzo", "price"));
+            // Backward compatibility: absent actual_departure_date remains null.
+            var actualDepartureDate = ParseDateOnly(GetFirstValue(row, "actual_departure_date", "actualDepartureDate", "actualdeparturedate", "datauscitaeffettiva", "checkout_date", "checkoutDate"));
+
+            results.Add(new BookingDto(
+                Id: id,
+                Year: year,
+                ClientId: clientId,
+                RoomId: roomId,
+                ArrivalDate: arrivalDate,
+                DepartureDate: departureDate,
+                Status: status,
+                Notes: notes,
+                ActualArrivalDate: actualArrivalDate,
+                ActualGuestCount: actualGuestCount,
+                PrepaidAmount: prepaidAmount,
+                ActualDepartureDate: actualDepartureDate));
+        }
+
+        return results.ToArray();
+    }
 
     public CanonicalData ToCanonicalAssets(AssetDto[] assets)
     {
@@ -767,6 +848,125 @@ public class CanonicalMapper : ICanonicalMapper
 
         _logger.LogDebug("Field '{Field}' not found in row", canonicalFieldName);
         return null;
+    }
+
+    private static object? GetFirstValue(Dictionary<string, object?> row, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            foreach (var entry in row)
+            {
+                if (entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string? GetFirstString(Dictionary<string, object?> row, params string[] keys)
+    {
+        var value = GetFirstValue(row, keys);
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is JsonElement json)
+        {
+            return json.ValueKind switch
+            {
+                JsonValueKind.String => json.GetString(),
+                JsonValueKind.Number => json.GetRawText(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => json.GetRawText()
+            };
+        }
+
+        return value.ToString();
+    }
+
+    private static DateOnly? ParseDateOnly(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is DateOnly dateOnly)
+        {
+            return dateOnly;
+        }
+
+        if (value is DateTime dateTime)
+        {
+            return DateOnly.FromDateTime(dateTime);
+        }
+
+        if (value is JsonElement json)
+        {
+            if (json.ValueKind == JsonValueKind.String)
+            {
+                return ParseDateOnly(json.GetString());
+            }
+
+            return null;
+        }
+
+        return DateOnly.TryParse(value.ToString(), out var parsed) ? parsed : (DateOnly?)null;
+    }
+
+    private static int? ParseInt(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is JsonElement json)
+        {
+            if (json.ValueKind == JsonValueKind.Number && json.TryGetInt32(out var jsonInt))
+            {
+                return jsonInt;
+            }
+
+            if (json.ValueKind == JsonValueKind.String && int.TryParse(json.GetString(), out var jsonStringInt))
+            {
+                return jsonStringInt;
+            }
+
+            return null;
+        }
+
+        return int.TryParse(value.ToString(), out var parsed) ? parsed : (int?)null;
+    }
+
+    private static double? ParseDouble(object? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (value is JsonElement json)
+        {
+            if (json.ValueKind == JsonValueKind.Number && json.TryGetDouble(out var jsonDouble))
+            {
+                return jsonDouble;
+            }
+
+            if (json.ValueKind == JsonValueKind.String && double.TryParse(json.GetString(), out var jsonStringDouble))
+            {
+                return jsonStringDouble;
+            }
+
+            return null;
+        }
+
+        return double.TryParse(value.ToString(), out var parsed) ? parsed : (double?)null;
     }
 
     /// <summary>

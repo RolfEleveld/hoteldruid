@@ -205,6 +205,7 @@
                             <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selectedBooking.ArrivalDate)</dd>
                             <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selectedBooking.DepartureDate)</dd>
                             <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selectedBooking.ActualArrivalDate)</dd>
+                            <dt>@L["bookings.actualDepartureDate", "Actual Checkout Date"]</dt><dd>@FormatDate(selectedBooking.ActualDepartureDate)</dd>
                             <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selectedBooking.ActualGuestCount?.ToString() ?? "-")</dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selectedBooking.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@(selectedBooking.Notes ?? "-")</dd>

@@ -539,6 +539,22 @@
   <data name="bookings.actualGuestCountPositive" xml:space="preserve"><value>Guests On Arrival must be greater than zero.</value></data>
   <data name="bookings.actualArrivalBeforeDeparture" xml:space="preserve"><value>Actual Arrival Date must be before Departure Date.</value></data>
   <data name="bookings.prepaidAmountNonNegative" xml:space="preserve"><value>Prepaid Amount must be greater than or equal to zero.</value></data>
+  <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Guest Details</value></data>
+  <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Other Bookings</value></data>
+  <data name="bookings.noGuestHistory" xml:space="preserve"><value>No other bookings found for this guest.</value></data>
+  <data name="bookings.actualDepartureDate" xml:space="preserve"><value>Actual Checkout Date</value></data>
+  <data name="bookings.actualDepartureDateOptional" xml:space="preserve"><value>Actual Checkout Date (optional)</value></data>
+  <data name="bookings.actualArrivalRequiredWithDeparture" xml:space="preserve"><value>Actual Arrival Date is required when Actual Checkout Date is set.</value></data>
+  <data name="bookings.actualDepartureAfterPlanned" xml:space="preserve"><value>Actual Checkout Date cannot be after Departure Date.</value></data>
+  <data name="bookings.actualDepartureBeforeArrival" xml:space="preserve"><value>Actual Checkout Date must be on or after Actual Arrival Date.</value></data>
+  <data name="bookings.alreadyCheckedOut" xml:space="preserve"><value>Booking is already checked out.</value></data>
+  <data name="bookings.checkOut" xml:space="preserve"><value>Check Out</value></data>
+  <data name="bookings.markNoShow" xml:space="preserve"><value>Mark No-Show</value></data>
+  <data name="bookings.noShowAfterCheckIn" xml:space="preserve"><value>Cannot mark no-show after check-in.</value></data>
+  <data name="bookings.noShowNotesRequired" xml:space="preserve"><value>Notes are required for no-show.</value></data>
+  <data name="bookings.unassignedRoom" xml:space="preserve"><value>Unassigned room</value></data>
+  <data name="bookings.unknownClient" xml:space="preserve"><value>Unknown client</value></data>
+  <data name="bookings.unknownRoom" xml:space="preserve"><value>Unknown room</value></data>
   <data name="bookings.clientRequired" xml:space="preserve"><value>Select an existing client or enter new client details.</value></data>
   <data name="bookings.clientLastNameRequired" xml:space="preserve"><value>Last Name is required for a new client.</value></data>
   <data name="bookings.clientCreateFailed" xml:space="preserve"><value>Failed to create client.</value></data>

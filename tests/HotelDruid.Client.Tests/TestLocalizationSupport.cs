@@ -2,6 +2,7 @@ using System.Globalization;
 using HotelDruid.Client.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Moq;
 
 namespace HotelDruid.Client.Tests;
 
@@ -12,6 +13,15 @@ internal static class TestLocalizationSupport
         services.AddSingleton(typeof(IStringLocalizer<>), typeof(TestStringLocalizer<>));
         services.AddScoped<IClientCultureService, TestClientCultureService>();
         services.AddScoped<IActiveYearService, TestActiveYearService>();
+
+        var inventoryApi = new Mock<IInventoryApiService>();
+        inventoryApi.Setup(x => x.GetInventoryAsync()).ReturnsAsync(new List<InventoryDto>());
+        services.AddScoped(_ => inventoryApi.Object);
+
+        var warehouseApi = new Mock<IWarehouseApiService>();
+        warehouseApi.Setup(x => x.GetWarehousesAsync()).ReturnsAsync(new List<WarehouseDto>());
+        services.AddScoped(_ => warehouseApi.Object);
+
         return services;
     }
 }

@@ -2,7 +2,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .app-header {
@@ -77,18 +78,24 @@
 
 .page-body {
     flex: 1;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 4rem);
+    min-height: 0;
+    overflow: hidden;
 }
 
 .content {
     flex: 1;
+    min-height: 0;
+    overflow: auto;
 }
 
 .app-drawer-backdrop {
@@ -128,10 +135,11 @@ main {
 .global-footer {
     border-top: 1px solid #e5e5e5;
     color: #6c757d;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    font-size: 0.4375rem;
+    line-height: 1.2;
+    min-height: 1.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
     text-align: center;
     background: #fff;
 }

@@ -2621,7 +2621,8 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.Notes,
     s.ActualArrivalDate,
     s.ActualGuestCount,
-    s.PrepaidAmount);
+    s.PrepaidAmount,
+    s.ActualDepartureDate);
 
 string? ValidateBookingRequest(BookingDto request, int expectedYear)
 {
@@ -2645,8 +2646,83 @@ string? ValidateBookingRequest(BookingDto request, int expectedYear)
         return "ActualGuestCount must be greater than zero";
     if (request.ActualArrivalDate.HasValue && request.DepartureDate.HasValue && request.ActualArrivalDate.Value >= request.DepartureDate.Value)
         return "ActualArrivalDate must be before DepartureDate";
+    if (request.ActualDepartureDate.HasValue && !request.ActualArrivalDate.HasValue)
+        return "ActualArrivalDate is required when ActualDepartureDate is provided";
+    if (request.ActualDepartureDate.HasValue && request.DepartureDate.HasValue && request.ActualDepartureDate.Value > request.DepartureDate.Value)
+        return "ActualDepartureDate cannot be after DepartureDate";
+    if (request.ActualDepartureDate.HasValue && request.ActualArrivalDate.HasValue && request.ActualDepartureDate.Value < request.ActualArrivalDate.Value)
+        return "ActualDepartureDate must be on or after ActualArrivalDate";
 
     return null;
+}
+
+bool IsNonBlockingBookingStatus(string? status)
+{
+    if (string.IsNullOrWhiteSpace(status))
+    {
+        return false;
+    }
+
+    return status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+           || status.Contains("void", StringComparison.OrdinalIgnoreCase)
+           || status.Contains("deleted", StringComparison.OrdinalIgnoreCase);
+}
+
+bool IsCurrentStay(BookingStorageModel booking, DateOnly today)
+{
+    if (string.IsNullOrWhiteSpace(booking.RoomId)
+        || IsNonBlockingBookingStatus(booking.Status)
+        || !booking.ActualArrivalDate.HasValue
+        || booking.ActualDepartureDate.HasValue
+        || !booking.DepartureDate.HasValue
+        || booking.DepartureDate.Value <= booking.ActualArrivalDate.Value
+        || !booking.ActualGuestCount.HasValue
+        || booking.ActualGuestCount.Value <= 0)
+    {
+        return false;
+    }
+
+    return booking.ActualArrivalDate.Value <= today && today < booking.DepartureDate.Value;
+}
+
+bool IsReservation(BookingStorageModel booking)
+{
+    if (IsNonBlockingBookingStatus(booking.Status)
+        || booking.ActualArrivalDate.HasValue
+        || booking.ActualDepartureDate.HasValue
+        || !booking.ArrivalDate.HasValue
+        || !booking.DepartureDate.HasValue)
+    {
+        return false;
+    }
+
+    return booking.DepartureDate.Value > booking.ArrivalDate.Value;
+}
+
+bool IsPendingArrival(BookingStorageModel booking, DateOnly today, int lookAheadDays)
+{
+    if (!IsReservation(booking))
+    {
+        return false;
+    }
+
+    var latestArrival = today.AddDays(Math.Max(0, lookAheadDays));
+    return today <= booking.ArrivalDate!.Value && booking.ArrivalDate.Value <= latestArrival;
+}
+
+bool IsPendingDeparture(BookingStorageModel booking, DateOnly today)
+{
+    if (string.IsNullOrWhiteSpace(booking.RoomId)
+        || IsNonBlockingBookingStatus(booking.Status)
+        || !booking.ActualArrivalDate.HasValue
+        || booking.ActualDepartureDate.HasValue
+        || !booking.DepartureDate.HasValue
+        || booking.DepartureDate.Value <= booking.ActualArrivalDate.Value)
+    {
+        return false;
+    }
+
+    return booking.DepartureDate.Value == today;
 }
 
 app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
@@ -2670,6 +2746,133 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache que
 
     return Results.Ok(result);
 }).WithName("ListBookings");
+
+app.MapGet("/api/bookings/stays", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+{
+    var key = year.HasValue ? $"bookings:stays:year:{year.Value}" : "bookings:stays:all";
+    var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
+    {
+        var idx = await store.GetIndexAsync("bookings");
+        var prefix = year.HasValue ? $"{year}_" : null;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var computed = new List<BookingDto>();
+        foreach (var kvp in idx)
+        {
+            if (prefix != null && !kvp.Key.StartsWith(prefix))
+            {
+                continue;
+            }
+
+            var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+            if (booking is null || !IsCurrentStay(booking, today))
+            {
+                continue;
+            }
+
+            computed.Add(ToBookingDto(kvp.Value, booking));
+        }
+
+        return computed;
+    });
+
+    return Results.Ok(result);
+}).WithName("ListBookingStays");
+
+app.MapGet("/api/bookings/reservations", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+{
+    var key = year.HasValue ? $"bookings:reservations:year:{year.Value}" : "bookings:reservations:all";
+    var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
+    {
+        var idx = await store.GetIndexAsync("bookings");
+        var prefix = year.HasValue ? $"{year}_" : null;
+        var computed = new List<BookingDto>();
+        foreach (var kvp in idx)
+        {
+            if (prefix != null && !kvp.Key.StartsWith(prefix))
+            {
+                continue;
+            }
+
+            var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+            if (booking is null || !IsReservation(booking))
+            {
+                continue;
+            }
+
+            computed.Add(ToBookingDto(kvp.Value, booking));
+        }
+
+        return computed;
+    });
+
+    return Results.Ok(result);
+}).WithName("ListBookingReservations");
+
+app.MapGet("/api/bookings/arrivals", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, int? lookAheadDays) =>
+{
+    var effectiveLookAheadDays = Math.Max(0, lookAheadDays ?? 0);
+    var key = year.HasValue
+        ? $"bookings:arrivals:year:{year.Value}:lookahead:{effectiveLookAheadDays}"
+        : $"bookings:arrivals:all:lookahead:{effectiveLookAheadDays}";
+
+    var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
+    {
+        var idx = await store.GetIndexAsync("bookings");
+        var prefix = year.HasValue ? $"{year}_" : null;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var computed = new List<BookingDto>();
+        foreach (var kvp in idx)
+        {
+            if (prefix != null && !kvp.Key.StartsWith(prefix))
+            {
+                continue;
+            }
+
+            var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+            if (booking is null || !IsPendingArrival(booking, today, effectiveLookAheadDays))
+            {
+                continue;
+            }
+
+            computed.Add(ToBookingDto(kvp.Value, booking));
+        }
+
+        return computed;
+    });
+
+    return Results.Ok(result);
+}).WithName("ListBookingArrivals");
+
+app.MapGet("/api/bookings/departures", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+{
+    var key = year.HasValue ? $"bookings:departures:year:{year.Value}" : "bookings:departures:all";
+    var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
+    {
+        var idx = await store.GetIndexAsync("bookings");
+        var prefix = year.HasValue ? $"{year}_" : null;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var computed = new List<BookingDto>();
+        foreach (var kvp in idx)
+        {
+            if (prefix != null && !kvp.Key.StartsWith(prefix))
+            {
+                continue;
+            }
+
+            var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+            if (booking is null || !IsPendingDeparture(booking, today))
+            {
+                continue;
+            }
+
+            computed.Add(ToBookingDto(kvp.Value, booking));
+        }
+
+        return computed;
+    });
+
+    return Results.Ok(result);
+}).WithName("ListBookingDepartures");
 
 app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
@@ -2696,6 +2899,7 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
         Status = request.Status,
         Notes = request.Notes,
         ActualArrivalDate = request.ActualArrivalDate,
+        ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
         PrepaidAmount = request.PrepaidAmount
     };
@@ -2723,6 +2927,7 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         Status = request.Status,
         Notes = request.Notes,
         ActualArrivalDate = request.ActualArrivalDate,
+        ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
         PrepaidAmount = request.PrepaidAmount
     };
@@ -2753,6 +2958,72 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     queryCache.InvalidateTag("cancelled_bookings");
     return Results.NoContent();
 }).WithName("CancelBooking");
+
+app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (!request.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "ActualArrivalDate is required" });
+    if (!request.ActualGuestCount.HasValue || request.ActualGuestCount.Value <= 0)
+        return Results.BadRequest(new { error = "ActualGuestCount must be greater than zero" });
+    if (!booking.DepartureDate.HasValue || request.ActualArrivalDate.Value >= booking.DepartureDate.Value)
+        return Results.BadRequest(new { error = "ActualArrivalDate must be before DepartureDate" });
+    if (booking.ActualDepartureDate.HasValue)
+        return Results.BadRequest(new { error = "Cannot check in a booking that is already checked out" });
+
+    booking.ActualArrivalDate = request.ActualArrivalDate.Value;
+    booking.ActualGuestCount = request.ActualGuestCount.Value;
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "CheckedIn" : request.Status;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("CheckInBooking");
+
+app.MapPost("/api/bookings/{year:int}/{id}/check-out", async (int year, string id, BookingCheckOutRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (!request.ActualDepartureDate.HasValue)
+        return Results.BadRequest(new { error = "ActualDepartureDate is required" });
+    if (!booking.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "ActualArrivalDate is required when checking out" });
+    if (request.ActualDepartureDate.Value < booking.ActualArrivalDate.Value)
+        return Results.BadRequest(new { error = "ActualDepartureDate must be on or after ActualArrivalDate" });
+    if (booking.DepartureDate.HasValue && request.ActualDepartureDate.Value > booking.DepartureDate.Value)
+        return Results.BadRequest(new { error = "ActualDepartureDate cannot be after DepartureDate" });
+
+    booking.ActualDepartureDate = request.ActualDepartureDate.Value;
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "CheckedOut" : request.Status;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("CheckOutBooking");
+
+app.MapPost("/api/bookings/{year:int}/{id}/no-show", async (int year, string id, BookingNoShowRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year)
+        return Results.NotFound();
+
+    if (booking.ActualArrivalDate.HasValue)
+        return Results.BadRequest(new { error = "Cannot mark no-show after check-in" });
+    if (string.IsNullOrWhiteSpace(request.Notes))
+        return Results.BadRequest(new { error = "Notes are required for no-show" });
+
+    booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "NoShow" : request.Status;
+    booking.Notes = request.Notes;
+
+    await store.UpdateAsync("bookings", id, booking);
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("MarkBookingNoShow");
 
 // --- Layer 4: BookingCosts (costiprenotazione{year}) ---
 
@@ -3309,3 +3580,7 @@ app.MapGet("/api/documents/render/{type}/{number:int}",
     }).WithName("RenderDocument");
 
 app.Run();
+
+record BookingCheckInRequest(DateOnly? ActualArrivalDate, int? ActualGuestCount, string? Status);
+record BookingCheckOutRequest(DateOnly? ActualDepartureDate, string? Status);
+record BookingNoShowRequest(string? Notes, string? Status);
