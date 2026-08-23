@@ -51,7 +51,7 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
 
-        var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        var createTariffResponse = await _client.PostAsJsonAsync("/api/extra-costs", new
         {
             Id = (string?)null,
             Year = 2026,
@@ -65,14 +65,14 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.Created, createTariffResponse.StatusCode);
 
-        var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>("/api/tariffs?year=2027");
+        var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>("/api/extra-costs?year=2027");
         Assert.NotNull(firstRead);
         Assert.Empty(firstRead!);
 
         List<TariffDto> healed = new();
         for (var i = 0; i < 20; i++)
         {
-            healed = await _client.GetFromJsonAsync<List<TariffDto>>("/api/tariffs?year=2027") ?? new();
+            healed = await _client.GetFromJsonAsync<List<TariffDto>>("/api/extra-costs?year=2027") ?? new();
             if (healed.Count > 0)
             {
                 break;
@@ -103,7 +103,7 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
 
-        var createOlderTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        var createOlderTariffResponse = await _client.PostAsJsonAsync("/api/extra-costs", new
         {
             Id = (string?)null,
             Year = sourceYear1,
@@ -117,7 +117,7 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.Created, createOlderTariffResponse.StatusCode);
 
-        var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        var createTariffResponse = await _client.PostAsJsonAsync("/api/extra-costs", new
         {
             Id = (string?)null,
             Year = sourceYear2,
@@ -131,14 +131,14 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.Created, createTariffResponse.StatusCode);
 
-        var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}");
+        var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/extra-costs?year={requestedYear}");
         Assert.NotNull(firstRead);
         Assert.Empty(firstRead!);
 
         List<TariffDto> healed = new();
         for (var i = 0; i < 20; i++)
         {
-            healed = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}") ?? new();
+            healed = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/extra-costs?year={requestedYear}") ?? new();
             if (healed.Count > 0)
             {
                 break;
@@ -167,7 +167,7 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         });
         Assert.Equal(HttpStatusCode.OK, configResponse.StatusCode);
 
-        var createTariffResponse = await _client.PostAsJsonAsync("/api/tariffs", new
+        var createTariffResponse = await _client.PostAsJsonAsync("/api/extra-costs", new
         {
             Id = (string?)null,
             Year = currentYear,
@@ -183,7 +183,7 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
 
         for (var i = 0; i < 8; i++)
         {
-            var read = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/tariffs?year={requestedYear}");
+            var read = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/extra-costs?year={requestedYear}");
             Assert.NotNull(read);
             Assert.Empty(read!);
             await Task.Delay(50);

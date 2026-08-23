@@ -16,6 +16,9 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IAssetApiService, HotelDru
 // Warehouses and Inventory services
 builder.Services.AddScoped<HotelDruid.Client.Services.IRoomApiService, HotelDruid.Client.Services.RoomApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IWarehouseApiService, HotelDruid.Client.Services.WarehouseApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.ITariffApiService, HotelDruid.Client.Services.TariffApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.ITariffAssignmentApiService, HotelDruid.Client.Services.TariffAssignmentApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.ITariffSeasonApiService, HotelDruid.Client.Services.TariffSeasonApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IInventoryApiService, HotelDruid.Client.Services.InventoryApiService>();
 // Reference data services
 builder.Services.AddScoped<HotelDruid.Client.Services.INationApiService, HotelDruid.Client.Services.NationApiService>();
@@ -37,7 +40,7 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IUserRelationApiService, H
 builder.Services.AddScoped<HotelDruid.Client.Services.IGroupMembershipApiService, HotelDruid.Client.Services.GroupMembershipApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IYearApiService, HotelDruid.Client.Services.YearApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IPeriodApiService, HotelDruid.Client.Services.PeriodApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.ITariffApiService, HotelDruid.Client.Services.TariffApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.IExtraCostApiService, HotelDruid.Client.Services.ExtraCostApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssignmentRuleApiService, HotelDruid.Client.Services.AssignmentRuleApiService>();
 
 // Layer 4: Transactional entity services

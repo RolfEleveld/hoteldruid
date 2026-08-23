@@ -1,138 +1,650 @@
 @page "/tariffs"
+@using System.Text.RegularExpressions
 @using HotelDruid.Client.Services
 @inject ITariffApiService TariffApi
-@inject IActiveYearService ActiveYearService
-
+@inject ITariffAssignmentApiService AssignmentApi
+@inject ITariffSeasonApiService SeasonApi
+@inject IRoomApiService RoomApi
+@inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["tariffs.title", "Tariffs"]</PageTitle>
-<div class="container-fluid">
-    <div class="row align-items-center mb-2 mt-2">
-        <div class="col-auto"><h5 class="mb-0">Tariffs</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">Load</button>
+
+<div class="container-fluid tariffs-manager">
+    <div class="row g-3 h-100">
+        <!-- LEFT PANEL: Tariff List -->
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["tariffs.title", "Tariffs"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewTariff">
+                        <span class="bi bi-plus"></span> @L["tariffs.add", "Add Tariff"]
+                    </button>
+
+                    <input class="form-control form-control-sm mb-3"
+                           placeholder="@L["tariffs.searchPlaceholder", "Filter tariffs"]"
+                           @bind="listFilter" @bind:event="oninput" />
+
+                    @if (tariffs is null)
+                    {
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
+                    }
+                    else if (FilteredTariffs.Count == 0)
+                    {
+                        <div class="alert alert-info">@L["tariffs.emptyList", "No tariffs available"]</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var tariff in FilteredTariffs)
+                            {
+                                <button type="button"
+                                    class="list-group-item list-group-item-action @(selectedTariff?.Id == tariff.Id ? "active" : "")"
+                                    @onclick="() => SelectTariff(tariff)">
+                                    <div class="d-flex justify-content-between">
+                                        <span>@tariff.Name</span>
+                                        @if (!tariff.IsActive)
+                                        {
+                                            <small class="text-muted">@L["tariffs.inactive", "Inactive"]</small>
+                                        }
+                                    </div>
+                                    <small class="text-muted">@GetApplicabilitySummary(tariff)</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-3 border-end">
-            <button class="btn btn-sm btn-primary mb-2" @onclick="NewRecord">+ New</button>
-            @if (records is null) { <p><em>@L["common.loading", "Loading..."]</em></p> }
-            else if (records.Count == 0) { <p class="text-muted">No tariffs</p> }
+
+        <!-- MIDDLE PANEL: Tariff Details Editor -->
+        <div class="col-md-6">
+            @if (editModel is not null)
+            {
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h3 class="panel-title mb-0">
+                                    @if (string.IsNullOrEmpty(editModel.Name))
+                                    {
+                                        <span>@L["tariffs.newTariff", "New Tariff"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@editModel.Name</span>
+                                    }
+                                </h3>
+                                <small class="text-muted">@L["tariffs.manageTariff", "Manage the tariff"]</small>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(lastError))
+                        {
+                            <div class="alert alert-danger alert-sm mt-2 mb-0">@lastError</div>
+                        }
+                    </div>
+
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">@L["tariffs.nameLabel", "Name"] <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" @bind="editModel.Name" />
+                                <small class="form-text text-muted">@L["tariffs.nameHelp", "e.g. Rack Rate, Weekend Rate, Week Rate"]</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">@L["tariffs.descriptionLabel", "Description"]</label>
+                                <textarea class="form-control" @bind="editModel.Description" rows="2"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">@L["tariffs.applicabilityLabel", "Applies to"]</label>
+                                <select class="form-select" @bind="editModel.ApplicabilityMode">
+                                    <option value="AnyDay">@L["tariffs.applicability.anyDay", "Any day (rack rate)"]</option>
+                                    <option value="Weekdays">@L["tariffs.applicability.weekdays", "Specific days of the week"]</option>
+                                    <option value="MinStay">@L["tariffs.applicability.minStay", "Minimum length of stay"]</option>
+                                </select>
+                            </div>
+
+                            @if (editModel.ApplicabilityMode == "Weekdays")
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">@L["tariffs.weekdaysLabel", "Days of the week"]</label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var day in WeekdayOptions)
+                                        {
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" id="@("wd_" + day.Bit)"
+                                                       checked="@((editModel.WeekdaysMask & day.Bit) != 0)"
+                                                       @onchange="e => ToggleWeekday(day.Bit, (bool)(e.Value ?? false))" />
+                                                <label class="form-check-label" for="@("wd_" + day.Bit)">@day.Label</label>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (editModel.ApplicabilityMode == "MinStay")
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">@L["tariffs.minNightsLabel", "Minimum nights"]</label>
+                                    <input type="number" class="form-control" min="1" @bind="editModel.MinNights" />
+                                    <small class="form-text text-muted">@L["tariffs.minNightsHelp", "e.g. 7 for a week rate, 30 for a month rate"]</small>
+                                </div>
+                            }
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">@L["tariffs.pricePerNightLabel", "Price per night"] <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" step="0.01" min="0" @bind="editModel.PricePerNight" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">@L["tariffs.pricePerPersonLabel", "Price per extra person"]</label>
+                                    <input type="number" class="form-control" step="0.01" min="0" @bind="editModel.PricePerPerson" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">@L["tariffs.priorityLabel", "Priority"]</label>
+                                    <input type="number" class="form-control" @bind="editModel.Priority" />
+                                    <small class="form-text text-muted">@L["tariffs.priorityHelp", "Higher priority wins when several tariffs could apply"]</small>
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="isActive" @bind="editModel.IsActive" />
+                                        <label class="form-check-label" for="isActive">@L["tariffs.isActiveLabel", "Active"]</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">@L["tariffs.seasonalAdjustments", "Seasonal adjustments"]</label>
+                                @if (editModel.Id is not null)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="AddSeason">
+                                        <span class="bi bi-plus"></span> @L["tariffs.addSeason", "Add season"]
+                                    </button>
+                                }
+                            </div>
+
+                            @if (editModel.Id is null)
+                            {
+                                <div class="alert alert-light border small mb-0">@L["tariffs.seasonsSaveFirst", "Save the tariff first to add seasonal adjustments."]</div>
+                            }
+                            else if (seasons is null)
+                            {
+                                <div class="text-muted small">@L["common.loading", "Loading..."]</div>
+                            }
+                            else if (seasons.Count == 0)
+                            {
+                                <div class="alert alert-light border small mb-0">@L["tariffs.seasonsEmpty", "No seasonal adjustments defined."]</div>
+                            }
+                            else
+                            {
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>@L["tariffs.season.name", "Name"]</th>
+                                            <th>@L["tariffs.season.start", "Start"]</th>
+                                            <th>@L["tariffs.season.end", "End"]</th>
+                                            <th>@L["tariffs.season.adjustment", "Adjustment"]</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var season in seasons)
+                                        {
+                                            <tr>
+                                                <td><input class="form-control form-control-sm" @bind="season.Name" /></td>
+                                                <td><input type="date" class="form-control form-control-sm" value="@season.StartDate.ToString("yyyy-MM-dd")" @onchange="e => season.StartDate = ParseDate(e.Value)" /></td>
+                                                <td><input type="date" class="form-control form-control-sm" value="@season.EndDate.ToString("yyyy-MM-dd")" @onchange="e => season.EndDate = ParseDate(e.Value)" /></td>
+                                                <td class="d-flex gap-1">
+                                                    <select class="form-select form-select-sm" @bind="season.AdjustmentType">
+                                                        <option value="PercentageAdjustment">%</option>
+                                                        <option value="AmountAdjustment">+/-</option>
+                                                        <option value="FixedOverride">=</option>
+                                                    </select>
+                                                    <input type="number" class="form-control form-control-sm" step="0.01" @bind="season.Value" />
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveSeason(season)">
+                                                        <span class="bi bi-trash"></span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="SaveSeasons">
+                                        @L["tariffs.saveSeasons", "Save seasons"]
+                                    </button>
+                                </div>
+                            }
+                        </form>
+                    </div>
+
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-primary flex-grow-1" @onclick="SaveTariff">
+                                <span class="bi bi-download"></span> @L["common.save", "Save"]
+                            </button>
+                            @if (editModel.Id is not null)
+                            {
+                                <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteTariff">
+                                    <span class="bi bi-trash"></span> @L["common.delete", "Delete"]
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
             else
             {
-                <ul class="list-group">
-                    @foreach (var r in records)
-                    {
-                        <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
-                            style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.ExtraCostName</div>
-                            <small>@r.CostType — @r.BaseValue</small>
-                        </li>
-                    }
-                </ul>
-            }
-        </div>
-        <div class="col-md-6 border-end">
-            @if (editing)
-            {
-                <h5 class="mt-1">@(isNew ? "New Tariff" : "Edit Tariff")</h5>
-                <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
-                    <div class="col-6"><label>Extra Cost Name</label><input class="form-control" @bind="form.ExtraCostName" /></div>
-                    <div class="col-6"><label>Cost Type</label><input class="form-control" @bind="form.CostType" /></div>
-                    <div class="col-6"><label>Base Value</label><input class="form-control" type="number" step="0.01" @bind="form.BaseValue" /></div>
-                    <div class="col-6"><label>Percentage Value</label><input class="form-control" type="number" step="0.01" @bind="form.PercentageValue" /></div>
-                    <div class="col-6"><label>Tax %</label><input class="form-control" type="number" step="0.01" @bind="form.TaxPercentage" /></div>
-                    <div class="col-6"><label>Category</label><input class="form-control" @bind="form.Category" /></div>
-                    <div class="col-6"><label>Number Limit</label><input class="form-control" type="number" @bind="form.NumberLimit" /></div>
-                </div>
-                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
-                <div class="mt-3">
-                    <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
-                    <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p class="mb-2"><span class="bi bi-arrow-left" style="font-size: 2rem;"></span></p>
+                        <p>@L["tariffs.selectPrompt", "Select a tariff from the list or add a new one"]</p>
+                    </div>
                 </div>
             }
         </div>
+
+        <!-- RIGHT PANEL: Applicable Rooms + Calendar -->
         <div class="col-md-3">
-            @if (selected is not null && !editing)
-            {
-                <h5 class="mt-1">@L["common.details", "Details"]</h5>
-                <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
-                    <dt>Extra Cost Name</dt><dd>@selected.ExtraCostName</dd>
-                    <dt>Cost Type</dt><dd>@selected.CostType</dd>
-                    <dt>Base Value</dt><dd>@selected.BaseValue</dd>
-                    <dt>Category</dt><dd>@selected.Category</dd>
-                </dl>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
-                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
-            }
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["tariffs.overviewTitle", "Overview"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (selectedTariff is null)
+                    {
+                        <div class="alert alert-info">@L["tariffs.selectForOverview", "Select a tariff to see where it applies"]</div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <div class="fw-semibold">@L["tariffs.applicableRooms", "Applicable rooms"]</div>
+                            @if (assignedRooms is null)
+                            {
+                                <div class="text-muted small">@L["common.loading", "Loading..."]</div>
+                            }
+                            else if (assignedRooms.Count == 0)
+                            {
+                                <div class="text-muted small">@L["tariffs.noRoomsAssigned", "This tariff is not assigned to any room yet."]</div>
+                            }
+                            else
+                            {
+                                <div class="list-group mb-2">
+                                    @foreach (var room in assignedRooms)
+                                    {
+                                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" @onclick="() => GoToRoom(room.Id)">
+                                            <span>@room.Name</span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick:stopPropagation="true" @onclick="() => UnassignRoom(room.Id)">
+                                                <span class="bi bi-x"></span>
+                                            </button>
+                                        </button>
+                                    }
+                                </div>
+                            }
+
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" @bind="roomToAssign">
+                                    <option value="">@L["tariffs.assignRoomPrompt", "Assign to room..."]</option>
+                                    @foreach (var room in GetUnassignedRooms())
+                                    {
+                                        <option value="@room.Id">@room.Name</option>
+                                    }
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="AssignRoom">@L["common.add", "Add"]</button>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div>
+                            <div class="fw-semibold mb-2">@L["tariffs.applicabilityCalendar", "Applicability calendar"]</div>
+                            <TariffMiniCalendar IsApplicable="IsTariffApplicableOn" OnDayClick="GoToCalendarDay" />
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<style>
+.tariffs-manager {
+    height: calc(100vh - 120px);
+}
+</style>
+
 @code {
-    private List<TariffDto>? records;
-    private TariffDto? selected;
-    private bool editing, isNew;
-    private string errorMsg = "";
-    private int? filterYear;
-    private FormModel form = new();
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
+    private List<TariffDto>? tariffs;
+    private TariffDto? selectedTariff;
+    private TariffEditModel? editModel;
+    private List<TariffSeasonEditModel>? seasons;
+    private List<RoomDto>? allRooms;
+    private List<RoomDto>? assignedRooms;
+    private List<TariffAssignmentDto> currentAssignments = new();
+    private string? lastError;
+    private string listFilter = string.Empty;
+    private string roomToAssign = string.Empty;
+
+    private static readonly (int Bit, string Label)[] WeekdayOptions =
+    {
+        (1, "Mon"), (2, "Tue"), (4, "Wed"), (8, "Thu"), (16, "Fri"), (32, "Sat"), (64, "Sun")
+    };
+
+    private class TariffEditModel
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public string ApplicabilityMode { get; set; } = "AnyDay";
+        public int WeekdaysMask { get; set; }
+        public int? MinNights { get; set; }
+        public double PricePerNight { get; set; }
+        public double? PricePerPerson { get; set; }
+        public int Priority { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        public TariffDto ToDto() => new(
+            Id, Name, Description, ApplicabilityMode,
+            ApplicabilityMode == "Weekdays" ? WeekdaysMask : null,
+            ApplicabilityMode == "MinStay" ? MinNights : null,
+            PricePerNight, PricePerPerson, Priority, IsActive, "Room", null);
+
+        public static TariffEditModel FromDto(TariffDto dto) => new()
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Description = dto.Description,
+            ApplicabilityMode = dto.ApplicabilityMode,
+            WeekdaysMask = dto.WeekdaysMask ?? 0,
+            MinNights = dto.MinNights,
+            PricePerNight = dto.PricePerNight,
+            PricePerPerson = dto.PricePerPerson,
+            Priority = dto.Priority,
+            IsActive = dto.IsActive
+        };
+    }
+
+    private class TariffSeasonEditModel
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public DateOnly StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DateOnly EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+        public string AdjustmentType { get; set; } = "PercentageAdjustment";
+        public double Value { get; set; }
+
+        public static TariffSeasonEditModel FromDto(TariffSeasonDto dto) => new()
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            AdjustmentType = dto.AdjustmentType,
+            Value = dto.Value
+        };
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = ActiveYearService.CurrentYear;
-        await LoadAll();
+        allRooms = await RoomApi.GetRoomsAsync();
+        await LoadTariffs();
+        ApplySelectedTariffFromQuery();
     }
 
-    private async Task LoadAll() => records = await TariffApi.ListAsync(filterYear);
-    private async Task ApplyFilter() => await LoadAll();
-
-    private void NewRecord() { form = new() { Year = filterYear ?? DateTime.Now.Year }; isNew = true; editing = true; selected = null; errorMsg = ""; }
-    private void SelectRecord(TariffDto r) { selected = r; editing = false; }
-    private void EditSelected()
+    protected override Task OnParametersSetAsync()
     {
-        if (selected is null) return;
-        form = new() { Year = selected.Year, ExtraCostName = selected.ExtraCostName, CostType = selected.CostType, BaseValue = selected.BaseValue, PercentageValue = selected.PercentageValue, TaxPercentage = selected.TaxPercentage, Category = selected.Category, NumberLimit = selected.NumberLimit };
-        isNew = false; editing = true; errorMsg = "";
+        ApplySelectedTariffFromQuery();
+        return Task.CompletedTask;
     }
 
-    private async Task Save()
+    private List<TariffDto> FilteredTariffs
     {
-        if (form.Year == 0) { errorMsg = "Year is required."; return; }
-        var dto = new TariffDto(selected?.Id, form.Year, form.ExtraCostName, form.CostType, form.BaseValue, form.PercentageValue, form.TaxPercentage, form.Category, form.NumberLimit);
+        get
+        {
+            if (tariffs is null) return new();
+            if (string.IsNullOrWhiteSpace(listFilter)) return tariffs;
+            var term = listFilter.Trim();
+            return tariffs.Where(t => (t.Name?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (t.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+        }
+    }
+
+    private async Task LoadTariffs()
+    {
         try
         {
-            if (isNew) await TariffApi.CreateAsync(dto);
-            else await TariffApi.UpdateAsync(selected!.Year, selected.Id!, dto);
-            editing = false;
-            await LoadAll();
+            tariffs = await TariffApi.GetTariffsAsync();
         }
-        catch { errorMsg = "Save failed."; }
+        catch (Exception ex)
+        {
+            lastError = string.Format(L["tariffs.loadFailed", "Failed to load tariffs: {0}"], ex.Message);
+        }
     }
 
-    private void Cancel() { editing = false; errorMsg = ""; }
-
-    private async Task DeleteSelected()
+    private void ApplySelectedTariffFromQuery()
     {
-        if (selected?.Id is null) return;
-        try { await TariffApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = "Delete failed."; }
+        if (tariffs is null || string.IsNullOrWhiteSpace(SelectedId)) return;
+        var requested = tariffs.FirstOrDefault(t => string.Equals(t.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        if (requested is not null && !string.Equals(selectedTariff?.Id, requested.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            _ = SelectTariff(requested);
+        }
     }
 
-    private class FormModel
+    private void AddNewTariff()
     {
-        public int Year { get; set; }
-        public string? ExtraCostName { get; set; }
-        public string? CostType { get; set; }
-        public double? BaseValue { get; set; }
-        public double? PercentageValue { get; set; }
-        public double? TaxPercentage { get; set; }
-        public string? Category { get; set; }
-        public int? NumberLimit { get; set; }
+        selectedTariff = null;
+        editModel = new TariffEditModel();
+        seasons = null;
+        assignedRooms = null;
+        currentAssignments = new();
+        lastError = null;
+    }
+
+    private async Task SelectTariff(TariffDto tariff)
+    {
+        selectedTariff = tariff;
+        editModel = TariffEditModel.FromDto(tariff);
+        lastError = null;
+        await LoadSeasons();
+        await LoadAssignments();
+    }
+
+    private async Task LoadSeasons()
+    {
+        if (selectedTariff?.Id is null) { seasons = null; return; }
+        var dtos = await SeasonApi.GetSeasonsAsync(selectedTariff.Id);
+        seasons = dtos.Select(TariffSeasonEditModel.FromDto).ToList();
+    }
+
+    private async Task LoadAssignments()
+    {
+        if (selectedTariff?.Id is null) { assignedRooms = null; return; }
+        currentAssignments = await AssignmentApi.GetAssignmentsAsync(tariffId: selectedTariff.Id);
+        var roomIds = currentAssignments.Select(a => a.TargetId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        assignedRooms = (allRooms ?? new())
+            .Where(r => r.Id is not null && roomIds.Contains(r.Id))
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private List<RoomDto> GetUnassignedRooms()
+    {
+        if (allRooms is null) return new();
+        var assignedIds = (assignedRooms ?? new()).Select(r => r.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return allRooms.Where(r => r.Id is not null && !assignedIds.Contains(r.Id))
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private async Task AssignRoom()
+    {
+        if (string.IsNullOrWhiteSpace(roomToAssign) || selectedTariff?.Id is null) return;
+        await AssignmentApi.CreateAssignmentAsync(new TariffAssignmentDto(null, selectedTariff.Id, "Room", roomToAssign, null));
+        roomToAssign = string.Empty;
+        await LoadAssignments();
+    }
+
+    private async Task UnassignRoom(string? roomId)
+    {
+        if (roomId is null) return;
+        var assignment = currentAssignments.FirstOrDefault(a => string.Equals(a.TargetId, roomId, StringComparison.OrdinalIgnoreCase));
+        if (assignment?.Id is null) return;
+        await AssignmentApi.DeleteAssignmentAsync(assignment.Id);
+        await LoadAssignments();
+    }
+
+    private void GoToRoom(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId)) return;
+        Navigation.NavigateTo($"/rooms?selectedId={Uri.EscapeDataString(roomId)}");
+    }
+
+    private void GoToCalendarDay(DateOnly day)
+    {
+        Navigation.NavigateTo($"/calendar?year={day.Year}&month={day.Month}");
+    }
+
+    private void AddSeason()
+    {
+        seasons ??= new();
+        seasons.Add(new TariffSeasonEditModel());
+    }
+
+    private void RemoveSeason(TariffSeasonEditModel season)
+    {
+        seasons?.Remove(season);
+        if (season.Id is not null)
+        {
+            _ = SeasonApi.DeleteSeasonAsync(season.Id);
+        }
+    }
+
+    private async Task SaveSeasons()
+    {
+        if (seasons is null || selectedTariff?.Id is null) return;
+        foreach (var season in seasons)
+        {
+            var dto = new TariffSeasonDto(season.Id, selectedTariff.Id, season.Name, season.StartDate, season.EndDate, season.AdjustmentType, season.Value, null);
+            if (season.Id is null)
+            {
+                var newId = await SeasonApi.CreateSeasonAsync(dto);
+                season.Id = newId;
+            }
+            else
+            {
+                await SeasonApi.UpdateSeasonAsync(season.Id, dto);
+            }
+        }
+        await LoadSeasons();
+    }
+
+    private static DateOnly ParseDate(object? value)
+    {
+        if (value is string s && DateOnly.TryParse(s, out var parsed)) return parsed;
+        return DateOnly.FromDateTime(DateTime.Today);
+    }
+
+    private void ToggleWeekday(int bit, bool isChecked)
+    {
+        if (editModel is null) return;
+        editModel.WeekdaysMask = isChecked ? (editModel.WeekdaysMask | bit) : (editModel.WeekdaysMask & ~bit);
+    }
+
+    private async Task SaveTariff()
+    {
+        if (editModel is null) return;
+        if (string.IsNullOrWhiteSpace(editModel.Name))
+        {
+            lastError = L["tariffs.nameRequired", "Name is required."];
+            return;
+        }
+
+        try
+        {
+            var dto = editModel.ToDto();
+            if (editModel.Id is null)
+            {
+                var newId = await TariffApi.CreateTariffAsync(dto);
+                editModel.Id = newId;
+            }
+            else
+            {
+                await TariffApi.UpdateTariffAsync(editModel.Id, dto);
+            }
+            lastError = null;
+            await LoadTariffs();
+            var refreshed = tariffs?.FirstOrDefault(t => string.Equals(t.Id, editModel.Id, StringComparison.OrdinalIgnoreCase));
+            if (refreshed is not null) await SelectTariff(refreshed);
+        }
+        catch (Exception ex)
+        {
+            lastError = string.Format(L["tariffs.saveFailed", "Failed to save tariff: {0}"], ex.Message);
+        }
+    }
+
+    private async Task DeleteTariff()
+    {
+        if (editModel?.Id is null) return;
+        try
+        {
+            await TariffApi.DeleteTariffAsync(editModel.Id);
+            editModel = null;
+            selectedTariff = null;
+            seasons = null;
+            assignedRooms = null;
+            await LoadTariffs();
+        }
+        catch (Exception ex)
+        {
+            lastError = string.Format(L["tariffs.deleteFailed", "Failed to delete tariff: {0}"], ex.Message);
+        }
+    }
+
+    private string GetApplicabilitySummary(TariffDto tariff)
+    {
+        return tariff.ApplicabilityMode switch
+        {
+            "Weekdays" => string.Join(", ", WeekdayOptions.Where(w => ((tariff.WeekdaysMask ?? 0) & w.Bit) != 0).Select(w => w.Label)),
+            "MinStay" => string.Format(L["tariffs.minStaySummary", "Min. {0} nights"], tariff.MinNights ?? 0),
+            _ => L["tariffs.applicability.anyDay", "Any day (rack rate)"]
+        };
+    }
+
+    private bool IsTariffApplicableOn(DateOnly day)
+    {
+        if (selectedTariff is null) return false;
+        if (selectedTariff.ApplicabilityMode == "Weekdays")
+        {
+            var bit = day.DayOfWeek switch
+            {
+                DayOfWeek.Monday => 1,
+                DayOfWeek.Tuesday => 2,
+                DayOfWeek.Wednesday => 4,
+                DayOfWeek.Thursday => 8,
+                DayOfWeek.Friday => 16,
+                DayOfWeek.Saturday => 32,
+                DayOfWeek.Sunday => 64,
+                _ => 0
+            };
+            return ((selectedTariff.WeekdaysMask ?? 0) & bit) != 0;
+        }
+        // AnyDay (rack rate) and MinStay-based tariffs are not tied to a specific calendar day.
+        return selectedTariff.ApplicabilityMode == "AnyDay";
     }
 }
-
-

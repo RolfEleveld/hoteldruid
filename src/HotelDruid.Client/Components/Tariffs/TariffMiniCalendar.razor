@@ -1,0 +1,140 @@
+@using System
+
+<div class="tariff-mini-calendar">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="GoToPreviousMonth">
+            <span class="bi bi-chevron-left"></span>
+        </button>
+        <span class="fw-semibold small">@currentMonth.ToString("MMMM yyyy")</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="GoToNextMonth">
+            <span class="bi bi-chevron-right"></span>
+        </button>
+    </div>
+
+    <div class="tariff-mini-calendar-grid">
+        @foreach (var dayName in DayHeaders)
+        {
+            <div class="tariff-mini-calendar-header">@dayName</div>
+        }
+
+        @foreach (var cell in GetCells())
+        {
+            @if (cell is null)
+            {
+                <div class="tariff-mini-calendar-cell tariff-mini-calendar-empty"></div>
+            }
+            else
+            {
+                var day = cell.Value;
+                var applicable = IsApplicable is not null && IsApplicable(day);
+                <div class="tariff-mini-calendar-cell @(applicable ? "tariff-mini-calendar-active" : "")"
+                     title="@day.ToString("dddd, dd MMMM yyyy")"
+                     @onclick="() => HandleDayClick(day)">
+                    @day.Day
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<style>
+.tariff-mini-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.tariff-mini-calendar-header {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6c757d;
+    padding: 2px 0;
+}
+
+.tariff-mini-calendar-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.tariff-mini-calendar-cell:hover {
+    background-color: #e9ecef;
+}
+
+.tariff-mini-calendar-empty {
+    background: none;
+    cursor: default;
+}
+
+.tariff-mini-calendar-active {
+    background-color: #cfe2ff;
+    color: #084298;
+    font-weight: 600;
+}
+</style>
+
+@code {
+    /// <summary>The month currently displayed. Defaults to the current month if not supplied.</summary>
+    [Parameter] public DateTime InitialMonth { get; set; } = DateTime.Today;
+
+    /// <summary>Callback that determines whether a given day should be highlighted as applicable.</summary>
+    [Parameter] public Func<DateOnly, bool>? IsApplicable { get; set; }
+
+    /// <summary>Raised when the user clicks a day cell.</summary>
+    [Parameter] public EventCallback<DateOnly> OnDayClick { get; set; }
+
+    /// <summary>Raised when the displayed month changes via the prev/next controls.</summary>
+    [Parameter] public EventCallback<DateTime> OnMonthChanged { get; set; }
+
+    private DateTime currentMonth;
+    private static readonly string[] DayHeaders = { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" };
+
+    protected override void OnParametersSet()
+    {
+        if (currentMonth == default)
+        {
+            currentMonth = new DateTime(InitialMonth.Year, InitialMonth.Month, 1);
+        }
+    }
+
+    private IEnumerable<DateOnly?> GetCells()
+    {
+        var firstOfMonth = new DateOnly(currentMonth.Year, currentMonth.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+        // ISO week: Monday = 0 .. Sunday = 6
+        var leadingBlanks = ((int)firstOfMonth.DayOfWeek + 6) % 7;
+
+        for (var i = 0; i < leadingBlanks; i++)
+        {
+            yield return null;
+        }
+
+        for (var day = 1; day <= daysInMonth; day++)
+        {
+            yield return new DateOnly(currentMonth.Year, currentMonth.Month, day);
+        }
+    }
+
+    private async Task GoToPreviousMonth()
+    {
+        currentMonth = currentMonth.AddMonths(-1);
+        if (OnMonthChanged.HasDelegate) await OnMonthChanged.InvokeAsync(currentMonth);
+    }
+
+    private async Task GoToNextMonth()
+    {
+        currentMonth = currentMonth.AddMonths(1);
+        if (OnMonthChanged.HasDelegate) await OnMonthChanged.InvokeAsync(currentMonth);
+    }
+
+    private async Task HandleDayClick(DateOnly day)
+    {
+        if (OnDayClick.HasDelegate) await OnDayClick.InvokeAsync(day);
+    }
+}

@@ -65,6 +65,70 @@ public record AssetDto(string? Id, string? Name, string? Code, string? Descripti
 public record WarehouseDto(string? Id, string? Name, string? Code, string? Description, string? FloorNumber, string? HouseNumber, DateTime? CreatedAt);
 public record InventoryDto(string? Id, string? AssetId, string? RoomId, string? WarehouseId, int Quantity, int? MinQuantityDefault, bool? RequiredOnCheckin, DateTime? CreatedAt);
 
+/// <summary>
+/// Room-rate tariff (e.g. rack rate, weekend rate, week rate). Extensible via TargetType
+/// so the same model can later apply to amenities/services, not just rooms.
+/// </summary>
+public class TariffStorageModel
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    /// <summary>"AnyDay" (rack rate), "Weekdays" (specific days of week), or "MinStay" (week/month rate by length of stay).</summary>
+    public string? ApplicabilityMode { get; set; }
+    /// <summary>Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64. Used when ApplicabilityMode == "Weekdays".</summary>
+    public int? WeekdaysMask { get; set; }
+    /// <summary>Minimum nights required for this rate to apply. Used when ApplicabilityMode == "MinStay".</summary>
+    public int? MinNights { get; set; }
+    public double PricePerNight { get; set; }
+    public double? PricePerPerson { get; set; }
+    /// <summary>Higher priority wins when multiple tariffs could apply to the same day.</summary>
+    public int Priority { get; set; }
+    public bool IsActive { get; set; } = true;
+    /// <summary>Type of entity this tariff targets. Currently only "Room"; reserved for future "Amenity"/"Service".</summary>
+    public string TargetType { get; set; } = "Room";
+    public DateTime? CreatedAt { get; set; }
+}
+
+public class TariffAssignmentStorageModel
+{
+    public string? TariffId { get; set; }
+    /// <summary>Type of the assigned target. Currently only "Room"; reserved for future "Amenity"/"Service".</summary>
+    public string TargetType { get; set; } = "Room";
+    public string? TargetId { get; set; }
+    public DateTime? CreatedAt { get; set; }
+}
+
+public class TariffSeasonStorageModel
+{
+    public string? TariffId { get; set; }
+    public string? Name { get; set; }
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    /// <summary>"FixedOverride" (replace price), "PercentageAdjustment" (+/-% of base price), or "AmountAdjustment" (+/- flat amount).</summary>
+    public string? AdjustmentType { get; set; }
+    public double Value { get; set; }
+    public DateTime? CreatedAt { get; set; }
+}
+
+public record TariffDto(
+    string? Id,
+    string Name,
+    string? Description,
+    string ApplicabilityMode,
+    int? WeekdaysMask,
+    int? MinNights,
+    double PricePerNight,
+    double? PricePerPerson,
+    int Priority,
+    bool IsActive,
+    string TargetType,
+    DateTime? CreatedAt
+);
+
+public record TariffAssignmentDto(string? Id, string? TariffId, string TargetType, string? TargetId, DateTime? CreatedAt);
+
+public record TariffSeasonDto(string? Id, string? TariffId, string? Name, DateOnly StartDate, DateOnly EndDate, string AdjustmentType, double Value, DateTime? CreatedAt);
+
 public class NationStorageModel
 {
     public string? Name { get; set; }
@@ -337,7 +401,7 @@ public class PeriodStorageModel
     public double? Tariff12PerPerson { get; set; }
 }
 
-public class TariffStorageModel
+public class ExtraCostStorageModel
 {
     public int Year { get; set; }
     public string? ExtraCostName { get; set; }
@@ -393,7 +457,7 @@ public record PeriodDto(string? Id, int Year, DateOnly? StartDate, DateOnly? End
     double? Tariff11, double? Tariff11PerPerson,
     double? Tariff12, double? Tariff12PerPerson);
 
-public record TariffDto(string? Id, int Year, string? ExtraCostName, string? CostType, double? BaseValue, double? PercentageValue, double? TaxPercentage, string? Category, int? NumberLimit);
+public record ExtraCostDto(string? Id, int Year, string? ExtraCostName, string? CostType, double? BaseValue, double? PercentageValue, double? TaxPercentage, string? Category, int? NumberLimit);
 
 public record AssignmentRuleDto(string? Id, int Year, string? RoomOrAgency, string? ClosedTariff, string? TariffPerRoom, int? StartPeriodId, int? EndPeriodId, string? Reason1);
 

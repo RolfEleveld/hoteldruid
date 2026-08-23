@@ -204,6 +204,7 @@
   <data name="Nav.Years" xml:space="preserve"><value>Years</value></data>
   <data name="Nav.Periods" xml:space="preserve"><value>Periods</value></data>
   <data name="Nav.Tariffs" xml:space="preserve"><value>Tariffs</value></data>
+  <data name="Nav.ExtraCosts" xml:space="preserve"><value>Extra Costs</value></data>
   <data name="Nav.AssignmentRules" xml:space="preserve"><value>Assignment Rules</value></data>
   <data name="Nav.Bookings" xml:space="preserve"><value>Bookings</value></data>
   <data name="Nav.BookingCosts" xml:space="preserve"><value>Booking Costs</value></data>
@@ -329,6 +330,58 @@
   <data name="inventory.assetLocations" xml:space="preserve"><value>Other locations for this asset</value></data>
   <data name="inventory.assetLocationsEmpty" xml:space="preserve"><value>No other locations for this asset.</value></data>
   <data name="inventory.noWarehouseMatch" xml:space="preserve"><value>No warehouse matches this search.</value></data>
+  <data name="tariffs.title" xml:space="preserve"><value>Tariffs</value></data>
+  <data name="tariffs.add" xml:space="preserve"><value>Add Tariff</value></data>
+  <data name="tariffs.newTariff" xml:space="preserve"><value>New Tariff</value></data>
+  <data name="tariffs.manageTariff" xml:space="preserve"><value>Manage the tariff</value></data>
+  <data name="tariffs.emptyList" xml:space="preserve"><value>No tariffs available</value></data>
+  <data name="tariffs.inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="tariffs.searchPlaceholder" xml:space="preserve"><value>Filter tariffs</value></data>
+  <data name="tariffs.selectPrompt" xml:space="preserve"><value>Select a tariff from the list or add a new one</value></data>
+  <data name="tariffs.nameLabel" xml:space="preserve"><value>Name</value></data>
+  <data name="tariffs.nameHelp" xml:space="preserve"><value>e.g. Rack Rate, Weekend Rate, Week Rate</value></data>
+  <data name="tariffs.descriptionLabel" xml:space="preserve"><value>Description</value></data>
+  <data name="tariffs.applicabilityLabel" xml:space="preserve"><value>Applies to</value></data>
+  <data name="tariffs.applicability.anyDay" xml:space="preserve"><value>Any day (rack rate)</value></data>
+  <data name="tariffs.applicability.weekdays" xml:space="preserve"><value>Specific days of the week</value></data>
+  <data name="tariffs.applicability.minStay" xml:space="preserve"><value>Minimum length of stay</value></data>
+  <data name="tariffs.weekdaysLabel" xml:space="preserve"><value>Days of the week</value></data>
+  <data name="tariffs.minNightsLabel" xml:space="preserve"><value>Minimum nights</value></data>
+  <data name="tariffs.minNightsHelp" xml:space="preserve"><value>e.g. 7 for a week rate, 30 for a month rate</value></data>
+  <data name="tariffs.pricePerNightLabel" xml:space="preserve"><value>Price per night</value></data>
+  <data name="tariffs.pricePerPersonLabel" xml:space="preserve"><value>Price per extra person</value></data>
+  <data name="tariffs.priorityLabel" xml:space="preserve"><value>Priority</value></data>
+  <data name="tariffs.priorityHelp" xml:space="preserve"><value>Higher priority wins when several tariffs could apply</value></data>
+  <data name="tariffs.isActiveLabel" xml:space="preserve"><value>Active</value></data>
+  <data name="tariffs.seasonalAdjustments" xml:space="preserve"><value>Seasonal adjustments</value></data>
+  <data name="tariffs.addSeason" xml:space="preserve"><value>Add season</value></data>
+  <data name="tariffs.seasonsSaveFirst" xml:space="preserve"><value>Save the tariff first to add seasonal adjustments.</value></data>
+  <data name="tariffs.seasonsEmpty" xml:space="preserve"><value>No seasonal adjustments defined.</value></data>
+  <data name="tariffs.saveSeasons" xml:space="preserve"><value>Save seasons</value></data>
+  <data name="tariffs.season.name" xml:space="preserve"><value>Name</value></data>
+  <data name="tariffs.season.start" xml:space="preserve"><value>Start</value></data>
+  <data name="tariffs.season.end" xml:space="preserve"><value>End</value></data>
+  <data name="tariffs.season.adjustment" xml:space="preserve"><value>Adjustment</value></data>
+  <data name="tariffs.overviewTitle" xml:space="preserve"><value>Overview</value></data>
+  <data name="tariffs.selectForOverview" xml:space="preserve"><value>Select a tariff to see where it applies</value></data>
+  <data name="tariffs.applicableRooms" xml:space="preserve"><value>Applicable rooms</value></data>
+  <data name="tariffs.noRoomsAssigned" xml:space="preserve"><value>This tariff is not assigned to any room yet.</value></data>
+  <data name="tariffs.assignRoomPrompt" xml:space="preserve"><value>Assign to room...</value></data>
+  <data name="tariffs.applicabilityCalendar" xml:space="preserve"><value>Applicability calendar</value></data>
+  <data name="tariffs.loadFailed" xml:space="preserve"><value>Failed to load tariffs: {0}</value></data>
+  <data name="tariffs.saveFailed" xml:space="preserve"><value>Failed to save tariff: {0}</value></data>
+  <data name="tariffs.deleteFailed" xml:space="preserve"><value>Failed to delete tariff: {0}</value></data>
+  <data name="tariffs.nameRequired" xml:space="preserve"><value>Name is required.</value></data>
+  <data name="tariffs.minStaySummary" xml:space="preserve"><value>Min. {0} nights</value></data>
+  <data name="tariffs.assignedTariffs" xml:space="preserve"><value>Applicable tariffs</value></data>
+  <data name="tariffs.assignedTariffsEmpty" xml:space="preserve"><value>No tariffs assigned to this room yet.</value></data>
+  <data name="tariffs.roomCalendarTitle" xml:space="preserve"><value>Tariff calendar</value></data>
+  <data name="Index.Feature.Tariffs.Title" xml:space="preserve"><value>Tariffs</value></data>
+  <data name="Index.Feature.Tariffs.Subtitle" xml:space="preserve"><value>Room rate plans</value></data>
+  <data name="Index.Feature.Tariffs.Button" xml:space="preserve"><value>Manage Tariffs</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Tariffs" xml:space="preserve"><value>Tariffs to display</value></data>
+  <data name="Dashboard.Widget.Menu.AddTariff" xml:space="preserve"><value>Add tariff</value></data>
+  <data name="tariffs.filterEmpty" xml:space="preserve"><value>No tariffs match the current filter.</value></data>
   <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Unknown warehouse</value></data>
   <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Select an asset.</value></data>
   <data name="inventory.validation.locationRequired" xml:space="preserve"><value>Select a room or a warehouse.</value></data>

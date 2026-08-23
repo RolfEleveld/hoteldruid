@@ -980,7 +980,223 @@ app.MapDelete("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
     return Results.NoContent();
 }).WithName("DeleteInventory");
 
-// --- Export/Import API endpoints ---
+// --- Room Tariffs (rate plans: rack rate, weekend, week, month, seasonal, etc.) ---
+
+TariffDto ToTariffDto(string id, TariffStorageModel s) => new(
+    id, s.Name ?? "", s.Description, s.ApplicabilityMode ?? "AnyDay", s.WeekdaysMask, s.MinNights,
+    s.PricePerNight, s.PricePerPerson, s.Priority, s.IsActive, s.TargetType ?? "Room", s.CreatedAt);
+
+app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "Tariff name is required" });
+
+    var storage = new TariffStorageModel
+    {
+        Name = request.Name,
+        Description = request.Description,
+        ApplicabilityMode = string.IsNullOrWhiteSpace(request.ApplicabilityMode) ? "AnyDay" : request.ApplicabilityMode,
+        WeekdaysMask = request.WeekdaysMask,
+        MinNights = request.MinNights,
+        PricePerNight = request.PricePerNight,
+        PricePerPerson = request.PricePerPerson,
+        Priority = request.Priority,
+        IsActive = request.IsActive,
+        TargetType = string.IsNullOrWhiteSpace(request.TargetType) ? "Room" : request.TargetType,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    var id = await store.CreateAsync("tariffs", Guid.NewGuid().ToString("N"), storage);
+    return Results.Created($"/api/tariffs/{id}", ToTariffDto(id, storage));
+}).WithName("CreateTariff");
+
+app.MapGet("/api/tariffs/{id}", async (string id, IKeyValueStore store) =>
+{
+    var t = await store.GetAsync<TariffStorageModel>("tariffs", id);
+    if (t is null) return Results.NotFound();
+    return Results.Ok(ToTariffDto(id, t));
+}).WithName("GetTariff");
+
+app.MapGet("/api/tariffs", async (IKeyValueStore store) =>
+{
+    var all = await store.ListAsync<TariffStorageModel>("tariffs");
+    var idx = await store.GetIndexAsync("tariffs");
+    var list = new List<TariffDto>();
+    foreach (var kvp in idx)
+    {
+        var t = await store.GetAsync<TariffStorageModel>("tariffs", kvp.Value);
+        if (t is not null) list.Add(ToTariffDto(kvp.Value, t));
+    }
+    return Results.Ok(list.OrderByDescending(t => t.Priority).ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase));
+}).WithName("ListTariffs");
+
+app.MapPut("/api/tariffs/{id}", async (string id, TariffDto request, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("tariffs", id);
+    if (!exists) return Results.NotFound();
+    if (string.IsNullOrWhiteSpace(request.Name)) return Results.BadRequest(new { error = "Tariff name is required" });
+
+    var storage = new TariffStorageModel
+    {
+        Name = request.Name,
+        Description = request.Description,
+        ApplicabilityMode = string.IsNullOrWhiteSpace(request.ApplicabilityMode) ? "AnyDay" : request.ApplicabilityMode,
+        WeekdaysMask = request.WeekdaysMask,
+        MinNights = request.MinNights,
+        PricePerNight = request.PricePerNight,
+        PricePerPerson = request.PricePerPerson,
+        Priority = request.Priority,
+        IsActive = request.IsActive,
+        TargetType = string.IsNullOrWhiteSpace(request.TargetType) ? "Room" : request.TargetType,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    await store.UpdateAsync("tariffs", id, storage);
+    return Results.Ok(ToTariffDto(id, storage));
+}).WithName("UpdateTariff");
+
+app.MapDelete("/api/tariffs/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("tariffs", id);
+    if (!exists) return Results.NotFound();
+    await store.DeleteAsync("tariffs", id);
+
+    // Clean up assignments and seasons that reference this tariff.
+    var assignmentIdx = await store.GetIndexAsync("tariff_assignments");
+    foreach (var kvp in assignmentIdx)
+    {
+        var a = await store.GetAsync<TariffAssignmentStorageModel>("tariff_assignments", kvp.Value);
+        if (a is not null && string.Equals(a.TariffId, id, StringComparison.OrdinalIgnoreCase))
+        {
+            await store.DeleteAsync("tariff_assignments", kvp.Value);
+        }
+    }
+    var seasonIdx = await store.GetIndexAsync("tariff_seasons");
+    foreach (var kvp in seasonIdx)
+    {
+        var s = await store.GetAsync<TariffSeasonStorageModel>("tariff_seasons", kvp.Value);
+        if (s is not null && string.Equals(s.TariffId, id, StringComparison.OrdinalIgnoreCase))
+        {
+            await store.DeleteAsync("tariff_seasons", kvp.Value);
+        }
+    }
+
+    return Results.NoContent();
+}).WithName("DeleteTariff");
+
+// --- Tariff Assignments (many-to-many: a tariff can apply to many rooms, a room can have many tariffs) ---
+
+TariffAssignmentDto ToTariffAssignmentDto(string id, TariffAssignmentStorageModel s) => new(
+    id, s.TariffId, s.TargetType ?? "Room", s.TargetId, s.CreatedAt);
+
+app.MapPost("/api/tariff-assignments", async (TariffAssignmentDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.TariffId) || string.IsNullOrWhiteSpace(request.TargetId))
+        return Results.BadRequest(new { error = "TariffId and TargetId are required" });
+
+    var storage = new TariffAssignmentStorageModel
+    {
+        TariffId = request.TariffId,
+        TargetType = string.IsNullOrWhiteSpace(request.TargetType) ? "Room" : request.TargetType,
+        TargetId = request.TargetId,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    var id = await store.CreateAsync("tariff_assignments", Guid.NewGuid().ToString("N"), storage);
+    return Results.Created($"/api/tariff-assignments/{id}", ToTariffAssignmentDto(id, storage));
+}).WithName("CreateTariffAssignment");
+
+app.MapGet("/api/tariff-assignments", async (IKeyValueStore store, string? tariffId, string? targetId) =>
+{
+    var idx = await store.GetIndexAsync("tariff_assignments");
+    var list = new List<TariffAssignmentDto>();
+    foreach (var kvp in idx)
+    {
+        var a = await store.GetAsync<TariffAssignmentStorageModel>("tariff_assignments", kvp.Value);
+        if (a is null) continue;
+        if (tariffId is not null && !string.Equals(a.TariffId, tariffId, StringComparison.OrdinalIgnoreCase)) continue;
+        if (targetId is not null && !string.Equals(a.TargetId, targetId, StringComparison.OrdinalIgnoreCase)) continue;
+        list.Add(ToTariffAssignmentDto(kvp.Value, a));
+    }
+    return Results.Ok(list);
+}).WithName("ListTariffAssignments");
+
+app.MapDelete("/api/tariff-assignments/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("tariff_assignments", id);
+    if (!exists) return Results.NotFound();
+    await store.DeleteAsync("tariff_assignments", id);
+    return Results.NoContent();
+}).WithName("DeleteTariffAssignment");
+
+// --- Tariff Seasons (date-range price adjustments layered on top of a tariff's base price) ---
+
+TariffSeasonDto ToTariffSeasonDto(string id, TariffSeasonStorageModel s) => new(
+    id, s.TariffId, s.Name, s.StartDate, s.EndDate, s.AdjustmentType ?? "PercentageAdjustment", s.Value, s.CreatedAt);
+
+app.MapPost("/api/tariff-seasons", async (TariffSeasonDto request, IKeyValueStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.TariffId))
+        return Results.BadRequest(new { error = "TariffId is required" });
+
+    var storage = new TariffSeasonStorageModel
+    {
+        TariffId = request.TariffId,
+        Name = request.Name,
+        StartDate = request.StartDate,
+        EndDate = request.EndDate,
+        AdjustmentType = string.IsNullOrWhiteSpace(request.AdjustmentType) ? "PercentageAdjustment" : request.AdjustmentType,
+        Value = request.Value,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    var id = await store.CreateAsync("tariff_seasons", Guid.NewGuid().ToString("N"), storage);
+    return Results.Created($"/api/tariff-seasons/{id}", ToTariffSeasonDto(id, storage));
+}).WithName("CreateTariffSeason");
+
+app.MapGet("/api/tariff-seasons", async (IKeyValueStore store, string? tariffId) =>
+{
+    var idx = await store.GetIndexAsync("tariff_seasons");
+    var list = new List<TariffSeasonDto>();
+    foreach (var kvp in idx)
+    {
+        var s = await store.GetAsync<TariffSeasonStorageModel>("tariff_seasons", kvp.Value);
+        if (s is null) continue;
+        if (tariffId is not null && !string.Equals(s.TariffId, tariffId, StringComparison.OrdinalIgnoreCase)) continue;
+        list.Add(ToTariffSeasonDto(kvp.Value, s));
+    }
+    return Results.Ok(list.OrderBy(s => s.StartDate));
+}).WithName("ListTariffSeasons");
+
+app.MapPut("/api/tariff-seasons/{id}", async (string id, TariffSeasonDto request, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("tariff_seasons", id);
+    if (!exists) return Results.NotFound();
+
+    var storage = new TariffSeasonStorageModel
+    {
+        TariffId = request.TariffId,
+        Name = request.Name,
+        StartDate = request.StartDate,
+        EndDate = request.EndDate,
+        AdjustmentType = string.IsNullOrWhiteSpace(request.AdjustmentType) ? "PercentageAdjustment" : request.AdjustmentType,
+        Value = request.Value,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow
+    };
+
+    await store.UpdateAsync("tariff_seasons", id, storage);
+    return Results.Ok(ToTariffSeasonDto(id, storage));
+}).WithName("UpdateTariffSeason");
+
+app.MapDelete("/api/tariff-seasons/{id}", async (string id, IKeyValueStore store) =>
+{
+    var exists = await store.ExistsAsync("tariff_seasons", id);
+    if (!exists) return Results.NotFound();
+    await store.DeleteAsync("tariff_seasons", id);
+    return Results.NoContent();
+}).WithName("DeleteTariffSeason");
+
+
 
 app.MapPost("/api/export/create", async (ExportRequest? request, IExportService exportService) =>
 {
@@ -2258,74 +2474,74 @@ app.MapDelete("/api/periods/{year:int}/{id}", async (int year, string id, IKeyVa
     return Results.NoContent();
 }).WithName("DeletePeriod");
 
-// --- Layer 3: Tariffs (ntariffe{year}) ---
+// --- Layer 3: Extra Costs (ntariffe{year}) ---
 
-TariffDto ToTariffDto(string id, TariffStorageModel s) => new(
+ExtraCostDto ToExtraCostDto(string id, ExtraCostStorageModel s) => new(
     id, s.Year, s.ExtraCostName, s.CostType, s.BaseValue, s.PercentageValue, s.TaxPercentage, s.Category, s.NumberLimit);
 
-app.MapGet("/api/tariffs", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
+app.MapGet("/api/extra-costs", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
 {
-    var idx = await store.GetIndexAsync("tariffs");
+    var idx = await store.GetIndexAsync("extra_costs");
     var prefix = year.HasValue ? $"{year}_" : null;
-    var result = new List<TariffDto>();
+    var result = new List<ExtraCostDto>();
     foreach (var kvp in idx)
     {
         if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
-        var t = await store.GetAsync<TariffStorageModel>("tariffs", kvp.Value);
+        var t = await store.GetAsync<ExtraCostStorageModel>("extra_costs", kvp.Value);
         if (t is null) continue;
-        result.Add(ToTariffDto(kvp.Value, t));
+        result.Add(ToExtraCostDto(kvp.Value, t));
     }
 
     if (year.HasValue && result.Count == 0)
     {
-        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("tariffs", year.Value));
+        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("extra_costs", year.Value));
     }
 
     return Results.Ok(result);
-}).WithName("ListTariffs");
+}).WithName("ListExtraCosts");
 
-app.MapGet("/api/tariffs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapGet("/api/extra-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
-    var t = await store.GetAsync<TariffStorageModel>("tariffs", id);
+    var t = await store.GetAsync<ExtraCostStorageModel>("extra_costs", id);
     if (t is null || t.Year != year) return Results.NotFound();
-    return Results.Ok(ToTariffDto(id, t));
-}).WithName("GetTariff");
+    return Results.Ok(ToExtraCostDto(id, t));
+}).WithName("GetExtraCost");
 
-app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
+app.MapPost("/api/extra-costs", async (ExtraCostDto request, IKeyValueStore store) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
-    var storage = new TariffStorageModel
+    var storage = new ExtraCostStorageModel
     {
         Year = request.Year, ExtraCostName = request.ExtraCostName, CostType = request.CostType,
         BaseValue = request.BaseValue, PercentageValue = request.PercentageValue,
         TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit
     };
-    var id = await store.CreateAsync("tariffs", key, storage);
-    return Results.Created($"/api/tariffs/{request.Year}/{id}", ToTariffDto(id, storage));
-}).WithName("CreateTariff");
+    var id = await store.CreateAsync("extra_costs", key, storage);
+    return Results.Created($"/api/extra-costs/{request.Year}/{id}", ToExtraCostDto(id, storage));
+}).WithName("CreateExtraCost");
 
-app.MapPut("/api/tariffs/{year:int}/{id}", async (int year, string id, TariffDto request, IKeyValueStore store) =>
+app.MapPut("/api/extra-costs/{year:int}/{id}", async (int year, string id, ExtraCostDto request, IKeyValueStore store) =>
 {
-    var t = await store.GetAsync<TariffStorageModel>("tariffs", id);
+    var t = await store.GetAsync<ExtraCostStorageModel>("extra_costs", id);
     if (t is null || t.Year != year) return Results.NotFound();
-    var storage = new TariffStorageModel
+    var storage = new ExtraCostStorageModel
     {
         Year = year, ExtraCostName = request.ExtraCostName, CostType = request.CostType,
         BaseValue = request.BaseValue, PercentageValue = request.PercentageValue,
         TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit
     };
-    await store.UpdateAsync("tariffs", id, storage);
-    return Results.Ok(ToTariffDto(id, storage));
-}).WithName("UpdateTariff");
+    await store.UpdateAsync("extra_costs", id, storage);
+    return Results.Ok(ToExtraCostDto(id, storage));
+}).WithName("UpdateExtraCost");
 
-app.MapDelete("/api/tariffs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapDelete("/api/extra-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
-    var t = await store.GetAsync<TariffStorageModel>("tariffs", id);
+    var t = await store.GetAsync<ExtraCostStorageModel>("extra_costs", id);
     if (t is null || t.Year != year) return Results.NotFound();
-    await store.DeleteAsync("tariffs", id);
+    await store.DeleteAsync("extra_costs", id);
     return Results.NoContent();
-}).WithName("DeleteTariff");
+}).WithName("DeleteExtraCost");
 
 // --- Layer 3: Assignment Rules (regole{year}) ---
 

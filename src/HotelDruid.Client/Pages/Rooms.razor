@@ -3,9 +3,12 @@
 @using System.Text.RegularExpressions
 @using System.Text.Json
 @using HotelDruid.Shared
+@using TariffServices = HotelDruid.Client.Services
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@inject TariffServices.ITariffApiService TariffApi
+@inject TariffServices.ITariffAssignmentApiService TariffAssignmentApi
 @implements IAsyncDisposable
 
 <PageTitle>@L["rooms.title", "Top Rooms"]</PageTitle>
@@ -253,6 +256,61 @@
             </div>
         </div>
     </div>
+
+    @if (selectedRoom is not null)
+    {
+        <div class="row g-3 mt-1">
+            <!-- Room Tariffs & Calendar -->
+            <div class="col-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">
+                            <span class="bi bi-tags-fill"></span> @L["tariffs.assignedTariffs", "Applicable tariffs"]
+                        </h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                @if (allTariffs is null)
+                                {
+                                    <div class="text-muted small">@L["common.loading", "Loading..."]</div>
+                                }
+                                else if (allTariffs.Count == 0)
+                                {
+                                    <div class="alert alert-info">@L["tariffs.emptyList", "No tariffs available"]</div>
+                                }
+                                else
+                                {
+                                    <div class="list-group">
+                                        @foreach (var tariff in allTariffs)
+                                        {
+                                            <label class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <input type="checkbox" class="form-check-input me-2"
+                                                           checked="@IsTariffAssignedToRoom(tariff.Id)"
+                                                           @onchange="e => ToggleRoomTariff(tariff, (bool)(e.Value ?? false))" />
+                                                    @tariff.Name
+                                                </span>
+                                                <small class="text-muted">@tariff.PricePerNight.ToString("0.00")</small>
+                                            </label>
+                                        }
+                                    </div>
+                                }
+                                @if (allTariffs is not null && allTariffs.Count == 0)
+                                {
+                                    <a class="btn btn-outline-secondary btn-sm mt-2" href="/tariffs">@L["tariffs.add", "Add Tariff"]</a>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <div class="fw-semibold mb-2">@L["tariffs.roomCalendarTitle", "Tariff calendar"]</div>
+                                <TariffMiniCalendar IsApplicable="IsRoomDaySpecificTariff" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 <style>
@@ -412,6 +470,7 @@
     {
         statusMessage = L["common.noChanges", "No changes"];
         await LoadRooms();
+        await LoadAllTariffs();
         ApplySelectedRoomFromQuery();
         initAutoSaveTimer();
     }
@@ -461,11 +520,11 @@
         var requestedRoom = rooms.FirstOrDefault(room => string.Equals(room.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
         if (requestedRoom is not null && !string.Equals(selectedRoom?.Id, requestedRoom.Id, StringComparison.OrdinalIgnoreCase))
         {
-            SelectRoom(requestedRoom);
+            _ = SelectRoom(requestedRoom);
         }
     }
 
-    private void SelectRoom(RoomDto room)
+    private async Task SelectRoom(RoomDto room)
     {
         selectedRoom = room;
         editModel = RoomEditModel.FromDto(room);
@@ -474,6 +533,7 @@
         lastError = null;
         lastWarning = null;
         ClearAutoSaveTimer();
+        await LoadRoomTariffAssignments();
     }
 
     private void AddNewRoom()
@@ -484,6 +544,67 @@
         hasUnsavedChanges = false;
         lastError = null;
         lastWarning = null;
+        roomTariffAssignments = new();
+    }
+
+    private List<TariffServices.TariffDto>? allTariffs;
+    private List<TariffServices.TariffAssignmentDto> roomTariffAssignments = new();
+
+    private async Task LoadAllTariffs()
+    {
+        allTariffs = await TariffApi.GetTariffsAsync();
+    }
+
+    private async Task LoadRoomTariffAssignments()
+    {
+        if (selectedRoom?.Id is null) { roomTariffAssignments = new(); return; }
+        roomTariffAssignments = await TariffAssignmentApi.GetAssignmentsAsync(targetId: selectedRoom.Id);
+    }
+
+    private bool IsTariffAssignedToRoom(string? tariffId)
+    {
+        return tariffId is not null && roomTariffAssignments.Any(a => string.Equals(a.TariffId, tariffId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task ToggleRoomTariff(TariffServices.TariffDto tariff, bool isChecked)
+    {
+        if (selectedRoom?.Id is null || tariff.Id is null) return;
+
+        if (isChecked)
+        {
+            await TariffAssignmentApi.CreateAssignmentAsync(new TariffServices.TariffAssignmentDto(null, tariff.Id, "Room", selectedRoom.Id, null));
+        }
+        else
+        {
+            var existing = roomTariffAssignments.FirstOrDefault(a => string.Equals(a.TariffId, tariff.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing?.Id is not null)
+            {
+                await TariffAssignmentApi.DeleteAssignmentAsync(existing.Id);
+            }
+        }
+
+        await LoadRoomTariffAssignments();
+    }
+
+    private bool IsRoomDaySpecificTariff(DateOnly day)
+    {
+        if (allTariffs is null || roomTariffAssignments.Count == 0) return false;
+
+        var bit = day.DayOfWeek switch
+        {
+            DayOfWeek.Monday => 1,
+            DayOfWeek.Tuesday => 2,
+            DayOfWeek.Wednesday => 4,
+            DayOfWeek.Thursday => 8,
+            DayOfWeek.Friday => 16,
+            DayOfWeek.Saturday => 32,
+            DayOfWeek.Sunday => 64,
+            _ => 0
+        };
+
+        var assignedIds = roomTariffAssignments.Select(a => a.TariffId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return allTariffs.Any(t => t.Id is not null && assignedIds.Contains(t.Id)
+            && t.ApplicabilityMode == "Weekdays" && ((t.WeekdaysMask ?? 0) & bit) != 0);
     }
 
     private void OnFieldChanged()

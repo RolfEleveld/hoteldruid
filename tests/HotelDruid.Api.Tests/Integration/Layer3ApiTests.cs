@@ -148,12 +148,12 @@ public class Layer3ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
     }
 
-    // ========== Tariffs ==========
+    // ========== Extra Costs ==========
 
     [Fact]
-    public async Task Tariff_Create_ReturnsCreated()
+    public async Task ExtraCost_Create_ReturnsCreated()
     {
-        var r = await _client.PostAsync("/api/tariffs", Json(new { Year = 2024, ExtraCostName = "Breakfast", CostType = "fixed", BaseValue = 15.0 }));
+        var r = await _client.PostAsync("/api/extra-costs", Json(new { Year = 2024, ExtraCostName = "Breakfast", CostType = "fixed", BaseValue = 15.0 }));
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
         var dto = await ReadAs<TariffDto>(r);
         Assert.NotNull(dto?.Id);
@@ -162,33 +162,33 @@ public class Layer3ApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Tariff_GetByYearAndId_ReturnsOk()
+    public async Task ExtraCost_GetByYearAndId_ReturnsOk()
     {
-        var create = await _client.PostAsync("/api/tariffs", Json(new { Year = 2024, ExtraCostName = "Parking", CostType = "per_night" }));
+        var create = await _client.PostAsync("/api/extra-costs", Json(new { Year = 2024, ExtraCostName = "Parking", CostType = "per_night" }));
         var created = await ReadAs<TariffDto>(create);
-        var r = await _client.GetAsync($"/api/tariffs/2024/{created!.Id}");
+        var r = await _client.GetAsync($"/api/extra-costs/2024/{created!.Id}");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var dto = await ReadAs<TariffDto>(r);
         Assert.Equal("Parking", dto?.ExtraCostName);
     }
 
     [Fact]
-    public async Task Tariff_List_FilteredByYear()
+    public async Task ExtraCost_List_FilteredByYear()
     {
-        await _client.PostAsync("/api/tariffs", Json(new { Year = 2040, ExtraCostName = "Spa" }));
-        await _client.PostAsync("/api/tariffs", Json(new { Year = 2041, ExtraCostName = "Gym" }));
-        var r = await _client.GetAsync("/api/tariffs?year=2040");
+        await _client.PostAsync("/api/extra-costs", Json(new { Year = 2040, ExtraCostName = "Spa" }));
+        await _client.PostAsync("/api/extra-costs", Json(new { Year = 2041, ExtraCostName = "Gym" }));
+        var r = await _client.GetAsync("/api/extra-costs?year=2040");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var list = await ReadAs<List<TariffDto>>(r);
         Assert.All(list!, t => Assert.Equal(2040, t.Year));
     }
 
     [Fact]
-    public async Task Tariff_Delete_ReturnsNoContent()
+    public async Task ExtraCost_Delete_ReturnsNoContent()
     {
-        var create = await _client.PostAsync("/api/tariffs", Json(new { Year = 2024, ExtraCostName = "ToDelete" }));
+        var create = await _client.PostAsync("/api/extra-costs", Json(new { Year = 2024, ExtraCostName = "ToDelete" }));
         var created = await ReadAs<TariffDto>(create);
-        var r = await _client.DeleteAsync($"/api/tariffs/2024/{created!.Id}");
+        var r = await _client.DeleteAsync($"/api/extra-costs/2024/{created!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
     }
 

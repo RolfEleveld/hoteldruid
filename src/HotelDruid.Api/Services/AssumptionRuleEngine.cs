@@ -30,7 +30,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
         await _semaphore.WaitAsync();
         try
         {
-            if (entityType.Equals("tariffs", StringComparison.OrdinalIgnoreCase))
+            if (entityType.Equals("extra_costs", StringComparison.OrdinalIgnoreCase))
             {
                 await HealTariffsAsync(year);
                 return;
@@ -49,7 +49,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
 
     private async Task HealTariffsAsync(int year)
     {
-        var target = await _store.ListAsync<TariffStorageModel>("tariffs");
+        var target = await _store.ListAsync<ExtraCostStorageModel>("extra_costs");
         if (target.Any(t => t.Year == year))
         {
             return;
@@ -72,7 +72,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
         foreach (var tariff in source)
         {
             var key = $"{year}_{Guid.NewGuid():N}";
-            var clone = new TariffStorageModel
+            var clone = new ExtraCostStorageModel
             {
                 Year = year,
                 ExtraCostName = tariff.ExtraCostName,
@@ -84,7 +84,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
                 NumberLimit = tariff.NumberLimit
             };
 
-            await _store.CreateAsync("tariffs", key, clone);
+            await _store.CreateAsync("extra_costs", key, clone);
         }
 
         _logger.LogInformation("Healed {Count} missing tariffs for year {Year} using source year {SourceYear}", source.Count, year, sourceYear.Value);
@@ -203,7 +203,7 @@ public class AssumptionRuleEngine : IAssumptionRuleEngine
         return requestedYear - 1;
     }
 
-    private async Task<int?> ResolveTariffSourceYearAsync(int requestedYear, List<TariffStorageModel> availableTariffs)
+    private async Task<int?> ResolveTariffSourceYearAsync(int requestedYear, List<ExtraCostStorageModel> availableTariffs)
     {
         var config = await _configurationStore.GetAsync();
 

@@ -277,6 +277,58 @@
   <data name="Nav.Years" xml:space="preserve"><value>Años</value></data>
   <data name="Nav.Periods" xml:space="preserve"><value>Períodos</value></data>
   <data name="Nav.Tariffs" xml:space="preserve"><value>Tarifas</value></data>
+  <data name="tariffs.title" xml:space="preserve"><value>Tarifas</value></data>
+  <data name="tariffs.add" xml:space="preserve"><value>Añadir tarifa</value></data>
+  <data name="tariffs.newTariff" xml:space="preserve"><value>Nueva tarifa</value></data>
+  <data name="tariffs.manageTariff" xml:space="preserve"><value>Gestionar la tarifa</value></data>
+  <data name="tariffs.emptyList" xml:space="preserve"><value>No hay tarifas disponibles</value></data>
+  <data name="tariffs.inactive" xml:space="preserve"><value>Inactiva</value></data>
+  <data name="tariffs.searchPlaceholder" xml:space="preserve"><value>Filtrar tarifas</value></data>
+  <data name="tariffs.selectPrompt" xml:space="preserve"><value>Seleccione una tarifa de la lista o añada una nueva</value></data>
+  <data name="tariffs.nameLabel" xml:space="preserve"><value>Nombre</value></data>
+  <data name="tariffs.nameHelp" xml:space="preserve"><value>p. ej. Tarifa base, Tarifa de fin de semana, Tarifa semanal</value></data>
+  <data name="tariffs.descriptionLabel" xml:space="preserve"><value>Descripción</value></data>
+  <data name="tariffs.applicabilityLabel" xml:space="preserve"><value>Se aplica a</value></data>
+  <data name="tariffs.applicability.anyDay" xml:space="preserve"><value>Cualquier día (tarifa base)</value></data>
+  <data name="tariffs.applicability.weekdays" xml:space="preserve"><value>Días concretos de la semana</value></data>
+  <data name="tariffs.applicability.minStay" xml:space="preserve"><value>Estancia mínima</value></data>
+  <data name="tariffs.weekdaysLabel" xml:space="preserve"><value>Días de la semana</value></data>
+  <data name="tariffs.minNightsLabel" xml:space="preserve"><value>Noches mínimas</value></data>
+  <data name="tariffs.minNightsHelp" xml:space="preserve"><value>p. ej. 7 para una tarifa semanal, 30 para una tarifa mensual</value></data>
+  <data name="tariffs.pricePerNightLabel" xml:space="preserve"><value>Precio por noche</value></data>
+  <data name="tariffs.pricePerPersonLabel" xml:space="preserve"><value>Precio por persona adicional</value></data>
+  <data name="tariffs.priorityLabel" xml:space="preserve"><value>Prioridad</value></data>
+  <data name="tariffs.priorityHelp" xml:space="preserve"><value>La prioridad más alta gana cuando varias tarifas podrían aplicarse</value></data>
+  <data name="tariffs.isActiveLabel" xml:space="preserve"><value>Activa</value></data>
+  <data name="tariffs.seasonalAdjustments" xml:space="preserve"><value>Ajustes de temporada</value></data>
+  <data name="tariffs.addSeason" xml:space="preserve"><value>Añadir temporada</value></data>
+  <data name="tariffs.seasonsSaveFirst" xml:space="preserve"><value>Guarde la tarifa primero para añadir ajustes de temporada.</value></data>
+  <data name="tariffs.seasonsEmpty" xml:space="preserve"><value>No hay ajustes de temporada definidos.</value></data>
+  <data name="tariffs.saveSeasons" xml:space="preserve"><value>Guardar temporadas</value></data>
+  <data name="tariffs.season.name" xml:space="preserve"><value>Nombre</value></data>
+  <data name="tariffs.season.start" xml:space="preserve"><value>Inicio</value></data>
+  <data name="tariffs.season.end" xml:space="preserve"><value>Fin</value></data>
+  <data name="tariffs.season.adjustment" xml:space="preserve"><value>Ajuste</value></data>
+  <data name="tariffs.overviewTitle" xml:space="preserve"><value>Resumen</value></data>
+  <data name="tariffs.selectForOverview" xml:space="preserve"><value>Seleccione una tarifa para ver dónde se aplica</value></data>
+  <data name="tariffs.applicableRooms" xml:space="preserve"><value>Habitaciones aplicables</value></data>
+  <data name="tariffs.noRoomsAssigned" xml:space="preserve"><value>Esta tarifa aún no está asignada a ninguna habitación.</value></data>
+  <data name="tariffs.assignRoomPrompt" xml:space="preserve"><value>Asignar a habitación...</value></data>
+  <data name="tariffs.applicabilityCalendar" xml:space="preserve"><value>Calendario de aplicabilidad</value></data>
+  <data name="tariffs.loadFailed" xml:space="preserve"><value>Error al cargar las tarifas: {0}</value></data>
+  <data name="tariffs.saveFailed" xml:space="preserve"><value>Error al guardar la tarifa: {0}</value></data>
+  <data name="tariffs.deleteFailed" xml:space="preserve"><value>Error al eliminar la tarifa: {0}</value></data>
+  <data name="tariffs.nameRequired" xml:space="preserve"><value>El nombre es obligatorio.</value></data>
+  <data name="tariffs.minStaySummary" xml:space="preserve"><value>Mín. {0} noches</value></data>
+  <data name="tariffs.assignedTariffs" xml:space="preserve"><value>Tarifas aplicables</value></data>
+  <data name="tariffs.assignedTariffsEmpty" xml:space="preserve"><value>Aún no hay tarifas asignadas a esta habitación.</value></data>
+  <data name="tariffs.roomCalendarTitle" xml:space="preserve"><value>Calendario de tarifas</value></data>
+  <data name="Index.Feature.Tariffs.Title" xml:space="preserve"><value>Tarifas</value></data>
+  <data name="Index.Feature.Tariffs.Subtitle" xml:space="preserve"><value>Planes de tarifas de habitaciones</value></data>
+  <data name="Index.Feature.Tariffs.Button" xml:space="preserve"><value>Gestionar tarifas</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Tariffs" xml:space="preserve"><value>Tarifas a mostrar</value></data>
+  <data name="Dashboard.Widget.Menu.AddTariff" xml:space="preserve"><value>Añadir tarifa</value></data>
+  <data name="tariffs.filterEmpty" xml:space="preserve"><value>Ninguna tarifa coincide con el filtro actual.</value></data>
   <data name="Nav.AssignmentRules" xml:space="preserve"><value>Reglas de asignación</value></data>
   <data name="Nav.Bookings" xml:space="preserve"><value>Reservas</value></data>
   <data name="Nav.BookingCosts" xml:space="preserve"><value>Costes de reserva</value></data>
