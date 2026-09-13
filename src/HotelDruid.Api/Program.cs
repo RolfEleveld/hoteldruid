@@ -138,6 +138,7 @@ builder.Services.AddSingleton<FileKvStore>();
 builder.Services.AddSingleton<IRoomRepository, RoomRepository>();
 builder.Services.AddSingleton<ISystemConfigurationStore, SystemConfigurationStore>();
 builder.Services.AddSingleton<IAssumptionRuleEngine, AssumptionRuleEngine>();
+builder.Services.AddSingleton<ITariffResolutionService, TariffResolutionService>();
 builder.Services.AddSingleton<ILedgerRepository>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<LedgerRepository>>();
@@ -984,7 +985,7 @@ app.MapDelete("/api/inventory/{id}", async (string id, IKeyValueStore store) =>
 
 TariffDto ToTariffDto(string id, TariffStorageModel s) => new(
     id, s.Name ?? "", s.Description, s.ApplicabilityMode ?? "AnyDay", s.WeekdaysMask, s.MinNights,
-    s.PricePerNight, s.PricePerPerson, s.Priority, s.IsActive, s.TargetType ?? "Room", s.CreatedAt);
+    s.PricePerNight, s.PricePerPerson, s.Priority, s.IsActive, s.TargetType ?? "Room", s.CreatedAt, s.MinGuestCount);
 
 app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
 {
@@ -998,6 +999,7 @@ app.MapPost("/api/tariffs", async (TariffDto request, IKeyValueStore store) =>
         ApplicabilityMode = string.IsNullOrWhiteSpace(request.ApplicabilityMode) ? "AnyDay" : request.ApplicabilityMode,
         WeekdaysMask = request.WeekdaysMask,
         MinNights = request.MinNights,
+        MinGuestCount = request.MinGuestCount,
         PricePerNight = request.PricePerNight,
         PricePerPerson = request.PricePerPerson,
         Priority = request.Priority,
@@ -1043,6 +1045,7 @@ app.MapPut("/api/tariffs/{id}", async (string id, TariffDto request, IKeyValueSt
         ApplicabilityMode = string.IsNullOrWhiteSpace(request.ApplicabilityMode) ? "AnyDay" : request.ApplicabilityMode,
         WeekdaysMask = request.WeekdaysMask,
         MinNights = request.MinNights,
+        MinGuestCount = request.MinGuestCount,
         PricePerNight = request.PricePerNight,
         PricePerPerson = request.PricePerPerson,
         Priority = request.Priority,
@@ -1195,6 +1198,12 @@ app.MapDelete("/api/tariff-seasons/{id}", async (string id, IKeyValueStore store
     await store.DeleteAsync("tariff_seasons", id);
     return Results.NoContent();
 }).WithName("DeleteTariffSeason");
+
+app.MapGet("/api/tariffs/resolve", async (string roomId, DateOnly arrivalDate, DateOnly departureDate, int? guestCount, ITariffResolutionService resolver) =>
+{
+    var result = await resolver.ResolveAsync(roomId, arrivalDate, departureDate, guestCount ?? 1);
+    return result is null ? Results.NotFound() : Results.Ok(result);
+}).WithName("ResolveTariff");
 
 
 
@@ -2622,7 +2631,21 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.ActualArrivalDate,
     s.ActualGuestCount,
     s.PrepaidAmount,
-    s.ActualDepartureDate);
+    s.ActualDepartureDate,
+    s.ExpectedGuestCount,
+    s.TariffId);
+
+async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
+{
+    if (string.IsNullOrWhiteSpace(storage.RoomId) || !storage.ArrivalDate.HasValue || !storage.DepartureDate.HasValue)
+    {
+        return;
+    }
+
+    var guestCount = storage.ActualGuestCount ?? storage.ExpectedGuestCount ?? 1;
+    var result = await resolver.ResolveAsync(storage.RoomId, storage.ArrivalDate.Value, storage.DepartureDate.Value, guestCount);
+    storage.TariffId = result?.TariffId;
+}
 
 string? ValidateBookingRequest(BookingDto request, int expectedYear)
 {
@@ -2881,7 +2904,7 @@ app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToBookingDto(id, b));
 }).WithName("GetBooking");
 
-app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver) =>
 {
     var validationError = ValidateBookingRequest(request, request.Year);
     if (validationError is not null)
@@ -2901,14 +2924,16 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
         ActualArrivalDate = request.ActualArrivalDate,
         ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
-        PrepaidAmount = request.PrepaidAmount
+        PrepaidAmount = request.PrepaidAmount,
+        ExpectedGuestCount = request.ExpectedGuestCount
     };
+    await ResolveAndApplyTariffAsync(storage, resolver);
     var id = await store.CreateAsync("bookings", key, storage);
     queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
 
-app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
@@ -2929,8 +2954,10 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         ActualArrivalDate = request.ActualArrivalDate,
         ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
-        PrepaidAmount = request.PrepaidAmount
+        PrepaidAmount = request.PrepaidAmount,
+        ExpectedGuestCount = request.ExpectedGuestCount
     };
+    await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);
     queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));
@@ -2959,7 +2986,7 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     return Results.NoContent();
 }).WithName("CancelBooking");
 
-app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, ISystemConfigurationStore configurationStore) =>
 {
     var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (booking is null || booking.Year != year)
@@ -2977,6 +3004,23 @@ app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id
     booking.ActualArrivalDate = request.ActualArrivalDate.Value;
     booking.ActualGuestCount = request.ActualGuestCount.Value;
     booking.Status = string.IsNullOrWhiteSpace(request.Status) ? "CheckedIn" : request.Status;
+
+    // Business rule (persisted in SystemConfiguration.Settings["TariffAutoCorrectOnCheckIn"], enabled by default):
+    // when the guest turns out to be more people than expected at booking time, re-resolve the tariff
+    // so higher-occupancy per-person pricing is applied instead of keeping the originally quoted rate.
+    if (booking.ActualGuestCount.Value > (booking.ExpectedGuestCount ?? 0))
+    {
+        var config = await configurationStore.GetAsync();
+        var autoCorrectEnabled = !(config?.Settings is not null
+            && config.Settings.TryGetValue("TariffAutoCorrectOnCheckIn", out var flag)
+            && bool.TryParse(flag, out var parsedFlag)
+            && !parsedFlag);
+
+        if (autoCorrectEnabled)
+        {
+            await ResolveAndApplyTariffAsync(booking, resolver);
+        }
+    }
 
     await store.UpdateAsync("bookings", id, booking);
     queryCache.InvalidateTag("bookings");

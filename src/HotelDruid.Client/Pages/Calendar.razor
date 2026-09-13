@@ -8,6 +8,7 @@
 @inject IBookingApiService BookingApi
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApiService
+@inject ITariffApiService TariffApi
 @inject IActiveYearService ActiveYearService
 @inject NavigationManager Navigation
 
@@ -110,7 +111,7 @@
                                                             class="calendar-day-cell @occupancy.CssClass @(GetWeekendClass(day)) @(selectedDetailsMode == CalendarDetailsMode.Booking && selectedBooking?.Id == occupancy.Booking?.Id ? "selected" : string.Empty)"
                                                             title="@occupancy.Tooltip"
                                                             disabled="@(!occupancy.HasBooking)"
-                                                            @onclick="() => SelectOccupancy(occupancy)">
+                                                            @onclick="() => HandleDayCellClick(occupancy)">
                                                         <span class="visually-hidden">@occupancy.Tooltip</span>
                                                     </button>
                                                 </td>
@@ -195,8 +196,8 @@
                     else if (selectedBooking is not null)
                     {
                         <div class="mb-3">
-                            <div class="fw-semibold">@GetRoomName(selectedBooking.RoomId)</div>
-                            <div class="text-muted small">@GetClientName(selectedBooking.ClientId)</div>
+                            <div class="fw-semibold"><a href="/rooms?selectedId=@selectedBooking.RoomId">@GetRoomName(selectedBooking.RoomId)</a></div>
+                            <div class="text-muted small"><a href="/clients?selectedId=@selectedBooking.ClientId">@GetClientName(selectedBooking.ClientId)</a></div>
                         </div>
 
                         <dl class="mb-3 calendar-detail-dl">
@@ -206,7 +207,15 @@
                             <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selectedBooking.DepartureDate)</dd>
                             <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selectedBooking.ActualArrivalDate)</dd>
                             <dt>@L["bookings.actualDepartureDate", "Actual Checkout Date"]</dt><dd>@FormatDate(selectedBooking.ActualDepartureDate)</dd>
-                            <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selectedBooking.ActualGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.guestsLabel", "Guests"]</dt><dd>@((selectedBooking.ActualGuestCount ?? selectedBooking.ExpectedGuestCount)?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.tariffLabel", "Tariff"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(selectedBooking.TariffId))
+                                {
+                                    <a href="/tariffs?selectedId=@selectedBooking.TariffId">@GetTariffName(selectedBooking.TariffId)</a>
+                                }
+                                else { <text>-</text> }
+                            </dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selectedBooking.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@(selectedBooking.Notes ?? "-")</dd>
                         </dl>
@@ -385,6 +394,7 @@
     private List<RoomRecord> rooms = new();
     private List<BookingDto> bookings = new();
     private List<ClientRecord> clients = new();
+    private List<TariffDto> knownTariffs = new();
     private List<DateOnly> monthItems = new();
     private List<DateOnly> monthDays = new();
     private List<BookingDto> dayBookings = new();
@@ -517,6 +527,7 @@
                 .ToList();
             clients = await ClientApi.GetAllAsync();
             bookings = await BookingApi.ListAsync(ActiveYearService.CurrentYear);
+            knownTariffs = await TariffApi.GetTariffsAsync();
         }
         finally
         {
@@ -594,19 +605,15 @@
         roomBookings = GetBookingsForRoom(room.Id).ToList();
     }
 
-    private void SelectOccupancy(CalendarOccupancy occupancy)
+    /// <summary>Clicking a booked day jumps straight to its reservation record, same target as "Open reservation".</summary>
+    private void HandleDayCellClick(CalendarOccupancy occupancy)
     {
         if (!occupancy.HasBooking || occupancy.Booking is null)
         {
             return;
         }
 
-        selectedBooking = occupancy.Booking;
-        selectedDetailsMode = CalendarDetailsMode.Booking;
-        selectedRoom = rooms.FirstOrDefault(room => string.Equals(room.Id, occupancy.Booking.RoomId, StringComparison.OrdinalIgnoreCase)) ?? selectedRoom;
-        selectedDate = occupancy.Booking.ActualArrivalDate ?? occupancy.Booking.ArrivalDate ?? selectedDate;
-        dayBookings = GetBookingsForDate(selectedDate).ToList();
-        roomBookings = GetBookingsForRoom(occupancy.Booking.RoomId).ToList();
+        OpenBooking(occupancy.Booking);
     }
 
     private void SelectBooking(BookingDto booking)
@@ -779,6 +786,17 @@
         }
 
         return client.LastName ?? client.FirstName ?? "Unknown client";
+    }
+
+    private string GetTariffName(string? tariffId)
+    {
+        if (string.IsNullOrWhiteSpace(tariffId))
+        {
+            return "Unknown tariff";
+        }
+
+        var tariff = knownTariffs.FirstOrDefault(current => string.Equals(current.Id, tariffId, StringComparison.OrdinalIgnoreCase));
+        return tariff?.Name ?? "Unknown tariff";
     }
 
     private string GetBookingLabel(BookingDto booking)

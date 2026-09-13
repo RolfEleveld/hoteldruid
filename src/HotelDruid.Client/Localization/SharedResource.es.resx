@@ -476,6 +476,19 @@
   <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Fecha real de llegada</value></data>
   <data name="bookings.actualArrivalDateOptional" xml:space="preserve"><value>Fecha real de llegada (opcional)</value></data>
   <data name="bookings.actualGuestCount" xml:space="preserve"><value>Huespedes en la llegada</value></data>
+  <data name="bookings.expectedGuestCount" xml:space="preserve"><value>Huespedes esperados</value></data>
+  <data name="bookings.guestsLabel" xml:space="preserve"><value>Huespedes</value></data>
+  <data name="bookings.tariffLabel" xml:space="preserve"><value>Tarifa</value></data>
+  <data name="bookings.nightsLabel" xml:space="preserve"><value>noche(s)</value></data>
+  <data name="bookings.tariffUnavailable" xml:space="preserve"><value>Seleccione una habitacion, fecha de llegada y de salida para ver la tarifa aplicable.</value></data>
+  <data name="bookings.noTariff" xml:space="preserve"><value>Sin tarifa</value></data>
+  <data name="bookings.unknownTariff" xml:space="preserve"><value>Tarifa desconocida</value></data>
+  <data name="tariffs.applicableToday" xml:space="preserve"><value>Tarifas aplicables hoy</value></data>
+  <data name="tariffs.noneApplicableToday" xml:space="preserve"><value>Ninguna tarifa se aplica a esta habitacion hoy.</value></data>
+  <data name="tariffs.applicability.minGuests" xml:space="preserve"><value>Numero minimo de huespedes</value></data>
+  <data name="tariffs.minGuestCountLabel" xml:space="preserve"><value>Huespedes minimos</value></data>
+  <data name="tariffs.minGuestCountHelp" xml:space="preserve"><value>Se aplica cuando el numero de huespedes alcanza este valor, por ejemplo un recargo por huesped adicional</value></data>
+  <data name="tariffs.minGuestsSummary" xml:space="preserve"><value>Min. {0} huespedes</value></data>
   <data name="bookings.prepaidAmount" xml:space="preserve"><value>Importe prepagado</value></data>
   <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Huespedes en la llegada es obligatorio cuando se indica la fecha real de llegada.</value></data>
   <data name="bookings.actualArrivalRequiredWithGuestCount" xml:space="preserve"><value>La fecha real de llegada es obligatoria cuando se indica Huespedes en la llegada.</value></data>

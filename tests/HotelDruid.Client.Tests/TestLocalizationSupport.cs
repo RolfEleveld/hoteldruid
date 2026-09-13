@@ -22,6 +22,12 @@ internal static class TestLocalizationSupport
         warehouseApi.Setup(x => x.GetWarehousesAsync()).ReturnsAsync(new List<WarehouseDto>());
         services.AddScoped(_ => warehouseApi.Object);
 
+        var tariffApi = new Mock<ITariffApiService>();
+        tariffApi.Setup(x => x.GetTariffsAsync()).ReturnsAsync(new List<TariffDto>());
+        tariffApi.Setup(x => x.ResolveTariffAsync(It.IsAny<string>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<int>()))
+            .ReturnsAsync((TariffResolutionDto?)null);
+        services.AddScoped(_ => tariffApi.Object);
+
         return services;
     }
 }

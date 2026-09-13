@@ -73,12 +73,14 @@ public class TariffStorageModel
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
-    /// <summary>"AnyDay" (rack rate), "Weekdays" (specific days of week), or "MinStay" (week/month rate by length of stay).</summary>
+    /// <summary>"AnyDay" (rack rate), "Weekdays" (specific days of week), "MinStay" (week/month rate by length of stay), or "MinGuests" (surcharge rate once guest count reaches a threshold).</summary>
     public string? ApplicabilityMode { get; set; }
     /// <summary>Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64. Used when ApplicabilityMode == "Weekdays".</summary>
     public int? WeekdaysMask { get; set; }
     /// <summary>Minimum nights required for this rate to apply. Used when ApplicabilityMode == "MinStay".</summary>
     public int? MinNights { get; set; }
+    /// <summary>Minimum guest count required for this rate to apply. Used when ApplicabilityMode == "MinGuests".</summary>
+    public int? MinGuestCount { get; set; }
     public double PricePerNight { get; set; }
     public double? PricePerPerson { get; set; }
     /// <summary>Higher priority wins when multiple tariffs could apply to the same day.</summary>
@@ -122,7 +124,8 @@ public record TariffDto(
     int Priority,
     bool IsActive,
     string TargetType,
-    DateTime? CreatedAt
+    DateTime? CreatedAt,
+    int? MinGuestCount = null
 );
 
 public record TariffAssignmentDto(string? Id, string? TariffId, string TargetType, string? TargetId, DateTime? CreatedAt);
@@ -476,6 +479,10 @@ public class BookingStorageModel
     public DateOnly? ActualDepartureDate { get; set; }
     public int? ActualGuestCount { get; set; }
     public double? PrepaidAmount { get; set; }
+    /// <summary>Guest count known at booking time, before arrival. Drives the initial tariff resolution.</summary>
+    public int? ExpectedGuestCount { get; set; }
+    /// <summary>Tariff resolved for this booking; recomputed whenever room/dates/guest count change.</summary>
+    public string? TariffId { get; set; }
 }
 
 public class BookingCostStorageModel

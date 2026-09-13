@@ -12,7 +12,20 @@ namespace HotelDruid.Client.Services
         Task<string> CreateTariffAsync(TariffDto dto);
         Task UpdateTariffAsync(string id, TariffDto dto);
         Task DeleteTariffAsync(string id);
+        Task<TariffResolutionDto?> ResolveTariffAsync(string roomId, DateOnly arrivalDate, DateOnly departureDate, int guestCount);
     }
+
+    /// <summary>Result of resolving which tariff applies to a room for a given stay and guest count.</summary>
+    public record TariffResolutionDto(
+        string TariffId,
+        string TariffName,
+        int Nights,
+        double BasePricePerNight,
+        double AdjustedPricePerNight,
+        double TotalPrice,
+        string? AppliedSeasonName,
+        string ApplicabilityMode
+    );
 
     /// <summary>
     /// Room-rate tariff (rack rate, weekend rate, week/month rate, etc.).
@@ -30,7 +43,8 @@ namespace HotelDruid.Client.Services
         int Priority,
         bool IsActive,
         string TargetType,
-        DateTime? CreatedAt
+        DateTime? CreatedAt,
+        int? MinGuestCount = null
     );
 
     public class TariffApiService : ITariffApiService
@@ -94,6 +108,25 @@ namespace HotelDruid.Client.Services
         {
             var resp = await _httpClient.DeleteAsync($"{ApiBaseUrl}/tariffs/{id}");
             resp.EnsureSuccessStatusCode();
+        }
+
+        public async Task<TariffResolutionDto?> ResolveTariffAsync(string roomId, DateOnly arrivalDate, DateOnly departureDate, int guestCount)
+        {
+            try
+            {
+                var url = $"{ApiBaseUrl}/tariffs/resolve?roomId={Uri.EscapeDataString(roomId)}&arrivalDate={arrivalDate:yyyy-MM-dd}&departureDate={departureDate:yyyy-MM-dd}&guestCount={guestCount}";
+                var resp = await _httpClient.GetAsync(url);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                var content = await resp.Content.ReadAsStringAsync();
+                return System.Text.Json.JsonSerializer.Deserialize<TariffResolutionDto>(content);
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

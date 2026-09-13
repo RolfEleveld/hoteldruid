@@ -9,6 +9,7 @@
 @inject IBookingApiService BookingApi
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApiService
+@inject ITariffApiService TariffApi
 @inject IActiveYearService ActiveYearService
 @inject NavigationManager Navigation
 
@@ -87,11 +88,12 @@
                         <div class="row g-2">
                             <div class="col-6"><label class="form-label">@L["bookings.year", "Year"] *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.status", "Status"]</label><input class="form-control" @bind="form.Status" /></div>
-                            <div class="col-6"><label class="form-label">@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" /></div>
-                            <div class="col-6"><label class="form-label">@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.arrivalDate", "Arrival Date"]</label><input class="form-control" type="date" @bind="form.ArrivalDate" @bind:after="RefreshTariffPreviewAsync" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.departureDate", "Departure Date"]</label><input class="form-control" type="date" @bind="form.DepartureDate" @bind:after="RefreshTariffPreviewAsync" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualArrivalDateOptional", "Actual Arrival Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualArrivalDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualDepartureDateOptional", "Actual Checkout Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualDepartureDate" /></div>
-                            <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.expectedGuestCount", "Expected Guests"]</label><input class="form-control" type="number" min="1" @bind="form.ExpectedGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
                             <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
 
@@ -129,6 +131,27 @@
                             {
                                 <div class="col-12 text-muted small">@L["bookings.noRoomMatch", "No room matches this search."]</div>
                             }
+
+                            <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.tariffLabel", "Tariff"]</h6></div>
+                            <div class="col-12">
+                                @if (previewTariffLoading)
+                                {
+                                    <div class="text-muted small">@L["common.loading", "Loading..."]</div>
+                                }
+                                else if (previewTariff is not null)
+                                {
+                                    <div class="border rounded p-2 bg-light-subtle">
+                                        <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToTariff(previewTariff.TariffId)">
+                                            <div class="fw-semibold">@previewTariff.TariffName</div>
+                                            <small class="text-muted">@previewTariff.Nights @L["bookings.nightsLabel", "night(s)"] · @previewTariff.TotalPrice.ToString("0.00")</small>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small">@L["bookings.tariffUnavailable", "Select a room, arrival and departure date to see the applicable tariff."]</div>
+                                }
+                            </div>
 
                             <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.clientSearchLabel", "Find existing client"]</h6></div>
                             <div class="col-12">
@@ -262,6 +285,15 @@
                             <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
                             <dt>@L["bookings.actualDepartureDate", "Actual Checkout Date"]</dt><dd>@FormatDate(selected.ActualDepartureDate)</dd>
                             <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.expectedGuestCount", "Expected Guests"]</dt><dd>@(selected.ExpectedGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.tariffLabel", "Tariff"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(selected.TariffId))
+                                {
+                                    <a href="/tariffs?selectedId=@selected.TariffId">@GetTariffDisplayName(selected.TariffId)</a>
+                                }
+                                else { <text>-</text> }
+                            </dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                         </dl>
@@ -357,6 +389,9 @@
     private BookingDto? selected;
     private List<ClientRecord> knownClients = new();
     private List<RoomRecord> knownRooms = new();
+    private List<TariffDto> knownTariffs = new();
+    private TariffResolutionDto? previewTariff;
+    private bool previewTariffLoading;
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
     private List<BookingDto>? selectedGuestBookings;
@@ -404,6 +439,7 @@
         filterYear = ActiveYearService.CurrentYear;
         knownClients = await ClientApi.GetAllAsync();
         knownRooms = await RoomApiService.GetRoomsAsync();
+        knownTariffs = await TariffApi.GetTariffsAsync();
         await LoadAll();
 
         if (IsNewBookingRoute())
@@ -497,6 +533,7 @@
         errorMsg = "";
         ResetClientSelection();
         InitializeRoomSelectionForCurrentForm();
+        _ = RefreshTariffPreviewAsync();
     }
 
     private async Task SelectRecordAndEdit(BookingDto r)
@@ -528,6 +565,7 @@
             ActualArrivalDate = selected.ActualArrivalDate,
             ActualDepartureDate = selected.ActualDepartureDate,
             ActualGuestCount = selected.ActualGuestCount,
+            ExpectedGuestCount = selected.ExpectedGuestCount,
             PrepaidAmount = selected.PrepaidAmount
         };
         isNew = false;
@@ -535,6 +573,7 @@
         errorMsg = "";
         await InitializeClientSelectionForEdit();
         InitializeRoomSelectionForCurrentForm();
+        await RefreshTariffPreviewAsync();
     }
 
     private async Task Save()
@@ -583,7 +622,8 @@
             form.ActualArrivalDate,
             form.ActualGuestCount,
             form.PrepaidAmount,
-            form.ActualDepartureDate);
+            form.ActualDepartureDate,
+            form.ExpectedGuestCount);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
@@ -820,6 +860,7 @@
         form.RoomId = room.Id;
         roomSearch = string.IsNullOrWhiteSpace(room.Name) ? room.Id : room.Name;
         roomMatches.Clear();
+        _ = RefreshTariffPreviewAsync();
     }
 
     private void ClearRoomSelection()
@@ -828,6 +869,7 @@
         form.RoomId = null;
         roomSearch = string.Empty;
         roomMatches.Clear();
+        previewTariff = null;
     }
 
     private void EnableInlineClientCreate()
@@ -990,6 +1032,46 @@
         selectedRoom = null;
         roomSearch = string.Empty;
         roomMatches.Clear();
+        previewTariff = null;
+    }
+
+    private async Task RefreshTariffPreviewAsync()
+    {
+        if (string.IsNullOrWhiteSpace(form.RoomId) || !form.ArrivalDate.HasValue || !form.DepartureDate.HasValue
+            || form.DepartureDate.Value <= form.ArrivalDate.Value)
+        {
+            previewTariff = null;
+            return;
+        }
+
+        var guestCount = form.ActualGuestCount ?? form.ExpectedGuestCount ?? 1;
+        previewTariffLoading = true;
+        StateHasChanged();
+        try
+        {
+            previewTariff = await TariffApi.ResolveTariffAsync(form.RoomId, form.ArrivalDate.Value, form.DepartureDate.Value, guestCount);
+        }
+        finally
+        {
+            previewTariffLoading = false;
+        }
+    }
+
+    private void GoToTariff(string? tariffId)
+    {
+        if (string.IsNullOrWhiteSpace(tariffId)) return;
+        Navigation.NavigateTo($"/tariffs?selectedId={Uri.EscapeDataString(tariffId)}");
+    }
+
+    private string GetTariffDisplayName(string? tariffId)
+    {
+        if (string.IsNullOrWhiteSpace(tariffId))
+        {
+            return L["bookings.noTariff", "No tariff"];
+        }
+
+        var tariff = knownTariffs.FirstOrDefault(current => string.Equals(current.Id, tariffId, StringComparison.OrdinalIgnoreCase));
+        return tariff?.Name ?? L["bookings.unknownTariff", "Unknown tariff"];
     }
 
     private void GoToClient(string? clientId, bool edit = false)
@@ -1238,6 +1320,7 @@
         public DateOnly? ActualArrivalDate { get; set; }
         public DateOnly? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
+        public int? ExpectedGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
     }
 

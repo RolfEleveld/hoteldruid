@@ -476,6 +476,19 @@
   <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Data arrivo effettiva</value></data>
   <data name="bookings.actualArrivalDateOptional" xml:space="preserve"><value>Data arrivo effettiva (facoltativa)</value></data>
   <data name="bookings.actualGuestCount" xml:space="preserve"><value>Ospiti all'arrivo</value></data>
+  <data name="bookings.expectedGuestCount" xml:space="preserve"><value>Ospiti previsti</value></data>
+  <data name="bookings.guestsLabel" xml:space="preserve"><value>Ospiti</value></data>
+  <data name="bookings.tariffLabel" xml:space="preserve"><value>Tariffa</value></data>
+  <data name="bookings.nightsLabel" xml:space="preserve"><value>notte/i</value></data>
+  <data name="bookings.tariffUnavailable" xml:space="preserve"><value>Seleziona una camera, data di arrivo e di partenza per vedere la tariffa applicabile.</value></data>
+  <data name="bookings.noTariff" xml:space="preserve"><value>Nessuna tariffa</value></data>
+  <data name="bookings.unknownTariff" xml:space="preserve"><value>Tariffa sconosciuta</value></data>
+  <data name="tariffs.applicableToday" xml:space="preserve"><value>Tariffe applicabili oggi</value></data>
+  <data name="tariffs.noneApplicableToday" xml:space="preserve"><value>Nessuna tariffa si applica a questa camera oggi.</value></data>
+  <data name="tariffs.applicability.minGuests" xml:space="preserve"><value>Numero minimo di ospiti</value></data>
+  <data name="tariffs.minGuestCountLabel" xml:space="preserve"><value>Ospiti minimi</value></data>
+  <data name="tariffs.minGuestCountHelp" xml:space="preserve"><value>Si applica quando il numero di ospiti raggiunge questo valore, ad es. un supplemento per ospite aggiuntivo</value></data>
+  <data name="tariffs.minGuestsSummary" xml:space="preserve"><value>Min. {0} ospiti</value></data>
   <data name="bookings.prepaidAmount" xml:space="preserve"><value>Importo prepagato</value></data>
   <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Ospiti all'arrivo e obbligatorio quando e impostata la data arrivo effettiva.</value></data>
   <data name="bookings.actualArrivalRequiredWithGuestCount" xml:space="preserve"><value>La data arrivo effettiva e obbligatoria quando e impostato Ospiti all'arrivo.</value></data>

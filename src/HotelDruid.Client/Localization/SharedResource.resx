@@ -382,6 +382,10 @@
   <data name="Dashboard.Widget.VisibleCount.Tariffs" xml:space="preserve"><value>Tariffs to display</value></data>
   <data name="Dashboard.Widget.Menu.AddTariff" xml:space="preserve"><value>Add tariff</value></data>
   <data name="tariffs.filterEmpty" xml:space="preserve"><value>No tariffs match the current filter.</value></data>
+  <data name="tariffs.applicability.minGuests" xml:space="preserve"><value>Minimum number of guests</value></data>
+  <data name="tariffs.minGuestCountLabel" xml:space="preserve"><value>Minimum guests</value></data>
+  <data name="tariffs.minGuestCountHelp" xml:space="preserve"><value>Applies once the guest count reaches this number, e.g. an extra-guest surcharge rate</value></data>
+  <data name="tariffs.minGuestsSummary" xml:space="preserve"><value>Min. {0} guests</value></data>
   <data name="inventory.unknownWarehouse" xml:space="preserve"><value>Unknown warehouse</value></data>
   <data name="inventory.validation.assetRequired" xml:space="preserve"><value>Select an asset.</value></data>
   <data name="inventory.validation.locationRequired" xml:space="preserve"><value>Select a room or a warehouse.</value></data>
@@ -533,6 +537,15 @@
   <data name="bookings.actualArrivalDate" xml:space="preserve"><value>Actual Arrival Date</value></data>
   <data name="bookings.actualArrivalDateOptional" xml:space="preserve"><value>Actual Arrival Date (optional)</value></data>
   <data name="bookings.actualGuestCount" xml:space="preserve"><value>Guests On Arrival</value></data>
+  <data name="bookings.expectedGuestCount" xml:space="preserve"><value>Expected Guests</value></data>
+  <data name="bookings.guestsLabel" xml:space="preserve"><value>Guests</value></data>
+  <data name="bookings.tariffLabel" xml:space="preserve"><value>Tariff</value></data>
+  <data name="bookings.nightsLabel" xml:space="preserve"><value>night(s)</value></data>
+  <data name="bookings.tariffUnavailable" xml:space="preserve"><value>Select a room, arrival and departure date to see the applicable tariff.</value></data>
+  <data name="bookings.noTariff" xml:space="preserve"><value>No tariff</value></data>
+  <data name="bookings.unknownTariff" xml:space="preserve"><value>Unknown tariff</value></data>
+  <data name="tariffs.applicableToday" xml:space="preserve"><value>Applicable tariffs today</value></data>
+  <data name="tariffs.noneApplicableToday" xml:space="preserve"><value>No tariff applies to this room today.</value></data>
   <data name="bookings.prepaidAmount" xml:space="preserve"><value>Prepaid Amount</value></data>
   <data name="bookings.actualGuestCountRequiredWithArrival" xml:space="preserve"><value>Guests On Arrival is required when Actual Arrival Date is set.</value></data>
   <data name="bookings.actualArrivalRequiredWithGuestCount" xml:space="preserve"><value>Actual Arrival Date is required when Guests On Arrival is set.</value></data>

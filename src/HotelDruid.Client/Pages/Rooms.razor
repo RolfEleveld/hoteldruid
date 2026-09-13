@@ -7,6 +7,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Navigation
 @inject TariffServices.ITariffApiService TariffApi
 @inject TariffServices.ITariffAssignmentApiService TariffAssignmentApi
 @implements IAsyncDisposable
@@ -167,6 +168,32 @@
                                 <textarea class="form-control" @bind="editModel.Comments" 
                                     @bind:event="oninput" @onchange="() => OnFieldChanged()" rows="3"></textarea>
                             </div>
+
+                            @if (editModel.Id is not null)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">@L["tariffs.applicableToday", "Applicable tariffs today"]</label>
+                                    @{
+                                        var todaysTariffs = GetApplicableTariffsToday();
+                                    }
+                                    @if (todaysTariffs.Count == 0)
+                                    {
+                                        <div class="alert alert-light border small mb-0">@L["tariffs.noneApplicableToday", "No tariff applies to this room today."]</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="list-group">
+                                            @foreach (var tariff in todaysTariffs)
+                                            {
+                                                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" @onclick="() => GoToTariff(tariff.Id)">
+                                                    <span>@tariff.Name</span>
+                                                    <small class="text-muted">@tariff.PricePerNight.ToString("0.00")</small>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </form>
                     </div>
 
@@ -606,6 +633,38 @@
         var assignedIds = roomTariffAssignments.Select(a => a.TariffId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return allTariffs.Any(t => t.Id is not null && assignedIds.Contains(t.Id)
             && t.ApplicabilityMode == "Weekdays" && ((t.WeekdaysMask ?? 0) & bit) != 0);
+    }
+
+    private List<TariffServices.TariffDto> GetApplicableTariffsToday()
+    {
+        if (allTariffs is null || roomTariffAssignments.Count == 0) return new();
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var bit = today.DayOfWeek switch
+        {
+            DayOfWeek.Monday => 1,
+            DayOfWeek.Tuesday => 2,
+            DayOfWeek.Wednesday => 4,
+            DayOfWeek.Thursday => 8,
+            DayOfWeek.Friday => 16,
+            DayOfWeek.Saturday => 32,
+            DayOfWeek.Sunday => 64,
+            _ => 0
+        };
+
+        var assignedIds = roomTariffAssignments.Select(a => a.TariffId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return allTariffs
+            .Where(t => t.Id is not null && assignedIds.Contains(t.Id) && t.IsActive)
+            .Where(t => t.ApplicabilityMode == "AnyDay" || (t.ApplicabilityMode == "Weekdays" && ((t.WeekdaysMask ?? 0) & bit) != 0))
+            .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private void GoToTariff(string? tariffId)
+    {
+        if (string.IsNullOrWhiteSpace(tariffId)) return;
+        Navigation.NavigateTo($"/tariffs?selectedId={Uri.EscapeDataString(tariffId)}");
     }
 
     private void OnFieldChanged()

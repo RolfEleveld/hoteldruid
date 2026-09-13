@@ -61,6 +61,12 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             var mockRoomApi = new Mock<HotelDruid.Client.Services.IRoomApiService>();
             mockRoomApi.Setup(s => s.GetRoomsAsync()).Returns(System.Threading.Tasks.Task.FromResult(new System.Collections.Generic.List<HotelDruid.Client.Services.RoomDto>()));
             Services.AddScoped<HotelDruid.Client.Services.IRoomApiService>(_ => mockRoomApi.Object);
+
+            // ITariffApiService is registered by AddClientLocalizationTestSupport(); Rooms.razor also needs assignments.
+            var mockTariffAssignmentApi = new Mock<HotelDruid.Client.Services.ITariffAssignmentApiService>();
+            mockTariffAssignmentApi.Setup(s => s.GetAssignmentsAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new System.Collections.Generic.List<HotelDruid.Client.Services.TariffAssignmentDto>());
+            Services.AddScoped<HotelDruid.Client.Services.ITariffAssignmentApiService>(_ => mockTariffAssignmentApi.Object);
         }
 
         // Helper: render and click "Add Room" so the editor form becomes visible
