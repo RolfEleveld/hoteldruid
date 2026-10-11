@@ -2,6 +2,7 @@
 @using HotelDruid.Client.Services
 @inject IWarehouseApiService WarehouseApi
 @inject IInventoryApiService InventoryApi
+@inject IAssetApiService AssetApi
 @inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
@@ -109,32 +110,30 @@
                             <dt class="col-5">ID</dt><dd class="col-7">@selected.Id</dd>
                             <dt class="col-5">@L["warehouses.codeLabel", "Code"]</dt><dd class="col-7">@selected.Code</dd>
                         </dl>
-                        <hr />
-                        <h6>@L["warehouses.inventoryTitle", "Inventory in this warehouse"]</h6>
-                        @if (warehouseInventory is null)
-                        {
-                            <p class="text-muted small">@L["common.loading", "Loading..."]</p>
-                        }
-                        else if (!warehouseInventory.Any())
-                        {
-                            <p class="text-muted small">@L["warehouses.inventoryEmpty", "No inventory stored in this warehouse."]</p>
-                        }
-                        else
-                        {
-                            <ul class="list-group list-group-flush">
-                                @foreach (var inv in warehouseInventory)
-                                {
-                                    <li class="list-group-item px-0 py-1">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <button class="btn btn-link btn-sm p-0 text-start" @onclick="() => GoToInventory(inv.Id)">
-                                                @(inv.AssetId ?? L["inventory.none", "None"].ToString())
-                                            </button>
-                                            <span class="badge bg-secondary">@inv.Quantity</span>
-                                        </div>
-                                    </li>
-                                }
-                            </ul>
-                        }
+                        <section class="client-section client-section-inventory mt-3">
+                            <h4 class="client-section-title">@L["warehouses.inventoryTitle", "Inventory in this warehouse"]</h4>
+                            @if (isInventoryLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                                <span class="ms-2">@L["common.loading", "Loading..."]</span>
+                            }
+                            else if (warehouseInventory is null || !warehouseInventory.Any())
+                            {
+                                <div class="alert alert-info mb-0">@L["warehouses.inventoryEmpty", "No inventory stored in this warehouse."]</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var inv in warehouseInventory)
+                                    {
+                                        <a class="list-group-item list-group-item-action" href="@GetInventoryUrl(inv)">
+                                            <div class="fw-semibold"><strong>@ResolveAssetName(inv.AssetId)</strong></div>
+                                            <div class="small text-muted">@L["inventory.quantity", "Quantity"]: @inv.Quantity</div>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                        </section>
                     }
                     else { <div class="text-muted">@L["warehouses.selectPrompt", "Select a warehouse"]</div> }
                 </div>
@@ -143,12 +142,21 @@
     </div>
 </div>
 
+<style>
+.client-section { border-left: 4px solid #d8dee7; border-radius: 4px; background: #fff; padding: 14px; margin-bottom: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04); }
+.client-section-inventory { border-left-color: #2196f3; }
+.client-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+</style>
+
 @code {
     [SupplyParameterFromQuery(Name = "id")]
     public string? SelectedId { get; set; }
 
     private List<WarehouseDto>? items;
     private List<InventoryDto>? warehouseInventory;
+    private List<AssetDto> assets = new();
+    private bool isInventoryLoading;
+    private int inventoryLoadVersion;
     private WarehouseDto? selected;
     private WarehouseEditModel edit = new();
     private string? validationMessage;
@@ -197,22 +205,45 @@
     private async Task Load()
     {
         items = await WarehouseApi.GetWarehousesAsync();
+        assets = await AssetApi.GetAssetsAsync();
     }
 
     private async Task LoadWarehouseInventory(string warehouseId)
     {
+        var version = ++inventoryLoadVersion;
+        isInventoryLoading = true;
         warehouseInventory = null;
-        var all = await InventoryApi.GetInventoryAsync();
-        warehouseInventory = all
-            .Where(i => string.Equals(i.WarehouseId, warehouseId, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(i => i.AssetId, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        try
+        {
+            var all = await InventoryApi.GetInventoryAsync();
+            if (version != inventoryLoadVersion)
+                return;
+
+            warehouseInventory = all
+                .Where(i => string.Equals(i.WarehouseId, warehouseId, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(i => ResolveAssetName(i.AssetId), StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        finally
+        {
+            if (version == inventoryLoadVersion)
+            {
+                isInventoryLoading = false;
+                StateHasChanged();
+            }
+        }
     }
 
-    private void GoToInventory(string? inventoryId)
+    private string GetInventoryUrl(InventoryDto item)
+        => string.IsNullOrWhiteSpace(item.Id) ? "/inventory" : $"/inventory?selectedId={Uri.EscapeDataString(item.Id)}";
+
+    private string ResolveAssetName(string? assetId)
     {
-        if (string.IsNullOrWhiteSpace(inventoryId)) return;
-        Navigation.NavigateTo($"/inventory?selectedId={Uri.EscapeDataString(inventoryId)}");
+        if (string.IsNullOrWhiteSpace(assetId))
+            return L["inventory.none", "None"];
+
+        var asset = assets.FirstOrDefault(item => string.Equals(item.Id, assetId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(asset?.Name) ? assetId : asset.Name;
     }
 
     private void Select(WarehouseDto w)
