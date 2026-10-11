@@ -359,6 +359,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         "Dashboard.Widget.VisibleCount.Rooms",
         "Dashboard.Widget.VisibleCount.Inventory",
         "Dashboard.Widget.VisibleCount.Warehouses",
+        "Dashboard.Widget.VisibleCount.Tariffs",
         "Dashboard.Widget.VisibleCount.Reports"
     ];
 
@@ -373,6 +374,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         "Dashboard.Widget.Menu.AddYear",
         "Dashboard.Widget.Menu.AddInventoryItem",
         "Dashboard.Widget.Menu.AddWarehouse",
+        "Dashboard.Widget.Menu.AddTariff",
         "Dashboard.Widget.Menu.AddReportTemplate"
     ];
 
@@ -416,7 +418,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         component.WaitForAssertion(() =>
         {
             var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
-            Assert.Equal(10, menuButtons.Count);
+            Assert.Equal(ExpectedAddActionKeys.Length, menuButtons.Count);
         });
 
         for (var i = 0; i < ExpectedAddActionKeys.Length; i++)
@@ -457,7 +459,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         component.WaitForAssertion(() =>
         {
             var menuButtons = component.FindAll("button[title='Dashboard.Widget.Menu']");
-            Assert.Equal(10, menuButtons.Count);
+            Assert.Equal(ExpectedAddActionKeys.Length, menuButtons.Count);
         });
 
         var buttons = component.FindAll("button[title='Dashboard.Widget.Menu']");

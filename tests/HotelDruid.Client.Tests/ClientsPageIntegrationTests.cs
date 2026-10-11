@@ -14,6 +14,8 @@ namespace HotelDruid.Client.Tests.Integration.Pages;
 public class ClientsPageIntegrationTests : TestContext
 {
     private readonly Mock<IClientApiService> clientApi = new();
+    private readonly Mock<IRoomApiService> roomApi = new();
+    private readonly Mock<IBookingApiService> bookingApi = new();
 
     public ClientsPageIntegrationTests()
     {
@@ -25,8 +27,12 @@ public class ClientsPageIntegrationTests : TestContext
             new("c-1", "Adams", "Anna"),
             new("c-2", "Adams", "Ben")
         });
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>());
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>());
 
         Services.AddScoped(_ => clientApi.Object);
+        Services.AddScoped(_ => roomApi.Object);
+        Services.AddScoped(_ => bookingApi.Object);
     }
 
     [Fact]

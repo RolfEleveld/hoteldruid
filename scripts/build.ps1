@@ -119,6 +119,9 @@ if ($Clean) {
         )
 
         foreach ($project in $cleanProjects) {
+            # Clean evaluates the project, so stale assets (e.g. after an SDK update) must be restored first.
+            dotnet restore $project --nologo | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "dotnet restore before clean failed for $project (exit $LASTEXITCODE)" }
             dotnet clean $project -c $Configuration --nologo
             if ($LASTEXITCODE -ne 0) { throw "dotnet clean failed for $project (exit $LASTEXITCODE)" }
         }

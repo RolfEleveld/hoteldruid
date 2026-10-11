@@ -1,3 +1,4 @@
+using System.Reflection;
 using Bunit;
 using HotelDruid.Client.Pages;
 using HotelDruid.Client.Services;
@@ -53,9 +54,17 @@ public class InventoryPageIntegrationTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            Assert.Contains("Main Store", component.Markup);
             Assert.Contains("Bed Linen", component.Markup);
+            Assert.Contains("Main Store", component.Markup);
+        });
+
+        // Room and warehouse selectors live in the edit form, which opens after an item is selected.
+        component.Find("button.list-group-item").Click();
+
+        component.WaitForAssertion(() =>
+        {
             Assert.Contains("Select warehouse...", component.Markup);
+            Assert.NotNull(component.Find("select.form-select"));
         });
     }
 
@@ -63,6 +72,16 @@ public class InventoryPageIntegrationTests : TestContext
     public void InventoryPage_ShouldRenderInventoryListUsingLinkedNames()
     {
         var component = RenderComponent<Inventory>();
+
+        component.WaitForAssertion(() =>
+        {
+            var item = component.Find("button.list-group-item");
+            Assert.Contains("Bed Linen", item.TextContent);
+            Assert.Contains("Main Store", item.TextContent);
+            Assert.Contains("5", item.TextContent);
+        });
+
+        component.Find("button.list-group-item").Click();
 
         component.WaitForAssertion(() =>
         {
@@ -75,21 +94,33 @@ public class InventoryPageIntegrationTests : TestContext
     {
         var component = RenderComponent<Inventory>();
 
+        component.WaitForAssertion(() => Assert.Contains("Bed Linen", component.Markup));
+        component.Find("button.list-group-item").Click();
+
+        component.WaitForAssertion(() => Assert.NotNull(component.Find("select.form-select")));
+        component.Find("select.form-select").Change(new ChangeEventArgs { Value = "room-1" });
+
+        component.WaitForAssertion(() => Assert.Equal("room-1", GetEditValue(component, "RoomId")));
+        component.Find("input[placeholder='Select warehouse...']").Input("Main");
+
+        component.WaitForAssertion(() => Assert.NotNull(component.Find(".list-group.mt-2 button.list-group-item")));
+        component.Find(".list-group.mt-2 button.list-group-item").Click();
+
         component.WaitForAssertion(() =>
         {
-            var roomSelect = component.Find("select.form-select");
-            roomSelect.Change("room-1");
-
-            var warehouseInput = component.Find("input[placeholder='Select warehouse...']");
-            warehouseInput.Input("Main");
-
-            var warehouseOption = component.Find(".list-group button.list-group-item");
-            warehouseOption.Click();
-
-            var selectedRoomOption = component.Find("select.form-select option:checked");
-            Assert.Equal("room-1", selectedRoomOption.GetAttribute("value"));
-            Assert.Contains("101", selectedRoomOption.TextContent);
+            Assert.Equal("room-1", GetEditValue(component, "RoomId"));
+            Assert.Equal("wh-1", GetEditValue(component, "WarehouseId"));
+            Assert.Contains("101", component.Find("select.form-select").TextContent);
+            Assert.Contains("Main Store", component.Markup);
+            Assert.Contains("Clear", component.Markup);
         });
+    }
+
+    private static string? GetEditValue(IRenderedComponent<Inventory> component, string propertyName)
+    {
+        var edit = typeof(Inventory).GetField("edit", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(component.Instance);
+        Assert.NotNull(edit);
+        return edit!.GetType().GetProperty(propertyName)?.GetValue(edit) as string;
     }
 
     [Fact]
@@ -97,17 +128,22 @@ public class InventoryPageIntegrationTests : TestContext
     {
         var component = RenderComponent<Inventory>();
 
+        component.WaitForAssertion(() => Assert.Contains("Bed Linen", component.Markup));
+        component.Find("button.list-group-item").Click();
+
+        component.WaitForAssertion(() => Assert.NotNull(component.Find("input[placeholder='Select warehouse...']")));
+        component.Find("input[placeholder='Select warehouse...']").Input("Main");
+
+        component.WaitForAssertion(() => Assert.NotNull(component.Find(".list-group button.list-group-item")));
+        component.Find(".list-group button.list-group-item").Click();
+
+        component.WaitForAssertion(() => Assert.Contains("Clear", component.Markup));
+        component.Find("select.form-select").Change(new ChangeEventArgs { Value = "room-1" });
+
         component.WaitForAssertion(() =>
         {
-            var warehouseInput = component.Find("input[placeholder='Select warehouse...']");
-            warehouseInput.Input("Main");
-
-            var warehouseOption = component.Find(".list-group button.list-group-item");
-            warehouseOption.Click();
-
-            var roomSelect = component.Find("select.form-select");
-            roomSelect.Change("room-1");
-
+            Assert.Equal("room-1", GetEditValue(component, "RoomId"));
+            Assert.Equal("wh-1", GetEditValue(component, "WarehouseId"));
             Assert.Contains("Main Store", component.Markup);
             Assert.Contains("Clear", component.Markup);
         });

@@ -199,12 +199,12 @@ public class CalendarPageIntegrationTests : TestContext
 
         component.FindAll(".calendar-day-cell.is-occupied").First().Click();
 
+        // Occupied cells jump straight to the reservation editor, same target as "Open reservation".
+        var navigation = Services.GetRequiredService<NavigationManager>();
         component.WaitForAssertion(() =>
         {
-            component.Markup.Should().Contain("Reservation Record");
-            component.Markup.Should().Contain("Open reservation");
-            component.Markup.Should().Contain("Room 101");
-            component.Markup.Should().Contain("Doe, Jane");
+            navigation.Uri.Should().Contain("/bookings?selectedId=stay-1");
+            navigation.Uri.Should().Contain("edit=true");
         });
     }
 
