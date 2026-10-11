@@ -269,7 +269,7 @@
                     @if (selected is not null)
                     {
                         <div class="booking-summary-card">
-                            <div class="booking-summary-name">@GetBookingSummaryTitle(selected)</div>
+                            <div class="booking-summary-name"><a class="booking-summary-link" href="@GetBookingUrl(selected)">@GetBookingSummaryTitle(selected)</a></div>
                             <div class="booking-summary-meta">@GetBookingSummaryMeta(selected)</div>
                         </div>
 
@@ -292,8 +292,10 @@
                                 else { <text>-</text> }
                             </dd>
                             <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
-                            <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@FormatDate(selected.ArrivalDate)</dd>
-                            <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@FormatDate(selected.DepartureDate)</dd>
+                            <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt>
+                            <dd><a href="@GetCalendarUrl(selected.ArrivalDate)">@FormatDate(selected.ArrivalDate)</a></dd>
+                            <dt>@L["bookings.departureDate", "Departure Date"]</dt>
+                            <dd><a href="@GetCalendarUrl(selected.DepartureDate)">@FormatDate(selected.DepartureDate)</a></dd>
                             <dt>@L["bookings.actualArrivalDate", "Actual Arrival Date"]</dt><dd>@FormatDate(selected.ActualArrivalDate)</dd>
                             <dt>@L["bookings.actualDepartureDate", "Actual Checkout Date"]</dt><dd>@FormatDate(selected.ActualDepartureDate)</dd>
                             <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(selected.ActualGuestCount?.ToString() ?? "-")</dd>
@@ -371,17 +373,6 @@
                                 </div>
                             }
                         </section>
-
-                        <div class="d-flex flex-column gap-2 mt-3">
-                            @if (!string.IsNullOrWhiteSpace(selected.ClientId))
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="/clients?selectedId=@selected.ClientId">@L["bookings.openClient", "Open client"]</a>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(selected.RoomId))
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@selected.RoomId">@L["bookings.openRoom", "Open room"]</a>
-                            }
-                        </div>
                     }
                     else if (selected is null)
                     {
@@ -1259,6 +1250,9 @@
 
         return $"/clients?selectedId={Uri.EscapeDataString(clientId)}";
     }
+
+    private static string GetCalendarUrl(DateOnly? date)
+        => date.HasValue ? $"/calendar/{date.Value.Year}/{date.Value.Month}" : "/calendar";
 
     private string GetGuestProfileSummary(ClientRecord guestClient)
     {

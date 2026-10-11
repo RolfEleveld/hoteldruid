@@ -121,6 +121,7 @@ public class DocumentRenderApiTests : IAsyncLifetime
         var r = await _client.GetAsync(
             $"/api/documents/render/render-test-print/1?bookingId={bookingId}&year=2026&format=print");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        Assert.NotEqual("attachment", r.Content.Headers.ContentDisposition?.DispositionType);
 
         var body = await r.Content.ReadAsStringAsync();
         Assert.Contains("window.print()", body);
@@ -137,6 +138,7 @@ public class DocumentRenderApiTests : IAsyncLifetime
             $"/api/documents/render/render-test-doc/1?bookingId={bookingId}&year=2026&format=doc");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         Assert.Equal("application/msword", r.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("attachment", r.Content.Headers.ContentDisposition?.DispositionType);
     }
 
     [Fact]

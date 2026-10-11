@@ -17,45 +17,35 @@
         <div class="col-md-3">
             <div class="panel panel-default h-100 d-flex flex-column">
                 <div class="panel-heading">
-                    <h3 class="panel-title">@L["bookingFinance.history", "Transactions"]</h3>
+                    <h3 class="panel-title">@L["bookingFinance.listTitle", "Bookings"]</h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
-                    @if (transactions is null)
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm" @bind="listFilter" @bind:event="oninput"
+                               placeholder="@L["bookingFinance.searchPlaceholder", "Search by guest, room, or date"]" />
+                    </div>
+                    @if (listedBookings is null)
                     {
                         <div class="spinner-border spinner-border-sm" role="status">
                             <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
                         </div>
                     }
-                    else if (transactions.Count == 0)
+                    else if (FilteredBookings.Count == 0)
                     {
-                        <div class="alert alert-info mb-0">@L["bookingFinance.emptyHistory", "No transactions on this booking yet."]</div>
+                        <div class="alert alert-info mb-0">@GetEmptyListMessage()</div>
                     }
                     else
                     {
                         <div class="list-group">
-                            @foreach (var transaction in transactions.OrderByDescending(item => item.Sequence))
+                            @foreach (var listed in FilteredBookings)
                             {
-                                <button type="button" class="list-group-item list-group-item-action @(selectedTransaction?.Sequence == transaction.Sequence ? "active" : "")"
-                                        @onclick="() => SelectTransaction(transaction)">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="fw-semibold">#@transaction.Sequence · @FormatType(transaction.Type)</span>
-                                        <span>@FormatMoney(transaction.Amount)</span>
-                                    </div>
-                                    <small class="text-muted">@transaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
-                                </button>
+                                <a class="list-group-item list-group-item-action @(listed.Id == booking?.Id ? "active" : "")"
+                                   href="@GetGuestBookingUrl(listed)">
+                                    <div class="fw-semibold">@GetGuestBookingTitle(listed)</div>
+                                    <small>@FormatDate(listed.ArrivalDate) → @FormatDate(listed.DepartureDate)</small>
+                                </a>
                             }
                         </div>
-                    }
-                    @if (ledgerLines is { Count: > 0 })
-                    {
-                        <h6 class="mt-3">@L["bookingFinance.ledger", "Ledger"]</h6>
-                        @foreach (var line in ledgerLines.OrderBy(item => item.Timestamp))
-                        {
-                            <div class="d-flex justify-content-between small">
-                                <span>@line.AccountCode · @line.EntryType</span>
-                                <span>@(line.Debit == 0 ? "" : line.Debit.ToString("0.00")) / @(line.Credit == 0 ? "" : line.Credit.ToString("0.00"))</span>
-                            </div>
-                        }
                     }
                 </div>
             </div>
@@ -66,7 +56,7 @@
             {
                 <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
                     <div class="panel-body text-center text-muted">
-                        <p>@L["bookingFinance.selectBooking", "Open this page from a booking to review its financial history."]</p>
+                        <p>@L["bookingFinance.selectBooking", "Select a booking to review its financial history."]</p>
                     </div>
                 </div>
             }
@@ -114,6 +104,47 @@
                             </div>
                         </div>
 
+                        <h6 class="mt-3">@L["bookingFinance.history", "Transactions"]</h6>
+                        @if (transactions is null)
+                        {
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="list-group">
+                                <button type="button" class="list-group-item list-group-item-action @(selectedTransaction is null ? "active" : "")"
+                                        @onclick="ClearSelectedTransaction">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-semibold">@L["bookingFinance.reservation", "Reservation"]</span>
+                                        <span>@FormatMoney(summary?.ChargesTotal)</span>
+                                    </div>
+                                    <small class="text-muted">@FormatDate(booking.ArrivalDate) → @FormatDate(booking.DepartureDate)</small>
+                                </button>
+                                @if ((summary?.PrepaidAmount ?? 0) != 0)
+                                {
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-semibold">@L["bookingFinance.prepaid", "Prepaid"]</span>
+                                            <span>@FormatMoney(summary?.PrepaidAmount)</span>
+                                        </div>
+                                    </div>
+                                }
+                                @foreach (var transaction in transactions.OrderByDescending(item => item.Sequence))
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action @(selectedTransaction?.Sequence == transaction.Sequence ? "active" : "")"
+                                            @onclick="() => SelectTransaction(transaction)">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-semibold">#@transaction.Sequence · @FormatType(transaction.Type)</span>
+                                            <span>@FormatMoney(transaction.Amount)</span>
+                                        </div>
+                                        <small class="text-muted">@transaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
+                                    </button>
+                                }
+                            </div>
+                        }
+
                         @if (selectedTransaction is not null)
                         {
                             <dl class="booking-detail-grid mt-3">
@@ -146,11 +177,35 @@
                 <div class="panel-body flex-grow-1 overflow-auto">
                     @if (booking is not null)
                     {
-                        <div class="booking-summary-card">
-                            <div class="booking-summary-name">@GetBookingTitle()</div>
-                            <div class="booking-summary-meta">@FormatDate(booking.ArrivalDate) → @FormatDate(booking.DepartureDate)</div>
-                        </div>
-                        <dl class="booking-detail-grid mt-3">
+                        <dl class="booking-detail-grid">
+                            <dt>@L["bookingFinance.booking", "Booking"]</dt>
+                            <dd><a href="@GetBookingUrl()">@GetBookingTitle()</a></dd>
+                            <dt>@L["bookingFinance.guest", "Guest"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(booking.ClientId))
+                                {
+                                    <a href="@GetClientUrl()">@GetClientName()</a>
+                                }
+                                else
+                                {
+                                    @GetClientName()
+                                }
+                            </dd>
+                            <dt>@L["bookings.room", "Room"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(booking.RoomId))
+                                {
+                                    <a href="@GetRoomUrl()">@GetRoomName()</a>
+                                }
+                                else
+                                {
+                                    @GetRoomName()
+                                }
+                            </dd>
+                            <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt>
+                            <dd><a href="@GetCalendarUrl(booking.ArrivalDate)">@FormatDate(booking.ArrivalDate)</a></dd>
+                            <dt>@L["bookings.departureDate", "Departure Date"]</dt>
+                            <dd><a href="@GetCalendarUrl(booking.DepartureDate)">@FormatDate(booking.DepartureDate)</a></dd>
                             <dt>@L["bookingFinance.stayTotal", "Stay total"]</dt><dd>@FormatMoney(summary?.StayTotal)</dd>
                             <dt>@L["bookingFinance.extras", "Extras"]</dt><dd>@FormatMoney(summary?.ExtraTotal)</dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@FormatMoney(summary?.PrepaidAmount)</dd>
@@ -159,22 +214,6 @@
                             <dt>@L["bookingFinance.depositsHeld", "Deposits held"]</dt><dd>@FormatMoney(summary?.DepositsHeld)</dd>
                             <dt>@L["bookingFinance.totalDue", "Total due"]</dt><dd class="fw-semibold">@FormatMoney(summary?.TotalDue)</dd>
                         </dl>
-
-                        <div class="d-flex flex-column gap-2 mt-3">
-                            <a class="btn btn-sm btn-outline-primary" href="@GetBookingUrl()">@L["bookingFinance.openBooking", "Open booking"]</a>
-                            @if (!string.IsNullOrWhiteSpace(booking.ClientId))
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="/clients?selectedId=@booking.ClientId">@GetClientName()</a>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(booking.RoomId))
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@booking.RoomId">@GetRoomName()</a>
-                            }
-                            @if (booking.ArrivalDate.HasValue)
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="/calendar/@booking.ArrivalDate.Value.Year/@booking.ArrivalDate.Value.Month">@FormatDate(booking.ArrivalDate)</a>
-                            }
-                        </div>
                     }
                 </div>
             </div>
@@ -189,11 +228,15 @@
     [SupplyParameterFromQuery(Name = "year")]
     public int? YearQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "clientId")]
+    public string? ClientIdQuery { get; set; }
+
     private BookingDto? booking;
+    private List<BookingDto>? listedBookings;
     private BookingFinanceSummaryDto? summary;
     private List<BookingTransactionDto>? transactions;
-    private List<LedgerLineDto>? ledgerLines;
     private BookingTransactionDto? selectedTransaction;
+    private string listFilter = string.Empty;
     private List<ClientRecord> clients = [];
     private List<RoomRecord> rooms = [];
     private string entryType = "payment";
@@ -204,26 +247,99 @@
     private string errorMsg = string.Empty;
     private bool isSaving;
 
+    private List<BookingDto> FilteredBookings
+    {
+        get
+        {
+            var source = listedBookings ?? [];
+            IEnumerable<BookingDto> filtered = source;
+            if (!string.IsNullOrWhiteSpace(ClientIdQuery))
+            {
+                filtered = filtered.Where(item => string.Equals(item.ClientId, ClientIdQuery, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(listFilter))
+            {
+                var term = listFilter.Trim();
+                filtered = filtered.Where(item =>
+                    GetClientName(item.ClientId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || GetRoomName(item.RoomId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || FormatDate(item.ArrivalDate).Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || FormatDate(item.DepartureDate).Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || item.Year.ToString().Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return filtered
+                .OrderByDescending(item => item.ArrivalDate ?? DateOnly.MinValue)
+                .ThenByDescending(item => item.Year)
+                .ToList();
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        if (string.IsNullOrWhiteSpace(SelectedId)) return;
-        var year = YearQuery ?? ActiveYearService.CurrentYear;
-        booking = await BookingApi.GetAsync(year, SelectedId);
-        if (booking is null) return;
-
         clients = await ClientApi.GetAllAsync();
         rooms = await RoomApi.GetRoomsAsync();
+        await LoadBookingsAsync();
+
+        if (string.IsNullOrWhiteSpace(SelectedId))
+        {
+            booking = null;
+            summary = null;
+            transactions = null;
+            selectedTransaction = null;
+            return;
+        }
+
+        var year = YearQuery ?? ActiveYearService.CurrentYear;
+        booking = await BookingApi.GetAsync(year, SelectedId);
+        if (booking is null)
+        {
+            summary = null;
+            transactions = null;
+            selectedTransaction = null;
+            return;
+        }
+
         await ReloadFinanceAsync();
     }
+
+    private async Task LoadBookingsAsync()
+    {
+        var bookings = await BookingApi.ListAsync();
+        listedBookings = bookings
+            .OrderByDescending(item => item.ArrivalDate ?? DateOnly.MinValue)
+            .ThenByDescending(item => item.Year)
+            .ToList();
+    }
+
+    private string GetEmptyListMessage()
+    {
+        if (listedBookings is { Count: 0 })
+            return L["bookingFinance.emptyList", "No bookings yet."];
+        if (!string.IsNullOrWhiteSpace(ClientIdQuery))
+            return L["bookingFinance.guestEmpty", "No bookings found for this guest."];
+        return L["bookingFinance.noMatch", "No bookings match this filter."];
+    }
+
+    private string GetGuestBookingUrl(BookingDto guestBooking)
+    {
+        var id = Uri.EscapeDataString(guestBooking.Id ?? string.Empty);
+        var client = string.IsNullOrWhiteSpace(ClientIdQuery)
+            ? string.Empty
+            : $"&clientId={Uri.EscapeDataString(ClientIdQuery)}";
+        return $"/booking-finance?selectedId={id}&year={guestBooking.Year}{client}";
+    }
+
+    private string GetGuestBookingTitle(BookingDto guestBooking)
+        => $"{guestBooking.Year} — {GetClientName(guestBooking.ClientId)} · {GetRoomName(guestBooking.RoomId)}";
 
     private async Task ReloadFinanceAsync()
     {
         if (booking?.Id is null) return;
         summary = await FinanceApi.GetSummaryAsync(booking.Year, booking.Id);
         transactions = await FinanceApi.ListTransactionsAsync(booking.Year, booking.Id);
-        var from = booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue).AddDays(-30) ?? DateTime.Today.AddYears(-1);
-        ledgerLines = await FinanceApi.ListLedgerLinesAsync(DateOnly.FromDateTime(from), DateOnly.FromDateTime(DateTime.Today), booking.Id);
-        selectedTransaction = transactions.OrderByDescending(item => item.Sequence).FirstOrDefault();
+        selectedTransaction = null;
     }
 
     private async Task SaveTransaction()
@@ -270,27 +386,43 @@
 
     private void SelectTransaction(BookingTransactionDto transaction) => selectedTransaction = transaction;
 
+    private void ClearSelectedTransaction() => selectedTransaction = null;
+
     private string GetBookingTitle()
     {
         if (booking is null) return string.Empty;
         return $"{booking.Year} — {GetClientName()} · {GetRoomName()}";
     }
 
-    private string GetClientName()
+    private string GetClientName() => GetClientName(booking?.ClientId);
+
+    private string GetClientName(string? clientId)
     {
-        var client = clients.FirstOrDefault(item => string.Equals(item.Id, booking?.ClientId, StringComparison.OrdinalIgnoreCase));
+        var client = clients.FirstOrDefault(item => string.Equals(item.Id, clientId, StringComparison.OrdinalIgnoreCase));
         if (client is null) return L["bookings.unknownClient", "Unknown client"];
-        return string.Join(" ", new[] { client.FirstName, client.LastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        var name = string.Join(" ", new[] { client.FirstName, client.LastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        return string.IsNullOrWhiteSpace(name) ? L["bookings.unknownClient", "Unknown client"] : name;
     }
 
-    private string GetRoomName()
+    private string GetRoomName() => GetRoomName(booking?.RoomId);
+
+    private string GetRoomName(string? roomId)
     {
-        var room = rooms.FirstOrDefault(item => string.Equals(item.Id, booking?.RoomId, StringComparison.OrdinalIgnoreCase));
+        var room = rooms.FirstOrDefault(item => string.Equals(item.Id, roomId, StringComparison.OrdinalIgnoreCase));
         return string.IsNullOrWhiteSpace(room?.Name) ? L["bookings.unknownRoom", "Unknown room"] : room.Name;
     }
 
     private string GetBookingUrl()
-        => booking?.Id is null ? "/bookings" : $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}&edit=true";
+        => booking?.Id is null ? "/bookings" : $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}&year={booking.Year}";
+
+    private string GetClientUrl()
+        => string.IsNullOrWhiteSpace(booking?.ClientId) ? "/clients" : $"/clients?selectedId={Uri.EscapeDataString(booking.ClientId)}";
+
+    private string GetRoomUrl()
+        => string.IsNullOrWhiteSpace(booking?.RoomId) ? "/rooms" : $"/rooms?selectedId={Uri.EscapeDataString(booking.RoomId)}";
+
+    private static string GetCalendarUrl(DateOnly? date)
+        => date.HasValue ? $"/calendar/{date.Value.Year}/{date.Value.Month}" : "/calendar";
 
     private string FormatType(string? type) => type switch
     {

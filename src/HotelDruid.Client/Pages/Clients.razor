@@ -7,6 +7,7 @@
 @using System.Text.RegularExpressions
 @inject IClientApiService ClientApi
 @inject IBookingApiService BookingApi
+@inject IBookingFinanceApiService FinanceApi
 @inject IRoomApiService RoomApi
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
@@ -334,6 +335,20 @@
                             <div class="alert alert-info mb-0">@L["clients.previewEmpty", "Client details will appear here once you select or create a record."]</div>
                         }
 
+                        <dl class="client-detail-grid mt-3">
+                            <dt>@L["clients.financialContribution", "Financial contribution"]</dt>
+                            <dd>
+                                @if (isFinanceLoading)
+                                {
+                                    <span>@L["common.loading", "Loading..."]</span>
+                                }
+                                else
+                                {
+                                    <a href="@GetGuestFinanceUrl(CurrentPreview.Id)">@FormatContribution(guestContribution)</a>
+                                }
+                            </dd>
+                        </dl>
+
                         <section class="client-section client-section-bookings mt-3">
                             <h4 class="client-section-title">@L["clients.reservationsTitle", "Reservations"]</h4>
                             @if (isBookingLoading)
@@ -416,6 +431,9 @@
     private List<RoomDto>? rooms;
     private List<BookingDto>? clientBookings;
     private bool isBookingLoading;
+    private decimal? guestContribution;
+    private string guestCurrency = "EUR";
+    private bool isFinanceLoading;
     private System.Timers.Timer? autoSaveTimer;
 
     private static readonly (string Value, string ResourceKey)[] GenderOptions = new[]
@@ -528,6 +546,7 @@
         focusedField = null;
         ClearAutoSaveTimer();
         await LoadClientBookingsAsync();
+        await LoadGuestContributionAsync();
     }
 
     private async Task LoadClientBookingsAsync()
@@ -554,6 +573,44 @@
             isBookingLoading = false;
         }
     }
+
+    private async Task LoadGuestContributionAsync()
+    {
+        guestContribution = null;
+        guestCurrency = "EUR";
+        if (selectedClient is null || string.IsNullOrWhiteSpace(selectedClient.Id))
+        {
+            return;
+        }
+
+        try
+        {
+            isFinanceLoading = true;
+            var bookings = clientBookings ?? [];
+            decimal total = 0;
+            foreach (var booking in bookings.Where(item => !string.IsNullOrWhiteSpace(item.Id)))
+            {
+                var summary = await FinanceApi.GetSummaryAsync(booking.Year, booking.Id!);
+                if (summary is null) continue;
+                total += summary.ChargesTotal;
+                if (!string.IsNullOrWhiteSpace(summary.Currency)) guestCurrency = summary.Currency;
+            }
+
+            guestContribution = total;
+        }
+        finally
+        {
+            isFinanceLoading = false;
+        }
+    }
+
+    private string GetGuestFinanceUrl(string? clientId)
+        => string.IsNullOrWhiteSpace(clientId)
+            ? "/booking-finance"
+            : $"/booking-finance?clientId={Uri.EscapeDataString(clientId)}";
+
+    private string FormatContribution(decimal? amount)
+        => $"{amount.GetValueOrDefault():0.00} {guestCurrency}";
 
     private string GetBookingUrl(BookingDto booking)
     {

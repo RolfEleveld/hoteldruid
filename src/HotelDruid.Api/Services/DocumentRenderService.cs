@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
 using HotelDruid.Shared.Configuration;
+using QRCoder;
 
 namespace HotelDruid.Api.Services;
 
@@ -25,11 +26,19 @@ public sealed class DocumentRenderService : IDocumentRenderService
 
     private readonly IKeyValueStore _store;
     private readonly ISystemConfigurationStore _configStore;
+    private readonly ITariffResolutionService _tariffs;
+    private readonly IBookingTransactionRepository _transactions;
 
-    public DocumentRenderService(IKeyValueStore store, ISystemConfigurationStore configStore)
+    public DocumentRenderService(
+        IKeyValueStore store,
+        ISystemConfigurationStore configStore,
+        ITariffResolutionService tariffs,
+        IBookingTransactionRepository transactions)
     {
         _store = store;
         _configStore = configStore;
+        _tariffs = tariffs;
+        _transactions = transactions;
     }
 
     // -----------------------------------------------------------------------
@@ -53,10 +62,29 @@ public sealed class DocumentRenderService : IDocumentRenderService
         if (!string.IsNullOrWhiteSpace(booking.RoomId))
             room = await _store.GetAsync<RoomStorageModel>("rooms", booking.RoomId);
 
-        // 4. Load booking costs
-        var costsIdx = await _store.GetIndexAsync("booking_costs");
+        // 4. Stay charge comes from the resolved tariff. Booking costs are extras only.
         var costs = new List<CostContextRow>();
         double totalAmount = 0;
+        if (!string.IsNullOrWhiteSpace(booking.RoomId) && booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
+        {
+            var guestCount = booking.ActualGuestCount ?? booking.ExpectedGuestCount ?? 1;
+            var resolved = await _tariffs.ResolveAsync(booking.RoomId, booking.ArrivalDate.Value, booking.DepartureDate.Value, guestCount);
+            if (resolved is not null)
+            {
+                totalAmount += resolved.TotalPrice;
+                var arrival = booking.ArrivalDate.Value.ToString("yyyy-MM-dd");
+                var departure = booking.DepartureDate.Value.ToString("yyyy-MM-dd");
+                var tariffName = string.IsNullOrWhiteSpace(resolved.TariffName) ? "Stay" : resolved.TariffName;
+                costs.Add(new CostContextRow
+                {
+                    Description = $"{arrival} – {departure} · {tariffName}",
+                    Amount = resolved.TotalPrice.ToString("F2", CultureInfo.InvariantCulture),
+                    TariffId = resolved.TariffId
+                });
+            }
+        }
+
+        var costsIdx = await _store.GetIndexAsync("booking_costs");
         foreach (var kvp in costsIdx)
         {
             var bc = await _store.GetAsync<BookingCostStorageModel>("booking_costs", kvp.Value);
@@ -85,22 +113,60 @@ public sealed class DocumentRenderService : IDocumentRenderService
         }
         guests.Sort((a, b) => a.GuestNumber.CompareTo(b.GuestNumber));
 
-        // 6. Load money history (payments) — filtered by year; MoneyHistory has no BookingId link
-        var moneyIdx = await _store.GetIndexAsync("money_history");
+        // 6. Payments belong to this booking: prepaid amount plus posted booking transactions.
         var payments = new List<PaymentContextRow>();
-        foreach (var kvp in moneyIdx)
+        var prepaid = booking.PrepaidAmount ?? 0;
+        if (prepaid != 0)
         {
-            var mh = await _store.GetAsync<MoneyHistoryStorageModel>("money_history", kvp.Value);
-            if (mh is null || mh.Year != year) continue;
             payments.Add(new PaymentContextRow
             {
-                Amount = (mh.Amount ?? 0).ToString("F2", CultureInfo.InvariantCulture),
-                Date = mh.Date?.ToString("yyyy-MM-dd") ?? string.Empty,
-                Method = mh.Type ?? string.Empty,
-                Description = mh.Description ?? string.Empty,
-                Type = mh.Type ?? string.Empty
+                Amount = prepaid.ToString("F2", CultureInfo.InvariantCulture),
+                Date = booking.ArrivalDate?.ToString("yyyy-MM-dd") ?? string.Empty,
+                Method = "prepaid",
+                Description = "Prepaid",
+                Type = "prepaid"
             });
         }
+
+        decimal paymentsTotal = 0;
+        decimal refundsTotal = 0;
+        decimal depositsHeld = 0;
+        foreach (var transaction in await _transactions.GetTransactionsAsync(bookingId))
+        {
+            if (transaction.Amount == 0) continue;
+            var isRefund = string.Equals(transaction.Type, "refund", StringComparison.OrdinalIgnoreCase);
+            var isDeposit = string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase);
+            if (isRefund)
+            {
+                refundsTotal += Math.Abs(transaction.Amount);
+                if (isDeposit) depositsHeld -= Math.Abs(transaction.Amount);
+            }
+            else if (isDeposit)
+            {
+                depositsHeld += Math.Abs(transaction.Amount);
+            }
+            else
+            {
+                paymentsTotal += transaction.Amount;
+            }
+
+            var signed = isRefund ? -Math.Abs(transaction.Amount) : transaction.Amount;
+            payments.Add(new PaymentContextRow
+            {
+                Amount = signed.ToString("F2", CultureInfo.InvariantCulture),
+                Date = transaction.Timestamp == default
+                    ? string.Empty
+                    : transaction.Timestamp.ToString("yyyy-MM-dd"),
+                Method = transaction.AppliedTo ?? transaction.Type ?? string.Empty,
+                Description = transaction.Description ?? transaction.Type ?? string.Empty,
+                Type = transaction.Type ?? string.Empty
+            });
+        }
+
+        var charges = Convert.ToDecimal(totalAmount);
+        var prepaidAmount = Convert.ToDecimal(prepaid);
+        var totalDue = charges - prepaidAmount - paymentsTotal + refundsTotal;
 
         // 7. Hotel info from system configuration
         var config = await _configStore.GetAsync() ?? new SystemConfiguration();
@@ -132,6 +198,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
             BookingNights = nights,
             BookingStatus = booking.Status ?? string.Empty,
             BookingNotes = booking.Notes ?? string.Empty,
+            BookingReference = BuildBookingReference(booking.ArrivalDate, room?.Name),
+            BookingQrCode = BuildBookingQrCode(bookingId, year, booking.ArrivalDate, room?.Name),
 
             // Client
             ClientLastName = client?.LastName ?? string.Empty,
@@ -156,6 +224,11 @@ public sealed class DocumentRenderService : IDocumentRenderService
             RoomCapacity = room?.Capacity ?? 0,
 
             // Financial
+            InvoicePrepaidAmount = prepaidAmount.ToString("F2", CultureInfo.InvariantCulture),
+            InvoicePaymentsTotal = paymentsTotal.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceRefundsTotal = refundsTotal.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceDepositsHeld = depositsHeld.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceTotalDue = totalDue.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceTotalAmount = totalAmount.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceCurrency = currency,
 
@@ -232,6 +305,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
             .Replace("{{Hotel.VatNumber}}", Encode(ctx.HotelVatNumber))
             .Replace("{{Hotel.Currency}}", Encode(ctx.HotelCurrency))
             // Booking
+            .Replace("{{Booking.Reference}}", Encode(ctx.BookingReference))
+            .Replace("{{Booking.QrCode}}", ctx.BookingQrCode)
             .Replace("{{Booking.Id}}", Encode(ctx.BookingId))
             .Replace("{{Booking.Year}}", ctx.BookingYear.ToString())
             .Replace("{{Booking.ArrivalDate}}", Encode(ctx.BookingArrivalDate))
@@ -255,6 +330,11 @@ public sealed class DocumentRenderService : IDocumentRenderService
             .Replace("{{Client.TaxCode}}", Encode(ctx.ClientTaxCode))
             .Replace("{{Client.VatNumber}}", Encode(ctx.ClientVatNumber))
             // Room
+            .Replace("{{Invoice.PrepaidAmount}}", Encode(ctx.InvoicePrepaidAmount))
+            .Replace("{{Invoice.PaymentsTotal}}", Encode(ctx.InvoicePaymentsTotal))
+            .Replace("{{Invoice.RefundsTotal}}", Encode(ctx.InvoiceRefundsTotal))
+            .Replace("{{Invoice.DepositsHeld}}", Encode(ctx.InvoiceDepositsHeld))
+            .Replace("{{Invoice.TotalDue}}", Encode(ctx.InvoiceTotalDue))
             .Replace("{{Room.Name}}", Encode(ctx.RoomName))
             .Replace("{{Room.Floor}}", Encode(ctx.RoomFloor))
             .Replace("{{Room.HouseNumber}}", Encode(ctx.RoomHouseNumber))
@@ -301,6 +381,29 @@ public sealed class DocumentRenderService : IDocumentRenderService
             .Replace("{{Payment.Method}}", Encode(p.Method))
             .Replace("{{Payment.Description}}", Encode(p.Description))
             .Replace("{{Payment.Type}}", Encode(p.Type));
+
+    private static string BuildBookingReference(DateOnly? arrival, string? roomName)
+    {
+        var date = arrival?.ToString("yyyy-MM-dd") ?? string.Empty;
+        var room = string.IsNullOrWhiteSpace(roomName) ? string.Empty : roomName.Trim();
+        if (date.Length == 0) return room;
+        if (room.Length == 0) return date;
+        return $"{date} / {room}";
+    }
+
+    private static string BuildBookingQrCode(string bookingId, int year, DateOnly? arrival, string? roomName)
+    {
+        var payload = string.Join('|',
+            "hoteldruid:booking",
+            bookingId,
+            year.ToString(CultureInfo.InvariantCulture),
+            arrival?.ToString("yyyy-MM-dd") ?? string.Empty,
+            roomName?.Trim() ?? string.Empty);
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
+        var png = new PngByteQRCode(data).GetGraphic(4);
+        return "data:image/png;base64," + Convert.ToBase64String(png);
+    }
 
     // -----------------------------------------------------------------------
     // Format builders

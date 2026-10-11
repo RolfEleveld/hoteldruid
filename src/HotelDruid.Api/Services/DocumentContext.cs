@@ -23,6 +23,10 @@ public sealed class DocumentContext
     public int BookingNights { get; init; }
     public string BookingStatus { get; init; } = string.Empty;
     public string BookingNotes { get; init; } = string.Empty;
+    /// <summary>Human reference: arrival date and room. Rooms are unique, so this identifies the stay.</summary>
+    public string BookingReference { get; init; } = string.Empty;
+    /// <summary>Data URL of a QR code carrying the internal booking id, year, arrival, and room.</summary>
+    public string BookingQrCode { get; init; } = string.Empty;
 
     // --- Primary client (booking holder) ---
     public string ClientLastName { get; init; } = string.Empty;
@@ -49,6 +53,11 @@ public sealed class DocumentContext
     // --- Financial summary ---
     public string InvoiceTotalAmount { get; init; } = string.Empty;
     public string InvoiceCurrency { get; init; } = string.Empty;
+    public string InvoicePrepaidAmount { get; init; } = string.Empty;
+    public string InvoicePaymentsTotal { get; init; } = string.Empty;
+    public string InvoiceRefundsTotal { get; init; } = string.Empty;
+    public string InvoiceDepositsHeld { get; init; } = string.Empty;
+    public string InvoiceTotalDue { get; init; } = string.Empty;
 
     // --- Document meta ---
     public string DocumentToday { get; init; } = string.Empty;

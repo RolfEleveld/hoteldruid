@@ -41,7 +41,7 @@
   </div>
 
   <h1>Booking Confirmation</h1>
-  <div class="meta">Confirmation date: {{Document.Today}} &nbsp;|&nbsp; Booking reference: <strong>{{Booking.Id}}</strong></div>
+  <div class="meta">Confirmation date: {{Document.Today}} &nbsp;|&nbsp; Booking reference: <strong>{{Booking.Reference}}</strong></div>
 
   <h2>Guest Details</h2>
   <table>
@@ -79,7 +79,7 @@
 
   <h2>Cost Summary</h2>
   <table>
-    <thead><tr><th>Description</th><th style="text-align:right;">Amount ({{Invoice.Currency}})</th></tr></thead>
+    <thead><tr><th>Stay</th><th style="text-align:right;">Amount ({{Invoice.Currency}})</th></tr></thead>
     <tbody>
 <!-- FOREACH:Costs -->
       <tr>

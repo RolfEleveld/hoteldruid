@@ -10,7 +10,8 @@ namespace HotelDruid.Api.Services;
 /// if they are not already present.  Templates are stored as contract_templates with
 /// Type = template-type-slug and Number = 1.
 ///
-/// Existing templates are NEVER overwritten so a restored dataset is always preserved.
+/// A stored template is refreshed only when it still matches the current or previous
+/// embedded default. Customized templates are left in place.
 /// </summary>
 public sealed class DocumentTemplateSeeder : IHostedService
 {
@@ -44,12 +45,6 @@ public sealed class DocumentTemplateSeeder : IHostedService
         foreach (var type in KnownTemplateTypes)
         {
             var key = TemplateKey(type, 1);
-            if (idx.ContainsKey(key))
-            {
-                _logger.LogDebug("Document template '{Type}' already present — skipping seed", type);
-                continue;
-            }
-
             var resourceName = $"HotelDruid.Api.Resources.Templates.{type}.html";
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream is null)
@@ -61,6 +56,22 @@ public sealed class DocumentTemplateSeeder : IHostedService
 
             using var reader = new StreamReader(stream);
             var content = await reader.ReadToEndAsync(cancellationToken);
+            var previous = await ReadPreviousEmbeddedTemplateAsync(assembly, type);
+
+            if (idx.TryGetValue(key, out var existingId))
+            {
+                var existing = await _store.GetAsync<ContractTemplateStorageModel>("contract_templates", existingId);
+                if (existing is null || !IsUnmodifiedDefault(existing.Content, previous, content))
+                {
+                    _logger.LogDebug("Document template '{Type}' was customized — leaving it in place", type);
+                    continue;
+                }
+
+                existing.Content = content;
+                await _store.UpdateAsync("contract_templates", existingId, existing);
+                _logger.LogInformation("Refreshed unmodified default document template '{Type}'", type);
+                continue;
+            }
 
             var model = new ContractTemplateStorageModel
             {
@@ -85,4 +96,22 @@ public sealed class DocumentTemplateSeeder : IHostedService
         var sanitized = System.Text.RegularExpressions.Regex.Replace(type, @"[^a-zA-Z0-9_]", "_");
         return $"{sanitized}_{number}";
     }
+
+    private static async Task<string?> ReadPreviousEmbeddedTemplateAsync(Assembly assembly, string type)
+    {
+        var resourceName = $"HotelDruid.Api.Resources.Templates.Previous.{type}.html";
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream is null) return null;
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
+    }
+
+    private static bool IsUnmodifiedDefault(string? stored, string? previous, string current)
+    {
+        var normalized = NormalizeTemplate(stored);
+        return normalized == NormalizeTemplate(current) || normalized == NormalizeTemplate(previous);
+    }
+
+    private static string NormalizeTemplate(string? content)
+        => (content ?? string.Empty).Replace("\r\n", "\n").Trim();
 }

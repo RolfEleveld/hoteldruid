@@ -3818,6 +3818,12 @@ app.MapGet("/api/documents/render/{type}/{number:int}",
         var (content, contentType, filename) = renderer.ApplyFormat(html, context, docFormat);
 
         var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        // Print and plain HTML must render in the new tab so window.print() can run.
+        // A filename on Results.File forces Content-Disposition: attachment, which
+        // downloads the page instead of displaying it.
+        if (docFormat is DocumentFormat.Print or DocumentFormat.Html)
+            return Results.File(bytes, contentType);
+
         return Results.File(bytes, contentType, filename);
     }).WithName("RenderDocument");
 

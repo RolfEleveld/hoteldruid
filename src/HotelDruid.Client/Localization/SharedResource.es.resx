@@ -53,6 +53,7 @@
   <data name="clients.section.tax" xml:space="preserve"><value>Datos fiscales</value></data>
   <data name="clients.section.notes" xml:space="preserve"><value>Notas</value></data>
   <data name="clients.reservationsTitle" xml:space="preserve"><value>Reservas</value></data>
+  <data name="clients.financialContribution" xml:space="preserve"><value>Aportación financiera</value></data>
   <data name="clients.noReservations" xml:space="preserve"><value>No se encontraron reservas para este huésped.</value></data>
   <data name="clients.reservationEntry" xml:space="preserve"><value>Entrada de reserva</value></data>
   <data name="clients.reservationStartLabel" xml:space="preserve"><value>Fecha de inicio</value></data>
@@ -336,6 +337,7 @@
   <data name="Nav.CancelledBookings" xml:space="preserve"><value>Reservas canceladas</value></data>
   <data name="Nav.Expenses" xml:space="preserve"><value>Gastos</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Historial de dinero</value></data>
+  <data name="Nav.Ledger" xml:space="preserve"><value>Libro mayor</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Mensajes</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Plantillas de contrato</value></data>
   <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>Integraciones externas</value></data>
@@ -555,4 +557,58 @@
   <data name="bookings.saveFailedStatus" xml:space="preserve"><value>Error al guardar: {0}</value></data>
   <data name="bookings.cancelFailed" xml:space="preserve"><value>Error al cancelar.</value></data>
   <data name="bookings.deleteFailed" xml:space="preserve"><value>Error al eliminar.</value></data>
+  <data name="bookingFinance.title" xml:space="preserve"><value>Finanzas de la reserva</value></data>
+  <data name="bookingFinance.booking" xml:space="preserve"><value>Reserva</value></data>
+  <data name="bookingFinance.guest" xml:space="preserve"><value>Huésped</value></data>
+  <data name="bookingFinance.history" xml:space="preserve"><value>Movimientos</value></data>
+  <data name="bookingFinance.emptyHistory" xml:space="preserve"><value>Todavía no hay movimientos en esta reserva.</value></data>
+  <data name="bookingFinance.ledger" xml:space="preserve"><value>Libro mayor</value></data>
+  <data name="bookingFinance.selectBooking" xml:space="preserve"><value>Abra esta página desde una reserva para ver su historial financiero.</value></data>
+  <data name="bookingFinance.guestBookings" xml:space="preserve"><value>Reservas del huésped</value></data>
+  <data name="bookingFinance.guestEmpty" xml:space="preserve"><value>No hay reservas para este huésped.</value></data>
+  <data name="bookingFinance.listTitle" xml:space="preserve"><value>Reservas</value></data>
+  <data name="bookingFinance.searchPlaceholder" xml:space="preserve"><value>Buscar por huésped, habitación o fecha</value></data>
+  <data name="bookingFinance.noMatch" xml:space="preserve"><value>Ninguna reserva coincide con este filtro.</value></data>
+  <data name="bookingFinance.emptyList" xml:space="preserve"><value>Todavía no hay reservas.</value></data>
+  <data name="bookingFinance.reservation" xml:space="preserve"><value>Reserva</value></data>
+  <data name="bookingFinance.prepaid" xml:space="preserve"><value>Prepago</value></data>
+  <data name="bookingFinance.adjust" xml:space="preserve"><value>Registrar un pago, un depósito, un reembolso o un cargo extra</value></data>
+  <data name="bookingFinance.type" xml:space="preserve"><value>Tipo</value></data>
+  <data name="bookingFinance.payment" xml:space="preserve"><value>Pago</value></data>
+  <data name="bookingFinance.deposit" xml:space="preserve"><value>Depósito</value></data>
+  <data name="bookingFinance.refund" xml:space="preserve"><value>Reembolso</value></data>
+  <data name="bookingFinance.adjustment" xml:space="preserve"><value>Ajuste</value></data>
+  <data name="bookingFinance.amount" xml:space="preserve"><value>Importe</value></data>
+  <data name="bookingFinance.appliedTo" xml:space="preserve"><value>Aplicado a</value></data>
+  <data name="bookingFinance.stayBalance" xml:space="preserve"><value>Saldo de la estancia</value></data>
+  <data name="bookingFinance.depositBalance" xml:space="preserve"><value>Depósito</value></data>
+  <data name="bookingFinance.extras" xml:space="preserve"><value>Extras</value></data>
+  <data name="bookingFinance.createdBy" xml:space="preserve"><value>Registrado por</value></data>
+  <data name="bookingFinance.sequence" xml:space="preserve"><value>Secuencia</value></data>
+  <data name="bookingFinance.when" xml:space="preserve"><value>Fecha</value></data>
+  <data name="bookingFinance.record" xml:space="preserve"><value>Registrar</value></data>
+  <data name="bookingFinance.printInvoice" xml:space="preserve"><value>Factura</value></data>
+  <data name="bookingFinance.printReceipt" xml:space="preserve"><value>Recibo</value></data>
+  <data name="bookingFinance.stayTotal" xml:space="preserve"><value>Total de la estancia</value></data>
+  <data name="bookingFinance.payments" xml:space="preserve"><value>Pagos</value></data>
+  <data name="bookingFinance.refunds" xml:space="preserve"><value>Reembolsos</value></data>
+  <data name="bookingFinance.depositsHeld" xml:space="preserve"><value>Depósitos retenidos</value></data>
+  <data name="bookingFinance.totalDue" xml:space="preserve"><value>Total a pagar</value></data>
+  <data name="bookingFinance.totalDueHint" xml:space="preserve"><value>Precio de la estancia más extras, menos el importe prepagado y los pagos registrados.</value></data>
+  <data name="bookingFinance.openBooking" xml:space="preserve"><value>Abrir reserva</value></data>
+  <data name="bookingFinance.amountRequired" xml:space="preserve"><value>Introduzca un importe mayor que cero.</value></data>
+  <data name="ledger.title" xml:space="preserve"><value>Libro mayor</value></data>
+  <data name="ledger.from" xml:space="preserve"><value>Desde</value></data>
+  <data name="ledger.to" xml:space="preserve"><value>Hasta</value></data>
+  <data name="ledger.unassigned" xml:space="preserve"><value>Solo caja del hotel (sin reserva)</value></data>
+  <data name="ledger.booking" xml:space="preserve"><value>Referencia de reserva</value></data>
+  <data name="ledger.hint" xml:space="preserve"><value>Una referencia de reserva vacía indica caja menor, compras o un huésped que no se aloja.</value></data>
+  <data name="ledger.empty" xml:space="preserve"><value>No hay apuntes en este intervalo.</value></data>
+  <data name="ledger.date" xml:space="preserve"><value>Fecha</value></data>
+  <data name="ledger.account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="ledger.bookingColumn" xml:space="preserve"><value>Reserva</value></data>
+  <data name="ledger.payer" xml:space="preserve"><value>Pagador</value></data>
+  <data name="ledger.debit" xml:space="preserve"><value>Debe</value></data>
+  <data name="ledger.credit" xml:space="preserve"><value>Haber</value></data>
+  <data name="ledger.hotel" xml:space="preserve"><value>Hotel</value></data>
 </root>

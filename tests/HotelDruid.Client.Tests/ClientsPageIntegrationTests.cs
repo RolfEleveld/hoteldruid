@@ -16,6 +16,7 @@ public class ClientsPageIntegrationTests : TestContext
     private readonly Mock<IClientApiService> clientApi = new();
     private readonly Mock<IRoomApiService> roomApi = new();
     private readonly Mock<IBookingApiService> bookingApi = new();
+    private readonly Mock<IBookingFinanceApiService> financeApi = new();
 
     public ClientsPageIntegrationTests()
     {
@@ -29,10 +30,13 @@ public class ClientsPageIntegrationTests : TestContext
         });
         roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>());
         bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>());
+        financeApi.Setup(x => x.GetSummaryAsync(It.IsAny<int>(), It.IsAny<string>()))
+            .ReturnsAsync((int year, string bookingId) => null);
 
         Services.AddScoped(_ => clientApi.Object);
         Services.AddScoped(_ => roomApi.Object);
         Services.AddScoped(_ => bookingApi.Object);
+        Services.AddScoped(_ => financeApi.Object);
     }
 
     [Fact]

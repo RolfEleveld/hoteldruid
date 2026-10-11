@@ -51,7 +51,7 @@
 
     <div class="section-title">Charges</div>
     <table class="costs">
-      <thead><tr><th>Description</th><th class="right">Amount ({{Invoice.Currency}})</th></tr></thead>
+      <thead><tr><th>Stay</th><th class="right">Amount ({{Invoice.Currency}})</th></tr></thead>
       <tbody>
 <!-- FOREACH:Costs -->
         <tr>
@@ -80,7 +80,7 @@
       Questions? Call us at {{Hotel.Phone}} or email {{Hotel.Email}}
     </div>
 
-    <p style="font-size:9pt;color:#aaa;">This email was generated on {{Document.Today}}. Booking reference: {{Booking.Id}}.</p>
+    <p style="font-size:9pt;color:#aaa;">This email was generated on {{Document.Today}}. Booking reference: {{Booking.Reference}}.</p>
   </div>
 
   <div class="footer-bar">

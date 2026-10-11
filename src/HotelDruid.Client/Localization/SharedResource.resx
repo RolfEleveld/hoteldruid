@@ -212,6 +212,7 @@
   <data name="Nav.CancelledBookings" xml:space="preserve"><value>Cancelled Bookings</value></data>
   <data name="Nav.Expenses" xml:space="preserve"><value>Expenses</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Money History</value></data>
+  <data name="Nav.Ledger" xml:space="preserve"><value>General Ledger</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Contract Templates</value></data>
   <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>External Integrations</value></data>
@@ -405,6 +406,7 @@
   <data name="clients.section.tax" xml:space="preserve"><value>Tax Data</value></data>
   <data name="clients.section.notes" xml:space="preserve"><value>Notes</value></data>
   <data name="clients.reservationsTitle" xml:space="preserve"><value>Reservations</value></data>
+  <data name="clients.financialContribution" xml:space="preserve"><value>Financial contribution</value></data>
   <data name="clients.noReservations" xml:space="preserve"><value>No reservations found for this guest.</value></data>
   <data name="clients.reservationEntry" xml:space="preserve"><value>Reservation entry</value></data>
   <data name="clients.reservationStartLabel" xml:space="preserve"><value>Start Date</value></data>
@@ -575,4 +577,58 @@
   <data name="bookings.saveFailedStatus" xml:space="preserve"><value>Save failed: {0}</value></data>
   <data name="bookings.cancelFailed" xml:space="preserve"><value>Cancel failed.</value></data>
   <data name="bookings.deleteFailed" xml:space="preserve"><value>Delete failed.</value></data>
+  <data name="bookingFinance.title" xml:space="preserve"><value>Booking Finance</value></data>
+  <data name="bookingFinance.booking" xml:space="preserve"><value>Booking</value></data>
+  <data name="bookingFinance.guest" xml:space="preserve"><value>Guest</value></data>
+  <data name="bookingFinance.history" xml:space="preserve"><value>Transactions</value></data>
+  <data name="bookingFinance.emptyHistory" xml:space="preserve"><value>No transactions on this booking yet.</value></data>
+  <data name="bookingFinance.ledger" xml:space="preserve"><value>Ledger</value></data>
+  <data name="bookingFinance.selectBooking" xml:space="preserve"><value>Open this page from a booking to review its financial history.</value></data>
+  <data name="bookingFinance.guestBookings" xml:space="preserve"><value>Guest bookings</value></data>
+  <data name="bookingFinance.guestEmpty" xml:space="preserve"><value>No bookings found for this guest.</value></data>
+  <data name="bookingFinance.listTitle" xml:space="preserve"><value>Bookings</value></data>
+  <data name="bookingFinance.searchPlaceholder" xml:space="preserve"><value>Search by guest, room, or date</value></data>
+  <data name="bookingFinance.noMatch" xml:space="preserve"><value>No bookings match this filter.</value></data>
+  <data name="bookingFinance.emptyList" xml:space="preserve"><value>No bookings yet.</value></data>
+  <data name="bookingFinance.reservation" xml:space="preserve"><value>Reservation</value></data>
+  <data name="bookingFinance.prepaid" xml:space="preserve"><value>Prepaid</value></data>
+  <data name="bookingFinance.adjust" xml:space="preserve"><value>Record a payment, deposit, refund, or extra charge</value></data>
+  <data name="bookingFinance.type" xml:space="preserve"><value>Type</value></data>
+  <data name="bookingFinance.payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="bookingFinance.deposit" xml:space="preserve"><value>Deposit</value></data>
+  <data name="bookingFinance.refund" xml:space="preserve"><value>Refund</value></data>
+  <data name="bookingFinance.adjustment" xml:space="preserve"><value>Adjustment</value></data>
+  <data name="bookingFinance.amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="bookingFinance.appliedTo" xml:space="preserve"><value>Applied to</value></data>
+  <data name="bookingFinance.stayBalance" xml:space="preserve"><value>Stay balance</value></data>
+  <data name="bookingFinance.depositBalance" xml:space="preserve"><value>Deposit</value></data>
+  <data name="bookingFinance.extras" xml:space="preserve"><value>Extras</value></data>
+  <data name="bookingFinance.createdBy" xml:space="preserve"><value>Recorded by</value></data>
+  <data name="bookingFinance.sequence" xml:space="preserve"><value>Sequence</value></data>
+  <data name="bookingFinance.when" xml:space="preserve"><value>When</value></data>
+  <data name="bookingFinance.record" xml:space="preserve"><value>Record</value></data>
+  <data name="bookingFinance.printInvoice" xml:space="preserve"><value>Invoice</value></data>
+  <data name="bookingFinance.printReceipt" xml:space="preserve"><value>Receipt</value></data>
+  <data name="bookingFinance.stayTotal" xml:space="preserve"><value>Stay total</value></data>
+  <data name="bookingFinance.payments" xml:space="preserve"><value>Payments</value></data>
+  <data name="bookingFinance.refunds" xml:space="preserve"><value>Refunds</value></data>
+  <data name="bookingFinance.depositsHeld" xml:space="preserve"><value>Deposits held</value></data>
+  <data name="bookingFinance.totalDue" xml:space="preserve"><value>Total due</value></data>
+  <data name="bookingFinance.totalDueHint" xml:space="preserve"><value>Stay price plus extras, minus prepaid amount and recorded payments.</value></data>
+  <data name="bookingFinance.openBooking" xml:space="preserve"><value>Open booking</value></data>
+  <data name="bookingFinance.amountRequired" xml:space="preserve"><value>Enter an amount greater than zero.</value></data>
+  <data name="ledger.title" xml:space="preserve"><value>General ledger</value></data>
+  <data name="ledger.from" xml:space="preserve"><value>From</value></data>
+  <data name="ledger.to" xml:space="preserve"><value>To</value></data>
+  <data name="ledger.unassigned" xml:space="preserve"><value>Hotel cash only (no booking)</value></data>
+  <data name="ledger.booking" xml:space="preserve"><value>Booking reference</value></data>
+  <data name="ledger.hint" xml:space="preserve"><value>Empty booking reference means petty cash, purchases, or a non-staying guest.</value></data>
+  <data name="ledger.empty" xml:space="preserve"><value>No ledger lines in this range.</value></data>
+  <data name="ledger.date" xml:space="preserve"><value>Date</value></data>
+  <data name="ledger.account" xml:space="preserve"><value>Account</value></data>
+  <data name="ledger.bookingColumn" xml:space="preserve"><value>Booking</value></data>
+  <data name="ledger.payer" xml:space="preserve"><value>Payer</value></data>
+  <data name="ledger.debit" xml:space="preserve"><value>Debit</value></data>
+  <data name="ledger.credit" xml:space="preserve"><value>Credit</value></data>
+  <data name="ledger.hotel" xml:space="preserve"><value>Hotel</value></data>
 </root>
