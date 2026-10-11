@@ -1,0 +1,105 @@
+@page "/ledger"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@inject IBookingFinanceApiService FinanceApi
+@inject IActiveYearService ActiveYearService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["ledger.title", "General ledger"]</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col-auto"><h5 class="mb-0">@L["ledger.title", "General ledger"]</h5></div>
+        <div class="col-auto">
+            <label class="me-1">@L["ledger.from", "From"]</label>
+            <input class="form-control d-inline-block" type="date" @bind="fromDate" style="width:150px" />
+            <label class="ms-2 me-1">@L["ledger.to", "To"]</label>
+            <input class="form-control d-inline-block" type="date" @bind="toDate" style="width:150px" />
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="Load">@L["common.load", "Load"]</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3 border-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="unassigned" @bind="unassignedOnly" />
+                <label class="form-check-label" for="unassigned">@L["ledger.unassigned", "Hotel cash only (no booking)"]</label>
+            </div>
+            <label class="mt-2">@L["ledger.booking", "Booking reference"]</label>
+            <input class="form-control" @bind="bookingId" disabled="@unassignedOnly" />
+            <p class="text-muted small mt-2">@L["ledger.hint", "Empty booking reference means petty cash, purchases, or a non-staying guest."]</p>
+        </div>
+        <div class="col-md-9">
+            @if (lines is null)
+            {
+                <p><em>@L["common.loading", "Loading..."]</em></p>
+            }
+            else if (lines.Count == 0)
+            {
+                <p class="text-muted">@L["ledger.empty", "No ledger lines in this range."]</p>
+            }
+            else
+            {
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>@L["ledger.date", "Date"]</th>
+                            <th>@L["ledger.account", "Account"]</th>
+                            <th>@L["ledger.bookingColumn", "Booking"]</th>
+                            <th>@L["ledger.payer", "Payer"]</th>
+                            <th class="text-end">@L["ledger.debit", "Debit"]</th>
+                            <th class="text-end">@L["ledger.credit", "Credit"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in lines.OrderBy(line => line.Timestamp))
+                        {
+                            <tr>
+                                <td>@line.Timestamp.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@line.AccountCode <small class="text-muted">@line.EntryType</small></td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(line.BookingId))
+                                    {
+                                        <span class="text-muted">@L["ledger.hotel", "Hotel"]</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@($"/booking-finance?selectedId={Uri.EscapeDataString(line.BookingId)}&year={line.Timestamp.Year}")">@line.BookingId</a>
+                                    }
+                                </td>
+                                <td>@(line.PayerName ?? line.Description)</td>
+                                <td class="text-end">@(line.Debit == 0 ? "" : line.Debit.ToString("0.00"))</td>
+                                <td class="text-end">@(line.Credit == 0 ? "" : line.Credit.ToString("0.00"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "bookingId")]
+    public string? BookingQuery { get; set; }
+
+    private List<LedgerLineDto>? lines;
+    private DateTime fromDate = DateTime.Today.AddDays(-30);
+    private DateTime toDate = DateTime.Today;
+    private string? bookingId;
+    private bool unassignedOnly;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ActiveYearService.InitializeAsync();
+        bookingId = BookingQuery;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        lines = null;
+        var from = DateOnly.FromDateTime(fromDate);
+        var to = DateOnly.FromDateTime(toDate);
+        lines = await FinanceApi.ListLedgerLinesAsync(from, to, unassignedOnly ? null : bookingId, unassignedOnly);
+    }
+}

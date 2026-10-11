@@ -107,6 +107,64 @@ public record MoneyHistoryDto(
     DateOnly? Date = null
 );
 
+/// <summary>One immutable financial movement on a booking.</summary>
+public record BookingTransactionDto(
+    string? BookingId,
+    int Sequence,
+    DateTime Timestamp,
+    string? Type,
+    decimal Amount,
+    string? Description,
+    string? AppliedTo,
+    string? CreatedBy
+);
+
+/// <summary>Request used to append a payment, deposit, refund, or adjustment.</summary>
+public record BookingTransactionWriteDto(
+    string? Type,
+    decimal Amount,
+    string? Description = null,
+    string? AppliedTo = null,
+    string? CreatedBy = null,
+    DateTime? Timestamp = null
+);
+
+/// <summary>One balanced line from the hotel general ledger.</summary>
+public record LedgerLineDto(
+    string? Id,
+    string? JournalId,
+    DateTime Timestamp,
+    string? EntryType,
+    string? BookingId,
+    string? AccountCode,
+    string? AccountGroup,
+    decimal Debit,
+    decimal Credit,
+    string? CashRegisterId,
+    string? PayerName,
+    string? Description,
+    string? SourceType,
+    string? SourceId
+);
+
+/// <summary>Read-only financial position for one booking.</summary>
+public record BookingFinanceSummaryDto(
+    string BookingId,
+    int Year,
+    decimal StayTotal,
+    decimal ExtraTotal,
+    decimal ChargesTotal,
+    decimal PrepaidAmount,
+    decimal PaymentsTotal,
+    decimal RefundsTotal,
+    decimal DepositsHeld,
+    decimal TotalDue,
+    string Currency,
+    string? TariffId,
+    string? TariffName,
+    int Nights
+);
+
 /// <summary>
 /// Room/Apartment Data Transfer Object.
 /// Maps to HotelDruid 'appartamenti' table.

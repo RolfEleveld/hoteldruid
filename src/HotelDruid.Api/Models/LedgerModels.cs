@@ -18,10 +18,37 @@ public class LedgerEntry
     /// <summary>Entry type: "payment", "booking_offer", "checkin_charge", "refund", etc.</summary>
     public string? EntryType { get; set; }
 
-    /// <summary>Associated booking GUID-base32 ID (if applicable).</summary>
+    /// <summary>Associated booking ID. Empty for hotel-level postings such as rent, payroll, or petty cash.</summary>
     public string? BookingId { get; set; }
 
-    /// <summary>Monetary amount for this entry.</summary>
+    /// <summary>Shared id for the balanced lines of one business event.</summary>
+    public string? JournalId { get; set; }
+
+    /// <summary>USALI/GAAP account code. The booking reference is a dimension, not the account.</summary>
+    public string? AccountCode { get; set; }
+
+    /// <summary>Account group: asset, liability, equity, revenue, or expense.</summary>
+    public string? AccountGroup { get; set; }
+
+    /// <summary>Debit amount. A journal balances when the sum of debits equals the sum of credits.</summary>
+    public decimal Debit { get; set; }
+
+    /// <summary>Credit amount.</summary>
+    public decimal Credit { get; set; }
+
+    /// <summary>Cash register that received or paid this line. Empty when the line is not a cash movement.</summary>
+    public string? CashRegisterId { get; set; }
+
+    /// <summary>Guest or payer when the movement is not tied to a staying booking.</summary>
+    public string? PayerName { get; set; }
+
+    /// <summary>Source document, such as money-history, expense, booking-cost, or booking-transaction.</summary>
+    public string? SourceType { get; set; }
+
+    /// <summary>Id of the source document that produced this line.</summary>
+    public string? SourceId { get; set; }
+
+    /// <summary>Monetary amount for this entry. Positive amounts are inflows; expenses are stored negative.</summary>
     public decimal? Amount { get; set; }
 
     /// <summary>Payment method: "cash", "card", "transfer", etc.</summary>

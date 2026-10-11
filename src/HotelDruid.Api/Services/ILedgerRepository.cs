@@ -39,6 +39,12 @@ public interface ILedgerRepository
     Task<List<LedgerEntry>> GetEntriesForBookingAsync(string bookingId, DateTime from, DateTime to);
 
     /// <summary>
+    /// Get hotel-level entries with no booking reference across a date range.
+    /// These are petty cash, purchases, payroll, and other non-stay postings.
+    /// </summary>
+    Task<List<LedgerEntry>> GetEntriesWithoutBookingAsync(DateTime from, DateTime to);
+
+    /// <summary>
     /// Consolidate: load the snapshot then apply all incremental entries on top.
     /// Returns an ordered list of all entries for the day.
     /// </summary>

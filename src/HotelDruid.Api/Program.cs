@@ -149,6 +149,7 @@ builder.Services.AddSingleton<IBookingTransactionRepository>(sp =>
     var logger = sp.GetRequiredService<ILogger<BookingTransactionRepository>>();
     return new BookingTransactionRepository(resolvedDataRoot, logger);
 });
+builder.Services.AddSingleton<IFinancialPostingService, FinancialPostingService>();
 
 // Register export/import services
 builder.Services.AddScoped<ICanonicalMapper>(sp =>
@@ -3233,12 +3234,13 @@ app.MapGet("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToExpenseDto(id, e));
 }).WithName("GetExpense");
 
-app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store) =>
+app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new ExpenseStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("expenses", key, storage);
+    await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "hotel_purchase", request.Description ?? "Hotel purchase", Convert.ToDecimal(request.Amount ?? 0), HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, sourceType: "expense", sourceId: id);
     return Results.Created($"/api/expenses/{request.Year}/{id}", ToExpenseDto(id, storage));
 }).WithName("CreateExpense");
 
@@ -3285,12 +3287,22 @@ app.MapGet("/api/money-history/{year:int}/{id}", async (int year, string id, IKe
     return Results.Ok(ToMoneyHistoryDto(id, m));
 }).WithName("GetMoneyHistory");
 
-app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore store) =>
+app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("money_history", key, storage);
+    var amount = Convert.ToDecimal(request.Amount ?? 0);
+    var isOutflow = amount < 0 || string.Equals(request.Type, "expense", StringComparison.OrdinalIgnoreCase) || string.Equals(request.Type, "s", StringComparison.OrdinalIgnoreCase);
+    if (isOutflow)
+    {
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", amount, HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Description, sourceType: "money-history", sourceId: id);
+    }
+    else
+    {
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_income", request.Description ?? "Petty cash income", amount, HotelAccounts.Cash, "asset", HotelAccounts.OtherIncome, "revenue", cashRegisterId: request.CashRegisterId, payerName: request.Description, sourceType: "money-history", sourceId: id);
+    }
     return Results.Created($"/api/money-history/{request.Year}/{id}", ToMoneyHistoryDto(id, storage));
 }).WithName("CreateMoneyHistory");
 
@@ -3592,6 +3604,192 @@ app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
     }
     return Results.NoContent();
 }).WithName("DeleteSessionsForUser");
+
+// --- Booking finance (immutable per-booking ledger) ---
+
+static bool IsRefundTransaction(string? type)
+    => string.Equals(type, "refund", StringComparison.OrdinalIgnoreCase);
+
+static bool IsDepositTransaction(BookingTransaction transaction)
+    => string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase);
+
+static bool IsPaymentTransaction(BookingTransaction transaction)
+    => !IsRefundTransaction(transaction.Type)
+       && (string.Equals(transaction.Type, "payment", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(transaction.AppliedTo, "stay_balance", StringComparison.OrdinalIgnoreCase)
+           || string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase));
+
+static BookingTransactionDto ToBookingTransactionDto(BookingTransaction transaction) => new(
+    transaction.BookingId,
+    transaction.Sequence,
+    transaction.Timestamp,
+    transaction.Type,
+    transaction.Amount,
+    transaction.Description,
+    transaction.AppliedTo,
+    transaction.CreatedBy);
+
+app.MapGet("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, IKeyValueStore store, IBookingTransactionRepository transactions) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year) return Results.NotFound();
+    var items = await transactions.GetTransactionsAsync(id);
+    return Results.Ok(items.Select(ToBookingTransactionDto).ToList());
+}).WithName("ListBookingTransactions");
+
+app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, BookingTransactionWriteDto request, IKeyValueStore store, IBookingTransactionRepository transactions, IFinancialPostingService ledger) =>
+{
+    if (request is null || string.IsNullOrWhiteSpace(request.Type))
+        return Results.BadRequest(new { error = "Transaction type is required" });
+    if (request.Amount == 0)
+        return Results.BadRequest(new { error = "Transaction amount must not be zero" });
+
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year) return Results.NotFound();
+
+    var appended = await transactions.AppendTransactionAsync(id, new BookingTransaction
+    {
+        Type = request.Type.Trim(),
+        Amount = request.Amount,
+        Description = request.Description,
+        AppliedTo = string.IsNullOrWhiteSpace(request.AppliedTo) ? "stay_balance" : request.AppliedTo.Trim(),
+        CreatedBy = request.CreatedBy,
+        Timestamp = request.Timestamp ?? default
+    });
+    var when = appended.Timestamp == default ? DateTime.UtcNow : appended.Timestamp;
+    var appliedTo = appended.AppliedTo ?? "stay_balance";
+    var isDeposit = string.Equals(appended.Type, "deposit", StringComparison.OrdinalIgnoreCase) || string.Equals(appliedTo, "deposit", StringComparison.OrdinalIgnoreCase);
+    var isRefund = string.Equals(appended.Type, "refund", StringComparison.OrdinalIgnoreCase);
+    if (isRefund)
+        await ledger.PostBalancedAsync(when, "booking_refund", appended.Description ?? "Booking refund", appended.Amount, isDeposit ? HotelAccounts.GuestDeposits : HotelAccounts.RoomRevenue, isDeposit ? "liability" : "revenue", HotelAccounts.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: appended.Sequence.ToString(), createdBy: appended.CreatedBy);
+    else if (isDeposit)
+        await ledger.PostBalancedAsync(when, "booking_deposit", appended.Description ?? "Booking deposit", appended.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: appended.Sequence.ToString(), createdBy: appended.CreatedBy);
+    else
+        await ledger.PostBalancedAsync(when, "booking_payment", appended.Description ?? "Booking payment", appended.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: appended.Sequence.ToString(), createdBy: appended.CreatedBy);
+    return Results.Created($"/api/bookings/{year}/{id}/transactions/{appended.Sequence}", ToBookingTransactionDto(appended));
+}).WithName("AppendBookingTransaction");
+
+app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
+    int year,
+    string id,
+    IKeyValueStore store,
+    IBookingTransactionRepository transactions,
+    ITariffResolutionService resolver,
+    ISystemConfigurationStore configurationStore) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null || booking.Year != year) return Results.NotFound();
+
+    var config = await configurationStore.GetAsync() ?? new SystemConfiguration();
+    var currency = config.DefaultCurrency
+        ?? config.Settings?.GetValueOrDefault("Currency")
+        ?? "EUR";
+
+    decimal stayTotal = 0;
+    string? tariffName = null;
+    var nights = 0;
+    if (booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
+        nights = Math.Max(0, booking.DepartureDate.Value.DayNumber - booking.ArrivalDate.Value.DayNumber);
+
+    if (!string.IsNullOrWhiteSpace(booking.RoomId) && booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
+    {
+        var guestCount = booking.ActualGuestCount ?? booking.ExpectedGuestCount ?? 1;
+        var resolved = await resolver.ResolveAsync(booking.RoomId, booking.ArrivalDate.Value, booking.DepartureDate.Value, guestCount);
+        if (resolved is not null)
+        {
+            stayTotal = Convert.ToDecimal(resolved.TotalPrice);
+            tariffName = resolved.TariffName;
+        }
+    }
+
+    var costIndex = await store.GetIndexAsync("booking_costs");
+    decimal extraTotal = 0;
+    foreach (var entry in costIndex)
+    {
+        var cost = await store.GetAsync<BookingCostStorageModel>("booking_costs", entry.Value);
+        if (cost is null || !string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase)) continue;
+        extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
+    }
+
+    var history = await transactions.GetTransactionsAsync(id);
+    decimal payments = 0;
+    decimal refunds = 0;
+    decimal deposits = 0;
+    foreach (var transaction in history)
+    {
+        if (IsRefundTransaction(transaction.Type))
+        {
+            refunds += transaction.Amount;
+            if (IsDepositTransaction(transaction)) deposits -= transaction.Amount;
+            continue;
+        }
+
+        if (!IsPaymentTransaction(transaction)) continue;
+        if (IsDepositTransaction(transaction))
+        {
+            deposits += transaction.Amount;
+            continue;
+        }
+
+        payments += transaction.Amount;
+    }
+
+    var prepaid = Convert.ToDecimal(booking.PrepaidAmount ?? 0);
+    var charges = stayTotal + extraTotal;
+    var due = charges - prepaid - payments + refunds;
+    return Results.Ok(new BookingFinanceSummaryDto(
+        id,
+        year,
+        stayTotal,
+        extraTotal,
+        charges,
+        prepaid,
+        payments,
+        refunds,
+        deposits,
+        due,
+        currency,
+        booking.TariffId,
+        tariffName,
+        nights));
+}).WithName("GetBookingFinance");
+
+static LedgerLineDto ToLedgerLineDto(LedgerEntry entry) => new(
+    entry.Id,
+    entry.JournalId,
+    entry.Timestamp,
+    entry.EntryType,
+    entry.BookingId,
+    entry.AccountCode,
+    entry.AccountGroup,
+    entry.Debit,
+    entry.Credit,
+    entry.CashRegisterId,
+    entry.PayerName,
+    entry.Notes,
+    entry.SourceType,
+    entry.SourceId);
+
+app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? bookingId, bool? unassigned, ILedgerRepository ledger) =>
+{
+    if (to < from) return Results.BadRequest(new { error = "to must be on or after from" });
+    var start = from.ToDateTime(TimeOnly.MinValue);
+    var end = to.ToDateTime(TimeOnly.MinValue);
+    List<LedgerEntry> entries;
+    if (unassigned == true)
+        entries = await ledger.GetEntriesWithoutBookingAsync(start, end);
+    else if (!string.IsNullOrWhiteSpace(bookingId))
+        entries = await ledger.GetEntriesForBookingAsync(bookingId, start, end);
+    else
+    {
+        entries = [];
+        for (var date = start; date <= end; date = date.AddDays(1))
+            entries.AddRange(await ledger.GetConsolidatedAsync(date));
+    }
+    return Results.Ok(entries.Select(ToLedgerLineDto).ToList());
+}).WithName("ListLedgerLines");
 
 // --- Document Rendering ---
 

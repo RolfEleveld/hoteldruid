@@ -1,0 +1,308 @@
+@page "/booking-finance"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@using ClientRecord = HotelDruid.Client.Services.ClientDto
+@using RoomRecord = HotelDruid.Client.Services.RoomDto
+@inject IBookingApiService BookingApi
+@inject IBookingFinanceApiService FinanceApi
+@inject IClientApiService ClientApi
+@inject IRoomApiService RoomApi
+@inject IActiveYearService ActiveYearService
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["bookingFinance.title", "Booking Finance"]</PageTitle>
+<div class="container-fluid bookings-manager">
+    <div class="row g-3 h-100">
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["bookingFinance.history", "Transactions"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (transactions is null)
+                    {
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">@L["common.loading", "Loading..."]</span>
+                        </div>
+                    }
+                    else if (transactions.Count == 0)
+                    {
+                        <div class="alert alert-info mb-0">@L["bookingFinance.emptyHistory", "No transactions on this booking yet."]</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var transaction in transactions.OrderByDescending(item => item.Sequence))
+                            {
+                                <button type="button" class="list-group-item list-group-item-action @(selectedTransaction?.Sequence == transaction.Sequence ? "active" : "")"
+                                        @onclick="() => SelectTransaction(transaction)">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-semibold">#@transaction.Sequence · @FormatType(transaction.Type)</span>
+                                        <span>@FormatMoney(transaction.Amount)</span>
+                                    </div>
+                                    <small class="text-muted">@transaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (ledgerLines is { Count: > 0 })
+                    {
+                        <h6 class="mt-3">@L["bookingFinance.ledger", "Ledger"]</h6>
+                        @foreach (var line in ledgerLines.OrderBy(item => item.Timestamp))
+                        {
+                            <div class="d-flex justify-content-between small">
+                                <span>@line.AccountCode · @line.EntryType</span>
+                                <span>@(line.Debit == 0 ? "" : line.Debit.ToString("0.00")) / @(line.Credit == 0 ? "" : line.Credit.ToString("0.00"))</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            @if (booking is null)
+            {
+                <div class="panel panel-default h-100 d-flex align-items-center justify-content-center">
+                    <div class="panel-body text-center text-muted">
+                        <p>@L["bookingFinance.selectBooking", "Open this page from a booking to review its financial history."]</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="panel panel-default h-100 d-flex flex-column">
+                    <div class="panel-heading">
+                        <h3 class="panel-title mb-0">@GetBookingTitle()</h3>
+                        <small class="text-muted">@L["bookingFinance.adjust", "Record a payment, deposit, refund, or extra charge"]</small>
+                        @if (!string.IsNullOrWhiteSpace(errorMsg))
+                        {
+                            <div class="alert alert-danger alert-sm mt-2 mb-0">@errorMsg</div>
+                        }
+                    </div>
+                    <div class="panel-body flex-grow-1 overflow-auto">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">@L["bookingFinance.type", "Type"]</label>
+                                <select class="form-select" @bind="entryType">
+                                    <option value="payment">@L["bookingFinance.payment", "Payment"]</option>
+                                    <option value="deposit">@L["bookingFinance.deposit", "Deposit"]</option>
+                                    <option value="refund">@L["bookingFinance.refund", "Refund"]</option>
+                                    <option value="adjustment">@L["bookingFinance.adjustment", "Adjustment"]</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@L["bookingFinance.amount", "Amount"]</label>
+                                <input class="form-control" type="number" min="0.01" step="0.01" @bind="entryAmount" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@L["bookingFinance.appliedTo", "Applied to"]</label>
+                                <select class="form-select" @bind="entryAppliedTo">
+                                    <option value="stay_balance">@L["bookingFinance.stayBalance", "Stay balance"]</option>
+                                    <option value="deposit">@L["bookingFinance.depositBalance", "Deposit"]</option>
+                                    <option value="extras">@L["bookingFinance.extras", "Extras"]</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@L["bookingFinance.createdBy", "Recorded by"]</label>
+                                <input class="form-control" @bind="entryCreatedBy" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@L["bookings.notes", "Notes"]</label>
+                                <input class="form-control" @bind="entryDescription" />
+                            </div>
+                        </div>
+
+                        @if (selectedTransaction is not null)
+                        {
+                            <dl class="booking-detail-grid mt-3">
+                                <dt>@L["bookingFinance.sequence", "Sequence"]</dt><dd>#@selectedTransaction.Sequence</dd>
+                                <dt>@L["bookingFinance.type", "Type"]</dt><dd>@FormatType(selectedTransaction.Type)</dd>
+                                <dt>@L["bookingFinance.amount", "Amount"]</dt><dd>@FormatMoney(selectedTransaction.Amount)</dd>
+                                <dt>@L["bookingFinance.appliedTo", "Applied to"]</dt><dd>@(selectedTransaction.AppliedTo ?? "-")</dd>
+                                <dt>@L["bookingFinance.when", "When"]</dt><dd>@selectedTransaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</dd>
+                                <dt>@L["bookings.notes", "Notes"]</dt><dd>@(selectedTransaction.Description ?? "-")</dd>
+                            </dl>
+                        }
+                    </div>
+                    <div class="panel-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-primary flex-grow-1" @onclick="SaveTransaction" disabled="@isSaving">@L["bookingFinance.record", "Record"]</button>
+                            <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl("invoice")" target="_blank">@L["bookingFinance.printInvoice", "Invoice"]</a>
+                            <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl("receipt")" target="_blank">@L["bookingFinance.printReceipt", "Receipt"]</a>
+                            <button class="btn btn-outline-primary flex-grow-1" @onclick="PrepareDeposit">@L["bookingFinance.deposit", "Deposit"]</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-3">
+            <div class="panel panel-default h-100 d-flex flex-column">
+                <div class="panel-heading">
+                    <h3 class="panel-title">@L["common.details", "Details"]</h3>
+                </div>
+                <div class="panel-body flex-grow-1 overflow-auto">
+                    @if (booking is not null)
+                    {
+                        <div class="booking-summary-card">
+                            <div class="booking-summary-name">@GetBookingTitle()</div>
+                            <div class="booking-summary-meta">@FormatDate(booking.ArrivalDate) → @FormatDate(booking.DepartureDate)</div>
+                        </div>
+                        <dl class="booking-detail-grid mt-3">
+                            <dt>@L["bookingFinance.stayTotal", "Stay total"]</dt><dd>@FormatMoney(summary?.StayTotal)</dd>
+                            <dt>@L["bookingFinance.extras", "Extras"]</dt><dd>@FormatMoney(summary?.ExtraTotal)</dd>
+                            <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@FormatMoney(summary?.PrepaidAmount)</dd>
+                            <dt>@L["bookingFinance.payments", "Payments"]</dt><dd>@FormatMoney(summary?.PaymentsTotal)</dd>
+                            <dt>@L["bookingFinance.refunds", "Refunds"]</dt><dd>@FormatMoney(summary?.RefundsTotal)</dd>
+                            <dt>@L["bookingFinance.depositsHeld", "Deposits held"]</dt><dd>@FormatMoney(summary?.DepositsHeld)</dd>
+                            <dt>@L["bookingFinance.totalDue", "Total due"]</dt><dd class="fw-semibold">@FormatMoney(summary?.TotalDue)</dd>
+                        </dl>
+
+                        <div class="d-flex flex-column gap-2 mt-3">
+                            <a class="btn btn-sm btn-outline-primary" href="@GetBookingUrl()">@L["bookingFinance.openBooking", "Open booking"]</a>
+                            @if (!string.IsNullOrWhiteSpace(booking.ClientId))
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="/clients?selectedId=@booking.ClientId">@GetClientName()</a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(booking.RoomId))
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="/rooms?selectedId=@booking.RoomId">@GetRoomName()</a>
+                            }
+                            @if (booking.ArrivalDate.HasValue)
+                            {
+                                <a class="btn btn-sm btn-outline-primary" href="/calendar/@booking.ArrivalDate.Value.Year/@booking.ArrivalDate.Value.Month">@FormatDate(booking.ArrivalDate)</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "selectedId")]
+    public string? SelectedId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? YearQuery { get; set; }
+
+    private BookingDto? booking;
+    private BookingFinanceSummaryDto? summary;
+    private List<BookingTransactionDto>? transactions;
+    private List<LedgerLineDto>? ledgerLines;
+    private BookingTransactionDto? selectedTransaction;
+    private List<ClientRecord> clients = [];
+    private List<RoomRecord> rooms = [];
+    private string entryType = "payment";
+    private decimal entryAmount;
+    private string entryAppliedTo = "stay_balance";
+    private string? entryCreatedBy;
+    private string? entryDescription;
+    private string errorMsg = string.Empty;
+    private bool isSaving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedId)) return;
+        var year = YearQuery ?? ActiveYearService.CurrentYear;
+        booking = await BookingApi.GetAsync(year, SelectedId);
+        if (booking is null) return;
+
+        clients = await ClientApi.GetAllAsync();
+        rooms = await RoomApi.GetRoomsAsync();
+        await ReloadFinanceAsync();
+    }
+
+    private async Task ReloadFinanceAsync()
+    {
+        if (booking?.Id is null) return;
+        summary = await FinanceApi.GetSummaryAsync(booking.Year, booking.Id);
+        transactions = await FinanceApi.ListTransactionsAsync(booking.Year, booking.Id);
+        var from = booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue).AddDays(-30) ?? DateTime.Today.AddYears(-1);
+        ledgerLines = await FinanceApi.ListLedgerLinesAsync(DateOnly.FromDateTime(from), DateOnly.FromDateTime(DateTime.Today), booking.Id);
+        selectedTransaction = transactions.OrderByDescending(item => item.Sequence).FirstOrDefault();
+    }
+
+    private async Task SaveTransaction()
+    {
+        if (booking?.Id is null) return;
+        errorMsg = string.Empty;
+        if (entryAmount <= 0)
+        {
+            errorMsg = L["bookingFinance.amountRequired", "Enter an amount greater than zero."];
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            await FinanceApi.AppendTransactionAsync(booking.Year, booking.Id, new BookingTransactionWriteDto(
+                entryType,
+                entryAmount,
+                entryDescription,
+                entryAppliedTo,
+                entryCreatedBy));
+            entryAmount = 0;
+            entryDescription = null;
+            await ReloadFinanceAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMsg = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void PrepareDeposit()
+    {
+        entryType = "deposit";
+        entryAppliedTo = "deposit";
+    }
+
+    private string GetDocumentUrl(string documentType)
+        => booking?.Id is null ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, documentType);
+
+    private void SelectTransaction(BookingTransactionDto transaction) => selectedTransaction = transaction;
+
+    private string GetBookingTitle()
+    {
+        if (booking is null) return string.Empty;
+        return $"{booking.Year} — {GetClientName()} · {GetRoomName()}";
+    }
+
+    private string GetClientName()
+    {
+        var client = clients.FirstOrDefault(item => string.Equals(item.Id, booking?.ClientId, StringComparison.OrdinalIgnoreCase));
+        if (client is null) return L["bookings.unknownClient", "Unknown client"];
+        return string.Join(" ", new[] { client.FirstName, client.LastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
+
+    private string GetRoomName()
+    {
+        var room = rooms.FirstOrDefault(item => string.Equals(item.Id, booking?.RoomId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(room?.Name) ? L["bookings.unknownRoom", "Unknown room"] : room.Name;
+    }
+
+    private string GetBookingUrl()
+        => booking?.Id is null ? "/bookings" : $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}&edit=true";
+
+    private string FormatType(string? type) => type switch
+    {
+        "payment" => L["bookingFinance.payment", "Payment"],
+        "deposit" => L["bookingFinance.deposit", "Deposit"],
+        "refund" => L["bookingFinance.refund", "Refund"],
+        "adjustment" => L["bookingFinance.adjustment", "Adjustment"],
+        _ => type ?? "-"
+    };
+
+    private string FormatMoney(decimal? amount)
+        => $"{amount.GetValueOrDefault():0.00} {summary?.Currency ?? "EUR"}";
+
+    private static string FormatDate(DateOnly? date) => date?.ToString("yyyy-MM-dd") ?? "-";
+}

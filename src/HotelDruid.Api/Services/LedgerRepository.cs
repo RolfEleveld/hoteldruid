@@ -166,6 +166,19 @@ public class LedgerRepository : ILedgerRepository, IDisposable
     }
 
     /// <inheritdoc />
+    public async Task<List<LedgerEntry>> GetEntriesWithoutBookingAsync(DateTime from, DateTime to)
+    {
+        var result = new List<LedgerEntry>();
+        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+        {
+            var consolidated = await GetConsolidatedAsync(date);
+            result.AddRange(consolidated.Where(entry => string.IsNullOrWhiteSpace(entry.BookingId)));
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
     public async Task<List<LedgerEntry>> GetConsolidatedAsync(DateTime date)
     {
         var result = new List<LedgerEntry>();

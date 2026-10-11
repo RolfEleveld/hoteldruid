@@ -45,6 +45,7 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IAssignmentRuleApiService,
 
 // Layer 4: Transactional entity services
 builder.Services.AddScoped<HotelDruid.Client.Services.IBookingApiService, HotelDruid.Client.Services.BookingApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.IBookingFinanceApiService, HotelDruid.Client.Services.BookingFinanceApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IBookingCostApiService, HotelDruid.Client.Services.BookingCostApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IBookingGuestApiService, HotelDruid.Client.Services.BookingGuestApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.ICancelledBookingApiService, HotelDruid.Client.Services.CancelledBookingApiService>();

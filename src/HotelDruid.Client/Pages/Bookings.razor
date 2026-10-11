@@ -7,6 +7,7 @@
 @using ClientRecord = HotelDruid.Client.Services.ClientDto
 @using RoomRecord = HotelDruid.Client.Services.RoomDto
 @inject IBookingApiService BookingApi
+@inject IBookingFinanceApiService FinanceApi
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApiService
 @inject ITariffApiService TariffApi
@@ -94,7 +95,14 @@
                             <div class="col-6"><label class="form-label">@L["bookings.actualDepartureDateOptional", "Actual Checkout Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualDepartureDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.expectedGuestCount", "Expected Guests"]</label><input class="form-control" type="number" min="1" @bind="form.ExpectedGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
-                            <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" /></div>
+                            <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" @bind:event="oninput" /></div>
+                            <div class="col-6">
+                                <label class="form-label">@L["bookingFinance.totalDue", "Total due"]</label>
+                                <button type="button" class="form-control text-start" @onclick="OpenFinance" disabled="@(selected is null || isNew)">
+                                    @FormatMoney(GetDisplayedTotalDue())
+                                </button>
+                                <div class="form-text">@L["bookingFinance.totalDueHint", "Stay price plus extras, minus prepaid amount and recorded payments."]</div>
+                            </div>
                             <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
 
                             <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.roomSearchLabel", "Find room"] *</h6></div>
@@ -222,6 +230,10 @@
                         <div class="btn-group w-100" role="group">
                             <button class="btn btn-primary flex-grow-1" @onclick="Save">@L["common.save", "Save"]</button>
                             <button class="btn btn-secondary flex-grow-1" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+                            @if (selected is not null && !isNew && !string.IsNullOrWhiteSpace(selected.Id))
+                            {
+                                <a class="btn btn-outline-secondary flex-grow-1" href="@GetInvoiceUrl(selected)" target="_blank">@L["bookingFinance.printInvoice", "Invoice"]</a>
+                            }
                             @if (CanMarkArrivedSelected)
                             {
                                 <button class="btn btn-info flex-grow-1" @onclick="CheckInSelected">@L["Dashboard.Reservations.Menu.Arrived", "Arrived"]</button>
@@ -295,6 +307,17 @@
                                 else { <text>-</text> }
                             </dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
+                            <dt>@L["bookingFinance.totalDue", "Total due"]</dt>
+                            <dd>
+                                @if (!string.IsNullOrWhiteSpace(selected.Id))
+                                {
+                                    <a href="@GetFinanceUrl(selected)">@FormatMoney(GetDisplayedTotalDue())</a>
+                                }
+                                else
+                                {
+                                    @FormatMoney(financeSummary?.TotalDue)
+                                }
+                            </dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
                         </dl>
 
@@ -392,6 +415,7 @@
     private List<TariffDto> knownTariffs = new();
     private TariffResolutionDto? previewTariff;
     private bool previewTariffLoading;
+    private BookingFinanceSummaryDto? financeSummary;
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
     private List<BookingDto>? selectedGuestBookings;
@@ -530,6 +554,7 @@
         isNew = true;
         editing = true;
         selected = null;
+        financeSummary = null;
         errorMsg = "";
         ResetClientSelection();
         InitializeRoomSelectionForCurrentForm();
@@ -574,6 +599,7 @@
         await InitializeClientSelectionForEdit();
         InitializeRoomSelectionForCurrentForm();
         await RefreshTariffPreviewAsync();
+        await RefreshFinanceSummaryAsync();
     }
 
     private async Task Save()
@@ -1055,6 +1081,40 @@
         {
             previewTariffLoading = false;
         }
+    }
+
+    private async Task RefreshFinanceSummaryAsync()
+    {
+        if (selected?.Id is null || isNew)
+        {
+            financeSummary = null;
+            return;
+        }
+
+        financeSummary = await FinanceApi.GetSummaryAsync(selected.Year, selected.Id);
+    }
+
+    private void OpenFinance()
+    {
+        if (selected?.Id is null || isNew) return;
+        Navigation.NavigateTo(GetFinanceUrl(selected));
+    }
+
+    private static string GetFinanceUrl(BookingDto booking)
+        => $"/booking-finance?selectedId={Uri.EscapeDataString(booking.Id!)}&year={booking.Year}";
+
+    private string GetInvoiceUrl(BookingDto booking)
+        => string.IsNullOrWhiteSpace(booking.Id) ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, "invoice");
+
+    private string FormatMoney(decimal? amount)
+        => $"{amount.GetValueOrDefault():0.00} {financeSummary?.Currency ?? "EUR"}";
+
+    private decimal? GetDisplayedTotalDue()
+    {
+        if (financeSummary is null) return null;
+        var savedPrepaid = (decimal)(selected?.PrepaidAmount ?? 0);
+        var editedPrepaid = (decimal)(form.PrepaidAmount ?? 0);
+        return financeSummary.TotalDue + savedPrepaid - editedPrepaid;
     }
 
     private void GoToTariff(string? tariffId)

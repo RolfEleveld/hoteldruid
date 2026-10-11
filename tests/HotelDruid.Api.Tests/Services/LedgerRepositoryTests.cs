@@ -231,6 +231,23 @@ public class LedgerRepositoryTests : IAsyncLifetime
         Assert.Equal(2, entries.Count);
     }
 
+    [Fact]
+    public async Task PostBalancedAsync_BookingPayment_FiltersByBookingAndBalances()
+    {
+        var posting = new FinancialPostingService(_repo);
+
+        await posting.PostBalancedAsync(TestDate, "booking_payment", "Card payment", 80m, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: "booking-1", sourceType: "booking-transaction", sourceId: "1");
+        await posting.PostBalancedAsync(TestDate, "petty_cash_expense", "Coffee", 4m, HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: "1", payerName: "Walk-up");
+
+        var bookingLines = await _repo.GetEntriesForBookingAsync("booking-1", TestDate, TestDate);
+        var hotelLines = await _repo.GetEntriesWithoutBookingAsync(TestDate, TestDate);
+
+        Assert.Equal(2, bookingLines.Count);
+        Assert.Equal(bookingLines.Sum(line => line.Debit), bookingLines.Sum(line => line.Credit));
+        Assert.All(hotelLines, line => Assert.True(string.IsNullOrWhiteSpace(line.BookingId)));
+        Assert.Contains(hotelLines, line => line.PayerName == "Walk-up");
+    }
+
     // ─── GetConsolidatedAsync ────────────────────────────────────────────────
 
     [Fact]

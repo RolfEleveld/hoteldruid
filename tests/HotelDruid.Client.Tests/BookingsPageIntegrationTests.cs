@@ -18,6 +18,7 @@ public class BookingsPageIntegrationTests : TestContext
     private readonly Mock<IClientApiService> clientApi = new();
     private readonly Mock<IRoomApiService> roomApi = new();
     private readonly Mock<IActiveYearService> activeYearService = new();
+    private readonly Mock<IBookingFinanceApiService> financeApi = new();
 
     public BookingsPageIntegrationTests()
     {
@@ -65,10 +66,18 @@ public class BookingsPageIntegrationTests : TestContext
             new HotelDruid.Client.Services.RoomDto("room-2", "Room 2", 2, 1, "A", 2, 0, true)
         });
 
+        financeApi.Setup(x => x.GetSummaryAsync(It.IsAny<int>(), It.IsAny<string>()))
+            .ReturnsAsync((int year, string bookingId) => new BookingFinanceSummaryDto(
+                bookingId, year, 96m, 0m, 96m, 0m, 0m, 0m, 0m, 96m, "EUR", null, null, 1));
+        financeApi.Setup(x => x.GetDocumentUrl(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((int year, string bookingId, string documentType, string format) =>
+                $"/api/documents/render/{documentType}/1?bookingId={bookingId}&year={year}&format={format}");
+
         Services.AddScoped(_ => bookingApi.Object);
         Services.AddScoped(_ => clientApi.Object);
         Services.AddScoped(_ => roomApi.Object);
         Services.AddScoped(_ => activeYearService.Object);
+        Services.AddScoped(_ => financeApi.Object);
     }
 
     [Fact]
@@ -259,5 +268,21 @@ public class BookingsPageIntegrationTests : TestContext
             component.Markup.Should().NotContain("Mark No-Show");
             component.Markup.Should().NotContain("Cancel Booking");
         });
+    }
+
+    [Fact]
+    public void BookingsPage_TotalDue_ShouldOpenFinanceHistory()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        var component = RenderComponent<Bookings>();
+
+        component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().HaveCount(3));
+        component.FindAll(".list-group-item")[0].Click();
+
+        component.WaitForAssertion(() => component.Markup.Should().Contain("Total due"));
+        component.Find("button.form-control").Click();
+
+        navigation.Uri.Should().Contain("/booking-finance?selectedId=b-0&year=2026");
+        component.Markup.Should().Contain("Invoice");
     }
 }
