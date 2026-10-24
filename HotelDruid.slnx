@@ -1,5 +1,10 @@
 <Solution>
-  <Folder Name="/src/" />
-  <Folder Name="/tests/" />
+  <Folder Name="/src/">
+    <Project Path="src/HotelDruid.Api/HotelDruid.Api.csproj" />
+    <Project Path="src/HotelDruid.Shared/HotelDruid.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HotelDruid.Api.Tests/HotelDruid.Api.Tests.csproj" />
+  </Folder>
   <Folder Name="/tools/" />
 </Solution>
