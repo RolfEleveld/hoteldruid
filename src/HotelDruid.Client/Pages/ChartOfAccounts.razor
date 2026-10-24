@@ -1,0 +1,58 @@
+@page "/chart-of-accounts"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@inject IBookingFinanceApiService FinanceApi
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["chart.title", "Chart of accounts"]</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col">
+            <h5 class="mb-0">@L["chart.title", "Chart of accounts"]</h5>
+            <p class="text-muted small mb-0">@L["chart.hint", "USALI accounts used by the hotel ledger. A booking reference is a dimension, not an account."]</p>
+        </div>
+    </div>
+    @if (accounts is null)
+    {
+        <p><em>@L["common.loading", "Loading..."]</em></p>
+    }
+    else if (accounts.Count == 0)
+    {
+        <p class="text-muted">@L["chart.empty", "No accounts are defined."]</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@L["chart.code", "Code"]</th>
+                    <th>@L["chart.name", "Account"]</th>
+                    <th>@L["chart.group", "Group"]</th>
+                    <th>@L["chart.normal", "Normal balance"]</th>
+                    <th>@L["chart.description", "Use"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var account in accounts)
+                {
+                    <tr>
+                        <td>@account.Code</td>
+                        <td>@account.Name</td>
+                        <td>@account.Group</td>
+                        <td>@account.NormalBalance</td>
+                        <td>@account.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<ChartAccountDto>? accounts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await FinanceApi.ListChartOfAccountsAsync();
+    }
+}

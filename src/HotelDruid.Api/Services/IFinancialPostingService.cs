@@ -1,4 +1,5 @@
 using HotelDruid.Api.Models;
+using HotelDruid.Shared;
 
 namespace HotelDruid.Api.Services;
 
@@ -10,6 +11,16 @@ public static class HotelAccounts
     public const string RoomRevenue = "4100";
     public const string OtherIncome = "4900";
     public const string OperatingExpense = "6100";
+
+    public static IReadOnlyList<ChartAccountDto> Chart { get; } =
+    [
+        new(Cash, "Cash", "asset", "debit", "Cash registers and hotel cash on hand."),
+        new(GuestLedger, "Guest ledger", "asset", "debit", "Amounts owed by staying guests. A payment reduces this balance; it does not create revenue."),
+        new(GuestDeposits, "Guest deposits", "liability", "credit", "Deposits held until earned or settled. Taking a deposit does not reduce room revenue."),
+        new(RoomRevenue, "Room revenue", "revenue", "credit", "Earned room charges. Recognized when the stay is charged, not when cash is received."),
+        new(OtherIncome, "Other income", "revenue", "credit", "Walk-up sales, extras, and petty-cash income that is not room revenue."),
+        new(OperatingExpense, "Operating expense", "expense", "debit", "Hotel purchases and petty-cash outflows. The booking reference stays empty.")
+    ];
 }
 
 public interface IFinancialPostingService

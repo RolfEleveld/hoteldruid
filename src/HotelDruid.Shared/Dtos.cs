@@ -129,6 +129,15 @@ public record BookingTransactionWriteDto(
     DateTime? Timestamp = null
 );
 
+/// <summary>One account in the small USALI chart used by the hotel ledger.</summary>
+public record ChartAccountDto(
+    string Code,
+    string Name,
+    string Group,
+    string NormalBalance,
+    string Description
+);
+
 /// <summary>One balanced line from the hotel general ledger.</summary>
 public record LedgerLineDto(
     string? Id,

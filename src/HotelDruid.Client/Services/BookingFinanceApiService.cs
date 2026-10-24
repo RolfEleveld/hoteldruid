@@ -10,6 +10,7 @@ public interface IBookingFinanceApiService
     Task<List<BookingTransactionDto>> ListTransactionsAsync(int year, string bookingId);
     Task<BookingTransactionDto?> AppendTransactionAsync(int year, string bookingId, BookingTransactionWriteDto request);
     Task<List<LedgerLineDto>> ListLedgerLinesAsync(DateOnly from, DateOnly to, string? bookingId = null, bool unassigned = false);
+    Task<List<ChartAccountDto>> ListChartOfAccountsAsync();
     string GetDocumentUrl(int year, string bookingId, string documentType, string format = "print");
 }
 
@@ -54,6 +55,13 @@ public class BookingFinanceApiService : IBookingFinanceApiService
         var response = await _httpClient.GetAsync(query);
         if (!response.IsSuccessStatusCode) return [];
         return await response.Content.ReadFromJsonAsync<List<LedgerLineDto>>(JsonOptions) ?? [];
+    }
+
+    public async Task<List<ChartAccountDto>> ListChartOfAccountsAsync()
+    {
+        var response = await _httpClient.GetAsync("/api/ledger/accounts");
+        if (!response.IsSuccessStatusCode) return [];
+        return await response.Content.ReadFromJsonAsync<List<ChartAccountDto>>(JsonOptions) ?? [];
     }
 
     public string GetDocumentUrl(int year, string bookingId, string documentType, string format = "print")

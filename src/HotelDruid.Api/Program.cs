@@ -3791,6 +3791,8 @@ app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? booki
     return Results.Ok(entries.Select(ToLedgerLineDto).ToList());
 }).WithName("ListLedgerLines");
 
+app.MapGet("/api/ledger/accounts", () => Results.Ok(HotelAccounts.Chart)).WithName("ListChartOfAccounts");
+
 // --- Document Rendering ---
 
 app.MapGet("/api/documents/render/{type}/{number:int}",
