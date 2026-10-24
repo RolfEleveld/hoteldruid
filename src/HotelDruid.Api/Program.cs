@@ -2632,9 +2632,14 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.ActualArrivalDate,
     s.ActualGuestCount,
     s.PrepaidAmount,
+    s.PrepaidMethod,
+    s.PrepaidReference,
     s.ActualDepartureDate,
     s.ExpectedGuestCount,
-    s.TariffId);
+    s.TariffId,
+    s.PreAuthReference,
+    s.PreAuthMethod,
+    s.SettlementDate);
 
 async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
 {
@@ -2926,7 +2931,11 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
         ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
         PrepaidAmount = request.PrepaidAmount,
-        ExpectedGuestCount = request.ExpectedGuestCount
+        PrepaidMethod = request.PrepaidMethod,
+        PrepaidReference = request.PrepaidReference,
+        ExpectedGuestCount = request.ExpectedGuestCount,
+        PreAuthReference = request.PreAuthReference,
+        PreAuthMethod = request.PreAuthMethod
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     var id = await store.CreateAsync("bookings", key, storage);
@@ -2977,7 +2986,11 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         ActualDepartureDate = request.ActualDepartureDate,
         ActualGuestCount = request.ActualGuestCount,
         PrepaidAmount = request.PrepaidAmount,
-        ExpectedGuestCount = request.ExpectedGuestCount
+        PrepaidMethod = request.PrepaidMethod,
+        PrepaidReference = request.PrepaidReference,
+        ExpectedGuestCount = request.ExpectedGuestCount,
+        PreAuthReference = request.PreAuthReference,
+        PreAuthMethod = request.PreAuthMethod
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);

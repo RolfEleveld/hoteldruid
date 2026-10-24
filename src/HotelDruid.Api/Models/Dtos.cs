@@ -479,11 +479,16 @@ public class BookingStorageModel
     public DateOnly? ActualDepartureDate { get; set; }
     public int? ActualGuestCount { get; set; }
     public double? PrepaidAmount { get; set; }
+    public string? PrepaidMethod { get; set; }
+    public string? PrepaidReference { get; set; }
     /// <summary>Guest count known at booking time, before arrival. Drives the initial tariff resolution.</summary>
     public int? ExpectedGuestCount { get; set; }
     /// <summary>Tariff resolved for this booking; recomputed whenever room/dates/guest count change.</summary>
     public string? TariffId { get; set; }
     public double? TariffTotalPrice { get; set; }
+    public string? PreAuthReference { get; set; }
+    public string? PreAuthMethod { get; set; }
+    public DateTime? SettlementDate { get; set; }
 }
 
 public class BookingCostStorageModel

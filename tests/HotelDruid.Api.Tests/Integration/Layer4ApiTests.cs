@@ -29,6 +29,8 @@ public class Layer4ApiTests : IAsyncLifetime
         public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
+        public string? PrepaidMethod { get; set; }
+        public string? PrepaidReference { get; set; }
         public double? TariffTotalPrice { get; set; }
     }
     private class LedgerLineDto { public string? Id { get; set; } public string? BookingId { get; set; } public string? AccountCode { get; set; } public decimal Debit { get; set; } public decimal Credit { get; set; } public string? SourceType { get; set; } }

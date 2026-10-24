@@ -95,15 +95,33 @@
                             <div class="col-6"><label class="form-label">@L["bookings.actualDepartureDateOptional", "Actual Checkout Date (optional)"]</label><input class="form-control" type="date" @bind="form.ActualDepartureDate" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.expectedGuestCount", "Expected Guests"]</label><input class="form-control" type="number" min="1" @bind="form.ExpectedGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
                             <div class="col-6"><label class="form-label">@L["bookings.actualGuestCount", "Guests On Arrival"]</label><input class="form-control" type="number" min="1" @bind="form.ActualGuestCount" @bind:event="oninput" @bind:after="RefreshTariffPreviewAsync" /></div>
-                            <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" @bind:event="oninput" /></div>
-                            <div class="col-6">
-                                <label class="form-label">@L["bookingFinance.totalDue", "Total due"]</label>
+                             <div class="col-6"><label class="form-label">@L["bookings.prepaidAmount", "Prepaid Amount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="form.PrepaidAmount" @bind:event="oninput" /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.prepaidMethod", "Prepaid Method"]</label><input class="form-control" @bind="form.PrepaidMethod" placeholder="cash, card, bank, ota..." /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.prepaidReference", "Prepaid Reference"]</label><input class="form-control" @bind="form.PrepaidReference" placeholder="last 4 digits / txn id" /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.preAuthReference", "Guarantee / Pre-auth"]</label><input class="form-control" @bind="form.PreAuthReference" placeholder="auth code or OTA ref" /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.preAuthMethod", "Guarantee Method"]</label><input class="form-control" @bind="form.PreAuthMethod" placeholder="credit-card, ota, agreement..." /></div>
+                             <div class="col-6">
+                                 <label class="form-label">@L["bookingFinance.totalDue", "Total due"]</label>
                                 <button type="button" class="form-control text-start" @onclick="OpenFinance" disabled="@(selected is null || isNew)">
                                     @FormatMoney(GetDisplayedTotalDue())
                                 </button>
                                 <div class="form-text">@L["bookingFinance.totalDueHint", "Stay price plus extras, minus prepaid amount and recorded payments."]</div>
                             </div>
-                            <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
+                             <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
+
+                             @if (form.ActualDepartureDate.HasValue)
+                             {
+                                 <div class="col-12 mt-3">
+                                     <div class="border rounded p-3 bg-light-subtle">
+                                         <h6 class="mb-2">@L["bookings.settlement", "Settlement / Folio Close"]</h6>
+                                         <div class="row g-2">
+                                             <div class="col-6"><label class="form-label small">Settlement Date</label><input class="form-control form-control-sm" value="@(form.SettlementDate?.ToString("yyyy-MM-dd") ?? "—")" readonly /></div>
+                                             <div class="col-6"><label class="form-label small">Final Method</label><input class="form-control form-control-sm" @bind="form.PrepaidMethod" /></div>
+                                             <div class="col-12"><button class="btn btn-primary btn-sm" @onclick="SettleFolioAsync" disabled="@(selected is null)">Settle & Close Folio</button></div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             }
 
                             <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.roomSearchLabel", "Find room"] *</h6></div>
                             <div class="col-12"><input class="form-control" value="@roomSearch" placeholder="@L["bookings.roomSearchPlaceholder", "Type room name or ID"]" @oninput="OnRoomSearchChanged" /></div>
@@ -399,6 +417,9 @@
     [SupplyParameterFromQuery(Name = "lookAheadDays")]
     public int? LookAheadDaysQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "focus")]
+    public string? FocusQuery { get; set; }
+
     private List<BookingDto>? records;
     private BookingDto? selected;
     private List<ClientRecord> knownClients = new();
@@ -582,7 +603,11 @@
             ActualDepartureDate = selected.ActualDepartureDate,
             ActualGuestCount = selected.ActualGuestCount,
             ExpectedGuestCount = selected.ExpectedGuestCount,
-            PrepaidAmount = selected.PrepaidAmount
+            PrepaidAmount = selected.PrepaidAmount,
+            PrepaidMethod = selected.PrepaidMethod,
+            PrepaidReference = selected.PrepaidReference,
+            PreAuthReference = selected.PreAuthReference,
+            PreAuthMethod = selected.PreAuthMethod
         };
         isNew = false;
         editing = true;
@@ -639,8 +664,14 @@
             form.ActualArrivalDate,
             form.ActualGuestCount,
             form.PrepaidAmount,
+            form.PrepaidMethod,
+            form.PrepaidReference,
             form.ActualDepartureDate,
-            form.ExpectedGuestCount);
+            form.ExpectedGuestCount,
+            form.TariffId,
+            form.PreAuthReference,
+            form.PreAuthMethod,
+            form.SettlementDate);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
@@ -650,6 +681,13 @@
             await RefreshKnownClients();
         }
         catch (Exception ex) { errorMsg = TranslateBookingSaveError(ex); }
+    }
+
+    private async Task SettleFolioAsync()
+    {
+        if (selected is null) return;
+        form.SettlementDate = DateTime.UtcNow;
+        await Save();
     }
 
     private void Cancel()
@@ -1375,7 +1413,13 @@
         public DateOnly? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public int? ExpectedGuestCount { get; set; }
-        public double? PrepaidAmount { get; set; }
+         public double? PrepaidAmount { get; set; }
+         public string? PrepaidMethod { get; set; }
+         public string? PrepaidReference { get; set; }
+         public string? PreAuthReference { get; set; }
+         public string? PreAuthMethod { get; set; }
+         public DateTime? SettlementDate { get; set; }
+         public string? TariffId { get; set; }
     }
 
     private class ClientFormModel

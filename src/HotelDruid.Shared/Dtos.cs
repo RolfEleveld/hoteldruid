@@ -54,9 +54,14 @@ public record BookingDto(
     DateOnly? ActualArrivalDate = null,
     int? ActualGuestCount = null,
     double? PrepaidAmount = null,
+    string? PrepaidMethod = null,
+    string? PrepaidReference = null,
     DateOnly? ActualDepartureDate = null,
     int? ExpectedGuestCount = null,
-    string? TariffId = null
+    string? TariffId = null,
+    string? PreAuthReference = null,
+    string? PreAuthMethod = null,
+    DateTime? SettlementDate = null
 );
 
 public record BookingCostDto(

@@ -1781,7 +1781,7 @@
       Navigation.NavigateTo(route);
     }
 
-    private void GoToBooking(string? bookingId, int year, bool edit = false)
+    private void GoToBooking(string? bookingId, int year, bool edit = false, string? focus = null)
     {
       openMenuWidgetId = null;
       openReservationMenuId = null;
@@ -1798,6 +1798,10 @@
       if (edit)
       {
         route += "&edit=true";
+      }
+      if (!string.IsNullOrWhiteSpace(focus))
+      {
+        route += $"&focus={Uri.EscapeDataString(focus)}";
       }
 
       Navigation.NavigateTo(route);
@@ -2035,7 +2039,7 @@
       if (string.IsNullOrWhiteSpace(booking.Id)
           || booking.Year <= 0)
       {
-        GoToBooking(booking.Id, booking.Year, edit: true);
+        GoToBooking(booking.Id, booking.Year, edit: true, focus: "preauth");
         return;
       }
 
@@ -2050,7 +2054,7 @@
       var response = await Http.PostAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}/check-in", payload);
       if (!response.IsSuccessStatusCode)
       {
-        GoToBooking(booking.Id, booking.Year, edit: true);
+        GoToBooking(booking.Id, booking.Year, edit: true, focus: "preauth");
         return;
       }
 
@@ -2074,7 +2078,7 @@
 
       if (string.IsNullOrWhiteSpace(booking.Id) || booking.Year <= 0)
       {
-        GoToBooking(booking.Id, booking.Year, edit: true);
+        GoToBooking(booking.Id, booking.Year, edit: true, focus: "settle");
         return;
       }
 
