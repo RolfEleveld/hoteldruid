@@ -12,10 +12,9 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Add a small USALI chart of accounts page. Current codes are constants: 1000 cash, 1200 guest ledger, 2400 guest deposits, 4100 room revenue, 4900 other income, 6100 operating expense.
 - [x] API tests for a balanced journal, booking filter, deposit not reducing revenue, petty cash with an empty booking reference, and a non-staying payment.
 - [x] Post the stay charge and extras when a booking is created, so cost exists from the moment of booking.
+- [x] Post prepaid amount changes as ledger lines, not only as a booking field.
 
 ## Still open
-
-- [ ] Post prepaid amount changes as ledger lines, not only as a booking field.
 - [ ] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 - [ ] Post final settlement as the closing journal for the booking.
 - [ ] Keep the per-booking transaction folder as a projection of ledger lines, not a second book.
