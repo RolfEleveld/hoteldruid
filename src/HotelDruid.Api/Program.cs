@@ -2947,11 +2947,15 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
     if (extraTotal > 0)
         await ledger.PostBalancedAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, HotelAccounts.GuestLedger, "asset", HotelAccounts.OtherIncome, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
 
+    var prepaid = Convert.ToDecimal(request.PrepaidAmount ?? 0);
+    if (prepaid > 0)
+        await ledger.PostBalancedAsync(when, "booking_prepaid", "Prepaid amount on booking creation", prepaid, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking", sourceId: id);
+
     queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
 
-app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver) =>
+app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
@@ -2977,6 +2981,22 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);
+
+    var oldPrepaid = Convert.ToDecimal(b.PrepaidAmount ?? 0);
+    var newPrepaid = Convert.ToDecimal(request.PrepaidAmount ?? 0);
+    var prepaidDelta = newPrepaid - oldPrepaid;
+    if (prepaidDelta != 0)
+    {
+        var whenUpd = DateTime.UtcNow;
+        var desc = prepaidDelta > 0 ? "Prepaid amount increased" : "Prepaid amount decreased";
+        await ledger.PostBalancedAsync(whenUpd, "booking_prepaid", desc, Math.Abs(prepaidDelta),
+            prepaidDelta > 0 ? HotelAccounts.Cash : HotelAccounts.GuestDeposits,
+            prepaidDelta > 0 ? "asset" : "liability",
+            prepaidDelta > 0 ? HotelAccounts.GuestDeposits : HotelAccounts.Cash,
+            prepaidDelta > 0 ? "liability" : "asset",
+            bookingId: id, sourceType: "booking", sourceId: id);
+    }
+
     queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));
 }).WithName("UpdateBooking");

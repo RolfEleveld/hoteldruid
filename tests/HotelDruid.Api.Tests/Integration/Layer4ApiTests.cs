@@ -85,6 +85,27 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_Create_AndUpdate_PrepaidAmount_PostsLedgerLines()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2025, ClientId = "C-Prepaid", RoomId = "103", Status = "Confirmed", ArrivalDate = "2025-04-01", DepartureDate = "2025-04-03", PrepaidAmount = 150.0 }));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await ReadAs<BookingDto>(create);
+        Assert.NotNull(created?.Id);
+
+        var linesCreate = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={created.Id}");
+        var listCreate = await ReadAs<List<LedgerLineDto>>(linesCreate) ?? new();
+        Assert.Contains(listCreate, l => l.AccountCode == "1000" && l.Debit == 150m && l.SourceType == "booking");
+        Assert.Contains(listCreate, l => l.AccountCode == "2400" && l.Credit == 150m && l.SourceType == "booking");
+
+        var upd = await _client.PutAsync($"/api/bookings/2025/{created.Id}", Json(new { Year = 2025, ClientId = "C-Prepaid", RoomId = "103", Status = "Confirmed", ArrivalDate = "2025-04-01", DepartureDate = "2025-04-03", PrepaidAmount = 200.0 }));
+        Assert.Equal(HttpStatusCode.OK, upd.StatusCode);
+
+        var linesUpd = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={created.Id}");
+        var listUpd = await ReadAs<List<LedgerLineDto>>(linesUpd) ?? new();
+        Assert.Contains(listUpd, l => l.AccountCode == "1000" && l.Debit == 50m && l.SourceType == "booking");
+    }
+
+    [Fact]
     public async Task Booking_Create_WithoutDates_ReturnsBadRequest_AndDoesNotPersist()
     {
         var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C-NoDates", Status = "Pending" }));
