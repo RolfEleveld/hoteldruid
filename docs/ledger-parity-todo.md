@@ -11,10 +11,10 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Show booking ledger lines on the booking finance page and add a general ledger page.
 - [x] Add a small USALI chart of accounts page. Current codes are constants: 1000 cash, 1200 guest ledger, 2400 guest deposits, 4100 room revenue, 4900 other income, 6100 operating expense.
 - [x] API tests for a balanced journal, booking filter, deposit not reducing revenue, petty cash with an empty booking reference, and a non-staying payment.
+- [x] Post the stay charge and extras when a booking is created, so cost exists from the moment of booking.
 
 ## Still open
 
-- [ ] Post the stay charge and extras when a booking is created, so cost exists from the moment of booking.
 - [ ] Post prepaid amount changes as ledger lines, not only as a booking field.
 - [ ] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 - [ ] Post final settlement as the closing journal for the booking.
@@ -27,3 +27,7 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [ ] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed.
 - [ ] Personnel is only `persona_costo` on a cash row in PHP. Bring that field over. Do not invent payroll.
 - [ ] Invoice and contract totals must use ledger charges, prepayments, deposits, and balance.
+
+## Nice to have (future visualization)
+
+- Per-room timeline / production graph showing revenue earned per night, maintenance/renovation events, and issue-driven downtime as separate dimensions so room-level profitability and utilization can be analyzed over time. Pin for later after core ledger parity.
