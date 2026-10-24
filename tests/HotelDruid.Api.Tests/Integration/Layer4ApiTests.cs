@@ -29,7 +29,9 @@ public class Layer4ApiTests : IAsyncLifetime
         public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
+        public double? TariffTotalPrice { get; set; }
     }
+    private class LedgerLineDto { public string? Id { get; set; } public string? BookingId { get; set; } public string? AccountCode { get; set; } public decimal Debit { get; set; } public decimal Credit { get; set; } public string? SourceType { get; set; } }
     private class BookingCostDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? TariffId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class BookingGuestDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public int? GuestNumber { get; set; } }
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
@@ -68,6 +70,18 @@ public class Layer4ApiTests : IAsyncLifetime
         Assert.Equal(2024, dto.Year);
         Assert.Equal("C001", dto.ClientId);
         Assert.Equal("Confirmed", dto.Status);
+    }
+
+    [Fact]
+    public async Task Booking_Create_PostsStayChargeAndExtrasToLedger()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2025, ClientId = "C-Ledger", RoomId = "102", Status = "Confirmed", ArrivalDate = "2025-03-10", DepartureDate = "2025-03-12" }));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await ReadAs<BookingDto>(create);
+        Assert.NotNull(created?.Id);
+
+        var cost = await _client.PostAsync("/api/booking-costs", Json(new { Year = 2025, BookingId = created.Id, Amount = 35.0, Description = "Breakfast" }));
+        Assert.Equal(HttpStatusCode.Created, cost.StatusCode);
     }
 
     [Fact]

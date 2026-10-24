@@ -483,6 +483,7 @@ public class BookingStorageModel
     public int? ExpectedGuestCount { get; set; }
     /// <summary>Tariff resolved for this booking; recomputed whenever room/dates/guest count change.</summary>
     public string? TariffId { get; set; }
+    public double? TariffTotalPrice { get; set; }
 }
 
 public class BookingCostStorageModel

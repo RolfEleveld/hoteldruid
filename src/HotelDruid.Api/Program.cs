@@ -2905,7 +2905,7 @@ app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToBookingDto(id, b));
 }).WithName("GetBooking");
 
-app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver) =>
+app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger) =>
 {
     var validationError = ValidateBookingRequest(request, request.Year);
     if (validationError is not null)
@@ -2930,6 +2930,23 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     var id = await store.CreateAsync("bookings", key, storage);
+
+    decimal stayTotal = Convert.ToDecimal(storage.TariffTotalPrice ?? 0);
+    decimal extraTotal = 0m;
+    var costIndex = await store.GetIndexAsync("booking_costs");
+    foreach (var entry in costIndex)
+    {
+        var cost = await store.GetAsync<BookingCostStorageModel>("booking_costs", entry.Value);
+        if (cost is not null && string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase))
+            extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
+    }
+
+    var when = DateTime.UtcNow;
+    if (stayTotal > 0)
+        await ledger.PostBalancedAsync(when, "booking_stay_charge", "Stay charge on booking creation", stayTotal, HotelAccounts.GuestLedger, "asset", HotelAccounts.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+    if (extraTotal > 0)
+        await ledger.PostBalancedAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, HotelAccounts.GuestLedger, "asset", HotelAccounts.OtherIncome, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+
     queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
