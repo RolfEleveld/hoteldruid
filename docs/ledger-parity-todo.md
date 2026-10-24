@@ -13,9 +13,9 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] API tests for a balanced journal, booking filter, deposit not reducing revenue, petty cash with an empty booking reference, and a non-staying payment.
 - [x] Post the stay charge and extras when a booking is created, so cost exists from the moment of booking.
 - [x] Post prepaid amount changes as ledger lines, not only as a booking field.
+- [x] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 
 ## Still open
-- [ ] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 - [ ] Post final settlement as the closing journal for the booking.
 - [ ] Keep the per-booking transaction folder as a projection of ledger lines, not a second book.
 - [ ] Add a booking index so history is not a scan of every day partition.

@@ -106,6 +106,24 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_Settlement_RecognizesDepositAsRevenue()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2025, ClientId = "C-Settle", RoomId = "104", Status = "Confirmed", ArrivalDate = "2025-05-01", DepartureDate = "2025-05-03", PrepaidAmount = 180.0 }));
+        var created = await ReadAs<BookingDto>(create);
+        Assert.NotNull(created?.Id);
+
+        var tx = await _client.PostAsync($"/api/bookings/2025/{created.Id}/transactions", Json(new { Type = "deposit", Amount = 180.0, AppliedTo = "deposit" }));
+        Assert.Equal(HttpStatusCode.Created, tx.StatusCode);
+
+        var upd = await _client.PutAsync($"/api/bookings/2025/{created.Id}", Json(new { Year = 2025, ClientId = "C-Settle", RoomId = "104", Status = "Confirmed", ArrivalDate = "2025-05-01", DepartureDate = "2025-05-03", ActualArrivalDate = "2025-05-01", ActualDepartureDate = "2025-05-03", ActualGuestCount = 2, PrepaidAmount = 180.0 }));
+        Assert.Equal(HttpStatusCode.OK, upd.StatusCode);
+
+        var lines = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={created.Id}");
+        var list = await ReadAs<List<LedgerLineDto>>(lines) ?? new();
+        Assert.Contains(list, l => l.AccountCode == "2400" && l.Debit == 180m && l.SourceType == "booking");
+    }
+
+    [Fact]
     public async Task Booking_Create_WithoutDates_ReturnsBadRequest_AndDoesNotPersist()
     {
         var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C-NoDates", Status = "Pending" }));

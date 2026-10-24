@@ -2997,6 +2997,17 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
             bookingId: id, sourceType: "booking", sourceId: id);
     }
 
+    if (b.ActualDepartureDate == null && request.ActualDepartureDate.HasValue)
+    {
+        var earned = Convert.ToDecimal(request.PrepaidAmount ?? 0);
+        if (earned > 0)
+        {
+            var whenSettle = DateTime.UtcNow;
+            await ledger.PostBalancedAsync(whenSettle, "booking_deposit_recognition", "Deposit earned on settlement", earned,
+                HotelAccounts.GuestDeposits, "liability", HotelAccounts.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+        }
+    }
+
     queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));
 }).WithName("UpdateBooking");
