@@ -10,6 +10,7 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Query ledger lines by booking reference or by unassigned hotel cash.
 - [x] Show booking ledger lines on the booking finance page and add a general ledger page.
 - [x] Add a small USALI chart of accounts page. Current codes are constants: 1000 cash, 1200 guest ledger, 2400 guest deposits, 4100 room revenue, 4900 other income, 6100 operating expense.
+- [x] API tests for a balanced journal, booking filter, deposit not reducing revenue, petty cash with an empty booking reference, and a non-staying payment.
 
 ## Still open
 
@@ -26,4 +27,3 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [ ] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed.
 - [ ] Personnel is only `persona_costo` on a cash row in PHP. Bring that field over. Do not invent payroll.
 - [ ] Invoice and contract totals must use ledger charges, prepayments, deposits, and balance.
-- [ ] API tests for a balanced journal, booking filter, deposit not reducing revenue, petty cash with an empty booking reference, and a non-staying payment.
