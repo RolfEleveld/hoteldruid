@@ -298,9 +298,11 @@
             summary = null;
             transactions = null;
             selectedTransaction = null;
+            ResetEntryForm();
             return;
         }
 
+        ResetEntryForm();
         await ReloadFinanceAsync();
     }
 
@@ -361,8 +363,8 @@
                 entryDescription,
                 entryAppliedTo,
                 entryCreatedBy));
-            entryAmount = 0;
-            entryDescription = null;
+            entryCreatedBy = null;
+            ResetEntryForm();
             await ReloadFinanceAsync();
         }
         catch (Exception ex)
@@ -379,6 +381,16 @@
     {
         entryType = "deposit";
         entryAppliedTo = "deposit";
+    }
+
+    private void ResetEntryForm()
+    {
+        entryType = "payment";
+        entryAmount = 0;
+        entryAppliedTo = "stay_balance";
+        entryCreatedBy = null;
+        entryDescription = null;
+        errorMsg = string.Empty;
     }
 
     private string GetDocumentUrl(string documentType)

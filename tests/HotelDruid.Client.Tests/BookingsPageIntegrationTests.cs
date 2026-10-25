@@ -51,7 +51,7 @@ public class BookingsPageIntegrationTests : TestContext
 
         bookingApi.Setup(x => x.ListDeparturesAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
         {
-            new("dep-1", 2026, "client-1", "room-1", new DateOnly(2026, 8, 6), new DateOnly(2026, 8, 8), "Confirmed", "Departure", new DateOnly(2026, 8, 6), 2, null, new DateOnly(2026, 8, 8))
+            new("dep-1", 2026, "client-1", "room-1", new DateOnly(2026, 8, 6), new DateOnly(2026, 8, 8), "Confirmed", "Departure", new DateOnly(2026, 8, 6), 2, null, null, null, new DateOnly(2026, 8, 8), null, null, null, null, null)
         });
 
         clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<HotelDruid.Client.Services.ClientDto>
