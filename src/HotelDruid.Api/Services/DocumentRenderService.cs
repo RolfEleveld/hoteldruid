@@ -27,18 +27,18 @@ public sealed class DocumentRenderService : IDocumentRenderService
     private readonly IKeyValueStore _store;
     private readonly ISystemConfigurationStore _configStore;
     private readonly ITariffResolutionService _tariffs;
-    private readonly IBookingTransactionRepository _transactions;
+    private readonly ILedgerRepository _ledger;
 
     public DocumentRenderService(
         IKeyValueStore store,
         ISystemConfigurationStore configStore,
         ITariffResolutionService tariffs,
-        IBookingTransactionRepository transactions)
+        ILedgerRepository ledger)
     {
         _store = store;
         _configStore = configStore;
         _tariffs = tariffs;
-        _transactions = transactions;
+        _ledger = ledger;
     }
 
     // -----------------------------------------------------------------------
@@ -131,36 +131,49 @@ public sealed class DocumentRenderService : IDocumentRenderService
         decimal paymentsTotal = 0;
         decimal refundsTotal = 0;
         decimal depositsHeld = 0;
-        foreach (var transaction in await _transactions.GetTransactionsAsync(bookingId))
+
+        var from = booking.ActualArrivalDate?.ToDateTime(TimeOnly.MinValue)
+                   ?? booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue)
+                   ?? DateTime.MinValue;
+        var to = (booking.ActualDepartureDate?.ToDateTime(TimeOnly.MinValue)
+                  ?? booking.DepartureDate?.ToDateTime(TimeOnly.MinValue)
+                  ?? DateTime.MaxValue).AddDays(1);
+
+        var lines = await _ledger.GetEntriesForBookingAsync(bookingId, from, to);
+        foreach (var line in lines.Where(l => l.SourceType == "booking-transaction").OrderBy(l => l.Timestamp))
         {
-            if (transaction.Amount == 0) continue;
-            var isRefund = string.Equals(transaction.Type, "refund", StringComparison.OrdinalIgnoreCase);
-            var isDeposit = string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase);
+            if (line.Debit == 0 && line.Credit == 0) continue;
+            var amt = line.Debit > 0 ? line.Debit : line.Credit;
+            var type = line.EntryType ?? string.Empty;
+
+            bool isRefund   = type.Contains("refund",   StringComparison.OrdinalIgnoreCase);
+            bool isDeposit  = type.Contains("deposit",  StringComparison.OrdinalIgnoreCase);
+            bool isPrepaid  = type.Contains("prepaid",  StringComparison.OrdinalIgnoreCase);
+            bool isPayment  = type.Contains("payment",  StringComparison.OrdinalIgnoreCase)
+                           || type.Contains("charge",   StringComparison.OrdinalIgnoreCase);
+
             if (isRefund)
             {
-                refundsTotal += Math.Abs(transaction.Amount);
-                if (isDeposit) depositsHeld -= Math.Abs(transaction.Amount);
+                refundsTotal += amt;
+                if (isDeposit) depositsHeld -= amt;
             }
             else if (isDeposit)
             {
-                depositsHeld += Math.Abs(transaction.Amount);
+                depositsHeld += amt;
             }
-            else
+            else if (isPayment || isPrepaid)
             {
-                paymentsTotal += transaction.Amount;
+                paymentsTotal += amt;
             }
 
-            var signed = isRefund ? -Math.Abs(transaction.Amount) : transaction.Amount;
+            var signed = isRefund ? -amt : amt;
             payments.Add(new PaymentContextRow
             {
-                Amount = signed.ToString("F2", CultureInfo.InvariantCulture),
-                Date = transaction.Timestamp == default
-                    ? string.Empty
-                    : transaction.Timestamp.ToString("yyyy-MM-dd"),
-                Method = transaction.AppliedTo ?? transaction.Type ?? string.Empty,
-                Description = transaction.Description ?? transaction.Type ?? string.Empty,
-                Type = transaction.Type ?? string.Empty
+                Amount      = signed.ToString("F2", CultureInfo.InvariantCulture),
+                Date        = line.Timestamp == default ? string.Empty : line.Timestamp.ToString("yyyy-MM-dd"),
+                Method      = line.AccountCode ?? type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase),
+                Description = line.Notes ?? type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase),
+                Type        = type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase)
             });
         }
 

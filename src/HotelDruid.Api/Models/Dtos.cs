@@ -128,7 +128,7 @@ public record TariffDto(
     int? MinGuestCount = null
 );
 
-public record TariffAssignmentDto(string? Id, string? TariffId, string TargetType, string? TargetId, DateTime? CreatedAt);
+public record TariffAssignmentDto(string? Id = null, string? TariffId = null, string TargetType = "Room", string? TargetId = null, DateTime? CreatedAt = null);
 
 public record TariffSeasonDto(string? Id, string? TariffId, string? Name, DateOnly StartDate, DateOnly EndDate, string AdjustmentType, double Value, DateTime? CreatedAt);
 

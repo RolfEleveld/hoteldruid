@@ -11,7 +11,16 @@ public record TariffResolutionResult(
     double AdjustedPricePerNight,
     double TotalPrice,
     string? AppliedSeasonName,
-    string ApplicabilityMode
+    string ApplicabilityMode,
+    IReadOnlyList<TariffDailySegment>? DailySegments = null
+);
+
+/// <summary>One night in a multi-tariff stay.</summary>
+public record TariffDailySegment(
+    DateOnly Date,
+    string TariffId,
+    string TariffName,
+    double Price
 );
 
 public interface ITariffResolutionService
@@ -155,6 +164,24 @@ public class TariffResolutionService : ITariffResolutionService
         var perPersonPerNight = bestTariff.PricePerPerson ?? 0;
         var totalPrice = (nights * pricePerNight) + (nights * extraGuests * perPersonPerNight);
 
+        // Build daily segments only if the stay is long enough or we want to show breakdown
+        List<TariffDailySegment>? daily = null;
+        if (nights > 1)
+        {
+            daily = new List<TariffDailySegment>();
+            for (int i = 0; i < nights; i++)
+            {
+                var nightDate = arrivalDate.AddDays(i);
+                // For simplicity we reuse the same best tariff for all nights in this basic version.
+                // A full implementation would re-evaluate per night.
+                daily.Add(new TariffDailySegment(
+                    nightDate,
+                    bestTariffId,
+                    bestTariff.Name ?? string.Empty,
+                    pricePerNight + (extraGuests * perPersonPerNight)));
+            }
+        }
+
         return new TariffResolutionResult(
             bestTariffId,
             bestTariff.Name ?? string.Empty,
@@ -163,6 +190,7 @@ public class TariffResolutionService : ITariffResolutionService
             pricePerNight,
             totalPrice,
             appliedSeasonName,
-            bestTariff.ApplicabilityMode ?? AnyDay);
+            bestTariff.ApplicabilityMode ?? AnyDay,
+            daily);
     }
 }

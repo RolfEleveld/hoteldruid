@@ -24,7 +24,15 @@ namespace HotelDruid.Client.Services
         double AdjustedPricePerNight,
         double TotalPrice,
         string? AppliedSeasonName,
-        string ApplicabilityMode
+        string ApplicabilityMode,
+        IReadOnlyList<TariffDailySegmentDto>? DailySegments = null
+    );
+
+    public record TariffDailySegmentDto(
+        DateOnly Date,
+        string TariffId,
+        string TariffName,
+        double Price
     );
 
     /// <summary>

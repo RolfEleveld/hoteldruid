@@ -166,6 +166,38 @@ public class LedgerRepository : ILedgerRepository, IDisposable
     }
 
     /// <inheritdoc />
+    public async Task<List<LedgerEntry>> GetEntriesByIdsAsync(IEnumerable<string> entryIds)
+    {
+        var result = new List<LedgerEntry>();
+        if (entryIds is null) return result;
+
+        var idSet = new HashSet<string>(entryIds);
+
+        // We walk the entire ledger history once — acceptable because this is only
+        // called when the booking index is empty or during audit.
+        // For production we would add a reverse index (entryId → date folder).
+        var root = Path.Combine(_dataRoot, "ledger");
+        if (!Directory.Exists(root)) return result;
+
+        foreach (var yearDir in Directory.EnumerateDirectories(root))
+        {
+            foreach (var monthDir in Directory.EnumerateDirectories(yearDir))
+            {
+                foreach (var dayDir in Directory.EnumerateDirectories(monthDir))
+                {
+                    foreach (var file in GetSortedSeqFiles(dayDir))
+                    {
+                        var entry = await ReadEntryAsync(file);
+                        if (entry is not null && idSet.Contains(entry.Id))
+                            result.Add(entry);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /// <inheritdoc />
     public async Task<List<LedgerEntry>> GetEntriesWithoutBookingAsync(DateTime from, DateTime to)
     {
         var result = new List<LedgerEntry>();

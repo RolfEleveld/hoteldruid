@@ -18,6 +18,8 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 
 ## Still open
 - [ ] Keep the per-booking transaction folder as a projection of ledger lines, not a second book.
+  - Blazor side: Remove dual-write, delete `BookingTransactionRepository`, make transaction list a read-only projection of the ledger (using booking date range + `bookingId` filter). Implement immediately.
+  - PHP export/import compatibility: Add checklist item for later update of the main (PHP) branch after Blazor work is complete and visually tested.
 - [ ] Add a booking index so history is not a scan of every day partition.
 - [ ] Bring PHP cash-register permissions, person, payment method, currency, and running cash total onto petty-cash posts.
 - [ ] Stop deleting money history. Corrections should be reversing ledger entries.

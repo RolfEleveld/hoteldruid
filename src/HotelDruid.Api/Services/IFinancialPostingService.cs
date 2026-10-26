@@ -25,7 +25,7 @@ public static class HotelAccounts
 
 public interface IFinancialPostingService
 {
-    Task PostBalancedAsync(DateTime date, string entryType, string description, decimal amount, string debitAccount, string debitGroup, string creditAccount, string creditGroup, string? bookingId = null, string? cashRegisterId = null, string? payerName = null, string? sourceType = null, string? sourceId = null, string? createdBy = null);
+    Task<LedgerEntry> PostBalancedAsync(DateTime date, string entryType, string description, decimal amount, string debitAccount, string debitGroup, string creditAccount, string creditGroup, string? bookingId = null, string? cashRegisterId = null, string? payerName = null, string? sourceType = null, string? sourceId = null, string? createdBy = null);
 }
 
 /// <summary>
@@ -41,7 +41,7 @@ public class FinancialPostingService : IFinancialPostingService
         _ledger = ledger;
     }
 
-    public async Task PostBalancedAsync(
+    public async Task<LedgerEntry> PostBalancedAsync(
         DateTime date,
         string entryType,
         string description,
@@ -57,14 +57,19 @@ public class FinancialPostingService : IFinancialPostingService
         string? sourceId = null,
         string? createdBy = null)
     {
-        if (amount == 0) return;
+        if (amount == 0) throw new ArgumentException("Amount must be non-zero");
 
         var journalId = Guid.NewGuid().ToString("N");
         var when = date == default ? DateTime.UtcNow : date;
         var magnitude = Math.Abs(amount);
 
-        await _ledger.AppendEntryAsync(when, Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, debitAccount, debitGroup, magnitude, 0));
-        await _ledger.AppendEntryAsync(when, Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, creditAccount, creditGroup, 0, magnitude));
+        var debitEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, debitAccount, debitGroup, magnitude, 0);
+        var creditEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, creditAccount, creditGroup, 0, magnitude);
+
+        await _ledger.AppendEntryAsync(when, debitEntry);
+        await _ledger.AppendEntryAsync(when, creditEntry);
+
+        return debitEntry; // return one of the two created entries for indexing
     }
 
     private static LedgerEntry Line(

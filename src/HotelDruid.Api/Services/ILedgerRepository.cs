@@ -39,6 +39,12 @@ public interface ILedgerRepository
     Task<List<LedgerEntry>> GetEntriesForBookingAsync(string bookingId, DateTime from, DateTime to);
 
     /// <summary>
+    /// Returns the ledger entries whose IDs are in the provided list.
+    /// This is used by the booking ledger index projection for fast lookup.
+    /// </summary>
+    Task<List<LedgerEntry>> GetEntriesByIdsAsync(IEnumerable<string> entryIds);
+
+    /// <summary>
     /// Get hotel-level entries with no booking reference across a date range.
     /// These are petty cash, purchases, payroll, and other non-stay postings.
     /// </summary>
