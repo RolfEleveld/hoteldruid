@@ -62,7 +62,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task RoomsWidget_HTMLSnapshot_ShouldMatchExpected()
         {
             // Arrange
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
             await Task.Delay(200); // Wait for async rendering
 
             // Act
@@ -79,7 +79,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         [Fact]
         public async Task RoomsWidget_WithSpanishLanguage_HTMLSnapshot()
         {
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
             await Task.Delay(200);
 
             // Act
@@ -94,7 +94,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         [Fact]
         public async Task RoomsWidget_WithItalianLanguage_HTMLSnapshot()
         {
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
             await Task.Delay(200);
 
             // Act
@@ -110,7 +110,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task SettingsPanel_ExpandedState_HTMLSnapshot()
         {
             // Arrange
-            var component = RenderComponent<SettingsPanel>(
+            var component = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Settings & Management")
                     .Add(x => x.Description, "Export and import room configurations")
@@ -133,7 +133,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task ExportSettings_FormState_HTMLSnapshot()
         {
             // Act
-            var component = RenderComponent<ExportSettings>();
+            var component = Render<ExportSettings>();
             await Task.Delay(100);
 
             var markup = component.Markup;
@@ -150,7 +150,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task ImportSettings_FileDropZone_HTMLSnapshot()
         {
             // Act
-            var component = RenderComponent<ImportSettings>();
+            var component = Render<ImportSettings>();
             await Task.Delay(100);
 
             var markup = component.Markup;
@@ -165,7 +165,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task LanguageSwitcher_Dropdown_HTMLSnapshot()
         {
             // Act
-            var component = RenderComponent<LanguageSwitcher>();
+            var component = Render<LanguageSwitcher>();
 
             var markup = component.Markup;
             var snapshotPath = Path.Combine(_snapshotDirectory, "LanguageSwitcher.html");
@@ -180,7 +180,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public void RoomsWidget_VisualValidation_CheckDOM()
         {
             // Arrange
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
 
             // Act
             var rheaders = component.FindAll(".rheader");
@@ -198,7 +198,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public void Components_AccessibilityCheck_AriaLabels()
         {
             // Act
-            var dialogComponent = RenderComponent<SettingsPanel>(
+            var dialogComponent = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Settings")
                     .Add(x => x.Description, "Test")
@@ -213,7 +213,7 @@ namespace HotelDruid.Client.Tests.Integration.Visual
         public async Task FullPage_Integration_HTMLSnapshot()
         {
             // Act - Render complete RoomsWidget with all sub-components
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
             await Task.Delay(300);
 
             var markup = component.Markup;

@@ -30,14 +30,14 @@ namespace HotelDruid.Client.Tests.Integration.Components
         [Fact]
         public void WarehousesWidget_ShouldRender()
         {
-            var comp = RenderComponent<WarehousesWidget>();
+            var comp = Render<WarehousesWidget>();
             Assert.NotNull(comp.Instance);
         }
 
         [Fact]
         public async Task WarehousesWidget_ShouldCallApi()
         {
-            RenderComponent<WarehousesWidget>();
+            Render<WarehousesWidget>();
             await Task.Delay(50);
             _mockService.Verify(x => x.GetWarehousesAsync(), Times.Once);
         }

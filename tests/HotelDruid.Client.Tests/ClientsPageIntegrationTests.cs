@@ -42,7 +42,7 @@ public class ClientsPageIntegrationTests : TestContext
     [Fact]
     public void ClientsPage_ShouldSortClientsAlphabeticallyByDefault()
     {
-        var component = RenderComponent<Clients>();
+        var component = Render<Clients>();
 
         component.WaitForAssertion(() =>
         {
@@ -58,7 +58,7 @@ public class ClientsPageIntegrationTests : TestContext
     [Fact]
     public void ClientsPage_AddPhoneAndEmail_ExpandsContactFields()
     {
-        var component = RenderComponent<Clients>();
+        var component = Render<Clients>();
         component.FindAll("button").First(b => b.TextContent.Contains("Add Client")).Click();
         component.FindAll("button").First(b => b.TextContent.Contains("Add contacts")).Click();
 
@@ -81,7 +81,7 @@ public class ClientsPageIntegrationTests : TestContext
     [Fact]
     public void ClientsPage_RemovePhoneAndEmail_UpdatesContactFields()
     {
-        var component = RenderComponent<Clients>();
+        var component = Render<Clients>();
         component.FindAll("button").First(b => b.TextContent.Contains("Add Client")).Click();
         component.FindAll("button").First(b => b.TextContent.Contains("Add contacts")).Click();
 

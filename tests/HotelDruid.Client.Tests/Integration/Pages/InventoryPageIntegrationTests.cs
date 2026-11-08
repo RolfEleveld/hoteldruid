@@ -50,7 +50,7 @@ public class InventoryPageIntegrationTests : TestContext
     [Fact]
     public void InventoryPage_ShouldLoadWarehouseAndAssetSelectors()
     {
-        var component = RenderComponent<Inventory>();
+        var component = Render<Inventory>();
 
         component.WaitForAssertion(() =>
         {
@@ -71,7 +71,7 @@ public class InventoryPageIntegrationTests : TestContext
     [Fact]
     public void InventoryPage_ShouldRenderInventoryListUsingLinkedNames()
     {
-        var component = RenderComponent<Inventory>();
+        var component = Render<Inventory>();
 
         component.WaitForAssertion(() =>
         {
@@ -92,7 +92,7 @@ public class InventoryPageIntegrationTests : TestContext
     [Fact]
     public void InventoryPage_SelectWarehouse_ShouldNotClearSelectedRoom()
     {
-        var component = RenderComponent<Inventory>();
+        var component = Render<Inventory>();
 
         component.WaitForAssertion(() => Assert.Contains("Bed Linen", component.Markup));
         component.Find("button.list-group-item").Click();
@@ -126,7 +126,7 @@ public class InventoryPageIntegrationTests : TestContext
     [Fact]
     public void InventoryPage_SelectRoom_ShouldNotClearSelectedWarehouse()
     {
-        var component = RenderComponent<Inventory>();
+        var component = Render<Inventory>();
 
         component.WaitForAssertion(() => Assert.Contains("Bed Linen", component.Markup));
         component.Find("button.list-group-item").Click();
@@ -155,7 +155,7 @@ public class InventoryPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/inventory?selectedId=inv-1");
 
-        var component = RenderComponent<Inventory>();
+        var component = Render<Inventory>();
 
         component.WaitForAssertion(() =>
         {

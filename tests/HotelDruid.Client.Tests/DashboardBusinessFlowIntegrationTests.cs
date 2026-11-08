@@ -37,9 +37,9 @@ public class DashboardBusinessFlowIntegrationTests
         return context;
     }
 
-    private static IRenderedFragment RenderDashboard(TestContext context) => context.RenderComponent<IndexPage>();
+    private static IRenderedComponent<IndexPage> RenderDashboard(TestContext context) => context.Render<IndexPage>();
 
-    private static IElement GetWidgetCard(IRenderedFragment component, string titleKey)
+    private static IElement GetWidgetCard(IRenderedComponent<IndexPage> component, string titleKey)
     {
         return component.FindAll(".dashboard-widget")
             .First(card => card.TextContent.Contains(titleKey, StringComparison.Ordinal));

@@ -100,7 +100,7 @@ public class CalendarPageIntegrationTests : TestContext
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var expectedDayCount = DateTime.DaysInMonth(today.Year, today.Month);
-        var component = RenderComponent<CalendarPage>();
+        var component = Render<CalendarPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -146,7 +146,7 @@ public class CalendarPageIntegrationTests : TestContext
     [Fact]
     public void CalendarPage_ShouldShowSelectedRoomDetails_WhenRoomNumberIsClicked()
     {
-        var component = RenderComponent<CalendarPage>();
+        var component = Render<CalendarPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -170,7 +170,7 @@ public class CalendarPageIntegrationTests : TestContext
     [Fact]
     public void CalendarPage_ShouldShowSelectedDayDetails_WhenDayHeaderIsClicked()
     {
-        var component = RenderComponent<CalendarPage>();
+        var component = Render<CalendarPage>();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         component.FindAll(".calendar-day-header")
@@ -190,7 +190,7 @@ public class CalendarPageIntegrationTests : TestContext
     [Fact]
     public void CalendarPage_ShouldShowReservationRecord_WhenOccupiedCellIsClicked()
     {
-        var component = RenderComponent<CalendarPage>();
+        var component = Render<CalendarPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -213,7 +213,7 @@ public class CalendarPageIntegrationTests : TestContext
     [InlineData(2026, 1)]
     public void CalendarPage_ShouldShowCorrectMonth_WhenYearMonthRouteParametersProvided(int year, int month)
     {
-        var component = RenderComponent<CalendarPage>(parameters =>
+        var component = Render<CalendarPage>(parameters =>
         {
             parameters.Add(p => p.year, year);
             parameters.Add(p => p.month, month);
@@ -232,10 +232,10 @@ public class CalendarPageIntegrationTests : TestContext
     public void CalendarPage_ShouldShowCorrectMonth_WhenYearMonthQueryParametersProvided(int year, int month)
     {
         var uri = $"/calendar?year={year}&month={month}";
-        var navMan = Services.GetRequiredService<NavigationManager>() as Bunit.TestDoubles.FakeNavigationManager;
+        var navMan = Services.GetRequiredService<NavigationManager>() as Bunit.TestDoubles.BunitNavigationManager;
         navMan?.NavigateTo(uri);
 
-        var component = RenderComponent<CalendarPage>();
+        var component = Render<CalendarPage>();
 
         component.WaitForAssertion(() =>
         {

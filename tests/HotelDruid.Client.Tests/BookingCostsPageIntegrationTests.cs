@@ -50,7 +50,7 @@ public class BookingCostsPageIntegrationTests : TestContext
             .Callback<BookingCostClientDto>(dto => createdDto = dto)
             .Returns(createGate.Task);
 
-        var component = RenderComponent<BookingCosts>();
+        var component = Render<BookingCosts>();
 
         component.WaitForAssertion(() =>
         {
@@ -88,7 +88,7 @@ public class BookingCostsPageIntegrationTests : TestContext
             .Callback<BookingCostClientDto>(dto => createdDto = dto)
             .ReturnsAsync("cost-created");
 
-        var component = RenderComponent<BookingCosts>();
+        var component = Render<BookingCosts>();
 
         component.WaitForAssertion(() =>
         {

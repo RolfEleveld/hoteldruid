@@ -83,7 +83,7 @@ public class BookingsPageIntegrationTests : TestContext
     [Fact]
     public void BookingsPage_ShouldRenderBookingsAndDateInputs()
     {
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -117,7 +117,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings/new?roomId=room-77");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -132,7 +132,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=stays");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -151,7 +151,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=arrivals&lookAheadDays=2");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -169,7 +169,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=departures");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -187,7 +187,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=reservations");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -205,7 +205,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=arrivals&lookAheadDays=2");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -227,7 +227,7 @@ public class BookingsPageIntegrationTests : TestContext
     [Fact]
     public void BookingsPage_DefaultView_PreArrivalBooking_ShouldShow_Arrived_Action_And_No_Delete()
     {
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -252,7 +252,7 @@ public class BookingsPageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/bookings?view=stays");
 
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
@@ -274,7 +274,7 @@ public class BookingsPageIntegrationTests : TestContext
     public void BookingsPage_TotalDue_ShouldOpenFinanceHistory()
     {
         var navigation = Services.GetRequiredService<NavigationManager>();
-        var component = RenderComponent<Bookings>();
+        var component = Render<Bookings>();
 
         component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().HaveCount(3));
         component.FindAll(".list-group-item")[0].Click();

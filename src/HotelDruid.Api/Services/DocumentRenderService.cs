@@ -28,17 +28,20 @@ public sealed class DocumentRenderService : IDocumentRenderService
     private readonly ISystemConfigurationStore _configStore;
     private readonly ITariffResolutionService _tariffs;
     private readonly ILedgerRepository _ledger;
+    private readonly IBookingLedgerIndexRepository _ledgerIndex;
 
     public DocumentRenderService(
         IKeyValueStore store,
         ISystemConfigurationStore configStore,
         ITariffResolutionService tariffs,
-        ILedgerRepository ledger)
+        ILedgerRepository ledger,
+        IBookingLedgerIndexRepository ledgerIndex)
     {
         _store = store;
         _configStore = configStore;
         _tariffs = tariffs;
         _ledger = ledger;
+        _ledgerIndex = ledgerIndex;
     }
 
     // -----------------------------------------------------------------------
@@ -139,43 +142,27 @@ public sealed class DocumentRenderService : IDocumentRenderService
                   ?? booking.DepartureDate?.ToDateTime(TimeOnly.MinValue)
                   ?? DateTime.MaxValue).AddDays(1);
 
-        var lines = await _ledger.GetEntriesForBookingAsync(bookingId, from, to);
-        foreach (var line in lines.Where(l => l.SourceType == "booking-transaction").OrderBy(l => l.Timestamp))
+        var lines = await BookingTransactionProjection.LoadAsync(_ledger, _ledgerIndex, bookingId, from, to);
+        var transactions = BookingTransactionProjection.Project(lines);
+        foreach (var transaction in transactions)
         {
-            if (line.Debit == 0 && line.Credit == 0) continue;
-            var amt = line.Debit > 0 ? line.Debit : line.Credit;
-            var type = line.EntryType ?? string.Empty;
-
-            bool isRefund   = type.Contains("refund",   StringComparison.OrdinalIgnoreCase);
-            bool isDeposit  = type.Contains("deposit",  StringComparison.OrdinalIgnoreCase);
-            bool isPrepaid  = type.Contains("prepaid",  StringComparison.OrdinalIgnoreCase);
-            bool isPayment  = type.Contains("payment",  StringComparison.OrdinalIgnoreCase)
-                           || type.Contains("charge",   StringComparison.OrdinalIgnoreCase);
-
-            if (isRefund)
-            {
-                refundsTotal += amt;
-                if (isDeposit) depositsHeld -= amt;
-            }
-            else if (isDeposit)
-            {
-                depositsHeld += amt;
-            }
-            else if (isPayment || isPrepaid)
-            {
-                paymentsTotal += amt;
-            }
-
-            var signed = isRefund ? -amt : amt;
+            var type = transaction.Type ?? string.Empty;
+            var isRefund = type.Contains("refund", StringComparison.OrdinalIgnoreCase);
+            var signed = isRefund ? -transaction.Amount : transaction.Amount;
             payments.Add(new PaymentContextRow
             {
-                Amount      = signed.ToString("F2", CultureInfo.InvariantCulture),
-                Date        = line.Timestamp == default ? string.Empty : line.Timestamp.ToString("yyyy-MM-dd"),
-                Method      = line.AccountCode ?? type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase),
-                Description = line.Notes ?? type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase),
-                Type        = type.Replace("booking_", "", StringComparison.OrdinalIgnoreCase)
+                Amount = signed.ToString("F2", CultureInfo.InvariantCulture),
+                Date = transaction.Timestamp == default ? string.Empty : transaction.Timestamp.ToString("yyyy-MM-dd"),
+                Method = string.IsNullOrWhiteSpace(transaction.AppliedTo) ? type : transaction.AppliedTo,
+                Description = transaction.Description ?? type,
+                Type = type
             });
         }
+
+        var movement = BookingTransactionProjection.Sum(transactions);
+        paymentsTotal = movement.Payments;
+        refundsTotal = movement.Refunds;
+        depositsHeld = movement.Deposits;
 
         var charges = Convert.ToDecimal(totalAmount);
         var prepaidAmount = Convert.ToDecimal(prepaid);

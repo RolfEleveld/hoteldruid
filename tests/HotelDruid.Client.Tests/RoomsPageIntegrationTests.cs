@@ -72,7 +72,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         // Helper: render and click "Add Room" so the editor form becomes visible
         private IRenderedComponent<Rooms> RenderWithFormOpen()
         {
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
             var addBtn = component.FindAll("button")
                 .FirstOrDefault(b => b.TextContent.Contains("Add Room"));
             addBtn?.Click();
@@ -84,7 +84,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldRenderSuccessfully()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             component.Instance.Should().NotBeNull();
@@ -94,7 +94,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldHaveThreePanelLayout()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             // Check for three main panel sections: left (list), center (editor), right (matrix)
@@ -106,7 +106,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_LeftPanel_ShouldHaveAddRoomButton()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -117,7 +117,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_LeftPanel_ShouldSortRoomNumbersNaturallyByDefault()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var roomButtons = component.FindAll(".list-group .list-group-item");
@@ -159,7 +159,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_RightPanel_ShouldHaveNeighboringRoomsMatrix()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -170,7 +170,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldShowHelpTextWhenNoRoomSelected()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -181,7 +181,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_StatusBadge_ShouldDisplayInitially()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -195,7 +195,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldHaveProperPageTitle()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             // PageTitle is not in bUnit markup; check the panel title instead
@@ -206,7 +206,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_AddNewRoom_ShouldShowNewRoomTitle()
         {
             // Arrange
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Act
             var buttons = component.FindAll("button");
@@ -280,7 +280,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_RoomListCapacity_ShouldNotContainPlaceholderArtifacts()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -304,7 +304,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_NeighboringRoomsMatrix_ShouldRenderUniquePairCellsOnly()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             // With 3 rooms, lower triangle has 3 pair-edit cells: (2,1), (3,1), (3,2)
@@ -318,7 +318,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             // Act & Assert - This verifies the component doesn't throw during render
             var ex = Record.Exception(() =>
             {
-                var component = RenderComponent<Rooms>();
+                var component = Render<Rooms>();
                 _ = component.Markup;
             });
 
@@ -340,7 +340,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_FormLayout_ShouldBeResponsive()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -354,7 +354,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldHavePanelStructure()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var panels = component.FindAll(".panel");
@@ -372,7 +372,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_LeftPanel_ShouldHaveListGroup()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -486,7 +486,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_PageTitle_ShouldBeSet()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             // The component uses <PageTitle> which sets the browser title
@@ -498,7 +498,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         public void RoomsPage_ShouldHaveBaseStyles()
         {
             // Act
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
 
             // Assert
             var markup = component.Markup;
@@ -515,7 +515,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             // and is routable at /rooms
             // The component must inherit from ComponentBase and have the right structure
             
-            var component = RenderComponent<Rooms>();
+            var component = Render<Rooms>();
             
             // If the component renders without errors, routing is properly configured
             component.Instance.Should().NotBeNull();

@@ -413,7 +413,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void WidgetMenus_ShouldShow_EntitySpecificVisibleHeader_AndAddAction()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -454,7 +454,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void WidgetMenus_ShouldExpose_ConsistentVisibleCountOptions_OnAllWidgets()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -486,7 +486,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void RoomsWidget_ShouldRespect_SelectedVisibleCountOption()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -514,7 +514,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void ReservationsWidget_ShouldRenderBookings_FromApiPayloadWithStringClientIds()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -528,7 +528,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void ReservationsWidget_RowMenuShouldOffer_ArrivedAndClientActions()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -577,7 +577,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -611,7 +611,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -644,7 +644,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -686,7 +686,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -731,7 +731,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -755,7 +755,7 @@ public class LandingPageWidgetSelectorTests : TestContext
     [Fact]
     public void RoomsWidget_MenuShouldOffer_NewReservationForSelectedRoom()
     {
-        var component = RenderComponent<IndexPage>();
+        var component = Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -803,7 +803,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -845,7 +845,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -882,7 +882,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {
@@ -920,7 +920,7 @@ public class LandingPageWidgetSelectorTests : TestContext
         localContext.Services.AddScoped(_ => client);
         localContext.JSInterop.Mode = JSRuntimeMode.Loose;
 
-        var component = localContext.RenderComponent<IndexPage>();
+        var component = localContext.Render<IndexPage>();
 
         component.WaitForAssertion(() =>
         {

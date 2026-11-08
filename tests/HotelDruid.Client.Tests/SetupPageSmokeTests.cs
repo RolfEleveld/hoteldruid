@@ -47,7 +47,7 @@ public class SetupPageSmokeTests : TestContext
     [Fact]
     public void SetupPage_ShouldShowUpdatedCurrencyStorageAndFallbackChoices()
     {
-        var component = RenderComponent<Setup>();
+        var component = Render<Setup>();
 
         component.WaitForAssertion(() =>
         {

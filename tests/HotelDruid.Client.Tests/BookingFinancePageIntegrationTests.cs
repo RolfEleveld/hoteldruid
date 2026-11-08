@@ -55,7 +55,7 @@ public class BookingFinancePageIntegrationTests : TestContext
     [Fact]
     public void BookingFinance_WithoutFilter_ListsEveryBooking()
     {
-        var component = RenderComponent<BookingFinance>();
+        var component = Render<BookingFinance>();
 
         component.WaitForAssertion(() =>
         {
@@ -72,7 +72,7 @@ public class BookingFinancePageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/booking-finance?clientId=guest-1");
 
-        var component = RenderComponent<BookingFinance>();
+        var component = Render<BookingFinance>();
 
         component.WaitForAssertion(() =>
         {
@@ -89,7 +89,7 @@ public class BookingFinancePageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/booking-finance?clientId=missing");
 
-        var component = RenderComponent<BookingFinance>();
+        var component = Render<BookingFinance>();
 
         component.WaitForAssertion(() =>
         {
@@ -104,7 +104,7 @@ public class BookingFinancePageIntegrationTests : TestContext
         var navigation = Services.GetRequiredService<NavigationManager>();
         navigation.NavigateTo("/booking-finance?selectedId=stay-1&year=2026");
 
-        var component = RenderComponent<BookingFinance>();
+        var component = Render<BookingFinance>();
 
         component.WaitForAssertion(() =>
         {

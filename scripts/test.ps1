@@ -20,7 +20,7 @@ param(
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Join-Path $scriptDir '..'
-$artifactDir = Join-Path $repoRoot 'artifacts' 'test-results'
+$artifactDir = Join-Path (Join-Path $repoRoot 'artifacts') 'test-results'
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
 Write-Host "Running all tests..."

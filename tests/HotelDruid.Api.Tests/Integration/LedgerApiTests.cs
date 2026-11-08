@@ -175,6 +175,80 @@ public class LedgerApiTests : IAsyncLifetime
         Assert.Contains(lines, line => line.EntryType == "petty_cash_income");
     }
 
+    [Fact]
+    public async Task BookingTransactions_ProjectOneRowPerJournal_AndDoNotWriteASecondBook()
+    {
+        var booking = await CreateBookingAsync("guest-projection");
+
+        var payment = await _client.PostAsJsonAsync(
+            $"/api/bookings/2026/{booking}/transactions",
+            new
+            {
+                type = "payment",
+                amount = 80m,
+                description = "Card payment",
+                appliedTo = "stay_balance",
+                createdBy = "clerk",
+                timestamp = new DateTime(2026, 5, 15, 10, 0, 0, DateTimeKind.Utc)
+            },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, payment.StatusCode);
+        var createdPayment = await payment.Content.ReadFromJsonAsync<BookingTransactionRow>(JsonOptions);
+        Assert.NotNull(createdPayment);
+        Assert.Equal(1, createdPayment.Sequence);
+        Assert.Equal("payment", createdPayment.Type);
+        Assert.Equal(80m, createdPayment.Amount);
+        Assert.Equal("Card payment", createdPayment.Description);
+        Assert.Equal("stay_balance", createdPayment.AppliedTo);
+        Assert.Equal("clerk", createdPayment.CreatedBy);
+
+        var refund = await _client.PostAsJsonAsync(
+            $"/api/bookings/2026/{booking}/transactions",
+            new
+            {
+                type = "refund",
+                amount = 4m,
+                description = "Overpayment",
+                appliedTo = "stay_balance",
+                createdBy = "clerk",
+                timestamp = new DateTime(2026, 5, 15, 11, 0, 0, DateTimeKind.Utc)
+            },
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, refund.StatusCode);
+        var createdRefund = await refund.Content.ReadFromJsonAsync<BookingTransactionRow>(JsonOptions);
+        Assert.NotNull(createdRefund);
+        Assert.Equal(2, createdRefund.Sequence);
+        Assert.Equal("refund", createdRefund.Type);
+        Assert.Equal(4m, createdRefund.Amount);
+        Assert.Equal("stay_balance", createdRefund.AppliedTo);
+        Assert.Equal("clerk", createdRefund.CreatedBy);
+
+        var secondBook = Path.Combine(_testDataRoot, "bookings", $"{booking}_transactions");
+        Assert.False(Directory.Exists(secondBook));
+
+        var listResponse = await _client.GetAsync($"/api/bookings/2026/{Uri.EscapeDataString(booking)}/transactions");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var list = await listResponse.Content.ReadFromJsonAsync<List<BookingTransactionRow>>(JsonOptions) ?? [];
+        Assert.Equal(2, list.Count);
+        Assert.Equal(new[] { 1, 2 }, list.Select(row => row.Sequence).OrderBy(sequence => sequence).ToArray());
+        Assert.Contains(list, row => row.Type == "payment" && row.Amount == 80m && row.AppliedTo == "stay_balance" && row.CreatedBy == "clerk");
+        Assert.Contains(list, row => row.Type == "refund" && row.Amount == 4m && row.AppliedTo == "stay_balance" && row.CreatedBy == "clerk");
+
+        var paymentLines = (await GetLinesAsync(bookingId: booking))
+            .Where(line => line.Description == "Card payment")
+            .ToList();
+        Assert.Equal(2, paymentLines.Count);
+        Assert.Single(paymentLines.Select(line => line.JournalId).Distinct());
+        Assert.Equal(paymentLines.Sum(line => line.Debit), paymentLines.Sum(line => line.Credit));
+
+        var financeResponse = await _client.GetAsync($"/api/bookings/2026/{Uri.EscapeDataString(booking)}/finance");
+        Assert.Equal(HttpStatusCode.OK, financeResponse.StatusCode);
+        var finance = await financeResponse.Content.ReadFromJsonAsync<FinanceSummary>(JsonOptions);
+        Assert.NotNull(finance);
+        Assert.Equal(80m, finance.PaymentsTotal);
+        Assert.Equal(4m, finance.RefundsTotal);
+    }
+
     private async Task<string> CreateBookingAsync(string clientId)
     {
         var response = await _client.PostAsJsonAsync(
@@ -223,5 +297,21 @@ public class LedgerApiTests : IAsyncLifetime
         public decimal Credit { get; set; }
         public string? CashRegisterId { get; set; }
         public string? Description { get; set; }
+    }
+
+    private sealed class BookingTransactionRow
+    {
+        public int Sequence { get; set; }
+        public string? Type { get; set; }
+        public decimal Amount { get; set; }
+        public string? Description { get; set; }
+        public string? AppliedTo { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    private sealed class FinanceSummary
+    {
+        public decimal PaymentsTotal { get; set; }
+        public decimal RefundsTotal { get; set; }
     }
 }

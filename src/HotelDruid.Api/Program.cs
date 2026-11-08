@@ -3668,72 +3668,24 @@ app.MapDelete("/api/sessions", async (IKeyValueStore store, int? userId) =>
     return Results.NoContent();
 }).WithName("DeleteSessionsForUser");
 
-// --- Booking finance (immutable per-booking ledger) ---
-
-static bool IsRefundTransaction(string? type)
-    => string.Equals(type, "refund", StringComparison.OrdinalIgnoreCase);
-
-static bool IsDepositTransaction(BookingTransaction transaction)
-    => string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase);
-
-static bool IsPaymentTransaction(BookingTransaction transaction)
-    => !IsRefundTransaction(transaction.Type)
-       && (string.Equals(transaction.Type, "payment", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(transaction.Type, "deposit", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(transaction.AppliedTo, "stay_balance", StringComparison.OrdinalIgnoreCase)
-           || string.Equals(transaction.AppliedTo, "deposit", StringComparison.OrdinalIgnoreCase));
-
-static BookingTransactionDto ToBookingTransactionDto(BookingTransaction transaction) => new(
-    transaction.BookingId,
-    transaction.Sequence,
-    transaction.Timestamp,
-    transaction.Type,
-    transaction.Amount,
-    transaction.Description,
-    transaction.AppliedTo,
-    transaction.CreatedBy);
+// --- Booking finance (ledger projection, not a second book) ---
 
 app.MapGet("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IBookingLedgerIndexRepository indexRepo) =>
 {
     var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (booking is null || booking.Year != year) return Results.NotFound();
 
-    var entryIds = await indexRepo.GetEntryIdsAsync(id);
-    List<LedgerEntry> lines;
-    if (entryIds.Count > 0)
-    {
-        // Fast path using the booking ledger index
-        lines = await ledger.GetEntriesByIdsAsync(entryIds);
-    }
-    else
-    {
-        var from = booking.ActualArrivalDate?.ToDateTime(TimeOnly.MinValue)
-                   ?? booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue)
-                   ?? DateTime.MinValue;
-        var to = (booking.ActualDepartureDate?.ToDateTime(TimeOnly.MinValue)
-                  ?? booking.DepartureDate?.ToDateTime(TimeOnly.MinValue)
-                  ?? DateTime.MaxValue).AddDays(1);
-        lines = await ledger.GetEntriesForBookingAsync(id, from, to);
-    }
-
-    var projected = lines
-        .Where(l => l.SourceType == "booking-transaction")
-        .Select(l => new BookingTransactionDto(
-            l.BookingId,
-            int.TryParse(l.SourceId, out var seq) ? seq : 0,
-            l.Timestamp,
-            l.EntryType?.Replace("booking_", "", StringComparison.OrdinalIgnoreCase) ?? l.EntryType,
-            l.Debit > 0 ? l.Debit : l.Credit,
-            l.Notes,
-            null,
-            null))
-        .ToList();
-
-    return Results.Ok(projected);
+    var from = booking.ActualArrivalDate?.ToDateTime(TimeOnly.MinValue)
+               ?? booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue)
+               ?? DateTime.MinValue;
+    var to = (booking.ActualDepartureDate?.ToDateTime(TimeOnly.MinValue)
+              ?? booking.DepartureDate?.ToDateTime(TimeOnly.MinValue)
+              ?? DateTime.MaxValue).AddDays(1);
+    var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, from, to);
+    return Results.Ok(BookingTransactionProjection.Project(lines));
 }).WithName("ListBookingTransactions");
 
-app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, BookingTransactionWriteDto request, IKeyValueStore store, IFinancialPostingService ledger, IBookingLedgerIndexRepository indexRepo) =>
+app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, BookingTransactionWriteDto request, IKeyValueStore store, IFinancialPostingService posting, ILedgerRepository ledger, IBookingLedgerIndexRepository indexRepo) =>
 {
     if (request is null || string.IsNullOrWhiteSpace(request.Type))
         return Results.BadRequest(new { error = "Transaction type is required" });
@@ -3747,21 +3699,23 @@ app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, strin
     var appliedTo = string.IsNullOrWhiteSpace(request.AppliedTo) ? "stay_balance" : request.AppliedTo.Trim();
     var isDeposit = string.Equals(request.Type, "deposit", StringComparison.OrdinalIgnoreCase) || string.Equals(appliedTo, "deposit", StringComparison.OrdinalIgnoreCase);
     var isRefund = string.Equals(request.Type, "refund", StringComparison.OrdinalIgnoreCase);
-    var seq = DateTime.UtcNow.Ticks.ToString();
+    var sourceId = Guid.NewGuid().ToString("N");
 
-    LedgerEntry? createdEntry = null;
+    LedgerEntry createdEntry;
     if (isRefund)
-        createdEntry = await ledger.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? HotelAccounts.GuestDeposits : HotelAccounts.RoomRevenue, isDeposit ? "liability" : "revenue", HotelAccounts.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: seq, createdBy: request.CreatedBy);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? HotelAccounts.GuestDeposits : HotelAccounts.RoomRevenue, isDeposit ? "liability" : "revenue", HotelAccounts.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
     else if (isDeposit)
-        createdEntry = await ledger.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: seq, createdBy: request.CreatedBy);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
     else
-        createdEntry = await ledger.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: seq, createdBy: request.CreatedBy);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
 
-    if (createdEntry is not null)
+    if (!string.IsNullOrWhiteSpace(createdEntry.Id))
         await indexRepo.AppendEntryIdAsync(id, createdEntry.Id);
 
-    var dto = new BookingTransactionDto(id, 0, when, request.Type, request.Amount, request.Description, appliedTo, request.CreatedBy);
-    return Results.Created($"/api/bookings/{year}/{id}/transactions/{seq}", dto);
+    var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
+    var dto = BookingTransactionProjection.ProjectJournal(lines, createdEntry.JournalId)
+        ?? new BookingTransactionDto(id, 0, when, request.Type, Math.Abs(request.Amount), request.Description, appliedTo, request.CreatedBy);
+    return Results.Created($"/api/bookings/{year}/{id}/transactions/{dto.Sequence}", dto);
 }).WithName("AppendBookingTransaction");
 
 app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
@@ -3807,36 +3761,12 @@ app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
         extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
     }
 
-    // Use the booking ledger index when available (fast + complete, even for late payments)
-    var entryIds = await indexRepo.GetEntryIdsAsync(id);
-    List<LedgerEntry> lines = entryIds.Count > 0
-        ? await ledger.GetEntriesByIdsAsync(entryIds)
-        : await ledger.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue);
-
-    decimal payments = 0;
-    decimal refunds = 0;
-    decimal deposits = 0;
-    foreach (var line in lines.Where(l => l.SourceType == "booking-transaction"))
-    {
-        var type = line.EntryType ?? "";
-        var amt = line.Debit > 0 ? line.Debit : line.Credit;
-
-        if (type.Contains("refund", StringComparison.OrdinalIgnoreCase))
-        {
-            refunds += amt;
-            if (type.Contains("deposit", StringComparison.OrdinalIgnoreCase)) deposits -= amt;
-            continue;
-        }
-        if (type.Contains("deposit", StringComparison.OrdinalIgnoreCase))
-        {
-            deposits += amt;
-            continue;
-        }
-        if (type.Contains("payment", StringComparison.OrdinalIgnoreCase) || type.Contains("charge", StringComparison.OrdinalIgnoreCase))
-        {
-            payments += amt;
-        }
-    }
+    // Index first so a payment after departure is still included. One journal counts once.
+    var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
+    var totals = BookingTransactionProjection.Sum(BookingTransactionProjection.Project(lines));
+    var payments = totals.Payments;
+    var refunds = totals.Refunds;
+    var deposits = totals.Deposits;
 
     var prepaid = Convert.ToDecimal(booking.PrepaidAmount ?? 0);
     var charges = stayTotal + extraTotal;

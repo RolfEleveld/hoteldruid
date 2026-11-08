@@ -44,7 +44,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void RoomsWidget_ShouldRenderSuccessfully()
         {
             // Act
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
 
             // Assert
             Assert.NotNull(component.Instance);
@@ -54,7 +54,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public async Task RoomsWidget_ShouldLoadAndDisplayRooms()
         {
             // Act
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
             await Task.Delay(100); // Wait for async initialization
 
             // Assert
@@ -66,7 +66,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void RoomsWidget_ShouldDisplayRoomTable()
         {
             // Act
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
 
             // Assert
             var table = component.Find("table");
@@ -77,7 +77,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public async Task RoomsWidget_ShouldCallGetRoomsAsync()
         {
             // Act
-            RenderComponent<RoomsWidget>();
+            Render<RoomsWidget>();
             await Task.Delay(100);
 
             // Assert
@@ -88,7 +88,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void RoomsWidget_ShouldContainSettingsPanel()
         {
             // Act
-            var component = RenderComponent<RoomsWidget>();
+            var component = Render<RoomsWidget>();
 
             // Assert
             var markup = component.Markup;
@@ -119,7 +119,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void SettingsPanel_ShouldRenderWithTitle()
         {
             // Act
-            var component = RenderComponent<SettingsPanel>(
+            var component = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Test Settings")
                     .Add(x => x.Description, "Test Description")
@@ -134,7 +134,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void SettingsPanel_ShouldHaveCollapsibleSection()
         {
             // Act
-            var component = RenderComponent<SettingsPanel>(
+            var component = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Settings")
                     .Add(x => x.Description, "Manage settings")
@@ -149,7 +149,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void SettingsPanel_ShouldToggleExpandedState()
         {
             // Arrange
-            var component = RenderComponent<SettingsPanel>(
+            var component = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Settings")
                     .Add(x => x.Description, "Manage settings")
@@ -169,7 +169,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void SettingsPanel_ShouldHaveTwoTabs()
         {
             // Act
-            var component = RenderComponent<SettingsPanel>(
+            var component = Render<SettingsPanel>(
                 parameters => parameters
                     .Add(x => x.Title, "Settings")
                     .Add(x => x.Description, "Manage settings")
@@ -214,7 +214,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ExportSettings_ShouldRenderSuccessfully()
         {
             // Act
-            var component = RenderComponent<ExportSettings>();
+            var component = Render<ExportSettings>();
 
             // Assert
             Assert.NotNull(component.Instance);
@@ -224,7 +224,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ExportSettings_ShouldHaveExportButton()
         {
             // Act
-            var component = RenderComponent<ExportSettings>();
+            var component = Render<ExportSettings>();
 
             // Assert
             var button = component.Find("button");
@@ -235,7 +235,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ExportSettings_ShouldHaveRadioButtonsForSelection()
         {
             // Act
-            var component = RenderComponent<ExportSettings>();
+            var component = Render<ExportSettings>();
 
             // Assert
             var radios = component.FindAll("input[type='radio']");
@@ -246,7 +246,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ExportSettings_ShouldHaveMetadataCheckbox()
         {
             // Act
-            var component = RenderComponent<ExportSettings>();
+            var component = Render<ExportSettings>();
 
             // Assert
             var checkboxes = component.FindAll("input[type='checkbox']");
@@ -286,7 +286,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ImportSettings_ShouldRenderSuccessfully()
         {
             // Act
-            var component = RenderComponent<ImportSettings>();
+            var component = Render<ImportSettings>();
 
             // Assert
             Assert.NotNull(component.Instance);
@@ -296,7 +296,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ImportSettings_ShouldHaveFileInputArea()
         {
             // Act
-            var component = RenderComponent<ImportSettings>();
+            var component = Render<ImportSettings>();
 
             // Assert
             var markup = component.Markup;
@@ -307,7 +307,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void ImportSettings_ShouldHaveValidateButton()
         {
             // Act
-            var component = RenderComponent<ImportSettings>();
+            var component = Render<ImportSettings>();
 
             // Assert
             // The validate button is only shown after a file is selected.
@@ -331,7 +331,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void LanguageSwitcher_ShouldRenderSuccessfully()
         {
             // Act
-            var component = RenderComponent<LanguageSwitcher>();
+            var component = Render<LanguageSwitcher>();
 
             // Assert
             Assert.NotNull(component.Instance);
@@ -341,7 +341,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void LanguageSwitcher_ShouldHaveLanguageDropdown()
         {
             // Act
-            var component = RenderComponent<LanguageSwitcher>();
+            var component = Render<LanguageSwitcher>();
 
             // Assert
             var select = component.Find("select");
@@ -352,7 +352,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public void LanguageSwitcher_ShouldDisplayAllLanguages()
         {
             // Act
-            var component = RenderComponent<LanguageSwitcher>();
+            var component = Render<LanguageSwitcher>();
 
             // Assert
             var options = component.FindAll("option");
@@ -363,7 +363,7 @@ namespace HotelDruid.Client.Tests.Integration.Components
         public async Task LanguageSwitcher_ShouldSwitchLanguage()
         {
             // Arrange
-            var component = RenderComponent<LanguageSwitcher>();
+            var component = Render<LanguageSwitcher>();
             var select = component.Find("select");
 
             // Act  

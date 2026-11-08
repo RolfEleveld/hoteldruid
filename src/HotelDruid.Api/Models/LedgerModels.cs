@@ -60,6 +60,9 @@ public class LedgerEntry
     /// <summary>Staff member or system that created this entry.</summary>
     public string? CreatedBy { get; set; }
 
+    /// <summary>Balance this booking movement applies to: stay_balance, deposit, or extras. Empty for hotel-level lines.</summary>
+    public string? AppliedTo { get; set; }
+
     /// <summary>Free-form notes or additional context.</summary>
     public string? Notes { get; set; }
 }

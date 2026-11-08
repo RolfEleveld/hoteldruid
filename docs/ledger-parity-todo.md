@@ -15,11 +15,10 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Post prepaid amount changes as ledger lines, not only as a booking field.
 - [x] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 - [x] Post final settlement as the closing journal for the booking (data model + settlement fields + prepaid method/reference fields ready; UI/closing journal + focus navigation from dashboard done).
+- [x] Keep the per-booking transaction list as a projection of ledger lines, not a second book. `BookingTransactionRepository` is removed. The list, finance totals, and documents collapse each booking-transaction journal to one row (sequence, applied-to, and created-by).
 
 ## Still open
-- [ ] Keep the per-booking transaction folder as a projection of ledger lines, not a second book.
-  - Blazor side: Remove dual-write, delete `BookingTransactionRepository`, make transaction list a read-only projection of the ledger (using booking date range + `bookingId` filter). Implement immediately.
-  - PHP export/import compatibility: Add checklist item for later update of the main (PHP) branch after Blazor work is complete and visually tested.
+- [ ] PHP export/import compatibility: after this Blazor projection is visually tested, update the main (PHP) branch so export/import does not keep a second per-booking transaction book.
 - [ ] Add a booking index so history is not a scan of every day partition.
 - [ ] Bring PHP cash-register permissions, person, payment method, currency, and running cash total onto petty-cash posts.
 - [ ] Stop deleting money history. Corrections should be reversing ledger entries.

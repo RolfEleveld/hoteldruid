@@ -140,8 +140,8 @@ data/
 ### Layer 2: Immutable Ledger (Transaction History)
 
 **Collections** (time-partitioned):
-- `ledger/` — global financial/booking transaction ledger
-- `bookings/{bookingId}_transactions/` — per-stay transaction ledger
+- `ledger/` — global financial ledger. Booking payments, deposits, and refunds are journals here.
+- `bookings/{bookingId}/_ledger_index.json` — ledger entry ids for one booking
 
 **Ledger Structure:**
 ```
@@ -402,20 +402,19 @@ classDiagram
   class IdGenerator
   class IRoomRepository
   class ILedgerRepository
-  class IBookingTransactionRepository
+  class IBookingLedgerIndexRepository
   class RoomRepository
   class LedgerRepository
-  class BookingTransactionRepository
+  class BookingLedgerIndexRepository
   FileKeyValueStore <|-- RoomRepository
   FileKeyValueStore <|-- LedgerRepository
-  FileKeyValueStore <|-- BookingTransactionRepository
   IRoomRepository <|-- RoomRepository
   ILedgerRepository <|-- LedgerRepository
-  IBookingTransactionRepository <|-- BookingTransactionRepository
+  IBookingLedgerIndexRepository <|-- BookingLedgerIndexRepository
   IdGenerator ..> FileKeyValueStore : GUIDs
   RoomRepository --> IRoomRepository
   LedgerRepository --> ILedgerRepository
-  BookingTransactionRepository --> IBookingTransactionRepository
+  BookingLedgerIndexRepository --> IBookingLedgerIndexRepository
 ```
 
 ---
@@ -451,39 +450,23 @@ classDiagram
 
 ## 10. Booking Transaction Tracking
 
-### Per-Stay Transaction Sequence
+Payments, deposits, and refunds are journals in the global ledger. The booking finance list is a read-only projection of those journals. There is no second book under `bookings/{bookingId}_transactions/`.
 
-**Structure:**
+A journal is two balanced lines that share a `journalId`. `BookingTransactionProjection` keeps lines whose source type is `booking-transaction`, collapses each journal to one event, and numbers those events 1..n by timestamp. `appliedTo` and `createdBy` are stored on the ledger line and returned on the projected row.
+
 ```
 data/
-  bookings/
-    a1b2c3d4e5f6g7h8i9j0k1l2.json         ← Current booking state
-    a1b2c3d4e5f6g7h8i9j0k1l2_transactions/
-      _index.json                         ← Tracks all txns
-      _seq_001.json                       ← Checkin charge
-      _seq_002.json                       ← Additional charge
-      _seq_003.json                       ← Payment received
+  ledger/{year}/{month}/{day}/_seq_NNN.json   ← both sides of the journal
+  bookings/{bookingId}/_ledger_index.json     ← debit line ids for this booking
 ```
 
-**Transaction Entry** (`_seq_001.json`):
-```json
-{
-  "bookingId": "a1b2c3d4e5f6g7h8i9j0k1l2",
-  "sequence": 1,
-  "timestamp": "2025-12-20T15:00:00Z",
-  "type": "checkin_charge",
-  "amount": 180.00,
-  "description": "Room charge for 3 nights",
-  "appliedTo": "stay_balance",
-  "createdBy": "system"
-}
-```
+When the index file exists, the list reads those entry ids. Otherwise it scans the booking date range with `GetEntriesForBookingAsync`. `GET` and `POST /api/bookings/{year}/{id}/transactions` still serve the finance page. POST writes only the ledger, then appends the debit line id to the index.
 
 **Characteristics:**
-- ✅ One sequence file per transaction
-- ✅ Ordered by sequence number (1, 2, 3...)
-- ✅ Tied to booking via directory and `bookingId` field
-- ✅ Full audit trail for a single stay
+- One ledger journal per payment, deposit, or refund
+- The finance list shows one row per journal, numbered 1..n
+- Applied-to and created-by round-trip through the ledger line
+- The booking ledger index avoids scanning every day once it has been written
 
 ---
 
@@ -548,22 +531,20 @@ public interface ILedgerRepository
 }
 ```
 
-### IBookingTransactionRepository (Per-Stay Ledger)
+### IBookingLedgerIndexRepository
 
 ```csharp
-public interface IBookingTransactionRepository
+public interface IBookingLedgerIndexRepository
 {
-    // Append transaction (auto-assigns sequence)
-    Task<BookingTransaction> AppendTransactionAsync(
-        string bookingId, BookingTransaction txn);
+    // Append a ledger entry id for this booking (idempotent)
+    Task AppendEntryIdAsync(string bookingId, string ledgerEntryId);
 
-    // Get all transactions for a booking
-    Task<List<BookingTransaction>> GetTransactionsAsync(string bookingId);
-
-    // Get next sequence number
-    Task<int> GetNextSequenceAsync(string bookingId);
+    // Entry ids in append order
+    Task<List<string>> GetEntryIdsAsync(string bookingId);
 }
 ```
+
+The per-booking transaction list is `BookingTransactionProjection`, not a repository. It groups the indexed ledger lines by journal and assigns the sequence the finance page sorts and selects on.
 
 ---
 
@@ -612,13 +593,14 @@ public interface IBookingTransactionRepository
    - Incremental sequences
    - Consolidation logic
 
-3. `IBookingTransactionRepository` implementation
-   - Per-stay sequence tracking
+3. `IBookingLedgerIndexRepository` and `BookingTransactionProjection`
+   - Entry ids per booking
+   - One projected row per journal
 
 4. Unit tests
    - Repository CRUD
    - Ledger consolidation
-   - Booking transaction ordering
+   - One row per booking-transaction journal
 
 ---
 
@@ -663,7 +645,7 @@ public interface IBookingTransactionRepository
 | **Explicit storage** | Historical accuracy | No defaults at read time |
 | **Daily snapshots + sequences** | Performance + history | Avoid loading 10K+ files daily |
 | **Immutable ledger** | Audit trail | Conflict resolution, compliance |
-| **Per-booking transactions** | Transparency | Full stay history visible |
+| **Booking transaction list** | One book | The list is a projection of ledger journals. Sequence, applied-to, and created-by come from those lines. |
 | **Atomic writes** | Crash safety | No partial file corruption |
 
 
@@ -702,10 +684,9 @@ flowchart TB
   CB --> CBI[_index.json key year_guid to id]
   CB --> CBF[id.json CancelledBookingStorageModel]
 
-  DR --> BT[bookings]
-  BT --> TX[bookingId_transactions]
-  TX --> TXI[_index.json nextSequence]
-  TX --> SEQ[_seq_001.json _seq_NNN.json]
+  DR --> LG[ledger year/month/day]
+  DR --> BIDX[bookings/bookingId]
+  BIDX --> LIDX[_ledger_index.json]
 ```
 
 Key naming patterns used by year-scoped collections:

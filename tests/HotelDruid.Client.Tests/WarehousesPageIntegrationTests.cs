@@ -41,7 +41,7 @@ public class WarehousesPageIntegrationTests : TestContext
     [Fact]
     public void WarehouseDetails_ListsInventoryLikeReservations()
     {
-        var component = RenderComponent<Warehouses>();
+        var component = Render<Warehouses>();
 
         component.WaitForAssertion(() => Assert.Contains("101 storage", component.Markup));
         component.Find("button.list-group-item").Click();
