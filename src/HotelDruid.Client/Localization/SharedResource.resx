@@ -213,6 +213,7 @@
   <data name="Nav.Expenses" xml:space="preserve"><value>Expenses</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Money History</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>General Ledger</value></data>
+  <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Chart of Accounts</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Contract Templates</value></data>
   <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>External Integrations</value></data>
@@ -250,6 +251,7 @@
   <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configuration saved successfully.</value></data>
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Failed to save configuration.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="common.load" xml:space="preserve"><value>Load</value></data>
   <data name="common.save" xml:space="preserve"><value>Save</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="common.details" xml:space="preserve"><value>Details</value></data>
@@ -648,4 +650,34 @@
   <data name="ledger.debit" xml:space="preserve"><value>Debit</value></data>
   <data name="ledger.credit" xml:space="preserve"><value>Credit</value></data>
   <data name="ledger.hotel" xml:space="preserve"><value>Hotel</value></data>
+  <data name="ledger.allAccounts" xml:space="preserve"><value>All accounts</value></data>
+  <data name="ledger.total" xml:space="preserve"><value>Total</value></data>
+  <data name="ledger.balance" xml:space="preserve"><value>Balance (debit − credit)</value></data>
+  <data name="chart.title" xml:space="preserve"><value>Chart of accounts</value></data>
+  <data name="chart.hint" xml:space="preserve"><value>USALI accounts used by the hotel ledger. A booking reference is a dimension, not an account. Open a code to see its ledger lines.</value></data>
+  <data name="chart.empty" xml:space="preserve"><value>No accounts are defined.</value></data>
+  <data name="chart.code" xml:space="preserve"><value>Code</value></data>
+  <data name="chart.name" xml:space="preserve"><value>Account</value></data>
+  <data name="chart.group" xml:space="preserve"><value>Group</value></data>
+  <data name="chart.normal" xml:space="preserve"><value>Normal balance</value></data>
+  <data name="chart.description" xml:space="preserve"><value>Use</value></data>
+  <data name="chart.group.asset" xml:space="preserve"><value>Asset</value></data>
+  <data name="chart.group.liability" xml:space="preserve"><value>Liability</value></data>
+  <data name="chart.group.equity" xml:space="preserve"><value>Equity</value></data>
+  <data name="chart.group.revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="chart.group.expense" xml:space="preserve"><value>Expense</value></data>
+  <data name="chart.balance.debit" xml:space="preserve"><value>Debit</value></data>
+  <data name="chart.balance.credit" xml:space="preserve"><value>Credit</value></data>
+  <data name="chart.account.1000" xml:space="preserve"><value>Cash</value></data>
+  <data name="chart.account.1000.use" xml:space="preserve"><value>Cash registers and hotel cash on hand.</value></data>
+  <data name="chart.account.1200" xml:space="preserve"><value>Guest ledger</value></data>
+  <data name="chart.account.1200.use" xml:space="preserve"><value>Amounts owed by staying guests. A payment reduces this balance; it does not create revenue.</value></data>
+  <data name="chart.account.2400" xml:space="preserve"><value>Guest deposits</value></data>
+  <data name="chart.account.2400.use" xml:space="preserve"><value>Deposits held until earned or settled. Taking a deposit does not reduce room revenue.</value></data>
+  <data name="chart.account.4100" xml:space="preserve"><value>Room revenue</value></data>
+  <data name="chart.account.4100.use" xml:space="preserve"><value>Earned room charges. Recognized when the stay is charged, not when cash is received.</value></data>
+  <data name="chart.account.4900" xml:space="preserve"><value>Other income</value></data>
+  <data name="chart.account.4900.use" xml:space="preserve"><value>Walk-up sales, extras, and petty-cash income that is not room revenue.</value></data>
+  <data name="chart.account.6100" xml:space="preserve"><value>Operating expense</value></data>
+  <data name="chart.account.6100.use" xml:space="preserve"><value>Hotel purchases and petty-cash outflows. The booking reference stays empty.</value></data>
 </root>

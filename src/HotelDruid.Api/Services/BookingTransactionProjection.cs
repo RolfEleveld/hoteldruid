@@ -90,8 +90,10 @@ public static class BookingTransactionProjection
                 continue;
             }
 
+            if (type.Contains("charge", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             if (type.Contains("payment", StringComparison.OrdinalIgnoreCase)
-                || type.Contains("charge", StringComparison.OrdinalIgnoreCase)
                 || type.Contains("prepaid", StringComparison.OrdinalIgnoreCase))
             {
                 payments += transaction.Amount;
@@ -104,7 +106,7 @@ public static class BookingTransactionProjection
     private static List<ProjectedRow> Materialize(IEnumerable<LedgerEntry> lines)
     {
         var groups = lines
-            .Where(line => string.Equals(line.SourceType, "booking-transaction", StringComparison.OrdinalIgnoreCase))
+            .Where(line => IsBookingHistory(line.SourceType))
             .GroupBy(GroupKey)
             .Select(group =>
             {
@@ -148,6 +150,14 @@ public static class BookingTransactionProjection
         }
 
         return projected;
+    }
+
+    private static bool IsBookingHistory(string? sourceType)
+    {
+        return string.Equals(sourceType, "booking-transaction", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sourceType, "booking", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sourceType, "booking-payment", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sourceType, "booking-cost", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GroupKey(LedgerEntry line)

@@ -208,6 +208,23 @@ public class DocumentRenderApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Render_InvoiceTotals_UseLedgerAccounts()
+    {
+        var (_, _, bookingId) = await CreateBookingAsync();
+        await _client.PostAsync("/api/booking-costs", Json(new { Year = 2026, BookingId = bookingId, Amount = 100.0, Description = "Breakfast" }));
+        var deposit = await _client.PostAsync($"/api/bookings/2026/{bookingId}/transactions", Json(new { Type = "deposit", Amount = 40.0, AppliedTo = "deposit" }));
+        Assert.Equal(HttpStatusCode.Created, deposit.StatusCode);
+        var payment = await _client.PostAsync($"/api/bookings/2026/{bookingId}/transactions", Json(new { Type = "payment", Amount = 30.0 }));
+        Assert.Equal(HttpStatusCode.Created, payment.StatusCode);
+
+        await CreateTemplateAsync("render-test-ledger-totals", "{{Invoice.TotalAmount}}|{{Invoice.TotalDue}}|{{Invoice.DepositsHeld}}|{{Invoice.PaymentsTotal}}");
+        var r = await _client.GetAsync($"/api/documents/render/render-test-ledger-totals/1?bookingId={bookingId}&year=2026&format=html");
+        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
+        var body = await r.Content.ReadAsStringAsync();
+        Assert.Contains("100.00|70.00|40.00|30.00", body);
+    }
+
+    [Fact]
     public async Task Render_ForeachGuests_ExpandsRows()
     {
         var (clientId, _, bookingId) = await CreateBookingAsync();

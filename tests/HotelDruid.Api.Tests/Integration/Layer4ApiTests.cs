@@ -16,6 +16,8 @@ public class Layer4ApiTests : IAsyncLifetime
     private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
     private class LedgerLineDto { public string? Id { get; set; } public string? BookingId { get; set; } public string? AccountCode { get; set; } public decimal Debit { get; set; } public decimal Credit { get; set; } public string? SourceType { get; set; } public string? SourceId { get; set; } public string? EntryType { get; set; } }
+    private class BookingFinanceSummaryDto { public decimal StayTotal { get; set; } public decimal ExtraTotal { get; set; } public decimal ChargesTotal { get; set; } public decimal PaymentsTotal { get; set; } public decimal DepositsHeld { get; set; } public decimal TotalDue { get; set; } }
+    private class BookingTransactionDto { public string? Type { get; set; } public decimal Amount { get; set; } }
     private class BookingCostDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? TariffId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class BookingGuestDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public int? GuestNumber { get; set; } }
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
@@ -164,21 +166,60 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Booking_Settlement_RecognizesDepositAsRevenue()
+    public async Task Booking_Checkout_AppliesDepositToGuestLedger()
     {
         var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2025, ClientId = "C-Settle", RoomId = "104", Status = "Confirmed", ArrivalDate = "2025-05-01", DepartureDate = "2025-05-03", PrepaidAmount = 180.0 }));
         var created = await ReadAs<BookingDto>(create);
         Assert.NotNull(created?.Id);
-
-        var tx = await _client.PostAsync($"/api/bookings/2025/{created.Id}/transactions", Json(new { Type = "deposit", Amount = 180.0, AppliedTo = "deposit" }));
-        Assert.Equal(HttpStatusCode.Created, tx.StatusCode);
 
         var upd = await _client.PutAsync($"/api/bookings/2025/{created.Id}", Json(new { Year = 2025, ClientId = "C-Settle", RoomId = "104", Status = "Confirmed", ArrivalDate = "2025-05-01", DepartureDate = "2025-05-03", ActualArrivalDate = "2025-05-01", ActualDepartureDate = "2025-05-03", ActualGuestCount = 2, PrepaidAmount = 180.0 }));
         Assert.Equal(HttpStatusCode.OK, upd.StatusCode);
 
         var lines = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={created.Id}");
         var list = await ReadAs<List<LedgerLineDto>>(lines) ?? new();
-        Assert.Contains(list, l => l.AccountCode == "2400" && l.Debit == 180m && l.SourceType == "booking");
+        Assert.Contains(list, l => l.EntryType == "booking_deposit_application" && l.AccountCode == "2400" && l.Debit == 180m);
+        Assert.Contains(list, l => l.EntryType == "booking_deposit_application" && l.AccountCode == "1200" && l.Credit == 180m);
+        Assert.DoesNotContain(list, l => l.EntryType == "booking_deposit_recognition");
+    }
+
+    [Fact]
+    public async Task BookingFinance_ReadsLedgerAccounts_AndCheckoutClearsTheDeposit()
+    {
+        var roomId = "room-ledger-" + Guid.NewGuid().ToString("N");
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2026, ClientId = "C-Finance", RoomId = roomId, Status = "Confirmed", ArrivalDate = "2026-06-01", DepartureDate = "2026-06-03" }));
+        var created = await ReadAs<BookingDto>(create);
+        Assert.NotNull(created?.Id);
+
+        var extra = await _client.PostAsync("/api/booking-costs", Json(new { Year = 2026, BookingId = created.Id, Amount = 100.0, Description = "Breakfast" }));
+        Assert.Equal(HttpStatusCode.Created, extra.StatusCode);
+        var deposit = await _client.PostAsync($"/api/bookings/2026/{created.Id}/transactions", Json(new { Type = "deposit", Amount = 40.0, AppliedTo = "deposit" }));
+        Assert.Equal(HttpStatusCode.Created, deposit.StatusCode);
+        var payment = await _client.PostAsync($"/api/bookings/2026/{created.Id}/transactions", Json(new { Type = "payment", Amount = 30.0 }));
+        Assert.Equal(HttpStatusCode.Created, payment.StatusCode);
+
+        var open = await ReadAs<BookingFinanceSummaryDto>(await _client.GetAsync($"/api/bookings/2026/{created.Id}/finance"));
+        Assert.Equal(0m, open!.StayTotal);
+        Assert.Equal(100m, open.ExtraTotal);
+        Assert.Equal(100m, open.ChargesTotal);
+        Assert.Equal(40m, open.DepositsHeld);
+        Assert.Equal(30m, open.PaymentsTotal);
+        Assert.Equal(70m, open.TotalDue);
+
+        var history = await ReadAs<List<BookingTransactionDto>>(await _client.GetAsync($"/api/bookings/2026/{created.Id}/transactions"));
+        Assert.Contains(history!, row => row.Type == "extra_charge" && row.Amount == 100m);
+        Assert.Contains(history!, row => row.Type == "payment" && row.Amount == 30m);
+
+        var checkout = await _client.PutAsync($"/api/bookings/2026/{created.Id}", Json(new { Year = 2026, ClientId = "C-Finance", RoomId = roomId, Status = "CheckedOut", ArrivalDate = "2026-06-01", DepartureDate = "2026-06-03", ActualArrivalDate = "2026-06-01", ActualDepartureDate = "2026-06-03", ActualGuestCount = 1 }));
+        Assert.Equal(HttpStatusCode.OK, checkout.StatusCode);
+
+        var closed = await ReadAs<BookingFinanceSummaryDto>(await _client.GetAsync($"/api/bookings/2026/{created.Id}/finance"));
+        Assert.Equal(0m, closed!.DepositsHeld);
+        Assert.Equal(30m, closed.TotalDue);
+        Assert.Equal(100m, closed.ChargesTotal);
+
+        var lines = await LedgerLines(created.Id!);
+        Assert.Contains(lines, line => line.EntryType == "booking_deposit_application" && line.AccountCode == "1200" && line.Credit == 40m);
+        Assert.DoesNotContain(lines, line => line.AccountCode == "4100" && line.Credit == 40m);
     }
 
     [Fact]

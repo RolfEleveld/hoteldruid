@@ -26,7 +26,6 @@ public sealed class DocumentRenderService : IDocumentRenderService
 
     private readonly IKeyValueStore _store;
     private readonly ISystemConfigurationStore _configStore;
-    private readonly ITariffResolutionService _tariffs;
     private readonly ILedgerRepository _ledger;
     private readonly IBookingLedgerIndexRepository _ledgerIndex;
 
@@ -39,7 +38,7 @@ public sealed class DocumentRenderService : IDocumentRenderService
     {
         _store = store;
         _configStore = configStore;
-        _tariffs = tariffs;
+        _ = tariffs;
         _ledger = ledger;
         _ledgerIndex = ledgerIndex;
     }
@@ -65,42 +64,11 @@ public sealed class DocumentRenderService : IDocumentRenderService
         if (!string.IsNullOrWhiteSpace(booking.RoomId))
             room = await _store.GetAsync<RoomStorageModel>("rooms", booking.RoomId);
 
-        // 4. Stay charge comes from the resolved tariff. Booking costs are extras only.
-        var costs = new List<CostContextRow>();
-        double totalAmount = 0;
-        if (!string.IsNullOrWhiteSpace(booking.RoomId) && booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
-        {
-            var guestCount = booking.ActualGuestCount ?? booking.ExpectedGuestCount ?? 1;
-            var resolved = await _tariffs.ResolveAsync(booking.RoomId, booking.ArrivalDate.Value, booking.DepartureDate.Value, guestCount);
-            if (resolved is not null)
-            {
-                totalAmount += resolved.TotalPrice;
-                var arrival = booking.ArrivalDate.Value.ToString("yyyy-MM-dd");
-                var departure = booking.DepartureDate.Value.ToString("yyyy-MM-dd");
-                var tariffName = string.IsNullOrWhiteSpace(resolved.TariffName) ? "Stay" : resolved.TariffName;
-                costs.Add(new CostContextRow
-                {
-                    Description = $"{arrival} – {departure} · {tariffName}",
-                    Amount = resolved.TotalPrice.ToString("F2", CultureInfo.InvariantCulture),
-                    TariffId = resolved.TariffId
-                });
-            }
-        }
-
-        var costsIdx = await _store.GetIndexAsync("booking_costs");
-        foreach (var kvp in costsIdx)
-        {
-            var bc = await _store.GetAsync<BookingCostStorageModel>("booking_costs", kvp.Value);
-            if (bc is null || bc.DeletedAt.HasValue || bc.BookingId != bookingId) continue;
-            var amount = bc.Amount ?? 0;
-            totalAmount += amount;
-            costs.Add(new CostContextRow
-            {
-                Description = bc.Description ?? string.Empty,
-                Amount = amount.ToString("F2", CultureInfo.InvariantCulture),
-                TariffId = bc.TariffId ?? string.Empty
-            });
-        }
+        // 4. Charges and cash movements come from the booking's ledger.
+        var ledgerLines = await BookingTransactionProjection.LoadAsync(_ledger, _ledgerIndex, bookingId, DateTime.MinValue, DateTime.MaxValue);
+        var totals = BookingLedgerTotals.From(ledgerLines);
+        var costs = ChargeRows(ledgerLines);
+        var payments = MovementRows(ledgerLines);
 
         // 5. Load additional guests
         var guestsIdx = await _store.GetIndexAsync("booking_guests");
@@ -116,64 +84,14 @@ public sealed class DocumentRenderService : IDocumentRenderService
         }
         guests.Sort((a, b) => a.GuestNumber.CompareTo(b.GuestNumber));
 
-        // 6. Payments belong to this booking: prepaid amount plus posted booking transactions.
-        var payments = new List<PaymentContextRow>();
-        var prepaid = booking.PrepaidAmount ?? 0;
-        if (prepaid != 0)
-        {
-            payments.Add(new PaymentContextRow
-            {
-                Amount = prepaid.ToString("F2", CultureInfo.InvariantCulture),
-                Date = booking.ArrivalDate?.ToString("yyyy-MM-dd") ?? string.Empty,
-                Method = "prepaid",
-                Description = "Prepaid",
-                Type = "prepaid"
-            });
-        }
+        var prepaidAmount = Convert.ToDecimal(booking.PrepaidAmount ?? 0);
 
-        decimal paymentsTotal = 0;
-        decimal refundsTotal = 0;
-        decimal depositsHeld = 0;
-
-        var from = booking.ActualArrivalDate?.ToDateTime(TimeOnly.MinValue)
-                   ?? booking.ArrivalDate?.ToDateTime(TimeOnly.MinValue)
-                   ?? DateTime.MinValue;
-        var to = (booking.ActualDepartureDate?.ToDateTime(TimeOnly.MinValue)
-                  ?? booking.DepartureDate?.ToDateTime(TimeOnly.MinValue)
-                  ?? DateTime.MaxValue).AddDays(1);
-
-        var lines = await BookingTransactionProjection.LoadAsync(_ledger, _ledgerIndex, bookingId, from, to);
-        var transactions = BookingTransactionProjection.Project(lines);
-        foreach (var transaction in transactions)
-        {
-            var type = transaction.Type ?? string.Empty;
-            var isRefund = type.Contains("refund", StringComparison.OrdinalIgnoreCase);
-            var signed = isRefund ? -transaction.Amount : transaction.Amount;
-            payments.Add(new PaymentContextRow
-            {
-                Amount = signed.ToString("F2", CultureInfo.InvariantCulture),
-                Date = transaction.Timestamp == default ? string.Empty : transaction.Timestamp.ToString("yyyy-MM-dd"),
-                Method = string.IsNullOrWhiteSpace(transaction.AppliedTo) ? type : transaction.AppliedTo,
-                Description = transaction.Description ?? type,
-                Type = type
-            });
-        }
-
-        var movement = BookingTransactionProjection.Sum(transactions);
-        paymentsTotal = movement.Payments;
-        refundsTotal = movement.Refunds;
-        depositsHeld = movement.Deposits;
-
-        var charges = Convert.ToDecimal(totalAmount);
-        var prepaidAmount = Convert.ToDecimal(prepaid);
-        var totalDue = charges - prepaidAmount - paymentsTotal + refundsTotal;
-
-        // 7. Hotel info from system configuration
+        // 6. Hotel info from system configuration
         var config = await _configStore.GetAsync() ?? new SystemConfiguration();
         var settings = config.Settings ?? new Dictionary<string, string>();
         var currency = config.DefaultCurrency ?? settings.GetValueOrDefault("Currency", "EUR");
 
-        // 8. Compute nights
+        // 7. Compute nights
         int nights = 0;
         if (booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
             nights = (booking.DepartureDate.Value.ToDateTime(TimeOnly.MinValue)
@@ -225,11 +143,11 @@ public sealed class DocumentRenderService : IDocumentRenderService
 
             // Financial
             InvoicePrepaidAmount = prepaidAmount.ToString("F2", CultureInfo.InvariantCulture),
-            InvoicePaymentsTotal = paymentsTotal.ToString("F2", CultureInfo.InvariantCulture),
-            InvoiceRefundsTotal = refundsTotal.ToString("F2", CultureInfo.InvariantCulture),
-            InvoiceDepositsHeld = depositsHeld.ToString("F2", CultureInfo.InvariantCulture),
-            InvoiceTotalDue = totalDue.ToString("F2", CultureInfo.InvariantCulture),
-            InvoiceTotalAmount = totalAmount.ToString("F2", CultureInfo.InvariantCulture),
+            InvoicePaymentsTotal = totals.PaymentsTotal.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceRefundsTotal = totals.RefundsTotal.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceDepositsHeld = totals.DepositsHeld.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceTotalDue = totals.TotalDue.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceTotalAmount = totals.ChargesTotal.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceCurrency = currency,
 
             // Meta
@@ -242,6 +160,63 @@ public sealed class DocumentRenderService : IDocumentRenderService
             Payments = payments
         };
     }
+
+    private static List<CostContextRow> ChargeRows(IEnumerable<LedgerEntry> lines)
+    {
+        var rows = new List<CostContextRow>();
+        foreach (var group in lines.GroupBy(JournalKey))
+        {
+            var revenue = group.Where(line => line.AccountCode is HotelAccounts.RoomRevenue or HotelAccounts.OtherIncome).ToList();
+            if (revenue.Count == 0)
+                continue;
+            var amount = revenue.Sum(line => line.Credit - line.Debit);
+            if (amount == 0)
+                continue;
+            var described = revenue.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line.Notes)) ?? revenue[0];
+            rows.Add(new CostContextRow
+            {
+                Description = described.Notes ?? string.Empty,
+                Amount = amount.ToString("F2", CultureInfo.InvariantCulture),
+                TariffId = string.Empty
+            });
+        }
+        return rows;
+    }
+
+    private static List<PaymentContextRow> MovementRows(IEnumerable<LedgerEntry> lines)
+    {
+        var rows = new List<PaymentContextRow>();
+        foreach (var group in lines.GroupBy(JournalKey))
+        {
+            var ordered = group.ToList();
+            var kind = ordered.Select(line => line.EntryType).FirstOrDefault(IsCashMovement);
+            if (kind is null)
+                continue;
+            var amount = ordered.Max(line => line.Debit > 0 ? line.Debit : line.Credit);
+            var signed = kind.Contains("refund", StringComparison.OrdinalIgnoreCase) ? -amount : amount;
+            var described = ordered.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line.Notes)) ?? ordered[0];
+            rows.Add(new PaymentContextRow
+            {
+                Amount = signed.ToString("F2", CultureInfo.InvariantCulture),
+                Date = described.Timestamp == default ? string.Empty : described.Timestamp.ToString("yyyy-MM-dd"),
+                Method = kind,
+                Description = described.Notes ?? kind,
+                Type = kind
+            });
+        }
+        return rows;
+    }
+
+    private static bool IsCashMovement(string? entryType)
+    {
+        return string.Equals(entryType, "booking_payment", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(entryType, "booking_deposit", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(entryType, "booking_prepaid", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(entryType, "booking_refund", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string JournalKey(LedgerEntry line)
+        => string.IsNullOrWhiteSpace(line.JournalId) ? line.Id ?? string.Empty : line.JournalId;
 
     // -----------------------------------------------------------------------
     // Rendering

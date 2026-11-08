@@ -36,11 +36,11 @@
                 @foreach (var account in accounts)
                 {
                     <tr>
-                        <td>@account.Code</td>
-                        <td>@account.Name</td>
-                        <td>@account.Group</td>
-                        <td>@account.NormalBalance</td>
-                        <td>@account.Description</td>
+                        <td><a href="@LedgerHref(account.Code)">@account.Code</a></td>
+                        <td>@L[$"chart.account.{account.Code}"]</td>
+                        <td>@L[$"chart.group.{account.Group}"]</td>
+                        <td>@L[$"chart.balance.{account.NormalBalance}"]</td>
+                        <td>@L[$"chart.account.{account.Code}.use"]</td>
                     </tr>
                 }
             </tbody>
@@ -50,6 +50,9 @@
 
 @code {
     private List<ChartAccountDto>? accounts;
+
+    private static string LedgerHref(string? code)
+        => string.IsNullOrWhiteSpace(code) ? "/ledger" : $"/ledger?account={Uri.EscapeDataString(code)}";
 
     protected override async Task OnInitializedAsync()
     {

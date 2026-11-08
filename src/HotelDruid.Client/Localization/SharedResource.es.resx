@@ -350,6 +350,7 @@
   <data name="Nav.Expenses" xml:space="preserve"><value>Gastos</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Historial de dinero</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>Libro mayor</value></data>
+  <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Plan de cuentas</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Mensajes</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Plantillas de contrato</value></data>
   <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>Integraciones externas</value></data>
@@ -387,6 +388,7 @@
   <data name="Setup.Message.SaveSuccess" xml:space="preserve"><value>Configuración guardada correctamente.</value></data>
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Error al guardar la configuración.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Cargando...</value></data>
+  <data name="common.load" xml:space="preserve"><value>Cargar</value></data>
   <data name="common.save" xml:space="preserve"><value>Guardar</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="common.details" xml:space="preserve"><value>Detalles</value></data>
@@ -628,4 +630,34 @@
   <data name="ledger.debit" xml:space="preserve"><value>Debe</value></data>
   <data name="ledger.credit" xml:space="preserve"><value>Haber</value></data>
   <data name="ledger.hotel" xml:space="preserve"><value>Hotel</value></data>
+  <data name="ledger.allAccounts" xml:space="preserve"><value>Todas las cuentas</value></data>
+  <data name="ledger.total" xml:space="preserve"><value>Total</value></data>
+  <data name="ledger.balance" xml:space="preserve"><value>Saldo (debe − haber)</value></data>
+  <data name="chart.title" xml:space="preserve"><value>Plan de cuentas</value></data>
+  <data name="chart.hint" xml:space="preserve"><value>Cuentas USALI del libro mayor. La reserva es una dimensión, no una cuenta. Abre un código para ver sus apuntes.</value></data>
+  <data name="chart.empty" xml:space="preserve"><value>No hay cuentas definidas.</value></data>
+  <data name="chart.code" xml:space="preserve"><value>Código</value></data>
+  <data name="chart.name" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="chart.group" xml:space="preserve"><value>Grupo</value></data>
+  <data name="chart.normal" xml:space="preserve"><value>Saldo normal</value></data>
+  <data name="chart.description" xml:space="preserve"><value>Uso</value></data>
+  <data name="chart.group.asset" xml:space="preserve"><value>Activo</value></data>
+  <data name="chart.group.liability" xml:space="preserve"><value>Pasivo</value></data>
+  <data name="chart.group.equity" xml:space="preserve"><value>Patrimonio</value></data>
+  <data name="chart.group.revenue" xml:space="preserve"><value>Ingreso</value></data>
+  <data name="chart.group.expense" xml:space="preserve"><value>Gasto</value></data>
+  <data name="chart.balance.debit" xml:space="preserve"><value>Debe</value></data>
+  <data name="chart.balance.credit" xml:space="preserve"><value>Haber</value></data>
+  <data name="chart.account.1000" xml:space="preserve"><value>Caja</value></data>
+  <data name="chart.account.1000.use" xml:space="preserve"><value>Cajas y efectivo del hotel.</value></data>
+  <data name="chart.account.1200" xml:space="preserve"><value>Cuenta de huéspedes</value></data>
+  <data name="chart.account.1200.use" xml:space="preserve"><value>Importes que deben los huéspedes. Un pago reduce este saldo y no crea ingreso.</value></data>
+  <data name="chart.account.2400" xml:space="preserve"><value>Depósitos de huéspedes</value></data>
+  <data name="chart.account.2400.use" xml:space="preserve"><value>Depósitos retenidos hasta que se ganan o se liquidan. Cobrar un depósito no reduce el ingreso de habitaciones.</value></data>
+  <data name="chart.account.4100" xml:space="preserve"><value>Ingresos por habitación</value></data>
+  <data name="chart.account.4100.use" xml:space="preserve"><value>Ingresos de habitación, reconocidos al cargar la estancia, no al recibir el efectivo.</value></data>
+  <data name="chart.account.4900" xml:space="preserve"><value>Otros ingresos</value></data>
+  <data name="chart.account.4900.use" xml:space="preserve"><value>Ventas de mostrador, extras e ingresos de caja que no son ingreso de habitación.</value></data>
+  <data name="chart.account.6100" xml:space="preserve"><value>Gastos de operación</value></data>
+  <data name="chart.account.6100.use" xml:space="preserve"><value>Compras y salidas de caja. La referencia de la reserva queda vacía.</value></data>
 </root>

@@ -2973,7 +2973,7 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
 
-app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger) =>
+app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, ILedgerRepository ledgerReader) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
@@ -3022,12 +3022,12 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
 
     if (b.ActualDepartureDate == null && request.ActualDepartureDate.HasValue)
     {
-        var earned = Convert.ToDecimal(request.PrepaidAmount ?? 0);
-        if (earned > 0)
+        var openLines = await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue);
+        var held = openLines.Where(line => line.AccountCode == HotelAccounts.GuestDeposits).Sum(line => line.Credit - line.Debit);
+        if (held > 0)
         {
-            var whenSettle = DateTime.UtcNow;
-            await ledger.PostBalancedAsync(whenSettle, "booking_deposit_recognition", "Deposit earned on settlement", earned,
-                HotelAccounts.GuestDeposits, "liability", HotelAccounts.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+            await ledger.PostBalancedAsync(DateTime.UtcNow, "booking_deposit_application", "Deposit applied on checkout", held,
+                HotelAccounts.GuestDeposits, "liability", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
         }
     }
 
@@ -3909,7 +3909,6 @@ app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
         ?? config.Settings?.GetValueOrDefault("Currency")
         ?? "EUR";
 
-    decimal stayTotal = 0;
     string? tariffName = null;
     var nights = 0;
     if (booking.ArrivalDate.HasValue && booking.DepartureDate.HasValue)
@@ -3919,43 +3918,23 @@ app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
     {
         var guestCount = booking.ActualGuestCount ?? booking.ExpectedGuestCount ?? 1;
         var resolved = await resolver.ResolveAsync(booking.RoomId, booking.ArrivalDate.Value, booking.DepartureDate.Value, guestCount);
-        if (resolved is not null)
-        {
-            stayTotal = Convert.ToDecimal(resolved.TotalPrice);
-            tariffName = resolved.TariffName;
-        }
+        tariffName = resolved?.TariffName;
     }
 
-    var costIndex = await store.GetIndexAsync("booking_costs");
-    decimal extraTotal = 0;
-    foreach (var entry in costIndex)
-    {
-        var cost = await store.GetAsync<BookingCostStorageModel>("booking_costs", entry.Value);
-        if (cost is null || cost.DeletedAt.HasValue || !string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase)) continue;
-        extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
-    }
-
-    // Index first so a payment after departure is still included. One journal counts once.
     var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
-    var totals = BookingTransactionProjection.Sum(BookingTransactionProjection.Project(lines));
-    var payments = totals.Payments;
-    var refunds = totals.Refunds;
-    var deposits = totals.Deposits;
-
+    var totals = BookingLedgerTotals.From(lines);
     var prepaid = Convert.ToDecimal(booking.PrepaidAmount ?? 0);
-    var charges = stayTotal + extraTotal;
-    var due = charges - prepaid - payments + refunds;
     return Results.Ok(new BookingFinanceSummaryDto(
         id,
         year,
-        stayTotal,
-        extraTotal,
-        charges,
+        totals.StayTotal,
+        totals.ExtraTotal,
+        totals.ChargesTotal,
         prepaid,
-        payments,
-        refunds,
-        deposits,
-        due,
+        totals.PaymentsTotal,
+        totals.RefundsTotal,
+        totals.DepositsHeld,
+        totals.TotalDue,
         currency,
         booking.TariffId,
         tariffName,
