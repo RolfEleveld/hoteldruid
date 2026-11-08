@@ -212,6 +212,39 @@
   <data name="Nav.CancelledBookings" xml:space="preserve"><value>Cancelled Bookings</value></data>
   <data name="Nav.Expenses" xml:space="preserve"><value>Expenses</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Money History</value></data>
+  <data name="Nav.PointOfSale" xml:space="preserve"><value>Point of Sale</value></data>
+  <data name="pos.title" xml:space="preserve"><value>Point of sale</value></data>
+  <data name="pos.hint" xml:space="preserve"><value>Sell an extra to a checked-in stay, or take it in cash with no booking.</value></data>
+  <data name="pos.empty" xml:space="preserve"><value>No sales</value></data>
+  <data name="pos.search" xml:space="preserve"><value>Search</value></data>
+  <data name="pos.new" xml:space="preserve"><value>New sale</value></data>
+  <data name="pos.description" xml:space="preserve"><value>Description</value></data>
+  <data name="pos.amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="pos.settlement" xml:space="preserve"><value>Settlement</value></data>
+  <data name="pos.onStay" xml:space="preserve"><value>On the stay</value></data>
+  <data name="pos.inCash" xml:space="preserve"><value>In cash</value></data>
+  <data name="pos.booking" xml:space="preserve"><value>Booking</value></data>
+  <data name="pos.guest" xml:space="preserve"><value>Guest</value></data>
+  <data name="pos.register" xml:space="preserve"><value>Cash register</value></data>
+  <data name="pos.mainRegister" xml:space="preserve"><value>Main register</value></data>
+  <data name="pos.method" xml:space="preserve"><value>Payment method</value></data>
+  <data name="pos.currency" xml:space="preserve"><value>Currency</value></data>
+  <data name="pos.catalog" xml:space="preserve"><value>Extra</value></data>
+  <data name="pos.walkUp" xml:space="preserve"><value>Walk-up</value></data>
+  <data name="pos.walkUpFixed" xml:space="preserve"><value>Walk-up sale. The booking reference stays empty. Debit 1000 Cash, credit 4900 Other income.</value></data>
+  <data name="pos.accounts" xml:space="preserve"><value>Accounts</value></data>
+  <data name="pos.reverse" xml:space="preserve"><value>Reverse</value></data>
+  <data name="pos.reversed" xml:space="preserve"><value>Reversed</value></data>
+  <data name="pos.date" xml:space="preserve"><value>Date</value></data>
+  <data name="pos.person" xml:space="preserve"><value>Payer</value></data>
+  <data name="pos.runningTotal" xml:space="preserve"><value>Running cash total</value></data>
+  <data name="pos.checkedInOnly" xml:space="preserve"><value>A stay sale is available after arrival and until checkout.</value></data>
+  <data name="pos.descriptionRequired" xml:space="preserve"><value>Description is required.</value></data>
+  <data name="pos.amountRequired" xml:space="preserve"><value>Amount must be greater than zero.</value></data>
+  <data name="Index.Feature.PointOfSale.Title" xml:space="preserve"><value>Point of sale</value></data>
+  <data name="Index.Feature.PointOfSale.Subtitle" xml:space="preserve"><value>Desk sales for in-house stays and walk-up guests.</value></data>
+  <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Open point of sale</value></data>
+  <data name="Dashboard.Widget.VisibleCount.PointOfSale" xml:space="preserve"><value>Sales to display</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>General Ledger</value></data>
   <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Chart of Accounts</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
@@ -252,6 +285,7 @@
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Failed to save configuration.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Loading...</value></data>
   <data name="common.load" xml:space="preserve"><value>Load</value></data>
+  <data name="common.year" xml:space="preserve"><value>Year</value></data>
   <data name="common.save" xml:space="preserve"><value>Save</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="common.details" xml:space="preserve"><value>Details</value></data>

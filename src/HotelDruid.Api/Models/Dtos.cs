@@ -536,6 +536,51 @@ public class ExpenseStorageModel
     public DateTime? DeletedAt { get; set; }
 }
 
+public class PosSaleStorageModel
+{
+    public int Year { get; set; }
+    public DateOnly? Date { get; set; }
+    public string? Description { get; set; }
+    public double? Amount { get; set; }
+    public string? Settlement { get; set; }
+    public string? BookingId { get; set; }
+    public string? ClientId { get; set; }
+    public string? CashRegisterId { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Currency { get; set; }
+    public string? Person { get; set; }
+    public double? RunningCashTotal { get; set; }
+    public string? ExtraCostId { get; set; }
+    public string? BookingCostId { get; set; }
+    public string? EntryType { get; set; }
+    public string? DebitAccount { get; set; }
+    public string? CreditAccount { get; set; }
+    public string? ReversesId { get; set; }
+    public string? ReversedById { get; set; }
+}
+
+public record PosSaleDto(
+    string? Id = null,
+    int Year = 0,
+    DateOnly? Date = null,
+    string? Description = null,
+    double? Amount = null,
+    string? Settlement = null,
+    string? BookingId = null,
+    string? ClientId = null,
+    string? CashRegisterId = null,
+    string? PaymentMethod = null,
+    string? Currency = null,
+    string? Person = null,
+    double? RunningCashTotal = null,
+    string? ExtraCostId = null,
+    string? BookingCostId = null,
+    string? EntryType = null,
+    string? DebitAccount = null,
+    string? CreditAccount = null,
+    string? ReversesId = null,
+    string? ReversedById = null);
+
 public class MoneyHistoryStorageModel
 {
     public int Year { get; set; }

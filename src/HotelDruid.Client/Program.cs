@@ -51,6 +51,7 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IBookingGuestApiService, H
 builder.Services.AddScoped<HotelDruid.Client.Services.ICancelledBookingApiService, HotelDruid.Client.Services.CancelledBookingApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IExpenseApiService, HotelDruid.Client.Services.ExpenseApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IMoneyHistoryApiService, HotelDruid.Client.Services.MoneyHistoryApiService>();
+builder.Services.AddScoped<HotelDruid.Client.Services.IPosSaleApiService, HotelDruid.Client.Services.PosSaleApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IMessageApiService, HotelDruid.Client.Services.MessageApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IContractTemplateApiService, HotelDruid.Client.Services.ContractTemplateApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IExternalIntegrationApiService, HotelDruid.Client.Services.ExternalIntegrationApiService>();

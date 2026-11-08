@@ -592,6 +592,18 @@
           </div>
         </div>
       </div>
+
+      <div class="@GetWidgetColumnClass("pointOfSale")">
+        <div class="card feature-card border-success dashboard-widget h-100">
+          @WidgetHeader("pointOfSale", "bi-shop", L["Index.Feature.PointOfSale.Title"], "Dashboard.Widget.VisibleCount.PointOfSale", "Index.Feature.PointOfSale.Button", "/point-of-sale")
+          <div class="card-body d-flex flex-column">
+            <p class="text-muted small">@L["Index.Feature.PointOfSale.Subtitle"]</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a class="btn btn-success btn-sm" href="/point-of-sale">@L["Index.Feature.PointOfSale.Button"]</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -706,7 +718,8 @@
       ["inventory"] = "1x1",
       ["warehouses"] = "1x1",
       ["tariffs"] = "1x1",
-      ["reports"] = "1x1"
+      ["reports"] = "1x1",
+      ["pointOfSale"] = "1x1"
     };
     private static readonly Dictionary<string, int> DefaultWidgetVisibleCounts = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -720,7 +733,8 @@
       ["inventory"] = 3,
       ["warehouses"] = 3,
       ["tariffs"] = 3,
-      ["reports"] = 3
+      ["reports"] = 3,
+      ["pointOfSale"] = 3
     };
 
     private const string HotelNameSettingKey = "HotelName";

@@ -3245,6 +3245,74 @@ app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, 
     return Results.NoContent();
 }).WithName("DeleteBookingCost");
 
+static bool IsPosFolioStay(BookingStorageModel booking)
+{
+    if (booking.DeletedAt.HasValue
+        || !booking.ActualArrivalDate.HasValue
+        || booking.ActualDepartureDate.HasValue
+        || !booking.DepartureDate.HasValue
+        || booking.DepartureDate.Value <= booking.ActualArrivalDate.Value)
+        return false;
+
+    var status = booking.Status ?? "";
+    return !status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+        && !status.Contains("void", StringComparison.OrdinalIgnoreCase)
+        && !status.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        && !status.Contains("no-show", StringComparison.OrdinalIgnoreCase)
+        && !status.Contains("noshow", StringComparison.OrdinalIgnoreCase);
+}
+
+static async Task<(string? Id, bool Missing)> ResolvePosRegisterAsync(IKeyValueStore store, string? requested)
+{
+    if (!string.IsNullOrWhiteSpace(requested))
+    {
+        var found = await store.GetAsync<CashRegisterStorageModel>("cash_registers", requested);
+        return found is null ? (null, true) : (requested, false);
+    }
+
+    var index = await store.GetIndexAsync("cash_registers");
+    string? first = null;
+    string? main = null;
+    foreach (var pair in index)
+    {
+        first ??= pair.Value;
+        var register = await store.GetAsync<CashRegisterStorageModel>("cash_registers", pair.Value);
+        if (register is null) continue;
+        var name = register.Name ?? "";
+        if (string.Equals(register.Code, "1", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("main", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("princip", StringComparison.OrdinalIgnoreCase))
+            main = pair.Value;
+    }
+
+    return (main ?? first, false);
+}
+
+static async Task<string> PosDefaultCurrencyAsync(ISystemConfigurationStore configurationStore)
+{
+    var config = await configurationStore.GetAsync();
+    return config?.DefaultCurrency
+        ?? config?.Settings?.GetValueOrDefault("Currency")
+        ?? "EUR";
+}
+
+static async Task<decimal> PosRegisterTapeAsync(IKeyValueStore store, string? registerId)
+{
+    var index = await store.GetIndexAsync("pos_sales");
+    decimal tape = 0;
+    foreach (var pair in index)
+    {
+        var sale = await store.GetAsync<PosSaleStorageModel>("pos_sales", pair.Value);
+        if (sale is null || !string.Equals(sale.Settlement, "cash", StringComparison.OrdinalIgnoreCase))
+            continue;
+        if (!string.Equals(sale.CashRegisterId ?? "", registerId ?? "", StringComparison.OrdinalIgnoreCase))
+            continue;
+        tape += Convert.ToDecimal(sale.Amount ?? 0);
+    }
+
+    return tape;
+}
+
 static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, string? bookingId, decimal delta, string description, string sourceId)
 {
     if (string.IsNullOrWhiteSpace(bookingId) || delta == 0)
@@ -3409,6 +3477,193 @@ app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyV
 
     return Results.NoContent();
 }).WithName("DeleteExpense");
+
+// --- Point of sale: folio charge while the guest is in house, or a walk-up cash sale ---
+
+PosSaleDto ToPosSaleDto(string id, PosSaleStorageModel s) => new(id, s.Year, s.Date, s.Description, s.Amount, s.Settlement, s.BookingId, s.ClientId, s.CashRegisterId, s.PaymentMethod, s.Currency, s.Person, s.RunningCashTotal, s.ExtraCostId, s.BookingCostId, s.EntryType, s.DebitAccount, s.CreditAccount, s.ReversesId, s.ReversedById);
+
+app.MapGet("/api/pos-sales", async (IKeyValueStore store, int? year) =>
+{
+    var idx = await store.GetIndexAsync("pos_sales");
+    var result = new List<PosSaleDto>();
+    foreach (var kvp in idx)
+    {
+        var sale = await store.GetAsync<PosSaleStorageModel>("pos_sales", kvp.Value);
+        if (sale is null || (year.HasValue && sale.Year != year.Value)) continue;
+        result.Add(ToPosSaleDto(kvp.Value, sale));
+    }
+    return Results.Ok(result.OrderByDescending(s => s.Date).ThenByDescending(s => s.Id).ToList());
+}).WithName("ListPosSales");
+
+app.MapGet("/api/pos-sales/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+{
+    var sale = await store.GetAsync<PosSaleStorageModel>("pos_sales", id);
+    if (sale is null || sale.Year != year) return Results.NotFound();
+    return Results.Ok(ToPosSaleDto(id, sale));
+}).WithName("GetPosSale");
+
+app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, IFinancialPostingService ledger, ISystemConfigurationStore configurationStore) =>
+{
+    var amount = Convert.ToDecimal(request.Amount ?? 0);
+    if (amount <= 0)
+        return Results.BadRequest(new { error = "Amount must be greater than zero." });
+    if (string.IsNullOrWhiteSpace(request.Description))
+        return Results.BadRequest(new { error = "Description is required." });
+
+    var year = request.Year > 0 ? request.Year : DateTime.UtcNow.Year;
+    var when = request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
+    var description = request.Description.Trim();
+    var onStay = !string.IsNullOrWhiteSpace(request.BookingId);
+
+    string? bookingId = null;
+    string? clientId = null;
+    string? registerId = null;
+    string? bookingCostId = null;
+    string? currency = null;
+    double? running = null;
+    string settlement;
+    string entryType;
+    string debit;
+    string credit;
+
+    if (onStay)
+    {
+        var booking = await store.GetAsync<BookingStorageModel>("bookings", request.BookingId!);
+        if (booking is null)
+            return Results.NotFound(new { error = "Booking was not found." });
+        if (!IsPosFolioStay(booking))
+            return Results.BadRequest(new { error = "A stay sale is available after arrival and until checkout." });
+
+        settlement = "folio";
+        bookingId = request.BookingId;
+        clientId = booking.ClientId;
+        entryType = "booking_extra_charge";
+        debit = HotelAccounts.GuestLedger;
+        credit = HotelAccounts.OtherIncome;
+        if (booking.Year > 0) year = booking.Year;
+
+        var cost = new BookingCostStorageModel { Year = year, BookingId = bookingId, Amount = (double)amount, Description = description };
+        bookingCostId = await store.CreateAsync("booking_costs", $"{year}_{Guid.NewGuid():N}", cost);
+        await PostExtraCostDeltaAsync(ledger, bookingId, amount, description, bookingCostId);
+    }
+    else
+    {
+        var register = await ResolvePosRegisterAsync(store, request.CashRegisterId);
+        if (register.Missing)
+            return Results.BadRequest(new { error = "Cash register was not found." });
+
+        settlement = "cash";
+        entryType = "pos_cash_sale";
+        debit = HotelAccounts.Cash;
+        credit = HotelAccounts.OtherIncome;
+        registerId = register.Id;
+        currency = string.IsNullOrWhiteSpace(request.Currency) ? await PosDefaultCurrencyAsync(configurationStore) : request.Currency.Trim();
+        running = (double)(await PosRegisterTapeAsync(store, registerId) + amount);
+    }
+
+    var sale = new PosSaleStorageModel
+    {
+        Year = year,
+        Date = request.Date ?? DateOnly.FromDateTime(when),
+        Description = description,
+        Amount = (double)amount,
+        Settlement = settlement,
+        BookingId = bookingId,
+        ClientId = clientId,
+        CashRegisterId = registerId,
+        PaymentMethod = onStay ? null : request.PaymentMethod,
+        Currency = currency,
+        Person = onStay ? null : request.Person,
+        RunningCashTotal = running,
+        ExtraCostId = request.ExtraCostId,
+        BookingCostId = bookingCostId,
+        EntryType = entryType,
+        DebitAccount = debit,
+        CreditAccount = credit
+    };
+    var id = await store.CreateAsync("pos_sales", $"{year}_{Guid.NewGuid():N}", sale);
+    if (!onStay)
+    {
+        await ledger.PostBalancedAsync(when, entryType, description, amount, debit, "asset", credit, "revenue", cashRegisterId: registerId, payerName: request.Person ?? description, sourceType: "pos-sale", sourceId: id);
+    }
+
+    return Results.Created($"/api/pos-sales/{year}/{id}", ToPosSaleDto(id, sale));
+}).WithName("CreatePosSale");
+
+app.MapDelete("/api/pos-sales/{year:int}/{id}", (int year, string id) =>
+{
+    _ = year;
+    _ = id;
+    return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
+}).WithName("DeletePosSale");
+
+app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger) =>
+{
+    var original = await store.GetAsync<PosSaleStorageModel>("pos_sales", id);
+    if (original is null || original.Year != year) return Results.NotFound();
+    if (!string.IsNullOrWhiteSpace(original.ReversedById))
+        return Results.Conflict(new { error = "This sale is already reversed." });
+    if (!string.IsNullOrWhiteSpace(original.ReversesId))
+        return Results.Conflict(new { error = "Reverse the original sale." });
+
+    var amount = Convert.ToDecimal(original.Amount ?? 0);
+    if (amount == 0)
+        return Results.BadRequest(new { error = "A zero amount cannot be reversed." });
+
+    var onStay = string.Equals(original.Settlement, "folio", StringComparison.OrdinalIgnoreCase);
+    var description = string.IsNullOrWhiteSpace(original.Description) ? "Reversal" : $"Reversal of {original.Description}";
+    var reversal = new PosSaleStorageModel
+    {
+        Year = year,
+        Date = DateOnly.FromDateTime(DateTime.UtcNow),
+        Description = description,
+        Amount = -(double)amount,
+        Settlement = original.Settlement,
+        BookingId = original.BookingId,
+        ClientId = original.ClientId,
+        CashRegisterId = original.CashRegisterId,
+        PaymentMethod = original.PaymentMethod,
+        Currency = original.Currency,
+        Person = original.Person,
+        ExtraCostId = original.ExtraCostId,
+        BookingCostId = original.BookingCostId,
+        EntryType = onStay ? "booking_extra_reversal" : "pos_cash_reversal",
+        DebitAccount = original.CreditAccount,
+        CreditAccount = original.DebitAccount,
+        ReversesId = id
+    };
+    if (!onStay)
+        reversal.RunningCashTotal = (double)(await PosRegisterTapeAsync(store, original.CashRegisterId) - amount);
+
+    var reversalId = await store.CreateAsync("pos_sales", $"{year}_{Guid.NewGuid():N}", reversal);
+    original.ReversedById = reversalId;
+    await store.UpdateAsync("pos_sales", id, original);
+
+    if (onStay)
+    {
+        var cost = string.IsNullOrWhiteSpace(original.BookingCostId)
+            ? null
+            : await store.GetAsync<BookingCostStorageModel>("booking_costs", original.BookingCostId);
+        if (cost is not null && !cost.DeletedAt.HasValue)
+        {
+            var outstanding = Convert.ToDecimal(cost.Amount ?? 0);
+            if (outstanding != 0)
+                await PostExtraCostDeltaAsync(ledger, original.BookingId, -outstanding, description, original.BookingCostId!);
+            cost.DeletedAt = DateTime.UtcNow;
+            await store.UpdateAsync("booking_costs", original.BookingCostId!, cost);
+        }
+        else
+        {
+            await ledger.PostBalancedAsync(DateTime.UtcNow, "booking_extra_reversal", description, amount, HotelAccounts.OtherIncome, "revenue", HotelAccounts.GuestLedger, "asset", bookingId: original.BookingId, sourceType: "pos-sale", sourceId: reversalId);
+        }
+    }
+    else
+    {
+        await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, HotelAccounts.OtherIncome, "revenue", HotelAccounts.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
+    }
+
+    return Results.Created($"/api/pos-sales/{year}/{reversalId}", ToPosSaleDto(reversalId, reversal));
+}).WithName("ReversePosSale");
 
 // --- Layer 4: MoneyHistory (movimenticassa{year}) - append-only, no PUT ---
 

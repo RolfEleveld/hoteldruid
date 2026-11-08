@@ -1,0 +1,386 @@
+@page "/point-of-sale"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@inject IPosSaleApiService PosApi
+@inject IBookingApiService BookingApi
+@inject IClientApiService ClientApi
+@inject ICashRegisterApiService RegisterApi
+@inject IExtraCostApiService ExtraCostApi
+@inject IActiveYearService ActiveYearService
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["pos.title", "Point of sale"]</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col-auto"><h5 class="mb-0">@L["pos.title", "Point of sale"]</h5></div>
+        <div class="col-auto">
+            <label class="me-1">@L["common.year", "Year"]:</label>
+            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
+        </div>
+    </div>
+    <p class="text-muted small">@L["pos.hint", "Sell an extra to a checked-in stay, or take it in cash with no booking."]</p>
+    <div class="row">
+        <div class="col-md-3 border-end">
+            <button class="btn btn-sm btn-primary mb-2" @onclick="NewSale">+ @L["pos.new", "New sale"]</button>
+            <input class="form-control form-control-sm mb-2" placeholder="@L["pos.search", "Search"]" @bind="listFilter" @bind:event="oninput" />
+            @if (records is null) { <p><em>@L["common.loading", "Loading..."]</em></p> }
+            else if (!Filtered.Any()) { <p class="text-muted">@L["pos.empty", "No sales"]</p> }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var sale in Filtered)
+                    {
+                        <li class="list-group-item list-group-item-action @(selected?.Id == sale.Id ? "active" : "")"
+                            style="cursor:pointer" @onclick="() => SelectSale(sale)">
+                            <div class="fw-bold">@sale.Date?.ToString("yyyy-MM-dd") — @sale.Amount?.ToString("0.00")</div>
+                            <small>@SaleCaption(sale)</small>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+        <div class="col-md-6 border-end">
+            @if (editing)
+            {
+                <h5 class="mt-1">@L["pos.new", "New sale"]</h5>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label>@L["pos.date", "Date"]</label>
+                        <input class="form-control" type="date" @bind="form.Date" />
+                    </div>
+                    <div class="col-6">
+                        <label>@L["pos.amount", "Amount"]</label>
+                        <input class="form-control" type="number" step="0.01" @bind="form.Amount" />
+                    </div>
+                    <div class="col-12">
+                        <label>@L["pos.catalog", "Extra"]</label>
+                        <select class="form-select" @bind="form.ExtraCostId" @bind:after="ApplyCatalog">
+                            <option value="">—</option>
+                            @foreach (var extra in catalog)
+                            {
+                                <option value="@extra.Id">@extra.ExtraCostName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label>@L["pos.description", "Description"]</label>
+                        <input class="form-control" @bind="form.Description" />
+                    </div>
+                    <div class="col-12">
+                        <label>@L["pos.settlement", "Settlement"]</label>
+                        <select class="form-select" @bind="form.Settlement">
+                            <option value="folio">@L["pos.onStay", "On the stay"]</option>
+                            <option value="cash">@L["pos.inCash", "In cash"]</option>
+                        </select>
+                    </div>
+                    @if (form.Settlement == "folio")
+                    {
+                        <div class="col-12">
+                            <label>@L["pos.booking", "Booking"]</label>
+                            <select class="form-select" @bind="form.BookingId">
+                                <option value="">—</option>
+                                @foreach (var stay in inHouse)
+                                {
+                                    <option value="@stay.Id">@BookingLabel(stay)</option>
+                                }
+                            </select>
+                            @if (!inHouse.Any())
+                            {
+                                <p class="text-muted small mb-0">@L["pos.checkedInOnly", "A stay sale is available after arrival and until checkout."]</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-6">
+                            <label>@L["pos.register", "Cash register"]</label>
+                            <select class="form-select" @bind="form.CashRegisterId">
+                                <option value="">@L["pos.mainRegister", "Main register"]</option>
+                                @foreach (var register in registers)
+                                {
+                                    <option value="@register.Id">@register.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label>@L["pos.currency", "Currency"]</label>
+                            <input class="form-control" @bind="form.Currency" />
+                        </div>
+                        <div class="col-6">
+                            <label>@L["pos.method", "Payment method"]</label>
+                            <input class="form-control" @bind="form.PaymentMethod" />
+                        </div>
+                        <div class="col-6">
+                            <label>@L["pos.person", "Payer"]</label>
+                            <input class="form-control" @bind="form.Person" />
+                        </div>
+                        <div class="col-12">
+                            <p class="text-muted small mb-0">@L["pos.walkUpFixed", "Walk-up sale. The booking reference stays empty. Debit 1000 Cash, credit 4900 Other income."]</p>
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
+                <div class="mt-3">
+                    <button class="btn btn-primary me-2" @onclick="Save">@L["common.save", "Save"]</button>
+                    <button class="btn btn-secondary" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+                </div>
+            }
+        </div>
+        <div class="col-md-3">
+            @if (selected is not null && !editing)
+            {
+                <h5 class="mt-1">@L["common.details", "Details"]</h5>
+                <dl>
+                    <dt>@L["pos.date", "Date"]</dt><dd>@selected.Date?.ToString("yyyy-MM-dd")</dd>
+                    <dt>@L["pos.description", "Description"]</dt><dd>@selected.Description</dd>
+                    <dt>@L["pos.amount", "Amount"]</dt><dd>@selected.Amount?.ToString("0.00")</dd>
+                    <dt>@L["pos.settlement", "Settlement"]</dt><dd>@(selected.Settlement == "folio" ? L["pos.onStay", "On the stay"] : L["pos.walkUp", "Walk-up"])</dd>
+                    <dt>@L["pos.accounts", "Accounts"]</dt><dd>@selected.DebitAccount / @selected.CreditAccount</dd>
+                    @if (!string.IsNullOrWhiteSpace(selected.BookingId))
+                    {
+                        <dt>@L["pos.booking", "Booking"]</dt>
+                        <dd><a href="/bookings?selectedId=@selected.BookingId">@BookingLabel(Bookings.FirstOrDefault(b => b.Id == selected.BookingId))</a></dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(selected.ClientId))
+                    {
+                        <dt>@L["pos.guest", "Guest"]</dt>
+                        <dd><a href="/clients?selectedId=@selected.ClientId">@ClientLabel(selected.ClientId)</a></dd>
+                    }
+                    @if (selected.Settlement != "folio")
+                    {
+                        <dt>@L["pos.register", "Cash register"]</dt><dd>@RegisterLabel(selected.CashRegisterId)</dd>
+                        <dt>@L["pos.method", "Payment method"]</dt><dd>@(selected.PaymentMethod ?? "—")</dd>
+                        <dt>@L["pos.currency", "Currency"]</dt><dd>@(selected.Currency ?? "EUR")</dd>
+                        <dt>@L["pos.person", "Payer"]</dt><dd>@(selected.Person ?? "—")</dd>
+                        <dt>@L["pos.runningTotal", "Running cash total"]</dt><dd>@(selected.RunningCashTotal?.ToString("0.00") ?? "—")</dd>
+                        <dd class="text-muted small">@L["pos.walkUpFixed", "Walk-up sale. The booking reference stays empty. Debit 1000 Cash, credit 4900 Other income."]</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(selected.DebitAccount))
+                    {
+                        <dt>@L["Nav.Ledger", "General Ledger"]</dt>
+                        <dd><a href="/ledger?account=@selected.DebitAccount">@selected.DebitAccount</a></dd>
+                    }
+                </dl>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
+                @if (!string.IsNullOrWhiteSpace(selected.ReversedById))
+                {
+                    <p class="text-muted">@L["pos.reversed", "Reversed"]</p>
+                }
+                else if (string.IsNullOrWhiteSpace(selected.ReversesId))
+                {
+                    <button class="btn btn-sm btn-outline-danger" @onclick="ReverseSelected">@L["pos.reverse", "Reverse"]</button>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "bookingId")]
+    public string? BookingQuery { get; set; }
+
+    private List<PosSaleClientDto>? records;
+    private List<BookingDto> bookings = new();
+    private List<HotelDruid.Client.Services.ClientDto> clients = new();
+    private List<CashRegisterDto> registers = new();
+    private List<ExtraCostDto> catalog = new();
+    private PosSaleClientDto? selected;
+    private bool editing;
+    private string errorMsg = "";
+    private string listFilter = "";
+    private int? filterYear;
+    private FormModel form = new();
+
+    private IEnumerable<BookingDto> inHouse => bookings.Where(IsInHouse);
+    private List<BookingDto> Bookings => bookings;
+
+    private IEnumerable<PosSaleClientDto> Filtered
+    {
+        get
+        {
+            if (records is null) return Array.Empty<PosSaleClientDto>();
+            if (string.IsNullOrWhiteSpace(listFilter)) return records;
+            var term = listFilter.Trim();
+            return records.Where(sale =>
+                (sale.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (sale.Amount?.ToString("0.00").Contains(term) ?? false)
+                || (sale.Settlement?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (sale.Person?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || BookingLabel(bookings.FirstOrDefault(b => b.Id == sale.BookingId)).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || ClientLabel(sale.ClientId).Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        filterYear = ActiveYearService.CurrentYear;
+        await LoadAll();
+        OpenBookingQuery();
+    }
+
+    private async Task LoadAll()
+    {
+        try
+        {
+            records = await PosApi.ListAsync(filterYear);
+            bookings = await BookingApi.ListAsync(filterYear) ?? new();
+            clients = await ClientApi.GetAllAsync() ?? new();
+            registers = await RegisterApi.GetAllAsync() ?? new();
+            catalog = await ExtraCostApi.ListAsync(filterYear) ?? new();
+            errorMsg = "";
+        }
+        catch (Exception ex)
+        {
+            records ??= new();
+            errorMsg = ex.Message;
+        }
+    }
+
+    private async Task ApplyFilter() => await LoadAll();
+
+    private void NewSale()
+    {
+        form = new FormModel { Date = DateOnly.FromDateTime(DateTime.UtcNow), Currency = "EUR", Settlement = "cash" };
+        editing = true;
+        selected = null;
+        errorMsg = "";
+    }
+
+    private void OpenBookingQuery()
+    {
+        if (string.IsNullOrWhiteSpace(BookingQuery)) return;
+        var stay = bookings.FirstOrDefault(b => string.Equals(b.Id, BookingQuery, StringComparison.OrdinalIgnoreCase));
+        if (stay is null || !IsInHouse(stay))
+        {
+            NewSale();
+            errorMsg = L["pos.checkedInOnly", "A stay sale is available after arrival and until checkout."];
+            return;
+        }
+
+        form = new FormModel
+        {
+            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Settlement = "folio",
+            BookingId = stay.Id,
+            Currency = "EUR"
+        };
+        editing = true;
+        selected = null;
+        errorMsg = "";
+    }
+
+    private void SelectSale(PosSaleClientDto sale) { selected = sale; editing = false; errorMsg = ""; }
+    private void Cancel() { editing = false; errorMsg = ""; }
+
+    private void ApplyCatalog()
+    {
+        var extra = catalog.FirstOrDefault(item => item.Id == form.ExtraCostId);
+        if (extra is null) return;
+        if (!string.IsNullOrWhiteSpace(extra.ExtraCostName)) form.Description = extra.ExtraCostName;
+        if (extra.BaseValue.HasValue) form.Amount = extra.BaseValue;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(form.Description)) { errorMsg = L["pos.descriptionRequired", "Description is required."]; return; }
+        if (form.Amount is null || form.Amount <= 0) { errorMsg = L["pos.amountRequired", "Amount must be greater than zero."]; return; }
+        var onStay = form.Settlement == "folio";
+        if (onStay && string.IsNullOrWhiteSpace(form.BookingId)) { errorMsg = L["pos.checkedInOnly", "A stay sale is available after arrival and until checkout."]; return; }
+
+        var dto = new PosSaleClientDto(
+            Year: filterYear ?? ActiveYearService.CurrentYear,
+            Date: form.Date,
+            Description: form.Description.Trim(),
+            Amount: form.Amount,
+            Settlement: onStay ? "folio" : "cash",
+            BookingId: onStay ? form.BookingId : null,
+            CashRegisterId: onStay || string.IsNullOrWhiteSpace(form.CashRegisterId) ? null : form.CashRegisterId,
+            PaymentMethod: onStay ? null : form.PaymentMethod,
+            Currency: onStay ? null : (string.IsNullOrWhiteSpace(form.Currency) ? "EUR" : form.Currency),
+            Person: onStay ? null : form.Person,
+            ExtraCostId: string.IsNullOrWhiteSpace(form.ExtraCostId) ? null : form.ExtraCostId);
+        try
+        {
+            var created = await PosApi.CreateAsync(dto);
+            editing = false;
+            await LoadAll();
+            selected = records?.FirstOrDefault(sale => sale.Id == created.Id) ?? created;
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+    }
+
+    private async Task ReverseSelected()
+    {
+        if (selected?.Id is null) return;
+        try
+        {
+            await PosApi.ReverseAsync(selected.Year, selected.Id);
+            await LoadAll();
+            selected = records?.FirstOrDefault(sale => sale.Id == selected.Id) ?? selected;
+        }
+        catch (Exception ex) { errorMsg = ex.Message; }
+    }
+
+    private static bool IsInHouse(BookingDto booking)
+    {
+        if (booking.DeletedAt.HasValue
+            || !booking.ActualArrivalDate.HasValue
+            || booking.ActualDepartureDate.HasValue
+            || !booking.DepartureDate.HasValue
+            || booking.DepartureDate.Value <= booking.ActualArrivalDate.Value)
+            return false;
+
+        var status = booking.Status ?? "";
+        return !status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+            && !status.Contains("void", StringComparison.OrdinalIgnoreCase)
+            && !status.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+            && !status.Contains("no-show", StringComparison.OrdinalIgnoreCase)
+            && !status.Contains("noshow", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string SaleCaption(PosSaleClientDto sale)
+    {
+        var where = sale.Settlement == "folio"
+            ? BookingLabel(bookings.FirstOrDefault(b => b.Id == sale.BookingId))
+            : L["pos.walkUp", "Walk-up"];
+        return $"{sale.Description} · {where}";
+    }
+
+    private string BookingLabel(BookingDto? booking)
+    {
+        if (booking is null) return "";
+        var when = booking.ArrivalDate?.ToString("yyyy-MM-dd") ?? "";
+        var guest = ClientLabel(booking.ClientId);
+        return string.IsNullOrWhiteSpace(guest) ? when : $"{when} · {guest}";
+    }
+
+    private string ClientLabel(string? clientId)
+    {
+        if (string.IsNullOrWhiteSpace(clientId)) return "";
+        var client = clients.FirstOrDefault(c => c.Id == clientId);
+        if (client is null) return clientId;
+        var last = client.LastName ?? "";
+        return string.IsNullOrWhiteSpace(client.FirstName) ? last : $"{last}, {client.FirstName}";
+    }
+
+    private string RegisterLabel(string? registerId)
+    {
+        if (string.IsNullOrWhiteSpace(registerId)) return L["pos.mainRegister", "Main register"];
+        return registers.FirstOrDefault(register => register.Id == registerId)?.Name ?? registerId;
+    }
+
+    private sealed class FormModel
+    {
+        public DateOnly? Date { get; set; }
+        public double? Amount { get; set; }
+        public string? Description { get; set; }
+        public string Settlement { get; set; } = "cash";
+        public string? BookingId { get; set; }
+        public string? CashRegisterId { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public string? Person { get; set; }
+        public string? ExtraCostId { get; set; }
+    }
+}

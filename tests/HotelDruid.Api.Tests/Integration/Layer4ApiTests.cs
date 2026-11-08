@@ -23,6 +23,8 @@ public class Layer4ApiTests : IAsyncLifetime
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
     private class ExpenseDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class MoneyHistoryDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Type { get; set; } public string? ReversesId { get; set; } public string? ReversedById { get; set; } public string? Description { get; set; } }
+    private class PosSaleDto { public string? Id { get; set; } public int Year { get; set; } public string? Description { get; set; } public double? Amount { get; set; } public string? Settlement { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public string? CashRegisterId { get; set; } public string? Currency { get; set; } public string? EntryType { get; set; } public string? DebitAccount { get; set; } public string? CreditAccount { get; set; } public string? BookingCostId { get; set; } public string? ReversedById { get; set; } public double? RunningCashTotal { get; set; } }
+    private class CashRegisterDto { public string? Id { get; set; } public string? Name { get; set; } }
 
     private class BookingDto
     {
@@ -733,6 +735,67 @@ public class Layer4ApiTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={bookingId}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return await ReadAs<List<LedgerLineDto>>(response) ?? new();
+    }
+
+    // ========== Point of sale ==========
+
+    [Fact]
+    public async Task PosSale_WalkUp_PostsCashAndLeavesBookingEmpty()
+    {
+        var register = await ReadAs<CashRegisterDto>(await _client.PostAsync("/api/cash-registers", Json(new { Name = "Front desk", Code = "1" })));
+        var create = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, Description = "Mineral water", Amount = 3.5, Person = "Walk up" }));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var sale = await ReadAs<PosSaleDto>(create);
+        Assert.Equal("cash", sale?.Settlement);
+        Assert.Null(sale?.BookingId);
+        Assert.Null(sale?.ClientId);
+        Assert.Equal(register!.Id, sale?.CashRegisterId);
+        Assert.Equal("EUR", sale?.Currency);
+        Assert.Equal("1000", sale?.DebitAccount);
+        Assert.Equal("4900", sale?.CreditAccount);
+        Assert.Equal(3.5, sale?.RunningCashTotal);
+
+        var lines = await ReadAs<List<LedgerLineDto>>(await _client.GetAsync("/api/ledger/lines?from=2026-01-01&to=2026-12-31&unassigned=true"));
+        Assert.Contains(lines!, line => line.EntryType == "pos_cash_sale" && line.AccountCode == "1000" && line.Debit == 3.5m && string.IsNullOrEmpty(line.BookingId));
+        Assert.Contains(lines!, line => line.EntryType == "pos_cash_sale" && line.AccountCode == "4900" && line.Credit == 3.5m);
+
+        var reverse = await _client.PostAsync($"/api/pos-sales/2026/{sale!.Id}/reverse", Json(new { }));
+        Assert.Equal(HttpStatusCode.Created, reverse.StatusCode);
+        var reversed = await ReadAs<List<LedgerLineDto>>(await _client.GetAsync("/api/ledger/lines?from=2026-01-01&to=2026-12-31&unassigned=true"));
+        Assert.Contains(reversed!, line => line.EntryType == "pos_cash_reversal" && line.AccountCode == "1000" && line.Credit == 3.5m);
+        Assert.Contains(reversed!, line => line.EntryType == "pos_cash_reversal" && line.AccountCode == "4900" && line.Debit == 3.5m);
+    }
+
+    [Fact]
+    public async Task PosSale_OnStay_PostsGuestLedgerOnlyWhileCheckedIn()
+    {
+        var createdBooking = await ReadAs<BookingDto>(await _client.PostAsync("/api/bookings", Json(new { Year = 2026, ClientId = "guest-pos", RoomId = "101", Status = "Confirmed", ArrivalDate = "2026-11-08", DepartureDate = "2026-11-10" })));
+        var tooEarly = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = createdBooking!.Id, Description = "Breakfast", Amount = 12.0 }));
+        Assert.Equal(HttpStatusCode.BadRequest, tooEarly.StatusCode);
+
+        var checkIn = await _client.PostAsync($"/api/bookings/2026/{createdBooking.Id}/check-in", Json(new { ActualArrivalDate = "2026-11-08", ActualGuestCount = 1, Status = "CheckedIn" }));
+        Assert.Equal(HttpStatusCode.OK, checkIn.StatusCode);
+
+        var saleResponse = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = createdBooking.Id, Description = "Breakfast", Amount = 12.0 }));
+        Assert.Equal(HttpStatusCode.Created, saleResponse.StatusCode);
+        var sale = await ReadAs<PosSaleDto>(saleResponse);
+        Assert.Equal("folio", sale?.Settlement);
+        Assert.Equal(createdBooking.Id, sale?.BookingId);
+        Assert.Equal("guest-pos", sale?.ClientId);
+        Assert.Null(sale?.CashRegisterId);
+        Assert.Equal("1200", sale?.DebitAccount);
+        Assert.Equal("4900", sale?.CreditAccount);
+        Assert.False(string.IsNullOrWhiteSpace(sale?.BookingCostId));
+
+        var lines = await LedgerLines(createdBooking.Id!);
+        Assert.Contains(lines, line => line.EntryType == "booking_extra_charge" && line.AccountCode == "1200" && line.Debit == 12m && line.SourceType == "booking-cost");
+        Assert.Contains(lines, line => line.EntryType == "booking_extra_charge" && line.AccountCode == "4900" && line.Credit == 12m);
+        Assert.DoesNotContain(lines, line => line.EntryType == "pos_cash_sale");
+
+        var checkOut = await _client.PostAsync($"/api/bookings/2026/{createdBooking.Id}/check-out", Json(new { ActualDepartureDate = "2026-11-10", Status = "CheckedOut" }));
+        Assert.Equal(HttpStatusCode.OK, checkOut.StatusCode);
+        var after = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = createdBooking.Id, Description = "Late bar", Amount = 8.0 }));
+        Assert.Equal(HttpStatusCode.BadRequest, after.StatusCode);
     }
 
     // ========== Booking Guests ==========

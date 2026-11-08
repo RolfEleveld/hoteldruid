@@ -349,6 +349,39 @@
   <data name="Nav.CancelledBookings" xml:space="preserve"><value>Prenotazioni annullate</value></data>
   <data name="Nav.Expenses" xml:space="preserve"><value>Spese</value></data>
   <data name="Nav.MoneyHistory" xml:space="preserve"><value>Storico cassa</value></data>
+  <data name="Nav.PointOfSale" xml:space="preserve"><value>Punto vendita</value></data>
+  <data name="pos.title" xml:space="preserve"><value>Punto vendita</value></data>
+  <data name="pos.hint" xml:space="preserve"><value>Vendi un extra a un soggiorno in casa, oppure incassalo senza prenotazione.</value></data>
+  <data name="pos.empty" xml:space="preserve"><value>Nessuna vendita</value></data>
+  <data name="pos.search" xml:space="preserve"><value>Cerca</value></data>
+  <data name="pos.new" xml:space="preserve"><value>Nuova vendita</value></data>
+  <data name="pos.description" xml:space="preserve"><value>Descrizione</value></data>
+  <data name="pos.amount" xml:space="preserve"><value>Importo</value></data>
+  <data name="pos.settlement" xml:space="preserve"><value>Regolamento</value></data>
+  <data name="pos.onStay" xml:space="preserve"><value>Sul soggiorno</value></data>
+  <data name="pos.inCash" xml:space="preserve"><value>In cassa</value></data>
+  <data name="pos.booking" xml:space="preserve"><value>Prenotazione</value></data>
+  <data name="pos.guest" xml:space="preserve"><value>Ospite</value></data>
+  <data name="pos.register" xml:space="preserve"><value>Cassa</value></data>
+  <data name="pos.mainRegister" xml:space="preserve"><value>Cassa principale</value></data>
+  <data name="pos.method" xml:space="preserve"><value>Metodo di pagamento</value></data>
+  <data name="pos.currency" xml:space="preserve"><value>Valuta</value></data>
+  <data name="pos.catalog" xml:space="preserve"><value>Extra</value></data>
+  <data name="pos.walkUp" xml:space="preserve"><value>Vendita al banco</value></data>
+  <data name="pos.walkUpFixed" xml:space="preserve"><value>Vendita al banco. Il riferimento prenotazione è vuoto. Dare 1000 Cassa, avere 4900 Altri ricavi.</value></data>
+  <data name="pos.accounts" xml:space="preserve"><value>Conti</value></data>
+  <data name="pos.reverse" xml:space="preserve"><value>Storna</value></data>
+  <data name="pos.reversed" xml:space="preserve"><value>Stornata</value></data>
+  <data name="pos.date" xml:space="preserve"><value>Data</value></data>
+  <data name="pos.person" xml:space="preserve"><value>Pagatore</value></data>
+  <data name="pos.runningTotal" xml:space="preserve"><value>Totale cassa</value></data>
+  <data name="pos.checkedInOnly" xml:space="preserve"><value>Una vendita sul soggiorno è possibile dopo l'arrivo e fino al check-out.</value></data>
+  <data name="pos.descriptionRequired" xml:space="preserve"><value>La descrizione è obbligatoria.</value></data>
+  <data name="pos.amountRequired" xml:space="preserve"><value>L'importo deve essere maggiore di zero.</value></data>
+  <data name="Index.Feature.PointOfSale.Title" xml:space="preserve"><value>Punto vendita</value></data>
+  <data name="Index.Feature.PointOfSale.Subtitle" xml:space="preserve"><value>Vendite del banco per soggiorni in casa e ospiti di passaggio.</value></data>
+  <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Apri punto vendita</value></data>
+  <data name="Dashboard.Widget.VisibleCount.PointOfSale" xml:space="preserve"><value>Vendite da mostrare</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>Libro mastro</value></data>
   <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Piano dei conti</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messaggi</value></data>
@@ -389,6 +422,7 @@
   <data name="Setup.Error.SaveFailed" xml:space="preserve"><value>Salvataggio configurazione non riuscito.</value></data>
   <data name="common.loading" xml:space="preserve"><value>Caricamento...</value></data>
   <data name="common.load" xml:space="preserve"><value>Carica</value></data>
+  <data name="common.year" xml:space="preserve"><value>Anno</value></data>
   <data name="common.save" xml:space="preserve"><value>Salva</value></data>
   <data name="common.cancel" xml:space="preserve"><value>Annulla</value></data>
   <data name="common.details" xml:space="preserve"><value>Dettagli</value></data>

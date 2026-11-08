@@ -362,6 +362,11 @@
                                 else { <text>-</text> }
                             </dd>
                             <dt>@L["bookings.prepaidAmount", "Prepaid Amount"]</dt><dd>@(selected.PrepaidAmount?.ToString("0.00") ?? "-")</dd>
+                            @if (CanCheckOutSelected && !string.IsNullOrWhiteSpace(selected.Id))
+                            {
+                                <dt>@L["pos.title", "Point of sale"]</dt>
+                                <dd><a href="/point-of-sale?bookingId=@selected.Id">@L["pos.onStay", "On the stay"]</a></dd>
+                            }
                             <dt>@L["bookingFinance.totalDue", "Total due"]</dt>
                             <dd>
                                 @if (!string.IsNullOrWhiteSpace(selected.Id))
