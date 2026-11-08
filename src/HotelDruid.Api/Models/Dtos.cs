@@ -500,6 +500,8 @@ public class BookingCostStorageModel
     public string? TariffId { get; set; }
     public double? Amount { get; set; }
     public string? Description { get; set; }
+    /// <summary>Set when the working list hides this extra because its charge is still on the ledger.</summary>
+    public DateTime? DeletedAt { get; set; }
 }
 
 public class BookingGuestStorageModel

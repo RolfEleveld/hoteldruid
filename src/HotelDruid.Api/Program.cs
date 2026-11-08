@@ -2955,7 +2955,7 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
     foreach (var entry in costIndex)
     {
         var cost = await store.GetAsync<BookingCostStorageModel>("booking_costs", entry.Value);
-        if (cost is not null && string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase))
+        if (cost is not null && !cost.DeletedAt.HasValue && string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase))
             extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
     }
 
@@ -3178,7 +3178,7 @@ app.MapGet("/api/booking-costs", async (IKeyValueStore store, int? year) =>
     {
         if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
         var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", kvp.Value);
-        if (c is null) continue;
+        if (c is null || c.DeletedAt.HasValue) continue;
         result.Add(ToBookingCostDto(kvp.Value, c));
     }
     return Results.Ok(result);
@@ -3191,31 +3191,70 @@ app.MapGet("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKe
     return Results.Ok(ToBookingCostDto(id, c));
 }).WithName("GetBookingCost");
 
-app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store) =>
+app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new BookingCostStorageModel { Year = request.Year, BookingId = request.BookingId, TariffId = request.TariffId, Amount = request.Amount, Description = request.Description };
     var id = await store.CreateAsync("booking_costs", key, storage);
+    var sold = Convert.ToDecimal(request.Amount ?? 0);
+    if (sold > 0)
+        await PostExtraCostDeltaAsync(ledger, request.BookingId, sold, request.Description ?? "Extra cost", id);
     return Results.Created($"/api/booking-costs/{request.Year}/{id}", ToBookingCostDto(id, storage));
 }).WithName("CreateBookingCost");
 
-app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store) =>
+app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
-    if (c is null || c.Year != year) return Results.NotFound();
+    if (c is null || c.Year != year || c.DeletedAt.HasValue) return Results.NotFound();
+    var oldAmount = Convert.ToDecimal(c.Amount ?? 0);
+    var newAmount = Convert.ToDecimal(request.Amount ?? 0);
     var storage = new BookingCostStorageModel { Year = year, BookingId = request.BookingId, TariffId = request.TariffId, Amount = request.Amount, Description = request.Description };
     await store.UpdateAsync("booking_costs", id, storage);
+    var description = request.Description ?? c.Description ?? "Extra cost";
+    if (string.Equals(c.BookingId, request.BookingId, StringComparison.OrdinalIgnoreCase))
+        await PostExtraCostDeltaAsync(ledger, request.BookingId, newAmount - oldAmount, description, id);
+    else
+    {
+        await PostExtraCostDeltaAsync(ledger, c.BookingId, -oldAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, request.BookingId, newAmount, description, id);
+    }
     return Results.Ok(ToBookingCostDto(id, storage));
 }).WithName("UpdateBookingCost");
 
-app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IFinancialPostingService posting) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year) return Results.NotFound();
-    await store.DeleteAsync("booking_costs", id);
+    if (c.DeletedAt.HasValue)
+        return Results.NoContent();
+
+    await PostExtraCostDeltaAsync(posting, c.BookingId, -Convert.ToDecimal(c.Amount ?? 0), c.Description ?? "Extra cost removed", id);
+    var cited = await ledger.AnyMatchingAsync(line =>
+        string.Equals(line.SourceType, "booking-cost", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(line.SourceId, id, StringComparison.OrdinalIgnoreCase));
+    if (cited)
+    {
+        c.DeletedAt = DateTime.UtcNow;
+        await store.UpdateAsync("booking_costs", id, c);
+    }
+    else
+    {
+        await store.DeleteAsync("booking_costs", id);
+    }
     return Results.NoContent();
 }).WithName("DeleteBookingCost");
+
+static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, string? bookingId, decimal delta, string description, string sourceId)
+{
+    if (string.IsNullOrWhiteSpace(bookingId) || delta == 0)
+        return;
+    var when = DateTime.UtcNow;
+    if (delta > 0)
+        await ledger.PostBalancedAsync(when, "booking_extra_charge", description, delta, HotelAccounts.GuestLedger, "asset", HotelAccounts.OtherIncome, "revenue", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+    else
+        await ledger.PostBalancedAsync(when, "booking_extra_reversal", description, decimal.Abs(delta), HotelAccounts.OtherIncome, "revenue", HotelAccounts.GuestLedger, "asset", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+}
 
 // --- Layer 4: BookingGuests (ospiti{year}) ---
 
@@ -3892,7 +3931,7 @@ app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
     foreach (var entry in costIndex)
     {
         var cost = await store.GetAsync<BookingCostStorageModel>("booking_costs", entry.Value);
-        if (cost is null || !string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase)) continue;
+        if (cost is null || cost.DeletedAt.HasValue || !string.Equals(cost.BookingId, id, StringComparison.OrdinalIgnoreCase)) continue;
         extraTotal += Convert.ToDecimal(cost.Amount ?? 0);
     }
 

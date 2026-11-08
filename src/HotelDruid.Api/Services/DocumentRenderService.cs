@@ -91,7 +91,7 @@ public sealed class DocumentRenderService : IDocumentRenderService
         foreach (var kvp in costsIdx)
         {
             var bc = await _store.GetAsync<BookingCostStorageModel>("booking_costs", kvp.Value);
-            if (bc is null || bc.BookingId != bookingId) continue;
+            if (bc is null || bc.DeletedAt.HasValue || bc.BookingId != bookingId) continue;
             var amount = bc.Amount ?? 0;
             totalAmount += amount;
             costs.Add(new CostContextRow

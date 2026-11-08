@@ -659,6 +659,41 @@ public class Layer4ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
     }
 
+    [Fact]
+    public async Task BookingCost_Sale_PostsGuestLedgerAndReversesOnRemoval()
+    {
+        var bookingId = "stay-extra-" + Guid.NewGuid().ToString("N");
+        var create = await _client.PostAsync("/api/booking-costs", Json(new { Year = 2026, BookingId = bookingId, Amount = 25.0, Description = "Late checkout" }));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await ReadAs<BookingCostDto>(create);
+        Assert.NotNull(created?.Id);
+
+        var sold = await LedgerLines(bookingId);
+        Assert.Contains(sold, line => line.EntryType == "booking_extra_charge" && line.AccountCode == "1200" && line.Debit == 25m && line.SourceType == "booking-cost" && line.SourceId == created.Id);
+        Assert.Contains(sold, line => line.EntryType == "booking_extra_charge" && line.AccountCode == "4900" && line.Credit == 25m);
+
+        var update = await _client.PutAsync($"/api/booking-costs/2026/{created.Id}", Json(new { Year = 2026, BookingId = bookingId, Amount = 40.0, Description = "Late checkout" }));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var raised = await LedgerLines(bookingId);
+        Assert.Contains(raised, line => line.EntryType == "booking_extra_charge" && line.AccountCode == "1200" && line.Debit == 15m);
+
+        var remove = await _client.DeleteAsync($"/api/booking-costs/2026/{created.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, remove.StatusCode);
+        var listed = await ReadAs<List<BookingCostDto>>(await _client.GetAsync("/api/booking-costs?year=2026"));
+        Assert.DoesNotContain(listed!, cost => cost.Id == created.Id);
+        var closed = await LedgerLines(bookingId);
+        Assert.Contains(closed, line => line.EntryType == "booking_extra_reversal" && line.AccountCode == "4900" && line.Debit == 40m);
+        Assert.Contains(closed, line => line.EntryType == "booking_extra_reversal" && line.AccountCode == "1200" && line.Credit == 40m);
+        Assert.Equal(0m, closed.Where(line => line.AccountCode == "1200").Sum(line => line.Debit - line.Credit));
+    }
+
+    private async Task<List<LedgerLineDto>> LedgerLines(string bookingId)
+    {
+        var response = await _client.GetAsync($"/api/ledger/lines?from=2024-01-01&to=2030-12-31&bookingId={bookingId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return await ReadAs<List<LedgerLineDto>>(response) ?? new();
+    }
+
     // ========== Booking Guests ==========
 
     [Fact]
