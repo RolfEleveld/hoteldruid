@@ -34,7 +34,7 @@ public class BookingCostsPageIntegrationTests : TestContext
             .Setup(x => x.CreateAsync(It.IsAny<BookingCostClientDto>()))
             .ReturnsAsync("cost-created");
 
-        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>
         {
             new("stay-42", 2026, null, "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 2)),
             new("stay-99", 2026, null, "room-1", new DateOnly(2026, 5, 3), new DateOnly(2026, 5, 4))

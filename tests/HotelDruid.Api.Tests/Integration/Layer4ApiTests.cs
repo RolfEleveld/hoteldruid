@@ -15,12 +15,12 @@ public class Layer4ApiTests : IAsyncLifetime
     private string _testDataRoot = null!;
     private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
-    private class LedgerLineDto { public string? Id { get; set; } public string? BookingId { get; set; } public string? AccountCode { get; set; } public decimal Debit { get; set; } public decimal Credit { get; set; } public string? SourceType { get; set; } }
+    private class LedgerLineDto { public string? Id { get; set; } public string? BookingId { get; set; } public string? AccountCode { get; set; } public decimal Debit { get; set; } public decimal Credit { get; set; } public string? SourceType { get; set; } public string? SourceId { get; set; } public string? EntryType { get; set; } }
     private class BookingCostDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? TariffId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class BookingGuestDto { public string? Id { get; set; } public int Year { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public int? GuestNumber { get; set; } }
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
     private class ExpenseDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
-    private class MoneyHistoryDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Type { get; set; } }
+    private class MoneyHistoryDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Type { get; set; } public string? ReversesId { get; set; } public string? ReversedById { get; set; } public string? Description { get; set; } }
 
     private class BookingDto
     {
@@ -36,6 +36,7 @@ public class Layer4ApiTests : IAsyncLifetime
         public string? ActualDepartureDate { get; set; }
         public int? ActualGuestCount { get; set; }
         public double? PrepaidAmount { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public string? PrepaidMethod { get; set; }
         public string? PrepaidReference { get; set; }
         public string? TariffId { get; set; }
@@ -772,12 +773,22 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Expense_Delete_ReturnsNoContent()
+    public async Task Expense_Delete_HidesTheRow_AndKeepsTheCitedRecord()
     {
         var create = await _client.PostAsync("/api/expenses", Json(new { Year = 2024, CashRegisterId = "CR6", Amount = 25.0 }));
         var created = await ReadAs<ExpenseDto>(create);
         var r = await _client.DeleteAsync($"/api/expenses/2024/{created!.Id}");
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+
+        var list = await ReadAs<List<ExpenseDto>>(await _client.GetAsync("/api/expenses?year=2024"));
+        Assert.DoesNotContain(list!, expense => expense.Id == created.Id);
+        var get = await _client.GetAsync($"/api/expenses/2024/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+
+        var purge = await _client.PostAsync("/api/retention/clear-deleted", Json(new { }));
+        Assert.Equal(HttpStatusCode.OK, purge.StatusCode);
+        var stillThere = await _client.GetAsync($"/api/expenses/2024/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, stillThere.StatusCode);
     }
 
     // ========== Money History ==========
@@ -824,12 +835,60 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MoneyHistory_Delete_ReturnsNoContent()
+    public async Task MoneyHistory_Delete_IsRejected()
     {
         var create = await _client.PostAsync("/api/money-history", Json(new { Year = 2024, CashRegisterId = "CR20", Amount = 50.0, Type = "income" }));
         var created = await ReadAs<MoneyHistoryDto>(create);
         var r = await _client.DeleteAsync($"/api/money-history/2024/{created!.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, r.StatusCode);
+        var get = await _client.GetAsync($"/api/money-history/2024/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+    }
+
+    [Fact]
+    public async Task MoneyHistory_Reverse_KeepsTheOriginal_AndPostsTheOppositeCashLine()
+    {
+        var create = await _client.PostAsync("/api/money-history", Json(new { Year = 2024, CashRegisterId = "CR21", Amount = 40.0, Type = "income", Description = "Float" }));
+        var created = await ReadAs<MoneyHistoryDto>(create);
+        var reverse = await _client.PostAsync($"/api/money-history/2024/{created!.Id}/reverse", Json(new { }));
+        Assert.Equal(HttpStatusCode.Created, reverse.StatusCode);
+        var reversal = await ReadAs<MoneyHistoryDto>(reverse);
+        Assert.Equal(created.Id, reversal?.ReversesId);
+        Assert.Equal(-40.0, reversal?.Amount);
+
+        var original = await ReadAs<MoneyHistoryDto>(await _client.GetAsync($"/api/money-history/2024/{created.Id}"));
+        Assert.Equal(reversal!.Id, original?.ReversedById);
+
+        var again = await _client.PostAsync($"/api/money-history/2024/{created.Id}/reverse", Json(new { }));
+        Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+        var lines = await ReadAs<List<LedgerLineDto>>(await _client.GetAsync($"/api/ledger/lines?from={today}&to={today}&unassigned=true"));
+        var cash = lines!.Where(line => line.AccountCode == "1000" && (line.SourceId == created.Id || line.SourceId == reversal.Id)).ToList();
+        Assert.Equal(2, cash.Count);
+        Assert.Equal(cash.Sum(line => line.Debit), cash.Sum(line => line.Credit));
+    }
+
+    [Fact]
+    public async Task Booking_Delete_WithLedgerLines_HidesTheBooking_AndKeepsItForAudit()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2024, ClientId = "C-Cited", Status = "Confirmed", ArrivalDate = "2024-04-01", DepartureDate = "2024-04-03", PrepaidAmount = 25.0 }));
+        var created = await ReadAs<BookingDto>(create);
+        var delete = await _client.DeleteAsync($"/api/bookings/2024/{created!.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        var listed = await ReadAs<List<BookingDto>>(await _client.GetAsync("/api/bookings?year=2024"));
+        Assert.DoesNotContain(listed!, booking => booking.Id == created.Id);
+        var hidden = await ReadAs<List<BookingDto>>(await _client.GetAsync("/api/bookings?year=2024&includeDeleted=true"));
+        Assert.Contains(hidden!, booking => booking.Id == created.Id && booking.DeletedAt.HasValue);
+
+        var get = await ReadAs<BookingDto>(await _client.GetAsync($"/api/bookings/2024/{created.Id}"));
+        Assert.NotNull(get?.DeletedAt);
+
+        var purge = await _client.PostAsync("/api/retention/clear-deleted", Json(new { }));
+        Assert.Equal(HttpStatusCode.OK, purge.StatusCode);
+        var afterPurge = await _client.GetAsync($"/api/bookings/2024/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, afterPurge.StatusCode);
     }
 }
 

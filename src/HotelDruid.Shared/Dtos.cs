@@ -61,7 +61,8 @@ public record BookingDto(
     string? TariffId = null,
     string? PreAuthReference = null,
     string? PreAuthMethod = null,
-    DateTime? SettlementDate = null
+    DateTime? SettlementDate = null,
+    DateTime? DeletedAt = null
 );
 
 public record BookingCostDto(
@@ -90,7 +91,8 @@ public record CancelledBookingDto(
     DateOnly? DepartureDate = null,
     string? Status = null,
     DateTime? CancelledAt = null,
-    string? Notes = null
+    string? Notes = null,
+    string? BookingId = null
 );
 
 public record ExpenseDto(
@@ -99,7 +101,8 @@ public record ExpenseDto(
     string? CashRegisterId = null,
     double? Amount = null,
     string? Description = null,
-    DateOnly? Date = null
+    DateOnly? Date = null,
+    DateTime? DeletedAt = null
 );
 
 public record MoneyHistoryDto(
@@ -109,7 +112,9 @@ public record MoneyHistoryDto(
     double? Amount = null,
     string? Type = null,
     string? Description = null,
-    DateOnly? Date = null
+    DateOnly? Date = null,
+    string? ReversesId = null,
+    string? ReversedById = null
 );
 
 /// <summary>One immutable financial movement on a booking.</summary>

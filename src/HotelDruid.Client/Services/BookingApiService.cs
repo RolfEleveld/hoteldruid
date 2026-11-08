@@ -19,7 +19,7 @@ namespace HotelDruid.Client.Services
 
     public interface IBookingApiService
     {
-        Task<List<BookingDto>> ListAsync(int? year = null);
+        Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false);
         Task<List<BookingDto>> ListStaysAsync(int? year = null);
         Task<List<BookingDto>> ListReservationsAsync(int? year = null);
         Task<List<BookingDto>> ListArrivalsAsync(int? year = null, int? lookAheadDays = null);
@@ -41,11 +41,13 @@ namespace HotelDruid.Client.Services
 
         public BookingApiService(HttpClient httpClient) { _httpClient = httpClient; }
 
-        public async Task<List<BookingDto>> ListAsync(int? year = null)
+        public async Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false)
         {
             try
             {
                 var url = year.HasValue ? $"/api/bookings?year={year}" : "/api/bookings";
+                if (includeDeleted)
+                    url += year.HasValue ? "&includeDeleted=true" : "?includeDeleted=true";
                 var resp = await _httpClient.GetAsync(url);
                 resp.EnsureSuccessStatusCode();
                 return JsonSerializer.Deserialize<List<BookingDto>>(await resp.Content.ReadAsStringAsync(), _json) ?? new();

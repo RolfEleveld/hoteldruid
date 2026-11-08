@@ -545,6 +545,8 @@
   <data name="bookings.arrivalDate" xml:space="preserve"><value>Data di arrivo</value></data>
   <data name="bookings.departureDate" xml:space="preserve"><value>Data di partenza</value></data>
   <data name="bookings.notes" xml:space="preserve"><value>Note</value></data>
+  <data name="bookings.removedFromList" xml:space="preserve"><value>Elenco di lavoro</value></data>
+  <data name="bookings.removedFromListValue" xml:space="preserve"><value>Nascosta. Il libro mastro cita ancora questa prenotazione.</value></data>
   <data name="bookings.clientSearchLabel" xml:space="preserve"><value>Cerca cliente esistente</value></data>
   <data name="bookings.clientSearchPlaceholder" xml:space="preserve"><value>Digita cognome, nome, email, telefono o ID</value></data>
   <data name="bookings.clearSelection" xml:space="preserve"><value>Cancella</value></data>

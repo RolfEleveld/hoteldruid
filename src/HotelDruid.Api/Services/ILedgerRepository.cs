@@ -39,6 +39,11 @@ public interface ILedgerRepository
     Task<List<LedgerEntry>> GetEntriesForBookingAsync(string bookingId, DateTime from, DateTime to);
 
     /// <summary>
+    /// True when any stored ledger line matches. Walks existing day folders only.
+    /// </summary>
+    Task<bool> AnyMatchingAsync(Func<LedgerEntry, bool> predicate);
+
+    /// <summary>
     /// Returns the ledger entries whose IDs are in the provided list.
     /// This is used by the booking ledger index projection for fast lookup.
     /// </summary>

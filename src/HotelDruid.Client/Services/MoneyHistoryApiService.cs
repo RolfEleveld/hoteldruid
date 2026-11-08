@@ -11,7 +11,7 @@ namespace HotelDruid.Client.Services
         Task<List<MoneyHistoryClientDto>> ListAsync(int? year = null);
         Task<MoneyHistoryClientDto?> GetAsync(int year, string id);
         Task<string> CreateAsync(MoneyHistoryClientDto dto);
-        Task DeleteAsync(int year, string id);
+        Task<string> ReverseAsync(int year, string id);
     }
 
     public record MoneyHistoryClientDto(
@@ -21,7 +21,9 @@ namespace HotelDruid.Client.Services
         double? Amount = null,
         string? Type = null,
         string? Description = null,
-        string? Date = null
+        string? Date = null,
+        string? ReversesId = null,
+        string? ReversedById = null
     );
 
     public class MoneyHistoryApiService : IMoneyHistoryApiService
@@ -63,10 +65,12 @@ namespace HotelDruid.Client.Services
             return created?.Id ?? string.Empty;
         }
 
-        public async Task DeleteAsync(int year, string id)
+        public async Task<string> ReverseAsync(int year, string id)
         {
-            var resp = await _httpClient.DeleteAsync($"/api/money-history/{year}/{id}");
+            var resp = await _httpClient.PostAsync($"/api/money-history/{year}/{id}/reverse", new StringContent("{}", Encoding.UTF8, "application/json"));
             resp.EnsureSuccessStatusCode();
+            var created = JsonSerializer.Deserialize<MoneyHistoryClientDto>(await resp.Content.ReadAsStringAsync(), _json);
+            return created?.Id ?? string.Empty;
         }
     }
 }

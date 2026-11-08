@@ -374,6 +374,11 @@
                                 }
                             </dd>
                             <dt>@L["bookings.notes", "Notes"]</dt><dd>@selected.Notes</dd>
+                            @if (selected.DeletedAt.HasValue)
+                            {
+                                <dt>@L["bookings.removedFromList", "Working list"]</dt>
+                                <dd>@L["bookings.removedFromListValue", "Hidden. The ledger still cites this booking."]</dd>
+                            }
                         </dl>
 
                         <section class="booking-section booking-section-guest mt-3">
@@ -582,6 +587,12 @@
                 .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (record is null)
+        {
+            var retained = await BookingApi.ListAsync(includeDeleted: true);
+            record = retained.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
             if (record is null)
             {
                 return;
@@ -739,7 +750,14 @@
     private async Task CancelBooking()
     {
         if (selected?.Id is null) return;
-        try { await BookingApi.CancelAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
+        try
+        {
+            await BookingApi.CancelAsync(selected.Year, selected.Id);
+            editing = false;
+            isNew = false;
+            await LoadAll();
+            await ApplySelectedRecordFromQueryAsync();
+        }
         catch { errorMsg = L["bookings.cancelFailed", "Cancel failed."]; }
     }
 

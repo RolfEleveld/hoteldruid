@@ -16,12 +16,13 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Recognize deposits as a liability until earned or settled. Do not reduce room revenue when the deposit is taken.
 - [x] Post final settlement as the closing journal for the booking (data model + settlement fields + prepaid method/reference fields ready; UI/closing journal + focus navigation from dashboard done).
 - [x] Keep the per-booking transaction list as a projection of ledger lines, not a second book. `BookingTransactionRepository` is removed. The list, finance totals, and documents collapse each booking-transaction journal to one row (sequence, applied-to, and created-by).
+- [x] Add a booking index so history is not a scan of every day partition. The first read of a booking records its ledger line ids in `bookings/{bookingId}/_ledger_index.json`. Later reads open those sequence files directly. A journal posted after that index exists is appended to it.
+- [x] Stop deleting money history. A correction posts the opposite journal and a new history row. The original row and its ledger lines stay.
+- [x] A delete of a booking or expense that the ledger cites hides the record and keeps it for the audit trail. A record with no ledger lines is removed. `POST /api/retention/clear-deleted` removes a hidden record only when its year is before the current year and no ledger line still cites it.
 
 ## Still open
 - [ ] PHP export/import compatibility: after this Blazor projection is visually tested, update the main (PHP) branch so export/import does not keep a second per-booking transaction book.
-- [x] Add a booking index so history is not a scan of every day partition. The first read of a booking records its ledger line ids in `bookings/{bookingId}/_ledger_index.json`. Later reads open those sequence files directly. A journal posted after that index exists is appended to it.
 - [ ] Bring PHP cash-register permissions, person, payment method, currency, and running cash total onto petty-cash posts.
-- [ ] Stop deleting money history. Corrections should be reversing ledger entries.
 - [ ] Bring over the PHP point of sale (`punto_vendita.php`) for walk-up sales and non-staying guest payments.
 - [ ] Post inventory goods sold at the point of sale. PHP has no separate purchasing module.
 - [ ] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed.

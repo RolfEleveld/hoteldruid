@@ -172,6 +172,21 @@ public class LedgerRepository : ILedgerRepository, IDisposable
     }
 
     /// <inheritdoc />
+    public async Task<bool> AnyMatchingAsync(Func<LedgerEntry, bool> predicate)
+    {
+        if (predicate is null) throw new ArgumentNullException(nameof(predicate));
+
+        foreach (var date in EnumerateExistingPartitionDates(DateTime.MinValue, DateTime.MaxValue))
+        {
+            var day = await GetConsolidatedAsync(date);
+            if (day.Any(predicate))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
     public async Task<List<LedgerEntry>> GetEntriesByIdsAsync(IEnumerable<string> entryIds)
     {
         var result = new List<LedgerEntry>();

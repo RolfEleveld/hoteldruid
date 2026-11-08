@@ -65,7 +65,15 @@
                     <dt>Date</dt><dd>@selected.Date</dd>
                     <dt>Description</dt><dd>@selected.Description</dd>
                 </dl>
-                <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
+                @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
+                @if (!string.IsNullOrWhiteSpace(selected.ReversedById))
+                {
+                    <p class="text-muted">Reversed</p>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-outline-danger" @onclick="ReverseSelected">Reverse</button>
+                }
             }
         </div>
     </div>
@@ -106,11 +114,16 @@
 
     private void Cancel() { editing = false; errorMsg = ""; }
 
-    private async Task DeleteSelected()
+    private async Task ReverseSelected()
     {
         if (selected?.Id is null) return;
-        try { await MoneyHistoryApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
-        catch { errorMsg = "Delete failed."; }
+        try
+        {
+            await MoneyHistoryApi.ReverseAsync(selected.Year, selected.Id);
+            selected = null;
+            await LoadAll();
+        }
+        catch { errorMsg = "Reverse failed."; }
     }
 
     private class FormModel

@@ -522,6 +522,8 @@
   <data name="bookings.arrivalDate" xml:space="preserve"><value>Arrival Date</value></data>
   <data name="bookings.departureDate" xml:space="preserve"><value>Departure Date</value></data>
   <data name="bookings.notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="bookings.removedFromList" xml:space="preserve"><value>Working list</value></data>
+  <data name="bookings.removedFromListValue" xml:space="preserve"><value>Hidden. The ledger still cites this booking.</value></data>
   <data name="bookings.clientSearchLabel" xml:space="preserve"><value>Find existing client</value></data>
   <data name="bookings.clientSearchPlaceholder" xml:space="preserve"><value>Type last name, first name, email, phone, or ID</value></data>
   <data name="bookings.roomSearchLabel" xml:space="preserve"><value>Find room</value></data>

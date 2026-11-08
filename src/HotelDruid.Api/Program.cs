@@ -2640,7 +2640,8 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.TariffId,
     s.PreAuthReference,
     s.PreAuthMethod,
-    s.SettlementDate);
+    s.SettlementDate,
+    s.DeletedAt);
 
 async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
 {
@@ -2701,7 +2702,8 @@ bool IsNonBlockingBookingStatus(string? status)
 
 bool IsCurrentStay(BookingStorageModel booking, DateOnly today)
 {
-    if (string.IsNullOrWhiteSpace(booking.RoomId)
+    if (booking.DeletedAt.HasValue
+        || string.IsNullOrWhiteSpace(booking.RoomId)
         || IsNonBlockingBookingStatus(booking.Status)
         || !booking.ActualArrivalDate.HasValue
         || booking.ActualDepartureDate.HasValue
@@ -2718,7 +2720,8 @@ bool IsCurrentStay(BookingStorageModel booking, DateOnly today)
 
 bool IsReservation(BookingStorageModel booking)
 {
-    if (IsNonBlockingBookingStatus(booking.Status)
+    if (booking.DeletedAt.HasValue
+        || IsNonBlockingBookingStatus(booking.Status)
         || booking.ActualArrivalDate.HasValue
         || booking.ActualDepartureDate.HasValue
         || !booking.ArrivalDate.HasValue
@@ -2743,7 +2746,8 @@ bool IsPendingArrival(BookingStorageModel booking, DateOnly today, int lookAhead
 
 bool IsPendingDeparture(BookingStorageModel booking, DateOnly today)
 {
-    if (string.IsNullOrWhiteSpace(booking.RoomId)
+    if (booking.DeletedAt.HasValue
+        || string.IsNullOrWhiteSpace(booking.RoomId)
         || IsNonBlockingBookingStatus(booking.Status)
         || !booking.ActualArrivalDate.HasValue
         || booking.ActualDepartureDate.HasValue
@@ -2756,9 +2760,12 @@ bool IsPendingDeparture(BookingStorageModel booking, DateOnly today)
     return booking.DepartureDate.Value == today;
 }
 
-app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, bool? includeDeleted) =>
 {
-    var key = year.HasValue ? $"bookings:list:year:{year.Value}" : "bookings:list:all";
+    var showDeleted = includeDeleted == true;
+    var key = year.HasValue
+        ? $"bookings:list:year:{year.Value}:deleted:{showDeleted}"
+        : $"bookings:list:all:deleted:{showDeleted}";
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
@@ -2768,7 +2775,7 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache que
         {
             if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
             var b = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
-            if (b is null) continue;
+            if (b is null || (!showDeleted && b.DeletedAt.HasValue)) continue;
             computed.Add(ToBookingDto(kvp.Value, b));
         }
 
@@ -2992,7 +2999,8 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         PrepaidReference = request.PrepaidReference,
         ExpectedGuestCount = request.ExpectedGuestCount,
         PreAuthReference = request.PreAuthReference,
-        PreAuthMethod = request.PreAuthMethod
+        PreAuthMethod = request.PreAuthMethod,
+        DeletedAt = b.DeletedAt
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);
@@ -3027,24 +3035,48 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     return Results.Ok(ToBookingDto(id, storage));
 }).WithName("UpdateBooking");
 
-app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache, ILedgerRepository ledger) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
-    await store.DeleteAsync("bookings", id);
+    if (b.DeletedAt.HasValue)
+        return Results.NoContent();
+
+    var cited = await ledger.AnyMatchingAsync(line => string.Equals(line.BookingId, id, StringComparison.OrdinalIgnoreCase));
+    if (cited)
+    {
+        b.DeletedAt = DateTime.UtcNow;
+        await store.UpdateAsync("bookings", id, b);
+    }
+    else
+    {
+        await store.DeleteAsync("bookings", id);
+    }
+
     queryCache.InvalidateTag("bookings");
     return Results.NoContent();
 }).WithName("DeleteBooking");
 
-app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache, ILedgerRepository ledger) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
     var cancelGuid = Guid.NewGuid().ToString("N");
     var cancelKey = $"{year}_{cancelGuid}";
-    var cancelled = new CancelledBookingStorageModel { Year = year, ClientId = b.ClientId, RoomId = b.RoomId, ArrivalDate = b.ArrivalDate, DepartureDate = b.DepartureDate, Status = b.Status, CancelledAt = DateTime.UtcNow, Notes = b.Notes };
+    var cancelled = new CancelledBookingStorageModel { Year = year, ClientId = b.ClientId, RoomId = b.RoomId, ArrivalDate = b.ArrivalDate, DepartureDate = b.DepartureDate, Status = b.Status, CancelledAt = DateTime.UtcNow, Notes = b.Notes, BookingId = id };
     await store.CreateAsync("cancelled_bookings", cancelKey, cancelled);
-    await store.DeleteAsync("bookings", id);
+    var cited = await ledger.AnyMatchingAsync(line => string.Equals(line.BookingId, id, StringComparison.OrdinalIgnoreCase));
+    if (cited)
+    {
+        b.Status = "Cancelled";
+        b.DeletedAt = DateTime.UtcNow;
+        await store.UpdateAsync("bookings", id, b);
+    }
+    else
+    {
+        await store.DeleteAsync("bookings", id);
+    }
+
     queryCache.InvalidateTag("bookings");
     queryCache.InvalidateTag("cancelled_bookings");
     return Results.NoContent();
@@ -3239,7 +3271,7 @@ app.MapDelete("/api/booking-guests/{year:int}/{id}", async (int year, string id,
 
 // --- Layer 4: CancelledBookings (prenotazioniannullate{year}) - read-only + DELETE ---
 
-CancelledBookingDto ToCancelledBookingDto(string id, CancelledBookingStorageModel s) => new(id, s.Year, s.ClientId, s.RoomId, s.ArrivalDate, s.DepartureDate, s.Status, s.CancelledAt, s.Notes);
+CancelledBookingDto ToCancelledBookingDto(string id, CancelledBookingStorageModel s) => new(id, s.Year, s.ClientId, s.RoomId, s.ArrivalDate, s.DepartureDate, s.Status, s.CancelledAt, s.Notes, s.BookingId);
 
 app.MapGet("/api/cancelled-bookings", async (IKeyValueStore store, int? year) =>
 {
@@ -3273,7 +3305,7 @@ app.MapDelete("/api/cancelled-bookings/{year:int}/{id}", async (int year, string
 
 // --- Layer 4: Expenses (spese{year}) ---
 
-ExpenseDto ToExpenseDto(string id, ExpenseStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Description, s.Date);
+ExpenseDto ToExpenseDto(string id, ExpenseStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Description, s.Date, s.DeletedAt);
 
 app.MapGet("/api/expenses", async (IKeyValueStore store, int? year) =>
 {
@@ -3284,7 +3316,7 @@ app.MapGet("/api/expenses", async (IKeyValueStore store, int? year) =>
     {
         if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
         var e = await store.GetAsync<ExpenseStorageModel>("expenses", kvp.Value);
-        if (e is null) continue;
+        if (e is null || e.DeletedAt.HasValue) continue;
         result.Add(ToExpenseDto(kvp.Value, e));
     }
     return Results.Ok(result);
@@ -3311,22 +3343,45 @@ app.MapPut("/api/expenses/{year:int}/{id}", async (int year, string id, ExpenseD
 {
     var e = await store.GetAsync<ExpenseStorageModel>("expenses", id);
     if (e is null || e.Year != year) return Results.NotFound();
-    var storage = new ExpenseStorageModel { Year = year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date };
+    var storage = new ExpenseStorageModel { Year = year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date, DeletedAt = e.DeletedAt };
     await store.UpdateAsync("expenses", id, storage);
     return Results.Ok(ToExpenseDto(id, storage));
 }).WithName("UpdateExpense");
 
-app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger) =>
 {
     var e = await store.GetAsync<ExpenseStorageModel>("expenses", id);
     if (e is null || e.Year != year) return Results.NotFound();
-    await store.DeleteAsync("expenses", id);
+    if (e.DeletedAt.HasValue)
+        return Results.NoContent();
+
+    var cited = await ledger.AnyMatchingAsync(line =>
+        string.Equals(line.SourceType, "expense", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(line.SourceId, id, StringComparison.OrdinalIgnoreCase));
+    if (cited)
+    {
+        e.DeletedAt = DateTime.UtcNow;
+        await store.UpdateAsync("expenses", id, e);
+    }
+    else
+    {
+        await store.DeleteAsync("expenses", id);
+    }
+
     return Results.NoContent();
 }).WithName("DeleteExpense");
 
 // --- Layer 4: MoneyHistory (movimenticassa{year}) - append-only, no PUT ---
 
-MoneyHistoryDto ToMoneyHistoryDto(string id, MoneyHistoryStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Type, s.Description, s.Date);
+MoneyHistoryDto ToMoneyHistoryDto(string id, MoneyHistoryStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Type, s.Description, s.Date, s.ReversesId, s.ReversedById);
+
+static bool MoneyHistoryIsOutflow(double? amount, string? type)
+{
+    var value = Convert.ToDecimal(amount ?? 0);
+    return value < 0
+        || string.Equals(type, "expense", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(type, "s", StringComparison.OrdinalIgnoreCase);
+}
 
 app.MapGet("/api/money-history", async (IKeyValueStore store, int? year) =>
 {
@@ -3357,7 +3412,7 @@ app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore
     var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("money_history", key, storage);
     var amount = Convert.ToDecimal(request.Amount ?? 0);
-    var isOutflow = amount < 0 || string.Equals(request.Type, "expense", StringComparison.OrdinalIgnoreCase) || string.Equals(request.Type, "s", StringComparison.OrdinalIgnoreCase);
+    var isOutflow = MoneyHistoryIsOutflow(request.Amount, request.Type);
     if (isOutflow)
     {
         await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", amount, HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Description, sourceType: "money-history", sourceId: id);
@@ -3369,13 +3424,90 @@ app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore
     return Results.Created($"/api/money-history/{request.Year}/{id}", ToMoneyHistoryDto(id, storage));
 }).WithName("CreateMoneyHistory");
 
-app.MapDelete("/api/money-history/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
+app.MapDelete("/api/money-history/{year:int}/{id}", (int year, string id) =>
 {
-    var m = await store.GetAsync<MoneyHistoryStorageModel>("money_history", id);
-    if (m is null || m.Year != year) return Results.NotFound();
-    await store.DeleteAsync("money_history", id);
-    return Results.NoContent();
+    _ = year;
+    _ = id;
+    return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 }).WithName("DeleteMoneyHistory");
+
+app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger) =>
+{
+    var original = await store.GetAsync<MoneyHistoryStorageModel>("money_history", id);
+    if (original is null || original.Year != year) return Results.NotFound();
+    if (!string.IsNullOrWhiteSpace(original.ReversedById))
+        return Results.Conflict(new { error = "This entry is already reversed." });
+
+    var amount = Convert.ToDecimal(original.Amount ?? 0);
+    if (amount == 0)
+        return Results.BadRequest(new { error = "A zero amount cannot be reversed." });
+
+    var guid = Guid.NewGuid().ToString("N");
+    var key = $"{year}_{guid}";
+    var reversal = new MoneyHistoryStorageModel
+    {
+        Year = year,
+        CashRegisterId = original.CashRegisterId,
+        Amount = -(original.Amount ?? 0),
+        Type = "reversal",
+        Description = string.IsNullOrWhiteSpace(original.Description) ? "Reversal" : $"Reversal of {original.Description}",
+        Date = DateOnly.FromDateTime(DateTime.UtcNow),
+        ReversesId = id
+    };
+    var reversalId = await store.CreateAsync("money_history", key, reversal);
+    original.ReversedById = reversalId;
+    await store.UpdateAsync("money_history", id, original);
+
+    var magnitude = Math.Abs(amount);
+    var when = DateTime.UtcNow;
+    if (MoneyHistoryIsOutflow(original.Amount, original.Type))
+    {
+        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, HotelAccounts.Cash, "asset", HotelAccounts.OperatingExpense, "expense", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
+    }
+    else
+    {
+        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, HotelAccounts.OtherIncome, "revenue", HotelAccounts.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
+    }
+
+    return Results.Created($"/api/money-history/{year}/{reversalId}", ToMoneyHistoryDto(reversalId, reversal));
+}).WithName("ReverseMoneyHistory");
+
+app.MapPost("/api/retention/clear-deleted", async (IKeyValueStore store, ILedgerRepository ledger, IEndpointQueryCache queryCache) =>
+{
+    var closedThroughYear = DateTime.UtcNow.Year - 1;
+    var removed = 0;
+
+    var bookings = await store.GetIndexAsync("bookings");
+    foreach (var kvp in bookings)
+    {
+        var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+        if (booking is null || !booking.DeletedAt.HasValue || booking.Year > closedThroughYear)
+            continue;
+        var cited = await ledger.AnyMatchingAsync(line => string.Equals(line.BookingId, kvp.Value, StringComparison.OrdinalIgnoreCase));
+        if (cited)
+            continue;
+        await store.DeleteAsync("bookings", kvp.Value);
+        removed++;
+    }
+
+    var expenses = await store.GetIndexAsync("expenses");
+    foreach (var kvp in expenses)
+    {
+        var expense = await store.GetAsync<ExpenseStorageModel>("expenses", kvp.Value);
+        if (expense is null || !expense.DeletedAt.HasValue || expense.Year > closedThroughYear)
+            continue;
+        var cited = await ledger.AnyMatchingAsync(line =>
+            string.Equals(line.SourceType, "expense", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(line.SourceId, kvp.Value, StringComparison.OrdinalIgnoreCase));
+        if (cited)
+            continue;
+        await store.DeleteAsync("expenses", kvp.Value);
+        removed++;
+    }
+
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(new { removed, closedThroughYear });
+}).WithName("ClearDeletedRecords");
 
 // --- Layer 5: Messages (messaggi) ---
 

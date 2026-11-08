@@ -35,7 +35,7 @@ public class BookingFinancePageIntegrationTests : TestContext
             new("room-1", "101", 2, 1, "A"),
             new("room-2", "202", 2, 2, "A")
         });
-        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>())).ReturnsAsync(new List<BookingDto>
         {
             new("stay-1", 2026, "guest-1", "room-1", new DateOnly(2026, 10, 11), new DateOnly(2026, 10, 12), PrepaidAmount: 100),
             new("stay-2", 2026, "guest-2", "room-2", new DateOnly(2026, 9, 3), new DateOnly(2026, 9, 4))

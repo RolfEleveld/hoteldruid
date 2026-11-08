@@ -130,7 +130,7 @@
     {
         try
         {
-            var bookings = await BookingApi.ListAsync();
+            var bookings = await BookingApi.ListAsync(includeDeleted: true);
             var rooms = await RoomApi.GetRoomsAsync();
             catalog = BookingCatalog.From(bookings, rooms);
         }

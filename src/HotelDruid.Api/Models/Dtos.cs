@@ -489,6 +489,8 @@ public class BookingStorageModel
     public string? PreAuthReference { get; set; }
     public string? PreAuthMethod { get; set; }
     public DateTime? SettlementDate { get; set; }
+    /// <summary>Set when the working lists hide this booking because the ledger still cites it.</summary>
+    public DateTime? DeletedAt { get; set; }
 }
 
 public class BookingCostStorageModel
@@ -518,6 +520,8 @@ public class CancelledBookingStorageModel
     public string? Status { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? Notes { get; set; }
+    /// <summary>The booking id the ledger cites. The archive row itself has its own id.</summary>
+    public string? BookingId { get; set; }
 }
 
 public class ExpenseStorageModel
@@ -527,6 +531,7 @@ public class ExpenseStorageModel
     public double? Amount { get; set; }
     public string? Description { get; set; }
     public DateOnly? Date { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }
 
 public class MoneyHistoryStorageModel
@@ -537,6 +542,8 @@ public class MoneyHistoryStorageModel
     public string? Type { get; set; }
     public string? Description { get; set; }
     public DateOnly? Date { get; set; }
+    public string? ReversesId { get; set; }
+    public string? ReversedById { get; set; }
 }
 
 // --- Layer 5: Communication/Integration entities ---

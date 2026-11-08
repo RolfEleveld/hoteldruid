@@ -545,6 +545,8 @@
   <data name="bookings.arrivalDate" xml:space="preserve"><value>Fecha de llegada</value></data>
   <data name="bookings.departureDate" xml:space="preserve"><value>Fecha de salida</value></data>
   <data name="bookings.notes" xml:space="preserve"><value>Notas</value></data>
+  <data name="bookings.removedFromList" xml:space="preserve"><value>Lista de trabajo</value></data>
+  <data name="bookings.removedFromListValue" xml:space="preserve"><value>Oculta. El libro mayor sigue citando esta reserva.</value></data>
   <data name="bookings.clientSearchLabel" xml:space="preserve"><value>Buscar cliente existente</value></data>
   <data name="bookings.clientSearchPlaceholder" xml:space="preserve"><value>Escriba apellido, nombre, correo, telefono o ID</value></data>
   <data name="bookings.clearSelection" xml:space="preserve"><value>Limpiar</value></data>

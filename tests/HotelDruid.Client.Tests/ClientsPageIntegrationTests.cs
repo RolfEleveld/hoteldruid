@@ -29,7 +29,7 @@ public class ClientsPageIntegrationTests : TestContext
             new("c-2", "Adams", "Ben")
         });
         roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>());
-        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>());
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>());
         financeApi.Setup(x => x.GetSummaryAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync((int year, string bookingId) => null);
 
