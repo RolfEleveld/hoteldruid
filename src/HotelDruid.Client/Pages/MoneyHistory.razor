@@ -28,7 +28,7 @@
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
                             <div class="fw-bold">@r.Year — @r.Date</div>
-                            <small>@r.Type: @r.Amount (@r.Description)</small>
+                            <small>@r.Type: @r.Amount (@r.Description)@(string.IsNullOrWhiteSpace(r.Person) ? "" : $" · {r.Person}")</small>
                         </li>
                     }
                 </ul>
@@ -64,9 +64,17 @@
                     <dt>Type</dt><dd>@selected.Type</dd>
                     <dt>Date</dt><dd>@selected.Date</dd>
                     <dt>Description</dt><dd>@selected.Description</dd>
+                    <dt>Person</dt><dd>@(selected.Person ?? "—")</dd>
+                    <dt>Payment method</dt><dd>@(selected.PaymentMethod ?? "—")</dd>
+                    <dt>Currency</dt><dd>@(selected.Currency ?? "—")</dd>
+                    <dt>Running cash total</dt><dd>@(selected.RunningCashTotal?.ToString("0.00") ?? "—")</dd>
                 </dl>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger">@errorMsg</div> }
-                @if (!string.IsNullOrWhiteSpace(selected.ReversedById))
+                @if (string.Equals(selected.Type, "register", StringComparison.OrdinalIgnoreCase))
+                {
+                    <p class="text-muted">Cash-register copy of a booking payment.</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(selected.ReversedById))
                 {
                     <p class="text-muted">Reversed</p>
                 }

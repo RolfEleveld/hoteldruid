@@ -3373,7 +3373,7 @@ app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyV
 
 // --- Layer 4: MoneyHistory (movimenticassa{year}) - append-only, no PUT ---
 
-MoneyHistoryDto ToMoneyHistoryDto(string id, MoneyHistoryStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Type, s.Description, s.Date, s.ReversesId, s.ReversedById);
+MoneyHistoryDto ToMoneyHistoryDto(string id, MoneyHistoryStorageModel s) => new(id, s.Year, s.CashRegisterId, s.Amount, s.Type, s.Description, s.Date, s.ReversesId, s.ReversedById, s.Person, s.PaymentMethod, s.Currency, s.RunningCashTotal);
 
 static bool MoneyHistoryIsOutflow(double? amount, string? type)
 {
@@ -3409,17 +3409,17 @@ app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
-    var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date };
+    var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date, Person = request.Person, PaymentMethod = request.PaymentMethod, Currency = request.Currency, RunningCashTotal = request.RunningCashTotal };
     var id = await store.CreateAsync("money_history", key, storage);
     var amount = Convert.ToDecimal(request.Amount ?? 0);
     var isOutflow = MoneyHistoryIsOutflow(request.Amount, request.Type);
     if (isOutflow)
     {
-        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", amount, HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Description, sourceType: "money-history", sourceId: id);
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", Math.Abs(amount), HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
     }
     else
     {
-        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_income", request.Description ?? "Petty cash income", amount, HotelAccounts.Cash, "asset", HotelAccounts.OtherIncome, "revenue", cashRegisterId: request.CashRegisterId, payerName: request.Description, sourceType: "money-history", sourceId: id);
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_income", request.Description ?? "Petty cash income", Math.Abs(amount), HotelAccounts.Cash, "asset", HotelAccounts.OtherIncome, "revenue", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
     }
     return Results.Created($"/api/money-history/{request.Year}/{id}", ToMoneyHistoryDto(id, storage));
 }).WithName("CreateMoneyHistory");
@@ -3438,6 +3438,9 @@ app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, strin
     if (!string.IsNullOrWhiteSpace(original.ReversedById))
         return Results.Conflict(new { error = "This entry is already reversed." });
 
+    if (string.Equals(original.Type, "register", StringComparison.OrdinalIgnoreCase))
+        return Results.Conflict(new { error = "This row is the cash-register copy of a booking payment. Reverse that payment instead." });
+
     var amount = Convert.ToDecimal(original.Amount ?? 0);
     if (amount == 0)
         return Results.BadRequest(new { error = "A zero amount cannot be reversed." });
@@ -3452,7 +3455,10 @@ app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, strin
         Type = "reversal",
         Description = string.IsNullOrWhiteSpace(original.Description) ? "Reversal" : $"Reversal of {original.Description}",
         Date = DateOnly.FromDateTime(DateTime.UtcNow),
-        ReversesId = id
+        ReversesId = id,
+        Person = original.Person,
+        PaymentMethod = original.PaymentMethod,
+        Currency = original.Currency
     };
     var reversalId = await store.CreateAsync("money_history", key, reversal);
     original.ReversedById = reversalId;

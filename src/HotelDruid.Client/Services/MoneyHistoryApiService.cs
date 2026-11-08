@@ -23,7 +23,11 @@ namespace HotelDruid.Client.Services
         string? Description = null,
         string? Date = null,
         string? ReversesId = null,
-        string? ReversedById = null
+        string? ReversedById = null,
+        string? Person = null,
+        string? PaymentMethod = null,
+        string? Currency = null,
+        double? RunningCashTotal = null
     );
 
     public class MoneyHistoryApiService : IMoneyHistoryApiService

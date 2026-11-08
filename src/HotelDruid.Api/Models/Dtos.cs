@@ -544,6 +544,10 @@ public class MoneyHistoryStorageModel
     public DateOnly? Date { get; set; }
     public string? ReversesId { get; set; }
     public string? ReversedById { get; set; }
+    public string? Person { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Currency { get; set; }
+    public double? RunningCashTotal { get; set; }
 }
 
 // --- Layer 5: Communication/Integration entities ---

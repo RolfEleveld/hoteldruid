@@ -17,6 +17,11 @@ public interface ICanonicalMapper
     string NormalizeTableName(string inputTableName);
 
     /// <summary>
+    /// Year suffix on a PHP table such as bookings2026. Null when the name has no year.
+    /// </summary>
+    int? GetTableYear(string inputTableName);
+
+    /// <summary>
     /// Get export table name (conservative outbound)
     /// Returns industry-standard name ("rooms")
     /// </summary>

@@ -26,6 +26,7 @@ public class ImportService : IImportService
     // Track in-progress imports
     private readonly Dictionary<string, ImportStatusTracker> _importStatus = new();
     private readonly Dictionary<string, ImportPackageInfo> _validatedPackages = new();
+    private readonly Dictionary<string, string> _extractedDirectories = new();
 
     public ImportService(
         IZipBuilder zipBuilder,
@@ -65,7 +66,7 @@ public class ImportService : IImportService
             }
 
             var manifestJson = await File.ReadAllTextAsync(manifestPath);
-            var manifest = JsonSerializer.Deserialize<Manifest>(manifestJson, JsonOptions);
+            var manifest = PhpExportJson.ReadManifest(manifestJson);
 
             // Discover tables
             var tablesDir = Path.Combine(tempDir, "data", "tables");
@@ -80,7 +81,7 @@ public class ImportService : IImportService
                     try
                     {
                         var tableJson = await File.ReadAllTextAsync(tableFile);
-                        var table = JsonSerializer.Deserialize<CanonicalData>(tableJson, JsonOptions);
+                        var table = PhpExportJson.ReadTable(tableJson, Path.GetFileNameWithoutExtension(tableFile));
 
                         if (table != null)
                         {
@@ -121,11 +122,13 @@ public class ImportService : IImportService
                 Tables: tables,
                 UploadedAt: DateTime.UtcNow
             );
-
-            // Clean up temp directory
-            try { Directory.Delete(tempDir, true); } catch { }
-
             var isValid = !errors.Any();
+            if (isValid)
+                _extractedDirectories[packageId] = tempDir;
+            else
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
             _logger.LogInformation("Package {PackageId} validation completed. Valid: {IsValid}", packageId, isValid);
 
             return new ImportValidationResponse(
@@ -261,13 +264,9 @@ public class ImportService : IImportService
 
             // Step 1: Re-extract package (since temp dir was deleted after validation)
             tracker.ProgressPercent = 10;
-            
-            // Create a temporary in-memory copy or re-extract from original
-            // For now, assume package is accessible via pkgInfo
-            tempDir = Path.Combine(Path.GetTempPath(), $"import_{importId}");
-            Directory.CreateDirectory(tempDir);
+            if (!_extractedDirectories.TryGetValue(pkgInfo.PackageId, out tempDir) || !Directory.Exists(tempDir))
+                throw new InvalidOperationException("The validated package is no longer available. Validate it again.");
 
-            // Step 2: Load canonical data
             tracker.ProgressPercent = 30;
             var canonicalData = new Dictionary<string, CanonicalData>();
             var tablesDir = Path.Combine(tempDir, "data", "tables");
@@ -279,7 +278,7 @@ public class ImportService : IImportService
                     try
                     {
                         var tableJson = await File.ReadAllTextAsync(tableFile);
-                        var table = JsonSerializer.Deserialize<CanonicalData>(tableJson);
+                        var table = PhpExportJson.ReadTable(tableJson, Path.GetFileNameWithoutExtension(tableFile));
                         if (table != null)
                         {
                             canonicalData[table.TableName] = table;
@@ -321,6 +320,11 @@ public class ImportService : IImportService
             tracker.ProgressPercent = 100;
             tracker.Status = "completed";
             tracker.CompletedAt = DateTime.UtcNow;
+            if (_extractedDirectories.TryGetValue(pkgInfo.PackageId, out var extracted))
+            {
+                _extractedDirectories.Remove(pkgInfo.PackageId);
+                try { Directory.Delete(extracted, true); } catch { }
+            }
 
             _logger.LogInformation(
                 "Import {ImportId} completed. Tables: {Tables}, Rows: {Rows}",

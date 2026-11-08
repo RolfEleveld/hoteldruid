@@ -114,7 +114,11 @@ public record MoneyHistoryDto(
     string? Description = null,
     DateOnly? Date = null,
     string? ReversesId = null,
-    string? ReversedById = null
+    string? ReversedById = null,
+    string? Person = null,
+    string? PaymentMethod = null,
+    string? Currency = null,
+    double? RunningCashTotal = null
 );
 
 /// <summary>One immutable financial movement on a booking.</summary>

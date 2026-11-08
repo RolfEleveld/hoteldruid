@@ -20,13 +20,14 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] Stop deleting money history. A correction posts the opposite journal and a new history row. The original row and its ledger lines stay.
 - [x] A delete of a booking or expense that the ledger cites hides the record and keeps it for the audit trail. A record with no ledger lines is removed. `POST /api/retention/clear-deleted` removes a hidden record only when its year is before the current year and no ledger line still cites it.
 
+- [x] PHP export/import compatibility. The PHP package keeps one booking money history, `payments{year}`. Blazor imports those rows as ledger journals and does not open a second per-booking transaction book. Extra costs stay on the booking.
+- [x] PHP cash-register permissions, person, payment method, currency, and running cash total come across on the petty-cash posts. A booking payment's cash-register copy keeps those fields and does not post a second journal.
+- [x] Personnel stays the person named on a cash row. That person is stored on the petty-cash post. There is no payroll.
+
 ## Still open
-- [ ] PHP export/import compatibility: after this Blazor projection is visually tested, update the main (PHP) branch so export/import does not keep a second per-booking transaction book.
-- [ ] Bring PHP cash-register permissions, person, payment method, currency, and running cash total onto petty-cash posts.
 - [ ] Bring over the PHP point of sale (`punto_vendita.php`) for walk-up sales and non-staying guest payments.
 - [ ] Post inventory goods sold at the point of sale. PHP has no separate purchasing module.
 - [ ] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed.
-- [ ] Personnel is only `persona_costo` on a cash row in PHP. Bring that field over. Do not invent payroll.
 - [ ] Invoice and contract totals must use ledger charges, prepayments, deposits, and balance.
 
 ## Nice to have (future visualization)

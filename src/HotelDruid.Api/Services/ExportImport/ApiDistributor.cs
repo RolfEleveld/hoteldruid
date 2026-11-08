@@ -14,17 +14,20 @@ public class ApiDistributor : IApiDistributor
     private readonly IKeyValueStore _store;
     private readonly ISystemConfigurationStore _systemConfigurationStore;
     private readonly ICanonicalMapper _canonicalMapper;
+    private readonly IFinancialPostingService? _ledger;
     private readonly ILogger<ApiDistributor> _logger;
 
     public ApiDistributor(
         IKeyValueStore store,
         ISystemConfigurationStore systemConfigurationStore,
         ICanonicalMapper canonicalMapper,
-        ILogger<ApiDistributor> logger)
+        ILogger<ApiDistributor> logger,
+        IFinancialPostingService? ledger = null)
     {
         _store = store;
         _systemConfigurationStore = systemConfigurationStore;
         _canonicalMapper = canonicalMapper;
+        _ledger = ledger;
         _logger = logger;
     }
 
@@ -34,12 +37,22 @@ public class ApiDistributor : IApiDistributor
         var results = new Dictionary<string, TableImportResult>();
         var errors = new List<ImportError>();
         var totalImported = 0;
+        var phpTables = new List<PhpTable>();
 
         foreach (var (sourceTableName, tableData) in data)
         {
             try
             {
-                var normalizedTable = _canonicalMapper.NormalizeTableName(sourceTableName);
+                var sourceName = string.IsNullOrWhiteSpace(tableData.TableName) ? sourceTableName : tableData.TableName;
+                var normalizedTable = _canonicalMapper.NormalizeTableName(sourceName);
+                var year = _canonicalMapper.GetTableYear(sourceName);
+                if (normalizedTable == "expenses" && year != null)
+                    normalizedTable = "cash_journal";
+                if (PhpHotelImporter.Handles(normalizedTable, year, tableData))
+                {
+                    phpTables.Add(new PhpTable(sourceName, normalizedTable, year, tableData));
+                    continue;
+                }
 
                 switch (normalizedTable)
                 {
@@ -83,9 +96,8 @@ public class ApiDistributor : IApiDistributor
                         break;
 
                     default:
-                        _logger.LogWarning("Cannot import unknown table: {TableName}", sourceTableName);
-                        errors.Add(new ImportError(sourceTableName, 
-                            $"Unknown table type '{sourceTableName}'."));
+                        _logger.LogInformation("Skipping table {TableName}; it is not one of the Blazor books.", sourceTableName);
+                        results[sourceTableName] = new TableImportResult(sourceTableName, 0, true);
                         break;
                 }
             }
@@ -94,6 +106,15 @@ public class ApiDistributor : IApiDistributor
                 _logger.LogError(ex, "Error distributing table {TableName}", sourceTableName);
                 errors.Add(new ImportError(sourceTableName, ex.Message));
             }
+        }
+
+        if (phpTables.Count > 0)
+        {
+            var phpResult = await new PhpHotelImporter(_store, _ledger, _logger).ImportAsync(phpTables);
+            totalImported += phpResult.TotalImported;
+            foreach (var (name, result) in phpResult.ByTable)
+                results[name] = result;
+            errors.AddRange(phpResult.Errors);
         }
 
         return new DistributionResult(

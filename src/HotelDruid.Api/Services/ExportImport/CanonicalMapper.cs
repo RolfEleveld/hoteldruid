@@ -84,15 +84,33 @@ public class CanonicalMapper : ICanonicalMapper
 
             // Layer 4: Transactional entities (italian → canonical)
             ["prenotazioni"] = "bookings",
+            ["prenota"] = "bookings",
             ["bookings"] = "bookings",
+            ["guests"] = "clients",
+            ["properties"] = "rooms",
             ["costiprenotazione"] = "booking_costs",
+            ["costiprenota"] = "booking_costs",
             ["booking_costs"] = "booking_costs",
             ["ospiti"] = "booking_guests",
+            ["rclientiprenota"] = "booking_guests",
+            ["booking_clients"] = "booking_guests",
             ["booking_guests"] = "booking_guests",
             ["prenotazioniannullate"] = "cancelled_bookings",
+            ["prenotacanc"] = "cancelled_bookings",
+            ["booking_cancels"] = "cancelled_bookings",
             ["cancelled_bookings"] = "cancelled_bookings",
             ["spese"] = "expenses",
+            ["costi"] = "expenses",
             ["expenses"] = "expenses",
+            ["soldi"] = "booking_payments",
+            ["payments"] = "booking_payments",
+            ["permissions"] = "user_privileges",
+            ["countries"] = "nations",
+            ["document_types"] = "identity-document-types",
+            ["relationships"] = "family-relationships",
+            ["descriptions"] = "descriptions",
+            ["seasons"] = "periods",
+            ["rateplans"] = "tariffs",
             ["movimenticassa"] = "money_history",
             ["money_history"] = "money_history",
 
@@ -469,8 +487,7 @@ public class CanonicalMapper : ICanonicalMapper
     public string NormalizeTableName(string inputTableName)
     {
         var lower = inputTableName?.ToLowerInvariant().Trim() ?? "";
-        
-        if (_naming.TableAliases.TryGetValue(lower, out var canonical))
+        if (TryResolve(lower, out var canonical))
         {
             _logger.LogDebug("Normalized table '{Input}' to '{Canonical}'", inputTableName, canonical);
             return canonical;
@@ -478,6 +495,34 @@ public class CanonicalMapper : ICanonicalMapper
 
         _logger.LogWarning("Unknown table name '{Input}', passing through", inputTableName);
         return lower;
+    }
+
+    public int? GetTableYear(string inputTableName)
+    {
+        var lower = inputTableName?.ToLowerInvariant().Trim() ?? "";
+        if (!TrySplitYear(lower, out var stem, out var year))
+            return null;
+        return _naming.TableAliases.ContainsKey(stem) ? year : null;
+    }
+
+    private bool TryResolve(string lower, out string canonical)
+    {
+        if (_naming.TableAliases.TryGetValue(lower, out canonical!))
+            return true;
+        if (TrySplitYear(lower, out var stem, out _) && _naming.TableAliases.TryGetValue(stem, out canonical!))
+            return true;
+        canonical = "";
+        return false;
+    }
+
+    private static bool TrySplitYear(string name, out string stem, out int year)
+    {
+        stem = name;
+        year = 0;
+        if (name.Length < 5 || !int.TryParse(name[^4..], out year) || year < 1900 || year > 2200)
+            return false;
+        stem = name[..^4];
+        return stem.Length > 0;
     }
 
     public string GetExportTableName(string normalizedTableName)
