@@ -620,6 +620,8 @@
   <data name="ledger.date" xml:space="preserve"><value>Data</value></data>
   <data name="ledger.account" xml:space="preserve"><value>Conto</value></data>
   <data name="ledger.bookingColumn" xml:space="preserve"><value>Prenotazione</value></data>
+  <data name="ledger.allBookings" xml:space="preserve"><value>Tutte le prenotazioni</value></data>
+  <data name="ledger.bookingUnknown" xml:space="preserve"><value>Prenotazione</value></data>
   <data name="ledger.payer" xml:space="preserve"><value>Pagatore</value></data>
   <data name="ledger.debit" xml:space="preserve"><value>Dare</value></data>
   <data name="ledger.credit" xml:space="preserve"><value>Avere</value></data>

@@ -92,11 +92,12 @@ public class BookingsPageIntegrationTests : TestContext
         });
 
         var itemsInOrder = component.FindAll(".list-group-item");
-        itemsInOrder[0].TextContent.Should().Contain("2026 — Adams Anna");
-        itemsInOrder[0].TextContent.Should().Contain("2026-05-01 → 2026-05-03");
-        itemsInOrder[1].TextContent.Should().Contain("2026 — Adams Anna");
-        itemsInOrder[1].TextContent.Should().Contain("2026-05-10 → 2026-05-12");
-        itemsInOrder[2].TextContent.Should().Contain("2026 — Brown Ben");
+        itemsInOrder[0].TextContent.Should().Contain("Adams Anna");
+        itemsInOrder[0].TextContent.Should().Contain("2026-05-01 · Room 1");
+        itemsInOrder[1].TextContent.Should().Contain("Adams Anna");
+        itemsInOrder[1].TextContent.Should().Contain("2026-05-10 · Room 1");
+        itemsInOrder[2].TextContent.Should().Contain("Brown Ben");
+        itemsInOrder[2].TextContent.Should().Contain("2026-06-01 · Room 2");
 
         itemsInOrder[0].Click();
 
@@ -138,8 +139,8 @@ public class BookingsPageIntegrationTests : TestContext
         {
             var items = component.FindAll(".list-group-item");
             items.Should().HaveCount(1);
-            items[0].TextContent.Should().Contain("2026 — Adams Anna");
-            items[0].TextContent.Should().Contain("2026-08-06 → 2026-08-10");
+            items[0].TextContent.Should().Contain("Adams Anna");
+            items[0].TextContent.Should().Contain("2026-08-06 · Room 1");
         });
 
         bookingApi.Verify(x => x.ListStaysAsync(2026), Times.AtLeastOnce);
@@ -157,7 +158,8 @@ public class BookingsPageIntegrationTests : TestContext
         {
             var items = component.FindAll(".list-group-item");
             items.Should().HaveCount(1);
-            items[0].TextContent.Should().Contain("2026 — Brown Ben");
+            items[0].TextContent.Should().Contain("Brown Ben");
+            items[0].TextContent.Should().Contain("2026-08-08 · Room 2");
         });
 
         bookingApi.Verify(x => x.ListArrivalsAsync(2026, 2), Times.AtLeastOnce);
@@ -175,7 +177,8 @@ public class BookingsPageIntegrationTests : TestContext
         {
             var items = component.FindAll(".list-group-item");
             items.Should().HaveCount(1);
-            items[0].TextContent.Should().Contain("2026 — Adams Anna");
+            items[0].TextContent.Should().Contain("Adams Anna");
+            items[0].TextContent.Should().Contain("2026-08-06 · Room 1");
         });
 
         bookingApi.Verify(x => x.ListDeparturesAsync(2026), Times.AtLeastOnce);
@@ -193,7 +196,8 @@ public class BookingsPageIntegrationTests : TestContext
         {
             var items = component.FindAll(".list-group-item");
             items.Should().HaveCount(1);
-            items[0].TextContent.Should().Contain("2026 — Brown Ben");
+            items[0].TextContent.Should().Contain("Brown Ben");
+            items[0].TextContent.Should().Contain("2026-08-11 · Room 2");
         });
 
         bookingApi.Verify(x => x.ListReservationsAsync(2026), Times.AtLeastOnce);

@@ -41,8 +41,8 @@
                             {
                                 <a class="list-group-item list-group-item-action @(listed.Id == booking?.Id ? "active" : "")"
                                    href="@GetGuestBookingUrl(listed)">
-                                    <div class="fw-semibold">@GetGuestBookingTitle(listed)</div>
-                                    <small>@FormatDate(listed.ArrivalDate) → @FormatDate(listed.DepartureDate)</small>
+                                    <div class="fw-semibold">@DescribeBooking(listed)</div>
+                                    <small>@GetClientName(listed.ClientId)</small>
                                 </a>
                             }
                         </div>
@@ -179,7 +179,7 @@
                     {
                         <dl class="booking-detail-grid">
                             <dt>@L["bookingFinance.booking", "Booking"]</dt>
-                            <dd><a href="@GetBookingUrl()">@GetBookingTitle()</a></dd>
+                            <dd><a href="@BookingReference.Href(booking.Id)">@DescribeBooking(booking)</a></dd>
                             <dt>@L["bookingFinance.guest", "Guest"]</dt>
                             <dd>
                                 @if (!string.IsNullOrWhiteSpace(booking.ClientId))
@@ -333,8 +333,12 @@
         return $"/booking-finance?selectedId={id}&year={guestBooking.Year}{client}";
     }
 
-    private string GetGuestBookingTitle(BookingDto guestBooking)
-        => $"{guestBooking.Year} — {GetClientName(guestBooking.ClientId)} · {GetRoomName(guestBooking.RoomId)}";
+    private string DescribeBooking(BookingDto item)
+    {
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, item.RoomId, StringComparison.OrdinalIgnoreCase));
+        var roomName = string.IsNullOrWhiteSpace(room?.Name) ? null : room.Name;
+        return BookingReference.Label(item.ArrivalDate, roomName);
+    }
 
     private async Task ReloadFinanceAsync()
     {
@@ -401,10 +405,7 @@
     private void ClearSelectedTransaction() => selectedTransaction = null;
 
     private string GetBookingTitle()
-    {
-        if (booking is null) return string.Empty;
-        return $"{booking.Year} — {GetClientName()} · {GetRoomName()}";
-    }
+        => booking is null ? string.Empty : DescribeBooking(booking);
 
     private string GetClientName() => GetClientName(booking?.ClientId);
 
@@ -423,9 +424,6 @@
         var room = rooms.FirstOrDefault(item => string.Equals(item.Id, roomId, StringComparison.OrdinalIgnoreCase));
         return string.IsNullOrWhiteSpace(room?.Name) ? L["bookings.unknownRoom", "Unknown room"] : room.Name;
     }
-
-    private string GetBookingUrl()
-        => booking?.Id is null ? "/bookings" : $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}&year={booking.Year}";
 
     private string GetClientUrl()
         => string.IsNullOrWhiteSpace(booking?.ClientId) ? "/clients" : $"/clients?selectedId={Uri.EscapeDataString(booking.ClientId)}";

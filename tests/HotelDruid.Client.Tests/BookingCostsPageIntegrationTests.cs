@@ -14,6 +14,8 @@ namespace HotelDruid.Client.Tests.Integration.Pages;
 public class BookingCostsPageIntegrationTests : TestContext
 {
     private readonly Mock<IBookingCostApiService> bookingCostApi = new();
+    private readonly Mock<IBookingApiService> bookingApi = new();
+    private readonly Mock<IRoomApiService> roomApi = new();
     private readonly Mock<IActiveYearService> activeYearService = new();
 
     public BookingCostsPageIntegrationTests()
@@ -32,7 +34,19 @@ public class BookingCostsPageIntegrationTests : TestContext
             .Setup(x => x.CreateAsync(It.IsAny<BookingCostClientDto>()))
             .ReturnsAsync("cost-created");
 
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>
+        {
+            new("stay-42", 2026, null, "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 2)),
+            new("stay-99", 2026, null, "room-1", new DateOnly(2026, 5, 3), new DateOnly(2026, 5, 4))
+        });
+        roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>
+        {
+            new("room-1", "Room 1", 2, 1, "A")
+        });
+
         Services.AddScoped(_ => bookingCostApi.Object);
+        Services.AddScoped(_ => bookingApi.Object);
+        Services.AddScoped(_ => roomApi.Object);
         Services.AddScoped(_ => activeYearService.Object);
     }
 

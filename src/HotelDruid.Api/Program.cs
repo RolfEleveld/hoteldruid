@@ -3709,9 +3709,6 @@ app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, strin
     else
         createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
 
-    if (!string.IsNullOrWhiteSpace(createdEntry.Id))
-        await indexRepo.AppendEntryIdAsync(id, createdEntry.Id);
-
     var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
     var dto = BookingTransactionProjection.ProjectJournal(lines, createdEntry.JournalId)
         ?? new BookingTransactionDto(id, 0, when, request.Type, Math.Abs(request.Amount), request.Description, appliedTo, request.CreatedBy);

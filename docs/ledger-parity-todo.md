@@ -19,7 +19,7 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 
 ## Still open
 - [ ] PHP export/import compatibility: after this Blazor projection is visually tested, update the main (PHP) branch so export/import does not keep a second per-booking transaction book.
-- [ ] Add a booking index so history is not a scan of every day partition.
+- [x] Add a booking index so history is not a scan of every day partition. The first read of a booking records its ledger line ids in `bookings/{bookingId}/_ledger_index.json`. Later reads open those sequence files directly. A journal posted after that index exists is appended to it.
 - [ ] Bring PHP cash-register permissions, person, payment method, currency, and running cash total onto petty-cash posts.
 - [ ] Stop deleting money history. Corrections should be reversing ledger entries.
 - [ ] Bring over the PHP point of sale (`punto_vendita.php`) for walk-up sales and non-staying guest payments.

@@ -640,6 +640,8 @@
   <data name="ledger.date" xml:space="preserve"><value>Date</value></data>
   <data name="ledger.account" xml:space="preserve"><value>Account</value></data>
   <data name="ledger.bookingColumn" xml:space="preserve"><value>Booking</value></data>
+  <data name="ledger.allBookings" xml:space="preserve"><value>All bookings</value></data>
+  <data name="ledger.bookingUnknown" xml:space="preserve"><value>Booking</value></data>
   <data name="ledger.payer" xml:space="preserve"><value>Payer</value></data>
   <data name="ledger.debit" xml:space="preserve"><value>Debit</value></data>
   <data name="ledger.credit" xml:space="preserve"><value>Credit</value></data>

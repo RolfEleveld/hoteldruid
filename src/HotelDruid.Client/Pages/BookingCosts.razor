@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Components
 @using HotelDruid.Client.Services
 @inject IBookingCostApiService BookingCostApi
+@inject IBookingApiService BookingApi
+@inject IRoomApiService RoomApi
 @inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
@@ -28,7 +30,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.BookingId</div>
+                            <div class="fw-bold">@BookingLabel(r.BookingId)</div>
                             <small>@r.Description (@r.Amount)</small>
                         </li>
                     }
@@ -41,7 +43,16 @@
                 <h5 class="mt-1">@(isNew ? "New Booking Cost" : "Edit Booking Cost")</h5>
                 <div class="row g-2">
                     <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
-                    <div class="col-6"><label>Booking ID</label><input class="form-control" @bind="form.BookingId" /></div>
+                    <div class="col-6">
+                        <label>@L["ledger.bookingColumn", "Booking"]</label>
+                        <select class="form-select" @bind="form.BookingId">
+                            <option value="">—</option>
+                            @foreach (var booking in catalog.Bookings)
+                            {
+                                <option value="@booking.Id">@catalog.Label(booking)</option>
+                            }
+                        </select>
+                    </div>
                     <div class="col-6"><label>Tariff ID</label><input class="form-control" @bind="form.TariffId" /></div>
                     <div class="col-6"><label>Amount</label><input class="form-control" type="number" @bind="form.Amount" /></div>
                     <div class="col-12"><label>Description</label><input class="form-control" @bind="form.Description" /></div>
@@ -59,7 +70,17 @@
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
                     <dt>Year</dt><dd>@selected.Year</dd>
-                    <dt>Booking ID</dt><dd>@selected.BookingId</dd>
+                    <dt>@L["ledger.bookingColumn", "Booking"]</dt>
+                    <dd>
+                        @if (string.IsNullOrWhiteSpace(selected.BookingId))
+                        {
+                            <span>—</span>
+                        }
+                        else
+                        {
+                            <a href="@BookingReference.Href(selected.BookingId)">@BookingLabel(selected.BookingId)</a>
+                        }
+                    </dd>
                     <dt>Tariff ID</dt><dd>@selected.TariffId</dd>
                     <dt>Amount</dt><dd>@selected.Amount</dd>
                     <dt>Description</dt><dd>@selected.Description</dd>
@@ -82,6 +103,7 @@
     public bool? StartNew { get; set; }
 
     private List<BookingCostClientDto>? records;
+    private BookingCatalog catalog = BookingCatalog.From(null, null);
     private BookingCostClientDto? selected;
     private bool editing, isNew;
     private bool isSaving;
@@ -92,7 +114,7 @@
     protected override async Task OnInitializedAsync()
     {
         filterYear = YearQuery ?? ActiveYearService.CurrentYear;
-        await LoadAll();
+        await Task.WhenAll(LoadAll(), LoadCatalogAsync());
         ApplyQueryContext();
     }
 
@@ -103,6 +125,26 @@
     }
 
     private async Task LoadAll() => records = await BookingCostApi.ListAsync(filterYear);
+
+    private async Task LoadCatalogAsync()
+    {
+        try
+        {
+            var bookings = await BookingApi.ListAsync();
+            var rooms = await RoomApi.GetRoomsAsync();
+            catalog = BookingCatalog.From(bookings, rooms);
+        }
+        catch
+        {
+            catalog = BookingCatalog.From(null, null);
+        }
+    }
+
+    private string BookingLabel(string? id)
+    {
+        var label = catalog.Label(id);
+        return string.IsNullOrWhiteSpace(label) ? L["ledger.bookingUnknown", "Booking"] : label;
+    }
     private async Task ApplyFilter() => await LoadAll();
 
     private void ApplyQueryContext()

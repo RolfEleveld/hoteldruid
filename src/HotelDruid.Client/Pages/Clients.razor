@@ -366,9 +366,8 @@
                                     @foreach (var booking in clientBookings.Take(ReservationDetailsVisibleCount))
                                     {
                                         <a class="list-group-item list-group-item-action" href="@GetBookingUrl(booking)">
-                                            <div class="fw-semibold"><strong>@DisplayDate(booking.ArrivalDate)</strong></div>
+                                            <div class="fw-semibold">@DescribeBooking(booking)</div>
                                             <div class="small text-muted">@GetBookingDuration(booking)</div>
-                                            <div class="small text-muted">@GetBookingRoomLabel(booking)</div>
                                         </a>
                                     }
                                 </div>
@@ -613,23 +612,20 @@
         => $"{amount.GetValueOrDefault():0.00} {guestCurrency}";
 
     private string GetBookingUrl(BookingDto booking)
+        => BookingReference.Href(booking?.Id);
+
+    private string DescribeBooking(BookingDto booking)
+        => BookingReference.Label(booking.ArrivalDate, BookingRoomName(booking.RoomId));
+
+    private string? BookingRoomName(string? roomId)
     {
-        if (booking is null || string.IsNullOrWhiteSpace(booking.Id))
+        if (string.IsNullOrWhiteSpace(roomId) || rooms is null)
         {
-            return "/bookings";
+            return null;
         }
 
-        return $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}";
-    }
-
-    private string GetBookingRoomLabel(BookingDto booking)
-    {
-        if (string.IsNullOrWhiteSpace(booking.RoomId))
-        {
-            return string.Empty;
-        }
-
-        return string.Format(L["clients.reservationRoomLabel", "Room"] + ": {0}", GetRoomDisplayName(booking.RoomId));
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(room?.Name) ? null : room.Name;
     }
 
     private string GetRoomDisplayName(string roomId)
@@ -655,17 +651,13 @@
             return;
         }
 
-        Navigation.NavigateTo($"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}");
+        Navigation.NavigateTo(BookingReference.Href(booking.Id));
     }
 
     private string GetBookingReference(BookingDto booking)
     {
-        if (booking.Year > 0 && !string.IsNullOrWhiteSpace(booking.Id))
-        {
-            return $"#{booking.Year}/{booking.Id}";
-        }
-
-        return L["clients.reservationEntry", "Reservation entry"];
+        var label = DescribeBooking(booking);
+        return string.IsNullOrWhiteSpace(label) ? L["clients.reservationEntry", "Reservation entry"] : label;
     }
 
     private string GetBookingDateAndDuration(BookingDto booking)
@@ -704,9 +696,10 @@
     private string GetBookingMeta(BookingDto booking)
     {
         var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(booking.RoomId))
+        var roomName = BookingRoomName(booking.RoomId);
+        if (!string.IsNullOrWhiteSpace(roomName))
         {
-            parts.Add($"{L["clients.reservationRoomLabel", "Room"]}: {booking.RoomId}");
+            parts.Add($"{L["clients.reservationRoomLabel", "Room"]}: {roomName}");
         }
 
         if (!string.IsNullOrWhiteSpace(booking.Status))
@@ -716,9 +709,7 @@
 
         if (parts.Count == 0)
         {
-            return booking.Year > 0 && !string.IsNullOrWhiteSpace(booking.Id)
-                ? $"#{booking.Year}/{booking.Id}"
-                : L["clients.reservationEntry", "Reservation entry"];
+            return GetBookingReference(booking);
         }
 
         return string.Join(" · ", parts);

@@ -536,11 +536,14 @@ public interface ILedgerRepository
 ```csharp
 public interface IBookingLedgerIndexRepository
 {
-    // Append a ledger entry id for this booking (idempotent)
-    Task AppendEntryIdAsync(string bookingId, string ledgerEntryId);
+    // Null until the first read has recorded this booking
+    Task<List<string>?> ReadIfPresentAsync(string bookingId);
 
-    // Entry ids in append order
-    Task<List<string>> GetEntryIdsAsync(string bookingId);
+    // First read stores every existing line id; later reads return that list
+    Task<List<string>> GetOrBuildAsync(string bookingId, Func<Task<IReadOnlyList<string>>> build);
+
+    // A new journal is added only after the index file exists
+    Task AppendIfPresentAsync(string bookingId, IReadOnlyCollection<string> entryIds);
 }
 ```
 

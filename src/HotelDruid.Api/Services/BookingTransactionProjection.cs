@@ -12,7 +12,7 @@ public static class BookingTransactionProjection
     public readonly record struct Totals(decimal Payments, decimal Refunds, decimal Deposits);
 
     /// <summary>
-    /// Index first, then a date-range scan for bookings that have no index yet.
+    /// Direct lookup once the booking index exists. The first read records every existing line for the booking.
     /// </summary>
     public static async Task<List<LedgerEntry>> LoadAsync(
         ILedgerRepository ledger,
@@ -21,11 +21,26 @@ public static class BookingTransactionProjection
         DateTime fallbackFrom,
         DateTime fallbackTo)
     {
-        var entryIds = await index.GetEntryIdsAsync(bookingId);
-        if (entryIds.Count > 0)
-            return await ledger.GetEntriesByIdsAsync(entryIds);
+        _ = fallbackFrom;
+        _ = fallbackTo;
 
-        return await ledger.GetEntriesForBookingAsync(bookingId, fallbackFrom, fallbackTo);
+        List<LedgerEntry>? scanned = null;
+        var entryIds = await index.GetOrBuildAsync(bookingId, async () =>
+        {
+            scanned = await ledger.GetEntriesForBookingAsync(bookingId, DateTime.MinValue, DateTime.MaxValue);
+            return scanned
+                .Select(line => line.Id)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!)
+                .ToList();
+        });
+
+        if (scanned is not null)
+            return scanned;
+
+        return entryIds.Count == 0
+            ? new List<LedgerEntry>()
+            : await ledger.GetEntriesByIdsAsync(entryIds);
     }
 
     /// <summary>

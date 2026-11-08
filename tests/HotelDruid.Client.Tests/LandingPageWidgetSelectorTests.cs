@@ -521,7 +521,7 @@ public class LandingPageWidgetSelectorTests : TestContext
             var bookingRows = component.FindAll(".border-primary .list-group-item");
             Assert.NotEmpty(bookingRows);
             Assert.Contains(bookingRows, row => row.TextContent.Contains("Client, Five", StringComparison.Ordinal));
-            Assert.Contains(bookingRows, row => row.TextContent.Contains("2026-06-13 -> 2026-06-15", StringComparison.Ordinal));
+            Assert.Contains(bookingRows, row => row.TextContent.Contains("2026-06-13 · Room 5", StringComparison.Ordinal));
         });
     }
 

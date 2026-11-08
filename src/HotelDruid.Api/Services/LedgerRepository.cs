@@ -177,13 +177,40 @@ public class LedgerRepository : ILedgerRepository, IDisposable
         var result = new List<LedgerEntry>();
         if (entryIds is null) return result;
 
-        var idSet = new HashSet<string>(entryIds);
+        var unresolved = new List<string>();
+        foreach (var id in entryIds.Distinct(StringComparer.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
 
-        // We walk the entire ledger history once — acceptable because this is only
-        // called when the booking index is empty or during audit.
-        // For production we would add a reverse index (entryId → date folder).
+            if (!TryParseEntryLocation(id, out var date, out var sequence))
+            {
+                unresolved.Add(id);
+                continue;
+            }
+
+            var path = GetSeqPath(GetPartitionDir(date), sequence);
+            if (!File.Exists(path))
+                continue;
+
+            var entry = await ReadEntryAsync(path);
+            if (entry is not null)
+                result.Add(entry);
+        }
+
+        if (unresolved.Count > 0)
+            result.AddRange(await ScanEntriesByIdsAsync(unresolved));
+
+        return result;
+    }
+
+    private async Task<List<LedgerEntry>> ScanEntriesByIdsAsync(IReadOnlyCollection<string> entryIds)
+    {
+        var result = new List<LedgerEntry>();
+        var idSet = new HashSet<string>(entryIds, StringComparer.Ordinal);
         var root = Path.Combine(_dataRoot, "ledger");
-        if (!Directory.Exists(root)) return result;
+        if (!Directory.Exists(root))
+            return result;
 
         foreach (var yearDir in Directory.EnumerateDirectories(root))
         {
@@ -194,13 +221,33 @@ public class LedgerRepository : ILedgerRepository, IDisposable
                     foreach (var file in GetSortedSeqFiles(dayDir))
                     {
                         var entry = await ReadEntryAsync(file);
-                        if (entry is not null && idSet.Contains(entry.Id))
+                        if (entry is not null && entry.Id is not null && idSet.Contains(entry.Id))
                             result.Add(entry);
                     }
                 }
             }
         }
+
         return result;
+    }
+
+    private static bool TryParseEntryLocation(string id, out DateTime date, out int sequence)
+    {
+        date = default;
+        sequence = 0;
+        const string prefix = "ledger_";
+        if (!id.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        var parts = id.Split('_');
+        if (parts.Length != 3)
+            return false;
+
+        if (!DateTime.TryParseExact(parts[1], "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date))
+            return false;
+
+        return int.TryParse(parts[2], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out sequence)
+            && sequence > 0;
     }
 
     /// <inheritdoc />

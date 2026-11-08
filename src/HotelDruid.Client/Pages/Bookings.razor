@@ -54,8 +54,8 @@
                             {
                                 <button type="button" class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                                         @onclick="() => SelectRecordAndEdit(r)">
-                                    <div class="fw-semibold">@r.Year — @GetClientDisplayName(r.ClientId)</div>
-                                    <small class="text-muted">@FormatDate(r.ArrivalDate) → @FormatDate(r.DepartureDate) (@r.Status)</small>
+                                    <div class="fw-semibold">@GetClientDisplayName(r.ClientId)</div>
+                                    <small class="text-muted">@DescribeBooking(r)@StatusSuffix(r)</small>
                                 </button>
                             }
                         </div>
@@ -72,7 +72,7 @@
                     <div class="panel-heading">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h3 class="panel-title mb-0">@(isNew ? L["bookings.newBooking", "New Booking"] : $"{selected?.Year} — {GetClientDisplayName(selected?.ClientId)}")</h3>
+                                <h3 class="panel-title mb-0">@(isNew || selected is null ? L["bookings.newBooking", "New Booking"] : DescribeBooking(selected))</h3>
                                 <small class="text-muted">@L["bookings.editBooking", "Edit Booking"]</small>
                             </div>
                             @if (!string.IsNullOrEmpty(errorMsg))
@@ -322,7 +322,7 @@
                     @if (selected is not null)
                     {
                         <div class="booking-summary-card">
-                            <div class="booking-summary-name"><a class="booking-summary-link" href="@GetBookingUrl(selected)">@GetBookingSummaryTitle(selected)</a></div>
+                            <div class="booking-summary-name"><a class="booking-summary-link" href="@GetBookingUrl(selected)">@DescribeBooking(selected)</a></div>
                             <div class="booking-summary-meta">@GetBookingSummaryMeta(selected)</div>
                         </div>
 
@@ -419,8 +419,8 @@
                                     @foreach (var booking in selectedGuestBookings.Take(5))
                                     {
                                         <a class="list-group-item list-group-item-action" href="@GetBookingUrl(booking)">
-                                            <div class="fw-semibold">@GetBookingSummaryTitle(booking)</div>
-                                            <div class="small text-muted">@GetBookingSummaryMeta(booking)</div>
+                                            <div class="fw-semibold">@DescribeBooking(booking)</div>
+                                            <div class="small text-muted">@GetClientDisplayName(booking.ClientId)</div>
                                         </a>
                                     }
                                 </div>
@@ -500,6 +500,7 @@
             return records.Where(r =>
                 GetClientDisplayName(r.ClientId).Contains(term, StringComparison.OrdinalIgnoreCase)
                 || GetRoomDisplayName(r.RoomId).Contains(term, StringComparison.OrdinalIgnoreCase)
+                || DescribeBooking(r).Contains(term, StringComparison.OrdinalIgnoreCase)
                 || (r.Status?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
                 || r.Year.ToString().Contains(term))
                 .ToList();
@@ -1319,17 +1320,29 @@
         return knownClients.FirstOrDefault(client => string.Equals(client.Id, selected.ClientId, StringComparison.OrdinalIgnoreCase));
     }
 
-    private string GetBookingSummaryTitle(BookingDto booking)
+    private string DescribeBooking(BookingDto booking)
+        => BookingReference.Label(booking.ArrivalDate, BookingRoomName(booking.RoomId));
+
+    private string? BookingRoomName(string? roomId)
     {
-        var clientName = GetClientDisplayName(booking.ClientId);
-        var roomName = GetRoomDisplayName(booking.RoomId);
-        return $"{booking.Year} — {clientName} · {roomName}";
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return null;
+        }
+
+        var room = knownRooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(room?.Name) ? null : room.Name;
     }
+
+    private static string StatusSuffix(BookingDto booking)
+        => string.IsNullOrWhiteSpace(booking.Status) ? string.Empty : $" ({booking.Status})";
 
     private string GetBookingSummaryMeta(BookingDto booking)
     {
-        var parts = new List<string>();
-        parts.Add($"{FormatDate(booking.ArrivalDate)} → {FormatDate(booking.DepartureDate)}");
+        var parts = new List<string>
+        {
+            GetClientDisplayName(booking.ClientId)
+        };
 
         if (!string.IsNullOrWhiteSpace(booking.Status))
         {
@@ -1345,14 +1358,7 @@
     }
 
     private static string GetBookingUrl(BookingDto booking)
-    {
-        if (booking is null || string.IsNullOrWhiteSpace(booking.Id))
-        {
-            return "/bookings";
-        }
-
-        return $"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}";
-    }
+        => BookingReference.Href(booking?.Id);
 
     private static string GetClientUrl(string? clientId)
     {

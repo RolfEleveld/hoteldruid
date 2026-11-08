@@ -2,6 +2,8 @@
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared
 @inject IBookingFinanceApiService FinanceApi
+@inject IBookingApiService BookingApi
+@inject IRoomApiService RoomApi
 @inject IActiveYearService ActiveYearService
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
@@ -25,7 +27,13 @@
                 <label class="form-check-label" for="unassigned">@L["ledger.unassigned", "Hotel cash only (no booking)"]</label>
             </div>
             <label class="mt-2">@L["ledger.booking", "Booking reference"]</label>
-            <input class="form-control" @bind="bookingId" disabled="@unassignedOnly" />
+            <select class="form-select" @bind="BookingFilter" disabled="@unassignedOnly">
+                <option value="">@L["ledger.allBookings", "All bookings"]</option>
+                @foreach (var booking in catalog.Bookings)
+                {
+                    <option value="@booking.Id">@catalog.Label(booking)</option>
+                }
+            </select>
             <p class="text-muted small mt-2">@L["ledger.hint", "Empty booking reference means petty cash, purchases, or a non-staying guest."]</p>
         </div>
         <div class="col-md-9">
@@ -63,7 +71,7 @@
                                     }
                                     else
                                     {
-                                        <a href="@($"/booking-finance?selectedId={Uri.EscapeDataString(line.BookingId)}&year={line.Timestamp.Year}")">@line.BookingId</a>
+                                        <a href="@BookingReference.Href(line.BookingId)">@BookingLabel(line.BookingId)</a>
                                     }
                                 </td>
                                 <td>@(line.PayerName ?? line.Description)</td>
@@ -83,16 +91,40 @@
     public string? BookingQuery { get; set; }
 
     private List<LedgerLineDto>? lines;
+    private BookingCatalog catalog = BookingCatalog.From(null, null);
     private DateTime fromDate = DateTime.Today.AddDays(-30);
     private DateTime toDate = DateTime.Today;
     private string? bookingId;
     private bool unassignedOnly;
 
+    private string BookingFilter
+    {
+        get => bookingId ?? string.Empty;
+        set => bookingId = string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await ActiveYearService.InitializeAsync();
-        bookingId = BookingQuery;
+        bookingId = string.IsNullOrWhiteSpace(BookingQuery) ? null : BookingQuery;
+        try
+        {
+            var bookings = await BookingApi.ListAsync();
+            var rooms = await RoomApi.GetRoomsAsync();
+            catalog = BookingCatalog.From(bookings, rooms);
+        }
+        catch
+        {
+            catalog = BookingCatalog.From(null, null);
+        }
+
         await Load();
+    }
+
+    private string BookingLabel(string? id)
+    {
+        var label = catalog.Label(id);
+        return string.IsNullOrWhiteSpace(label) ? L["ledger.bookingUnknown", "Booking"] : label;
     }
 
     private async Task Load()

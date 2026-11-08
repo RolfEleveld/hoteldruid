@@ -35,10 +35,12 @@ public interface IFinancialPostingService
 public class FinancialPostingService : IFinancialPostingService
 {
     private readonly ILedgerRepository _ledger;
+    private readonly IBookingLedgerIndexRepository? _bookingIndex;
 
-    public FinancialPostingService(ILedgerRepository ledger)
+    public FinancialPostingService(ILedgerRepository ledger, IBookingLedgerIndexRepository? bookingIndex = null)
     {
         _ledger = ledger;
+        _bookingIndex = bookingIndex;
     }
 
     public async Task<LedgerEntry> PostBalancedAsync(
@@ -71,7 +73,16 @@ public class FinancialPostingService : IFinancialPostingService
         await _ledger.AppendEntryAsync(when, debitEntry);
         await _ledger.AppendEntryAsync(when, creditEntry);
 
-        return debitEntry; // return one of the two created entries for indexing
+        if (_bookingIndex is not null && !string.IsNullOrWhiteSpace(bookingId))
+        {
+            var ids = new[] { debitEntry.Id, creditEntry.Id }
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id!)
+                .ToList();
+            await _bookingIndex.AppendIfPresentAsync(bookingId, ids);
+        }
+
+        return debitEntry;
     }
 
     private static LedgerEntry Line(

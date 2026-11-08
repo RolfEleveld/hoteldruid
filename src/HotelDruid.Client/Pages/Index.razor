@@ -70,11 +70,10 @@
                           <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
                               <div class="fw-semibold reservation-link">@GetBookingClientDisplayName(booking)</div>
-                              <div class="text-muted small">@GetReservationDateRange(booking)</div>
+                              <div class="text-muted small">@GetReservationReference(booking, includeRoom: true)</div>
                             </div>
                             <span class="badge text-bg-light reservation-status">@GetBookingStatusLabel(booking)</span>
                           </div>
-                          <div class="small text-muted mt-1">@GetReservationRoomLabel(booking)</div>
                           <div class="small text-muted">@GetArrivalCheckpointLabel(booking)</div>
                         </div>
                       </button>
@@ -128,11 +127,10 @@
                           <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
                               <div class="fw-semibold reservation-link">@GetBookingClientDisplayName(arrival)</div>
-                              <div class="text-muted small">@GetReservationDateRange(arrival)</div>
+                              <div class="text-muted small">@GetReservationReference(arrival, includeRoom: true)</div>
                             </div>
                             <span class="badge text-bg-warning-subtle">@L["Dashboard.Arrivals.Badge"]</span>
                           </div>
-                          <div class="small text-muted mt-1">@GetReservationRoomLabel(arrival)</div>
                         </div>
                       </button>
 
@@ -189,7 +187,7 @@
                             </div>
                             <span class="badge text-bg-danger-subtle">@L["Dashboard.Stays.ActiveBadge"]</span>
                           </div>
-                          <div class="small text-muted mt-1">@GetReservationDateRange(stay)</div>
+                          <div class="small text-muted mt-1">@GetReservationReference(stay, includeRoom: false)</div>
                         </div>
                       </button>
 
@@ -245,7 +243,7 @@
                             </div>
                             <span class="badge text-bg-secondary-subtle">@L["Dashboard.Departures.Badge"]</span>
                           </div>
-                          <div class="small text-muted mt-1">@GetReservationDateRange(departure)</div>
+                          <div class="small text-muted mt-1">@GetReservationReference(departure, includeRoom: false)</div>
                         </div>
                       </button>
 
@@ -1412,11 +1410,14 @@
       return "Unknown client";
     }
 
-    private string GetReservationDateRange(BookingDto booking)
+    private string GetReservationReference(BookingDto booking, bool includeRoom)
     {
-      var arrival = TryParseDate(booking.ArrivalDate)?.ToString("yyyy-MM-dd") ?? L["Dashboard.Reservations.NoArrival"].Value;
-      var departure = TryParseDate(booking.DepartureDate)?.ToString("yyyy-MM-dd") ?? L["Dashboard.Reservations.NoDeparture"].Value;
-      return $"{arrival} -> {departure}";
+      var arrival = TryParseDate(booking.ArrivalDate);
+      string? room = includeRoom && !string.IsNullOrWhiteSpace(booking.RoomId)
+        ? GetRoomDisplayName(booking.RoomId)
+        : null;
+      var label = BookingReference.Label(arrival, room);
+      return string.IsNullOrWhiteSpace(label) ? L["Dashboard.Reservations.NoArrival"].Value : label;
     }
 
     private string GetBookingStatusLabel(BookingDto booking)
@@ -1436,13 +1437,6 @@
 
       var guests = booking.ActualGuestCount.HasValue ? booking.ActualGuestCount.Value.ToString() : "-";
       return $"{L["Dashboard.Reservations.ArrivedOn"]}: {actualArrival.Value:yyyy-MM-dd} · {L["Dashboard.Reservations.ArrivedGuests"]}: {guests}";
-    }
-
-    private string GetReservationRoomLabel(BookingDto booking)
-    {
-      return string.IsNullOrWhiteSpace(booking.RoomId)
-        ? L["Dashboard.Reservations.UnassignedRoom"]
-        : $"{L["Dashboard.Reservations.RoomLabel"]}: {GetRoomDisplayName(booking.RoomId)}";
     }
 
     private string GetRoomDisplayName(string? roomId)
@@ -1794,7 +1788,7 @@
         return;
       }
 
-      var route = $"/bookings?selectedId={Uri.EscapeDataString(bookingId)}";
+      var route = BookingReference.Href(bookingId);
       if (edit)
       {
         route += "&edit=true";

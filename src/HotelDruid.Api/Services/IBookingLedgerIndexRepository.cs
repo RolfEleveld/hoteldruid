@@ -8,12 +8,17 @@ namespace HotelDruid.Api.Services;
 public interface IBookingLedgerIndexRepository
 {
     /// <summary>
-    /// Appends a ledger entry ID to the booking's index (idempotent).
+    /// Ids in append order, or null when this booking has not been indexed yet.
     /// </summary>
-    Task AppendEntryIdAsync(string bookingId, string ledgerEntryId);
+    Task<List<string>?> ReadIfPresentAsync(string bookingId);
 
     /// <summary>
-    /// Returns all ledger entry IDs recorded for the booking (in append order).
+    /// Returns the stored ids. When the file is missing, <paramref name="build"/> runs once and those ids are stored.
     /// </summary>
-    Task<List<string>> GetEntryIdsAsync(string bookingId);
+    Task<List<string>> GetOrBuildAsync(string bookingId, Func<Task<IReadOnlyList<string>>> build);
+
+    /// <summary>
+    /// Adds ids when the index already exists. A missing index stays missing so the next read can record the whole history.
+    /// </summary>
+    Task AppendIfPresentAsync(string bookingId, IReadOnlyCollection<string> entryIds);
 }

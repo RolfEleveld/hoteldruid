@@ -151,7 +151,7 @@
                                     <button type="button" class="list-group-item list-group-item-action text-start calendar-detail-room-entry" @onclick="() => SelectBooking(booking)">
                                         <div class="d-flex justify-content-between gap-2">
                                             <div>
-                                                <div class="fw-semibold">@FormatRange(booking)</div>
+                                                <div class="fw-semibold">@DescribeBooking(booking)</div>
                                                 <div class="small text-muted">@GetClientName(booking.ClientId)</div>
                                             </div>
                                             <span class="badge @GetBookingBadgeClass(booking)">@GetBookingLabel(booking)</span>
@@ -180,13 +180,10 @@
                                     <button type="button" class="list-group-item list-group-item-action text-start calendar-detail-day-entry" @onclick="() => SelectBooking(booking)">
                                         <div class="d-flex justify-content-between gap-2">
                                             <div>
-                                                <div class="fw-semibold">@L["calendar.roomPrefix", "Room"] @GetRoomName(booking.RoomId)</div>
+                                                <div class="fw-semibold">@DescribeBooking(booking)</div>
                                                 <div class="small text-muted">@GetClientName(booking.ClientId)</div>
                                             </div>
                                             <span class="badge @GetBookingBadgeClass(booking)">@GetBookingLabel(booking)</span>
-                                        </div>
-                                        <div class="small mt-2">
-                                            @FormatRange(booking)
                                         </div>
                                     </button>
                                 }
@@ -665,9 +662,11 @@
         var arrival = TryParseDate(booking.ArrivalDate);
         var departure = TryParseDate(booking.DepartureDate);
         var actualArrival = TryParseDate(booking.ActualArrivalDate);
-        var label = string.Equals(booking.RoomId, roomId, StringComparison.OrdinalIgnoreCase) ? booking.Id ?? string.Empty : string.Empty;
+        var reference = DescribeBooking(booking);
+        var clientName = GetClientName(booking.ClientId);
+        var label = string.IsNullOrWhiteSpace(reference) ? clientName : reference;
         var cssClass = GetBookingCssClass(date, actualArrival, arrival, departure);
-        var tooltip = $"{GetClientName(booking.ClientId)} {FormatRange(booking)}";
+        var tooltip = string.IsNullOrWhiteSpace(reference) ? clientName : $"{clientName} · {reference}";
 
         return new CalendarOccupancy(cssClass, label, tooltip, true, booking);
     }
@@ -679,7 +678,7 @@
             return;
         }
 
-        Navigation.NavigateTo($"/bookings?selectedId={Uri.EscapeDataString(booking.Id)}&edit=true");
+        Navigation.NavigateTo($"{BookingReference.Href(booking.Id)}&edit=true");
     }
 
     private string GetDetailsTitle() => selectedDetailsMode switch
@@ -815,11 +814,18 @@
     private static string FormatDate(DateOnly? value)
         => value?.ToString("yyyy-MM-dd") ?? "-";
 
-    private string FormatRange(BookingDto booking)
+    private string DescribeBooking(BookingDto booking)
+        => BookingReference.Label(booking.ArrivalDate, BookingRoomName(booking.RoomId));
+
+    private string? BookingRoomName(string? roomId)
     {
-        var arrival = TryParseDate(booking.ArrivalDate)?.ToString("yyyy-MM-dd") ?? "-";
-        var departure = TryParseDate(booking.DepartureDate)?.ToString("yyyy-MM-dd") ?? "-";
-        return $"{arrival} → {departure}";
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return null;
+        }
+
+        var room = rooms.FirstOrDefault(current => string.Equals(current.Id, roomId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(room?.Name) ? null : room.Name;
     }
 
     public async ValueTask DisposeAsync()

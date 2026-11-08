@@ -243,6 +243,19 @@ public class LedgerRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetEntriesByIdsAsync_ReadsTheSequenceFileNamedByTheId()
+    {
+        var wanted = await _repo.AppendEntryAsync(TestDate, new LedgerEntry { EntryType = "pay", BookingId = "booking-1" });
+        await _repo.AppendEntryAsync(TestDate.AddDays(3), new LedgerEntry { EntryType = "pay", BookingId = "other" });
+
+        var found = await _repo.GetEntriesByIdsAsync(new[] { wanted.Id! });
+
+        Assert.Single(found);
+        Assert.Equal(wanted.Id, found[0].Id);
+        Assert.Equal("booking-1", found[0].BookingId);
+    }
+
+    [Fact]
     public async Task PostBalancedAsync_BookingPayment_FiltersByBookingAndBalances()
     {
         var posting = new FinancialPostingService(_repo);
