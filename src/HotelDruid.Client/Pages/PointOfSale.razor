@@ -6,6 +6,9 @@
 @inject IClientApiService ClientApi
 @inject ICashRegisterApiService RegisterApi
 @inject IExtraCostApiService ExtraCostApi
+@inject IInventoryApiService InventoryApi
+@inject IAssetApiService AssetApi
+@inject IWarehouseApiService WarehouseApi
 @inject IActiveYearService ActiveYearService
 @inject IStringLocalizer<SharedResource> L
 
@@ -63,6 +66,25 @@
                             }
                         </select>
                     </div>
+                    <div class="col-12">
+                        <label>@L["pos.article", "Article"]</label>
+                        <input class="form-control form-control-sm mb-1" placeholder="@L["pos.articleSearch", "Search articles"]" @bind="articleSearch" @bind:event="oninput" />
+                        <select class="form-select" @bind="form.ArticleId" @bind:after="ApplyArticle">
+                            <option value="">—</option>
+                            @foreach (var article in FilteredArticles)
+                            {
+                                <option value="@article.Id">@ArticleLabel(article)</option>
+                            }
+                        </select>
+                        <p class="text-muted small mb-0">@L["pos.articleHint", "The warehouse count changes when this sale is written to the ledger."]</p>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(form.ArticleId))
+                    {
+                        <div class="col-6">
+                            <label>@L["pos.units", "Units"]</label>
+                            <input class="form-control" type="number" min="1" @bind="form.Units" />
+                        </div>
+                    }
                     <div class="col-12">
                         <label>@L["pos.description", "Description"]</label>
                         <input class="form-control" @bind="form.Description" />
@@ -135,6 +157,11 @@
                     <dt>@L["pos.date", "Date"]</dt><dd>@selected.Date?.ToString("yyyy-MM-dd")</dd>
                     <dt>@L["pos.description", "Description"]</dt><dd>@selected.Description</dd>
                     <dt>@L["pos.amount", "Amount"]</dt><dd>@selected.Amount?.ToString("0.00")</dd>
+                    @if (!string.IsNullOrWhiteSpace(selected.ArticleId))
+                    {
+                        <dt>@L["pos.article", "Article"]</dt>
+                        <dd><a href="/inventory">@ArticleLabel(stock.FirstOrDefault(row => row.Id == selected.ArticleId))</a> · @selected.Units</dd>
+                    }
                     <dt>@L["pos.settlement", "Settlement"]</dt><dd>@(selected.Settlement == "folio" ? L["pos.onStay", "On the stay"] : L["pos.walkUp", "Walk-up"])</dd>
                     <dt>@L["pos.accounts", "Accounts"]</dt><dd>@selected.DebitAccount / @selected.CreditAccount</dd>
                     @if (!string.IsNullOrWhiteSpace(selected.BookingId))
@@ -185,10 +212,14 @@
     private List<HotelDruid.Client.Services.ClientDto> clients = new();
     private List<CashRegisterDto> registers = new();
     private List<ExtraCostDto> catalog = new();
+    private List<InventoryDto> stock = new();
+    private List<AssetDto> assets = new();
+    private List<WarehouseDto> warehouses = new();
     private PosSaleClientDto? selected;
     private bool editing;
     private string errorMsg = "";
     private string listFilter = "";
+    private string articleSearch = "";
     private int? filterYear;
     private FormModel form = new();
 
@@ -228,6 +259,9 @@
             clients = await ClientApi.GetAllAsync() ?? new();
             registers = await RegisterApi.GetAllAsync() ?? new();
             catalog = await ExtraCostApi.ListAsync(filterYear) ?? new();
+            stock = await InventoryApi.GetInventoryAsync() ?? new();
+            assets = await AssetApi.GetAssetsAsync() ?? new();
+            warehouses = await WarehouseApi.GetWarehousesAsync() ?? new();
             errorMsg = "";
         }
         catch (Exception ex)
@@ -281,10 +315,45 @@
         if (extra.BaseValue.HasValue) form.Amount = extra.BaseValue;
     }
 
+    private void ApplyArticle()
+    {
+        if (string.IsNullOrWhiteSpace(form.ArticleId)) return;
+        if (form.Units < 1) form.Units = 1;
+        if (!string.IsNullOrWhiteSpace(form.Description)) return;
+        var article = stock.FirstOrDefault(row => row.Id == form.ArticleId);
+        if (article is not null) form.Description = AssetName(article.AssetId);
+    }
+
+    private IEnumerable<InventoryDto> FilteredArticles
+    {
+        get
+        {
+            var rows = stock.Where(row => !string.IsNullOrWhiteSpace(row.WarehouseId));
+            if (string.IsNullOrWhiteSpace(articleSearch)) return rows;
+            var term = articleSearch.Trim();
+            return rows.Where(row => ArticleLabel(row).Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private string ArticleLabel(InventoryDto? article)
+    {
+        if (article is null) return "";
+        var name = AssetName(article.AssetId);
+        var place = warehouses.FirstOrDefault(warehouse => warehouse.Id == article.WarehouseId)?.Name ?? article.WarehouseId;
+        return $"{name} · {place} ({article.Quantity})";
+    }
+
+    private string AssetName(string? assetId)
+    {
+        if (string.IsNullOrWhiteSpace(assetId)) return "";
+        return assets.FirstOrDefault(asset => asset.Id == assetId)?.Name ?? assetId;
+    }
+
     private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(form.Description)) { errorMsg = L["pos.descriptionRequired", "Description is required."]; return; }
         if (form.Amount is null || form.Amount <= 0) { errorMsg = L["pos.amountRequired", "Amount must be greater than zero."]; return; }
+        if (!string.IsNullOrWhiteSpace(form.ArticleId) && form.Units < 1) { errorMsg = L["pos.unitsRequired", "Units must be greater than zero."]; return; }
         var onStay = form.Settlement == "folio";
         if (onStay && string.IsNullOrWhiteSpace(form.BookingId)) { errorMsg = L["pos.checkedInOnly", "A stay sale is available after arrival and until checkout."]; return; }
 
@@ -299,7 +368,9 @@
             PaymentMethod: onStay ? null : form.PaymentMethod,
             Currency: onStay ? null : (string.IsNullOrWhiteSpace(form.Currency) ? "EUR" : form.Currency),
             Person: onStay ? null : form.Person,
-            ExtraCostId: string.IsNullOrWhiteSpace(form.ExtraCostId) ? null : form.ExtraCostId);
+            ExtraCostId: string.IsNullOrWhiteSpace(form.ExtraCostId) ? null : form.ExtraCostId,
+            ArticleId: string.IsNullOrWhiteSpace(form.ArticleId) ? null : form.ArticleId,
+            Units: string.IsNullOrWhiteSpace(form.ArticleId) ? null : form.Units);
         try
         {
             var created = await PosApi.CreateAsync(dto);
@@ -382,5 +453,7 @@
         public string Currency { get; set; } = "EUR";
         public string? Person { get; set; }
         public string? ExtraCostId { get; set; }
+        public string? ArticleId { get; set; }
+        public int Units { get; set; } = 1;
     }
 }

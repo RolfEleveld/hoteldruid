@@ -23,12 +23,10 @@ The booking reference is a dimension, not a GAAP account. Hotel-level movements 
 - [x] PHP export/import compatibility. The PHP package keeps one booking money history, `payments{year}`. Blazor imports those rows as ledger journals and does not open a second per-booking transaction book. Extra costs stay on the booking.
 - [x] PHP cash-register permissions, person, payment method, currency, and running cash total come across on the petty-cash posts. A booking payment's cash-register copy keeps those fields and does not post a second journal.
 - [x] Personnel stays the person named on a cash row. That person is stored on the petty-cash post. There is no payroll.
-
-## Still open
-- [ ] Bring over the PHP point of sale (`punto_vendita.php`) for walk-up sales and non-staying guest payments.
-- [ ] Post inventory goods sold at the point of sale. PHP has no separate purchasing module.
-- [ ] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed.
-- [ ] Invoice and contract totals must use ledger charges, prepayments, deposits, and balance.
+- [x] Bring over the PHP point of sale (`punto_vendita.php`) for walk-up sales and non-staying guest payments. One page sells onto a checked-in stay or takes cash with an empty booking reference.
+- [x] Post inventory goods sold at the point of sale. An article in a warehouse drops its quantity when the sale is written to the ledger, and a reversal puts that quantity back. A room article is an availability check. There is no cost-of-goods journal until a purchase cost exists.
+- [x] Post extra costs attached to a booking (`costiprenota`) when they are sold or cashed. A sold extra debits the guest ledger and credits other income, and removal reverses that pair.
+- [x] Invoice and contract totals must use ledger charges, prepayments, deposits, and balance. Checkout applies a held deposit with debit 2400 and credit 1200.
 
 ## Nice to have (future visualization)
 

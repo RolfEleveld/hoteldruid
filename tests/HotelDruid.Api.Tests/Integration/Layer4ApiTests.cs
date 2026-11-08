@@ -23,7 +23,8 @@ public class Layer4ApiTests : IAsyncLifetime
     private class CancelledBookingDto { public string? Id { get; set; } public int Year { get; set; } public string? ClientId { get; set; } public string? Status { get; set; } public string? CancelledAt { get; set; } }
     private class ExpenseDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Description { get; set; } }
     private class MoneyHistoryDto { public string? Id { get; set; } public int Year { get; set; } public string? CashRegisterId { get; set; } public double? Amount { get; set; } public string? Type { get; set; } public string? ReversesId { get; set; } public string? ReversedById { get; set; } public string? Description { get; set; } }
-    private class PosSaleDto { public string? Id { get; set; } public int Year { get; set; } public string? Description { get; set; } public double? Amount { get; set; } public string? Settlement { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public string? CashRegisterId { get; set; } public string? Currency { get; set; } public string? EntryType { get; set; } public string? DebitAccount { get; set; } public string? CreditAccount { get; set; } public string? BookingCostId { get; set; } public string? ReversedById { get; set; } public double? RunningCashTotal { get; set; } }
+    private class PosSaleDto { public string? Id { get; set; } public int Year { get; set; } public string? Description { get; set; } public double? Amount { get; set; } public string? Settlement { get; set; } public string? BookingId { get; set; } public string? ClientId { get; set; } public string? CashRegisterId { get; set; } public string? Currency { get; set; } public string? EntryType { get; set; } public string? DebitAccount { get; set; } public string? CreditAccount { get; set; } public string? BookingCostId { get; set; } public string? ReversedById { get; set; } public double? RunningCashTotal { get; set; } public string? ArticleId { get; set; } public int? Units { get; set; } }
+    private class InventoryRowDto { public string? Id { get; set; } public int Quantity { get; set; } }
     private class CashRegisterDto { public string? Id { get; set; } public string? Name { get; set; } }
 
     private class BookingDto
@@ -796,6 +797,52 @@ public class Layer4ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, checkOut.StatusCode);
         var after = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = createdBooking.Id, Description = "Late bar", Amount = 8.0 }));
         Assert.Equal(HttpStatusCode.BadRequest, after.StatusCode);
+    }
+
+    [Fact]
+    public async Task PosSale_Article_CommitsWarehouseQuantityWhenTheLedgerIsWritten()
+    {
+        var asset = await ReadAs<CashRegisterDto>(await _client.PostAsync("/api/assets", Json(new { Name = "Bathrobe", Code = "BR" })));
+        var warehouse = await ReadAs<CashRegisterDto>(await _client.PostAsync("/api/warehouses", Json(new { Name = "Linen room", Code = "LIN" })));
+        var stock = await ReadAs<InventoryRowDto>(await _client.PostAsync("/api/inventory", Json(new { AssetId = asset!.Id, WarehouseId = warehouse!.Id, Quantity = 3 })));
+
+        var shortSale = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, Description = "Bathrobe", Amount = 20.0, ArticleId = stock!.Id, Units = 4 }));
+        Assert.Equal(HttpStatusCode.BadRequest, shortSale.StatusCode);
+        Assert.Equal(3, (await ReadAs<InventoryRowDto>(await _client.GetAsync($"/api/inventory/{stock.Id}")))!.Quantity);
+
+        var saleResponse = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, Description = "Bathrobe", Amount = 20.0, ArticleId = stock.Id, Units = 1 }));
+        Assert.Equal(HttpStatusCode.Created, saleResponse.StatusCode);
+        var sale = await ReadAs<PosSaleDto>(saleResponse);
+        Assert.Equal(stock.Id, sale?.ArticleId);
+        Assert.Equal(1, sale?.Units);
+        Assert.Equal(2, (await ReadAs<InventoryRowDto>(await _client.GetAsync($"/api/inventory/{stock.Id}")))!.Quantity);
+        var lines = await ReadAs<List<LedgerLineDto>>(await _client.GetAsync("/api/ledger/lines?from=2026-01-01&to=2026-12-31&unassigned=true"));
+        Assert.Contains(lines!, line => line.EntryType == "pos_cash_sale" && line.AccountCode == "4900" && line.Credit == 20m);
+
+        var reverse = await _client.PostAsync($"/api/pos-sales/2026/{sale!.Id}/reverse", Json(new { }));
+        Assert.Equal(HttpStatusCode.Created, reverse.StatusCode);
+        Assert.Equal(3, (await ReadAs<InventoryRowDto>(await _client.GetAsync($"/api/inventory/{stock.Id}")))!.Quantity);
+    }
+
+    [Fact]
+    public async Task PosSale_RoomArticle_ChecksAvailabilityAndDoesNotChangeQuantity()
+    {
+        var asset = await ReadAs<CashRegisterDto>(await _client.PostAsync("/api/assets", Json(new { Name = "Towel", Code = "TW" })));
+        var roomStock = await ReadAs<InventoryRowDto>(await _client.PostAsync("/api/inventory", Json(new { AssetId = asset!.Id, RoomId = "room-article", Quantity = 2 })));
+        var walkUp = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, Description = "Towel", Amount = 5.0, ArticleId = roomStock!.Id }));
+        Assert.Equal(HttpStatusCode.BadRequest, walkUp.StatusCode);
+        Assert.Equal(2, (await ReadAs<InventoryRowDto>(await _client.GetAsync($"/api/inventory/{roomStock.Id}")))!.Quantity);
+
+        var booking = await ReadAs<BookingDto>(await _client.PostAsync("/api/bookings", Json(new { Year = 2026, ClientId = "guest-article", RoomId = "room-article", Status = "Confirmed", ArrivalDate = "2026-11-08", DepartureDate = "2026-11-10" })));
+        var checkIn = await _client.PostAsync($"/api/bookings/2026/{booking!.Id}/check-in", Json(new { ActualArrivalDate = "2026-11-08", ActualGuestCount = 1, Status = "CheckedIn" }));
+        Assert.Equal(HttpStatusCode.OK, checkIn.StatusCode);
+
+        var saleResponse = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = booking.Id, Description = "Towel", Amount = 5.0, ArticleId = roomStock.Id, Units = 2 }));
+        Assert.Equal(HttpStatusCode.Created, saleResponse.StatusCode);
+        Assert.Equal(2, (await ReadAs<InventoryRowDto>(await _client.GetAsync($"/api/inventory/{roomStock.Id}")))!.Quantity);
+
+        var tooMany = await _client.PostAsync("/api/pos-sales", Json(new { Year = 2026, BookingId = booking.Id, Description = "Towel", Amount = 5.0, ArticleId = roomStock.Id, Units = 3 }));
+        Assert.Equal(HttpStatusCode.BadRequest, tooMany.StatusCode);
     }
 
     // ========== Booking Guests ==========

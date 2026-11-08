@@ -33,7 +33,9 @@ namespace HotelDruid.Client.Services
         string? DebitAccount = null,
         string? CreditAccount = null,
         string? ReversesId = null,
-        string? ReversedById = null
+        string? ReversedById = null,
+        string? ArticleId = null,
+        int? Units = null
     );
 
     public class PosSaleApiService : IPosSaleApiService

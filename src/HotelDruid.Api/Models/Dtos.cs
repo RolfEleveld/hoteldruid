@@ -557,6 +557,8 @@ public class PosSaleStorageModel
     public string? CreditAccount { get; set; }
     public string? ReversesId { get; set; }
     public string? ReversedById { get; set; }
+    public string? ArticleId { get; set; }
+    public int? Units { get; set; }
 }
 
 public record PosSaleDto(
@@ -579,7 +581,9 @@ public record PosSaleDto(
     string? DebitAccount = null,
     string? CreditAccount = null,
     string? ReversesId = null,
-    string? ReversedById = null);
+    string? ReversedById = null,
+    string? ArticleId = null,
+    int? Units = null);
 
 public class MoneyHistoryStorageModel
 {

@@ -378,6 +378,11 @@
   <data name="pos.checkedInOnly" xml:space="preserve"><value>Una vendita sul soggiorno è possibile dopo l'arrivo e fino al check-out.</value></data>
   <data name="pos.descriptionRequired" xml:space="preserve"><value>La descrizione è obbligatoria.</value></data>
   <data name="pos.amountRequired" xml:space="preserve"><value>L'importo deve essere maggiore di zero.</value></data>
+  <data name="pos.article" xml:space="preserve"><value>Articolo</value></data>
+  <data name="pos.articleSearch" xml:space="preserve"><value>Cerca articoli</value></data>
+  <data name="pos.articleHint" xml:space="preserve"><value>Il conteggio di magazzino cambia quando la vendita è scritta nel libro mastro.</value></data>
+  <data name="pos.units" xml:space="preserve"><value>Pezzi</value></data>
+  <data name="pos.unitsRequired" xml:space="preserve"><value>I pezzi devono essere maggiori di zero.</value></data>
   <data name="Index.Feature.PointOfSale.Title" xml:space="preserve"><value>Punto vendita</value></data>
   <data name="Index.Feature.PointOfSale.Subtitle" xml:space="preserve"><value>Vendite del banco per soggiorni in casa e ospiti di passaggio.</value></data>
   <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Apri punto vendita</value></data>

@@ -3313,6 +3313,15 @@ static async Task<decimal> PosRegisterTapeAsync(IKeyValueStore store, string? re
     return tape;
 }
 
+static async Task AdjustArticleQuantityAsync(IKeyValueStore store, string inventoryId, int delta)
+{
+    var row = await store.GetAsync<InventoryStorageModel>("inventory", inventoryId);
+    if (row is null || string.IsNullOrWhiteSpace(row.WarehouseId))
+        return;
+    row.Quantity += delta;
+    await store.UpdateAsync("inventory", inventoryId, row);
+}
+
 static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, string? bookingId, decimal delta, string description, string sourceId)
 {
     if (string.IsNullOrWhiteSpace(bookingId) || delta == 0)
@@ -3480,7 +3489,7 @@ app.MapDelete("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyV
 
 // --- Point of sale: folio charge while the guest is in house, or a walk-up cash sale ---
 
-PosSaleDto ToPosSaleDto(string id, PosSaleStorageModel s) => new(id, s.Year, s.Date, s.Description, s.Amount, s.Settlement, s.BookingId, s.ClientId, s.CashRegisterId, s.PaymentMethod, s.Currency, s.Person, s.RunningCashTotal, s.ExtraCostId, s.BookingCostId, s.EntryType, s.DebitAccount, s.CreditAccount, s.ReversesId, s.ReversedById);
+PosSaleDto ToPosSaleDto(string id, PosSaleStorageModel s) => new(id, s.Year, s.Date, s.Description, s.Amount, s.Settlement, s.BookingId, s.ClientId, s.CashRegisterId, s.PaymentMethod, s.Currency, s.Person, s.RunningCashTotal, s.ExtraCostId, s.BookingCostId, s.EntryType, s.DebitAccount, s.CreditAccount, s.ReversesId, s.ReversedById, s.ArticleId, s.Units);
 
 app.MapGet("/api/pos-sales", async (IKeyValueStore store, int? year) =>
 {
@@ -3509,11 +3518,49 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
         return Results.BadRequest(new { error = "Amount must be greater than zero." });
     if (string.IsNullOrWhiteSpace(request.Description))
         return Results.BadRequest(new { error = "Description is required." });
+    var units = request.Units ?? 1;
+    if (units < 1)
+        return Results.BadRequest(new { error = "Article units must be greater than zero." });
 
     var year = request.Year > 0 ? request.Year : DateTime.UtcNow.Year;
     var when = request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
     var description = request.Description.Trim();
     var onStay = !string.IsNullOrWhiteSpace(request.BookingId);
+
+    BookingStorageModel? stay = null;
+    if (onStay)
+    {
+        stay = await store.GetAsync<BookingStorageModel>("bookings", request.BookingId!);
+        if (stay is null)
+            return Results.NotFound(new { error = "Booking was not found." });
+        if (!IsPosFolioStay(stay))
+            return Results.BadRequest(new { error = "A stay sale is available after arrival and until checkout." });
+    }
+
+    string? articleId = null;
+    var commitWarehouse = false;
+    if (!string.IsNullOrWhiteSpace(request.ArticleId))
+    {
+        var article = await store.GetAsync<InventoryStorageModel>("inventory", request.ArticleId);
+        if (article is null)
+            return Results.BadRequest(new { error = "Article was not found." });
+        articleId = request.ArticleId;
+        if (!string.IsNullOrWhiteSpace(article.WarehouseId))
+        {
+            if (article.Quantity < units)
+                return Results.BadRequest(new { error = "The warehouse does not hold enough of this article." });
+            commitWarehouse = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(article.RoomId))
+        {
+            if (stay is null)
+                return Results.BadRequest(new { error = "A room article can be sold on a checked-in stay." });
+            if (!string.Equals(article.RoomId, stay.RoomId, StringComparison.OrdinalIgnoreCase) || article.Quantity < units)
+                return Results.BadRequest(new { error = "The room does not hold enough of this article." });
+        }
+        else
+            return Results.BadRequest(new { error = "Article was not found." });
+    }
 
     string? bookingId = null;
     string? clientId = null;
@@ -3528,19 +3575,13 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
 
     if (onStay)
     {
-        var booking = await store.GetAsync<BookingStorageModel>("bookings", request.BookingId!);
-        if (booking is null)
-            return Results.NotFound(new { error = "Booking was not found." });
-        if (!IsPosFolioStay(booking))
-            return Results.BadRequest(new { error = "A stay sale is available after arrival and until checkout." });
-
         settlement = "folio";
         bookingId = request.BookingId;
-        clientId = booking.ClientId;
+        clientId = stay!.ClientId;
         entryType = "booking_extra_charge";
         debit = HotelAccounts.GuestLedger;
         credit = HotelAccounts.OtherIncome;
-        if (booking.Year > 0) year = booking.Year;
+        if (stay.Year > 0) year = stay.Year;
 
         var cost = new BookingCostStorageModel { Year = year, BookingId = bookingId, Amount = (double)amount, Description = description };
         bookingCostId = await store.CreateAsync("booking_costs", $"{year}_{Guid.NewGuid():N}", cost);
@@ -3579,13 +3620,18 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
         BookingCostId = bookingCostId,
         EntryType = entryType,
         DebitAccount = debit,
-        CreditAccount = credit
+        CreditAccount = credit,
+        ArticleId = articleId,
+        Units = articleId is null ? null : units
     };
     var id = await store.CreateAsync("pos_sales", $"{year}_{Guid.NewGuid():N}", sale);
     if (!onStay)
     {
         await ledger.PostBalancedAsync(when, entryType, description, amount, debit, "asset", credit, "revenue", cashRegisterId: registerId, payerName: request.Person ?? description, sourceType: "pos-sale", sourceId: id);
     }
+
+    if (commitWarehouse)
+        await AdjustArticleQuantityAsync(store, articleId!, -units);
 
     return Results.Created($"/api/pos-sales/{year}/{id}", ToPosSaleDto(id, sale));
 }).WithName("CreatePosSale");
@@ -3630,7 +3676,9 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
         EntryType = onStay ? "booking_extra_reversal" : "pos_cash_reversal",
         DebitAccount = original.CreditAccount,
         CreditAccount = original.DebitAccount,
-        ReversesId = id
+        ReversesId = id,
+        ArticleId = original.ArticleId,
+        Units = original.Units is null ? null : -original.Units
     };
     if (!onStay)
         reversal.RunningCashTotal = (double)(await PosRegisterTapeAsync(store, original.CashRegisterId) - amount);
@@ -3661,6 +3709,9 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
     {
         await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, HotelAccounts.OtherIncome, "revenue", HotelAccounts.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
     }
+
+    if (!string.IsNullOrWhiteSpace(original.ArticleId) && (original.Units ?? 0) > 0)
+        await AdjustArticleQuantityAsync(store, original.ArticleId, original.Units ?? 1);
 
     return Results.Created($"/api/pos-sales/{year}/{reversalId}", ToPosSaleDto(reversalId, reversal));
 }).WithName("ReversePosSale");

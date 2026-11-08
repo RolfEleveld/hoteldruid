@@ -241,6 +241,11 @@
   <data name="pos.checkedInOnly" xml:space="preserve"><value>A stay sale is available after arrival and until checkout.</value></data>
   <data name="pos.descriptionRequired" xml:space="preserve"><value>Description is required.</value></data>
   <data name="pos.amountRequired" xml:space="preserve"><value>Amount must be greater than zero.</value></data>
+  <data name="pos.article" xml:space="preserve"><value>Article</value></data>
+  <data name="pos.articleSearch" xml:space="preserve"><value>Search articles</value></data>
+  <data name="pos.articleHint" xml:space="preserve"><value>The warehouse count changes when this sale is written to the ledger.</value></data>
+  <data name="pos.units" xml:space="preserve"><value>Units</value></data>
+  <data name="pos.unitsRequired" xml:space="preserve"><value>Units must be greater than zero.</value></data>
   <data name="Index.Feature.PointOfSale.Title" xml:space="preserve"><value>Point of sale</value></data>
   <data name="Index.Feature.PointOfSale.Subtitle" xml:space="preserve"><value>Desk sales for in-house stays and walk-up guests.</value></data>
   <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Open point of sale</value></data>
