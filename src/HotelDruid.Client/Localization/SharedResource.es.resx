@@ -322,6 +322,18 @@
   <data name="tariffs.nameRequired" xml:space="preserve"><value>El nombre es obligatorio.</value></data>
   <data name="tariffs.minStaySummary" xml:space="preserve"><value>Mín. {0} noches</value></data>
   <data name="tariffs.assignedTariffs" xml:space="preserve"><value>Tarifas aplicables</value></data>
+  <data name="tariffs.assignHelp" xml:space="preserve"><value>Marque una tarifa para usarla en esta habitación. Una reserva calcula solo las tarifas marcadas.</value></data>
+  <data name="tariffs.sectionTitle" xml:space="preserve"><value>Tarifas</value></data>
+  <data name="tariffs.sectionHelp" xml:space="preserve"><value>Marque una tarifa para activarla en esta habitación. Seleccione una línea para ver cuándo se aplica.</value></data>
+  <data name="tariffs.selectLine" xml:space="preserve"><value>Seleccione una línea para ver cuándo se aplica esa tarifa.</value></data>
+  <data name="tariffs.rangeNotByDay" xml:space="preserve"><value>Esta tarifa no está limitada a días concretos.</value></data>
+  <data name="tariffs.whenTitle" xml:space="preserve"><value>Cuándo se aplican las tarifas</value></data>
+  <data name="tariffs.whenEmpty" xml:space="preserve"><value>Marque una tarifa junto a este panel. Hasta que una esté marcada, esta habitación no tiene tarifa.</value></data>
+  <data name="tariffs.windowAnyDay" xml:space="preserve"><value>Todos los días</value></data>
+  <data name="tariffs.windowWeekdays" xml:space="preserve"><value>{0}</value></data>
+  <data name="tariffs.windowMinStay" xml:space="preserve"><value>Estancias de {0} noches o más</value></data>
+  <data name="tariffs.windowMinGuests" xml:space="preserve"><value>Grupos de {0} huéspedes o más</value></data>
+  <data name="tariffs.windowInactive" xml:space="preserve"><value>Inactiva</value></data>
   <data name="tariffs.assignedTariffsEmpty" xml:space="preserve"><value>Aún no hay tarifas asignadas a esta habitación.</value></data>
   <data name="tariffs.roomCalendarTitle" xml:space="preserve"><value>Calendario de tarifas</value></data>
   <data name="Index.Feature.Tariffs.Title" xml:space="preserve"><value>Tarifas</value></data>
@@ -483,6 +495,7 @@
   <data name="bookings.tariffLabel" xml:space="preserve"><value>Tarifa</value></data>
   <data name="bookings.nightsLabel" xml:space="preserve"><value>noche(s)</value></data>
   <data name="bookings.tariffUnavailable" xml:space="preserve"><value>Seleccione una habitacion, fecha de llegada y de salida para ver la tarifa aplicable.</value></data>
+  <data name="bookings.tariffNoneAssigned" xml:space="preserve"><value>No hay una tarifa asignada a esta habitación para estas fechas.</value></data>
   <data name="bookings.noTariff" xml:space="preserve"><value>Sin tarifa</value></data>
   <data name="bookings.unknownTariff" xml:space="preserve"><value>Tarifa desconocida</value></data>
   <data name="tariffs.applicableToday" xml:space="preserve"><value>Tarifas aplicables hoy</value></data>

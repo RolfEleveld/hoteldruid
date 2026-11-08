@@ -232,6 +232,17 @@ public class LedgerRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetEntriesForBookingAsync_UnboundedRange_ReadsOnlyExistingDays()
+    {
+        await _repo.AppendEntryAsync(TestDate, new LedgerEntry { EntryType = "pay", BookingId = "booking-1" });
+
+        var entries = await _repo.GetEntriesForBookingAsync("booking-1", DateTime.MinValue, DateTime.MaxValue);
+
+        Assert.Single(entries);
+        Assert.Equal("booking-1", entries[0].BookingId);
+    }
+
+    [Fact]
     public async Task PostBalancedAsync_BookingPayment_FiltersByBookingAndBalances()
     {
         var posting = new FinancialPostingService(_repo);

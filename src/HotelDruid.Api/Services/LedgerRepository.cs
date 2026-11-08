@@ -155,8 +155,14 @@ public class LedgerRepository : ILedgerRepository, IDisposable
             throw new ArgumentException("Booking ID cannot be empty", nameof(bookingId));
 
         var result = new List<LedgerEntry>();
+        var start = from.Date;
+        var end = to.Date;
+        if (end < start)
+            return result;
 
-        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+        // Walk folders that exist. A day-by-day loop from DateTime.MinValue to
+        // MaxValue never returns, and that is the fallback when a booking has no index.
+        foreach (var date in EnumerateExistingPartitionDates(start, end))
         {
             var consolidated = await GetConsolidatedAsync(date);
             result.AddRange(consolidated.Where(e => e.BookingId == bookingId));
@@ -244,6 +250,49 @@ public class LedgerRepository : ILedgerRepository, IDisposable
     }
 
     // ─── Private helpers ────────────────────────────────────────────────────
+
+    private IEnumerable<DateTime> EnumerateExistingPartitionDates(DateTime start, DateTime end)
+    {
+        var root = Path.Combine(_dataRoot, "ledger");
+        if (!Directory.Exists(root))
+            yield break;
+
+        var dates = new List<DateTime>();
+        foreach (var yearDir in Directory.EnumerateDirectories(root))
+        {
+            if (!int.TryParse(Path.GetFileName(yearDir), out var year))
+                continue;
+
+            foreach (var monthDir in Directory.EnumerateDirectories(yearDir))
+            {
+                if (!int.TryParse(Path.GetFileName(monthDir), out var month) || month is < 1 or > 12)
+                    continue;
+
+                foreach (var dayDir in Directory.EnumerateDirectories(monthDir))
+                {
+                    if (!int.TryParse(Path.GetFileName(dayDir), out var day) || day is < 1 or > 31)
+                        continue;
+
+                    DateTime date;
+                    try
+                    {
+                        date = new DateTime(year, month, day);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        continue;
+                    }
+
+                    if (date >= start && date <= end)
+                        dates.Add(date);
+                }
+            }
+        }
+
+        dates.Sort();
+        foreach (var date in dates)
+            yield return date;
+    }
 
     private string GetPartitionDir(DateTime date) =>
         Path.Combine(_dataRoot, "ledger",

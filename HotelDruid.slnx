@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/HotelDruid.Api/HotelDruid.Api.csproj" />
+    <Project Path="src/HotelDruid.Client/HotelDruid.Client.csproj" />
     <Project Path="src/HotelDruid.Shared/HotelDruid.Shared.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -201,6 +201,13 @@
                                         </div>
                                     }
                                 }
+                                else if (!string.IsNullOrWhiteSpace(form.RoomId)
+                                    && form.ArrivalDate.HasValue
+                                    && form.DepartureDate.HasValue
+                                    && form.DepartureDate.Value > form.ArrivalDate.Value)
+                                {
+                                    <div class="text-muted small">@L["bookings.tariffNoneAssigned", "No tariff is assigned to this room for these dates."]</div>
+                                }
                                 else
                                 {
                                     <div class="text-muted small">@L["bookings.tariffUnavailable", "Select a room, arrival and departure date to see the applicable tariff."]</div>
@@ -455,6 +462,7 @@
     private List<TariffDto> knownTariffs = new();
     private TariffResolutionDto? previewTariff;
     private bool previewTariffLoading;
+    private int tariffPreviewGeneration;
     private BookingFinanceSummaryDto? financeSummary;
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
@@ -635,7 +643,8 @@
             PrepaidMethod = selected.PrepaidMethod,
             PrepaidReference = selected.PrepaidReference,
             PreAuthReference = selected.PreAuthReference,
-            PreAuthMethod = selected.PreAuthMethod
+            PreAuthMethod = selected.PreAuthMethod,
+            TariffId = selected.TariffId
         };
         isNew = false;
         editing = true;
@@ -952,7 +961,7 @@
         form.RoomId = null;
         roomSearch = string.Empty;
         roomMatches.Clear();
-        previewTariff = null;
+        CancelTariffPreview();
     }
 
     private void EnableInlineClientCreate()
@@ -1115,7 +1124,14 @@
         selectedRoom = null;
         roomSearch = string.Empty;
         roomMatches.Clear();
+        CancelTariffPreview();
+    }
+
+    private void CancelTariffPreview()
+    {
+        tariffPreviewGeneration++;
         previewTariff = null;
+        previewTariffLoading = false;
     }
 
     private async Task RefreshTariffPreviewAsync()
@@ -1123,23 +1139,35 @@
         // Do not re-resolve on existing confirmed bookings unless the user changed room/dates
         if (!isNew && !string.IsNullOrWhiteSpace(form.TariffId) && (form.TariffTotalPrice ?? 0) > 0)
         {
+            previewTariffLoading = false;
+            StateHasChanged();
             return;
         }
 
         if (string.IsNullOrWhiteSpace(form.RoomId) || !form.ArrivalDate.HasValue || !form.DepartureDate.HasValue
             || form.DepartureDate.Value <= form.ArrivalDate.Value)
         {
-            previewTariff = null;
+            CancelTariffPreview();
+            StateHasChanged();
             return;
         }
 
+        var requestId = ++tariffPreviewGeneration;
+        var roomId = form.RoomId;
+        var arrival = form.ArrivalDate.Value;
+        var departure = form.DepartureDate.Value;
         var guestCount = form.ActualGuestCount ?? form.ExpectedGuestCount ?? 1;
         previewTariffLoading = true;
         StateHasChanged();
         try
         {
-            previewTariff = await TariffApi.ResolveTariffAsync(form.RoomId, form.ArrivalDate.Value, form.DepartureDate.Value, guestCount);
+            var resolved = await TariffApi.ResolveTariffAsync(roomId, arrival, departure, guestCount);
+            if (requestId != tariffPreviewGeneration)
+            {
+                return;
+            }
 
+            previewTariff = resolved;
             if (previewTariff is not null)
             {
                 form.TariffId = previewTariff.TariffId;
@@ -1148,7 +1176,14 @@
         }
         finally
         {
-            previewTariffLoading = false;
+            if (requestId == tariffPreviewGeneration)
+            {
+                previewTariffLoading = false;
+                // Room selection and new-booking start this without awaiting it.
+                // The tariff request can also finish while finance is still loading.
+                // Either way the spinner has to clear on this render, not the next handler.
+                StateHasChanged();
+            }
         }
     }
 

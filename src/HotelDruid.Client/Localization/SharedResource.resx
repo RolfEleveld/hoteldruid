@@ -375,6 +375,18 @@
   <data name="tariffs.nameRequired" xml:space="preserve"><value>Name is required.</value></data>
   <data name="tariffs.minStaySummary" xml:space="preserve"><value>Min. {0} nights</value></data>
   <data name="tariffs.assignedTariffs" xml:space="preserve"><value>Applicable tariffs</value></data>
+  <data name="tariffs.assignHelp" xml:space="preserve"><value>Check a tariff to use it for this room. A booking prices only the checked tariffs.</value></data>
+  <data name="tariffs.sectionTitle" xml:space="preserve"><value>Tariffs</value></data>
+  <data name="tariffs.sectionHelp" xml:space="preserve"><value>Check a tariff to activate it for this room. Select a line to see when it applies.</value></data>
+  <data name="tariffs.selectLine" xml:space="preserve"><value>Select a line to see when that tariff applies.</value></data>
+  <data name="tariffs.rangeNotByDay" xml:space="preserve"><value>This tariff is not limited to particular days.</value></data>
+  <data name="tariffs.whenTitle" xml:space="preserve"><value>When tariffs apply</value></data>
+  <data name="tariffs.whenEmpty" xml:space="preserve"><value>Check a tariff beside this panel. Until one is checked, this room has no rate.</value></data>
+  <data name="tariffs.windowAnyDay" xml:space="preserve"><value>Every day</value></data>
+  <data name="tariffs.windowWeekdays" xml:space="preserve"><value>{0}</value></data>
+  <data name="tariffs.windowMinStay" xml:space="preserve"><value>Stays of {0} nights or more</value></data>
+  <data name="tariffs.windowMinGuests" xml:space="preserve"><value>Groups of {0} guests or more</value></data>
+  <data name="tariffs.windowInactive" xml:space="preserve"><value>Inactive</value></data>
   <data name="tariffs.assignedTariffsEmpty" xml:space="preserve"><value>No tariffs assigned to this room yet.</value></data>
   <data name="tariffs.roomCalendarTitle" xml:space="preserve"><value>Tariff calendar</value></data>
   <data name="Index.Feature.Tariffs.Title" xml:space="preserve"><value>Tariffs</value></data>
@@ -544,6 +556,7 @@
   <data name="bookings.tariffLabel" xml:space="preserve"><value>Tariff</value></data>
   <data name="bookings.nightsLabel" xml:space="preserve"><value>night(s)</value></data>
   <data name="bookings.tariffUnavailable" xml:space="preserve"><value>Select a room, arrival and departure date to see the applicable tariff.</value></data>
+  <data name="bookings.tariffNoneAssigned" xml:space="preserve"><value>No tariff is assigned to this room for these dates.</value></data>
   <data name="bookings.noTariff" xml:space="preserve"><value>No tariff</value></data>
   <data name="bookings.unknownTariff" xml:space="preserve"><value>Unknown tariff</value></data>
   <data name="tariffs.applicableToday" xml:space="preserve"><value>Applicable tariffs today</value></data>
