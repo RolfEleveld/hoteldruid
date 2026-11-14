@@ -14,6 +14,10 @@ internal static class TestLocalizationSupport
         services.AddScoped<IClientCultureService, TestClientCultureService>();
         services.AddScoped<IActiveYearService, TestActiveYearService>();
 
+        var assetApi = new Mock<IAssetApiService>();
+        assetApi.Setup(x => x.GetAssetsAsync()).ReturnsAsync(new List<AssetDto>());
+        services.AddScoped(_ => assetApi.Object);
+
         var inventoryApi = new Mock<IInventoryApiService>();
         inventoryApi.Setup(x => x.GetInventoryAsync()).ReturnsAsync(new List<InventoryDto>());
         services.AddScoped(_ => inventoryApi.Object);

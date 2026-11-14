@@ -408,6 +408,9 @@
   <data name="inventory.quantity" xml:space="preserve"><value>Quantity</value></data>
   <data name="inventory.quantityShort" xml:space="preserve"><value>Qty</value></data>
   <data name="inventory.id" xml:space="preserve"><value>ID</value></data>
+  <data name="inventory.serial" xml:space="preserve"><value>Serial</value></data>
+  <data name="inventory.serialHint" xml:space="preserve"><value>A QR label for this item uses this serial.</value></data>
+  <data name="inventory.unknownAsset" xml:space="preserve"><value>Unknown asset</value></data>
   <data name="inventory.none" xml:space="preserve"><value>None</value></data>
   <data name="inventory.selectAsset" xml:space="preserve"><value>Select asset...</value></data>
   <data name="inventory.selectWarehouse" xml:space="preserve"><value>Select warehouse...</value></data>

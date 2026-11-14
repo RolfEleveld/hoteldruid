@@ -73,7 +73,13 @@
                     <div class="panel-body flex-grow-1 overflow-auto">
                         <div class="mb-3">
                             <label class="form-label">@L["inventory.asset", "Asset"]</label>
-                            <input class="form-control" @bind="edit.AssetId" />
+                            <select class="form-select" @bind="edit.AssetId">
+                                <option value="">@L["inventory.none", "None"]</option>
+                                @foreach (var asset in assets.OrderBy(asset => asset.Name, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    <option value="@asset.Id">@asset.Name</option>
+                                }
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">@L["inventory.room", "Room"]</label>
@@ -153,7 +159,11 @@
                     @if (selected != null)
                     {
                         <dl class="row">
-                            <dt class="col-5">@L["inventory.id", "ID"]</dt><dd class="col-7">@selected.Id</dd>
+                            <dt class="col-5">@L["inventory.serial", "Serial"]</dt>
+                            <dd class="col-7">
+                                <div>@selected.Id</div>
+                                <div class="text-muted small">@L["inventory.serialHint", "A QR label for this item uses this serial."]</div>
+                            </dd>
                             <dt class="col-5">@L["inventory.asset", "Asset"]</dt><dd class="col-7">@ResolveAssetName(selected.AssetId)</dd>
                             <dt class="col-5">@L["inventory.room", "Room"]</dt><dd class="col-7">@ResolveRoomName(selected.RoomId)</dd>
                             <dt class="col-5">@L["inventory.warehouse", "Warehouse"]</dt>

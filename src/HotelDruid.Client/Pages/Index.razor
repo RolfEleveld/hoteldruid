@@ -8,6 +8,7 @@
 @inject HttpClient Http
 @inject IRoomApiService RoomApiService
 @inject IInventoryApiService InventoryApiService
+@inject IAssetApiService AssetApiService
 @inject IWarehouseApiService WarehouseApiService
 @inject ITariffApiService TariffApiService
 @inject IJSRuntime JS
@@ -686,6 +687,7 @@
     private List<BookingDto>? departures;
     private List<RoomDto> availableRooms = new();
     private List<InventoryDto> availableInventory = new();
+    private List<AssetDto> availableAssets = new();
     private List<WarehouseDto> availableWarehouses = new();
     private List<TariffDto> availableTariffs = new();
     private bool roomsLoading;
@@ -1510,10 +1512,13 @@
       try
       {
         inventoryLoading = true;
-        var inventory = await InventoryApiService.GetInventoryAsync();
-        availableInventory = inventory
+        var assetsTask = AssetApiService.GetAssetsAsync();
+        var inventoryTask = InventoryApiService.GetInventoryAsync();
+        await Task.WhenAll(assetsTask, inventoryTask);
+        availableAssets = assetsTask.Result ?? new List<AssetDto>();
+        availableInventory = (inventoryTask.Result ?? new List<InventoryDto>())
           .OrderBy(i => GetInventoryDisplayName(i), StringComparer.OrdinalIgnoreCase)
-          .ThenBy(i => i.Id, StringComparer.OrdinalIgnoreCase)
+          .ThenBy(i => GetInventoryAssignedRoom(i), StringComparer.OrdinalIgnoreCase)
           .ToList();
       }
       finally
@@ -1985,8 +1990,9 @@
       {
         var term = inventorySearch.Trim();
         query = query.Where(i =>
-          (!string.IsNullOrWhiteSpace(i.AssetId) && i.AssetId.Contains(term, StringComparison.OrdinalIgnoreCase))
-          || GetInventoryAssignedRoom(i).Contains(term, StringComparison.OrdinalIgnoreCase));
+          GetInventoryDisplayName(i).Contains(term, StringComparison.OrdinalIgnoreCase)
+          || GetInventoryAssignedRoom(i).Contains(term, StringComparison.OrdinalIgnoreCase)
+          || (!string.IsNullOrWhiteSpace(i.Id) && i.Id.Contains(term, StringComparison.OrdinalIgnoreCase)));
       }
 
       return query
@@ -1997,7 +2003,15 @@
 
     private string GetInventoryDisplayName(InventoryDto inventory)
     {
-      return string.IsNullOrWhiteSpace(inventory.AssetId) ? L["inventory.none", "None"] : inventory.AssetId;
+      if (string.IsNullOrWhiteSpace(inventory.AssetId))
+      {
+        return L["inventory.none", "None"];
+      }
+
+      var asset = availableAssets.FirstOrDefault(current => string.Equals(current.Id, inventory.AssetId, StringComparison.OrdinalIgnoreCase));
+      return string.IsNullOrWhiteSpace(asset?.Name)
+        ? L["inventory.unknownAsset", "Unknown asset"]
+        : asset.Name;
     }
 
     private string GetInventoryAssignedRoom(InventoryDto inventory)

@@ -1,6 +1,7 @@
 @namespace HotelDruid.Client.Components.Inventory
 @using HotelDruid.Client.Services
 @inject IInventoryApiService InventoryApi
+@inject IAssetApiService AssetApi
 @inject IStringLocalizer<SharedResource> L
 
 <div class="rpanels">
@@ -20,7 +21,7 @@
                 <table class="t1"><thead><tr><th>@L["inventory.asset", "Asset"]</th><th>@L["inventory.quantityShort", "Qty"]</th></tr></thead><tbody>
                     @foreach (var i in Items.Take(5))
                     {
-                        <tr><td>@i.AssetId</td><td>@i.Quantity</td></tr>
+                        <tr><td>@AssetName(i.AssetId)</td><td>@i.Quantity</td></tr>
                     }
                 </tbody></table>
             }
@@ -30,7 +31,16 @@
 
 @code {
     private List<InventoryDto> Items = new();
+    private List<AssetDto> knownAssets = new();
     private bool Loading = false;
+
+    private string AssetName(string? assetId)
+    {
+        if (string.IsNullOrWhiteSpace(assetId))
+            return L["inventory.none", "None"];
+        var asset = knownAssets.FirstOrDefault(current => string.Equals(current.Id, assetId, StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(asset?.Name) ? L["inventory.unknownAsset", "Unknown asset"] : asset.Name;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,7 +49,12 @@
 
     private async Task LoadAsync()
     {
-        try { Loading = true; Items = await InventoryApi.GetInventoryAsync(); }
+        try
+        {
+            Loading = true;
+            knownAssets = await AssetApi.GetAssetsAsync() ?? new();
+            Items = await InventoryApi.GetInventoryAsync();
+        }
         catch { }
         finally { Loading = false; }
     }

@@ -551,6 +551,9 @@
   <data name="inventory.quantity" xml:space="preserve"><value>Cantidad</value></data>
   <data name="inventory.quantityShort" xml:space="preserve"><value>Cant.</value></data>
   <data name="inventory.id" xml:space="preserve"><value>ID</value></data>
+  <data name="inventory.serial" xml:space="preserve"><value>Número de serie</value></data>
+  <data name="inventory.serialHint" xml:space="preserve"><value>La etiqueta QR de este artículo usa este número de serie.</value></data>
+  <data name="inventory.unknownAsset" xml:space="preserve"><value>Activo desconocido</value></data>
   <data name="inventory.none" xml:space="preserve"><value>Ninguno</value></data>
   <data name="inventory.selectAsset" xml:space="preserve"><value>Seleccione activo...</value></data>
   <data name="inventory.selectWarehouse" xml:space="preserve"><value>Seleccione almacén...</value></data>
