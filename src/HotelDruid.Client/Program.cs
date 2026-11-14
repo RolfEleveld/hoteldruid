@@ -8,7 +8,14 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddLocalization();
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<IDeskUserService, DeskUserService>();
+builder.Services.AddScoped(sp =>
+{
+    var http = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+    if (sp.GetRequiredService<IDeskUserService>() is DeskUserService desk)
+        desk.Attach(http);
+    return http;
+});
 builder.Services.AddScoped<IClientCultureService, ClientCultureService>();
 builder.Services.AddScoped<IActiveYearService, ActiveYearService>();
 // Register Asset API client service
@@ -60,6 +67,8 @@ builder.Services.AddScoped<HotelDruid.Client.Services.ISessionApiService, HotelD
 var host = builder.Build();
 var cultureService = host.Services.GetRequiredService<IClientCultureService>();
 await cultureService.InitializeAsync();
+var deskUser = host.Services.GetRequiredService<IDeskUserService>();
+await deskUser.InitializeAsync();
 var activeYearService = host.Services.GetRequiredService<IActiveYearService>();
 await activeYearService.InitializeAsync();
 

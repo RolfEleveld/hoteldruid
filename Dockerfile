@@ -25,7 +25,7 @@ RUN mkdir -p /data
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV HotelDruid_DATAROOT=/data
+ENV HOTELDRUID_DATAROOT=/data
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \

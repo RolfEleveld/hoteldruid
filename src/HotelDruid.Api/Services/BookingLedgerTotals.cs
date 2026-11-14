@@ -1,10 +1,11 @@
 using HotelDruid.Api.Models;
+using HotelDruid.Shared;
 
 namespace HotelDruid.Api.Services;
 
 /// <summary>
-/// Booking figures taken from the ledger. Room revenue is 4100, extras are 4900,
-/// deposits still held are 2400, and the amount due is the net of 1200.
+/// Booking figures taken from the ledger. Room revenue, extras, deposits, and the
+/// amount due are the buckets of the chart passed in. USALI is the default chart.
 /// </summary>
 public readonly record struct BookingLedgerTotals(
     decimal StayTotal,
@@ -16,6 +17,9 @@ public readonly record struct BookingLedgerTotals(
     decimal TotalDue)
 {
     public static BookingLedgerTotals From(IEnumerable<LedgerEntry> lines)
+        => From(lines, AccountChart.Usali);
+
+    public static BookingLedgerTotals From(IEnumerable<LedgerEntry> lines, AccountChart chart)
     {
         decimal stay = 0;
         decimal extra = 0;
@@ -26,24 +30,21 @@ public readonly record struct BookingLedgerTotals(
 
         foreach (var line in lines)
         {
-            switch (line.AccountCode)
+            if (string.Equals(line.EntryType, ChartAdoptionLog.EntryType, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (line.AccountCode == chart.RoomRevenue)
+                stay += line.Credit - line.Debit;
+            else if (line.AccountCode == chart.OtherIncome)
+                extra += line.Credit - line.Debit;
+            else if (line.AccountCode == chart.GuestDeposits)
+                deposits += line.Credit - line.Debit;
+            else if (line.AccountCode == chart.GuestLedger)
             {
-                case HotelAccounts.RoomRevenue:
-                    stay += line.Credit - line.Debit;
-                    break;
-                case HotelAccounts.OtherIncome:
-                    extra += line.Credit - line.Debit;
-                    break;
-                case HotelAccounts.GuestDeposits:
-                    deposits += line.Credit - line.Debit;
-                    break;
-                case HotelAccounts.GuestLedger:
-                    due += line.Debit - line.Credit;
-                    if (Is(line, "booking_payment") && line.Credit > 0)
-                        payments += line.Credit;
-                    if (Is(line, "booking_refund") && line.Debit > 0)
-                        refunds += line.Debit;
-                    break;
+                due += line.Debit - line.Credit;
+                if (Is(line, "booking_payment") && line.Credit > 0)
+                    payments += line.Credit;
+                if (Is(line, "booking_refund") && line.Debit > 0)
+                    refunds += line.Debit;
             }
         }
 

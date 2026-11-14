@@ -143,13 +143,14 @@ public record BookingTransactionWriteDto(
     DateTime? Timestamp = null
 );
 
-/// <summary>One account in the small USALI chart used by the hotel ledger.</summary>
+/// <summary>One account in the hotel chart. The role is the ledger bucket. The code comes from the selected standard.</summary>
 public record ChartAccountDto(
     string Code,
     string Name,
     string Group,
     string NormalBalance,
-    string Description
+    string Description,
+    string Role
 );
 
 /// <summary>One balanced line from the hotel general ledger.</summary>
@@ -167,7 +168,8 @@ public record LedgerLineDto(
     string? PayerName,
     string? Description,
     string? SourceType,
-    string? SourceId
+    string? SourceId,
+    string? CreatedBy = null
 );
 
 /// <summary>Read-only financial position for one booking.</summary>

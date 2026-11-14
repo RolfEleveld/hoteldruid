@@ -24,7 +24,7 @@ public class LedgerEntry
     /// <summary>Shared id for the balanced lines of one business event.</summary>
     public string? JournalId { get; set; }
 
-    /// <summary>USALI/GAAP account code. The booking reference is a dimension, not the account.</summary>
+    /// <summary>Account code from the chart in use when the line was posted. The booking reference is a dimension, not the account.</summary>
     public string? AccountCode { get; set; }
 
     /// <summary>Account group: asset, liability, equity, revenue, or expense.</summary>

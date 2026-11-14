@@ -52,7 +52,7 @@
                     <dt>Period Type</dt><dd>@selected.PeriodType</dd>
                 </dl>
                 <button class="btn btn-sm btn-primary me-1" @onclick="SetActiveYearAsync">Use as Active Year</button>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
+                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["common.edit", "Edit"]</button>
                 <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
             }
         </div>

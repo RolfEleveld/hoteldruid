@@ -1,9 +1,12 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @using System.Net.Http.Json
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
+@using HotelDruid.Client.Services
 @inject IStringLocalizer<SharedResource> L
 @inject HttpClient Http
+@inject IDeskUserService DeskUser
 
 <div class="page">
     <header class="app-header">
@@ -27,8 +30,9 @@
             <article class="content px-4">
                 @Body
             </article>
-            <footer class="global-footer px-4">
+            <footer class="global-footer px-4 d-flex flex-wrap gap-3 align-items-center">
                 <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
+                <a href="/profile">@FooterName()</a>
             </footer>
         </main>
     </div>
@@ -39,11 +43,17 @@
     private string hotelName = "Welcome to HotelDruid";
     private bool isNavOpen;
 
+    protected override void OnInitialized()
+    {
+        DeskUser.Changed += OnDeskUserChanged;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             status = await Http.GetFromJsonAsync<StatusDto>("/api/status");
+            await DeskUser.ApplyIdentityAsync(status?.Authenticated == true, status?.User);
         }
         catch
         {
@@ -77,6 +87,25 @@
         return Task.CompletedTask;
     }
 
+    private void OnDeskUserChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        DeskUser.Changed -= OnDeskUserChanged;
+    }
+
+    private string FooterName()
+    {
+        if (DeskUser.FromIdentity)
+            return L["DeskUser.SignedIn", DeskUser.Name ?? ""];
+        if (string.IsNullOrWhiteSpace(DeskUser.Name))
+            return L["profile.setName"];
+        return L["profile.using", DeskUser.Name];
+    }
+
     private string GetBuildLabel()
     {
         var versionLabel = string.IsNullOrWhiteSpace(status?.VersionLabel)
@@ -94,6 +123,8 @@
     {
         public string? VersionLabel { get; set; }
         public string? BuildNumber { get; set; }
+        public string? User { get; set; }
+        public bool Authenticated { get; set; }
     }
 
     private sealed class SystemConfigurationDto

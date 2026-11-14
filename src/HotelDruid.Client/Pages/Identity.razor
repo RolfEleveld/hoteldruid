@@ -1,0 +1,74 @@
+@page "/identity"
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["identity.title", "Identity"]</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mt-2 mb-3">
+        <div class="col-lg-8">
+            <h5 class="mb-1">@L["identity.title", "Identity"]</h5>
+            @if (status is null)
+            {
+                <p><em>@L["common.loading", "Loading..."]</em></p>
+            }
+            else if (!status.Configured)
+            {
+                <p class="text-muted">@L["identity.notFront", "No identity front is deployed. This installation does not hand sign-in to Keycloak."]</p>
+            }
+            else if (!status.IsFront)
+            {
+                <p>@L["identity.unreachable", "Keycloak is configured as the identity front, but this API cannot reach its discovery document."]</p>
+                <dl class="row small mb-0">
+                    <dt class="col-sm-3">@L["identity.issuer", "Issuer the API probes"]</dt>
+                    <dd class="col-sm-9">@status.Issuer</dd>
+                </dl>
+            }
+            else
+            {
+                <p>@L["identity.front", "Keycloak is the identity front for this installation. Login users and roles are managed there."]</p>
+                <dl class="row small">
+                    <dt class="col-sm-3">@L["identity.realm", "Realm"]</dt>
+                    <dd class="col-sm-9">@status.Realm</dd>
+                    <dt class="col-sm-3">@L["identity.issuer", "Issuer the API probes"]</dt>
+                    <dd class="col-sm-9">@status.Issuer</dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(status.AdminConsoleUrl))
+                {
+                    <a class="btn btn-primary" href="@status.AdminConsoleUrl" target="_blank" rel="noopener noreferrer">@L["identity.admin", "Open identity admin"]</a>
+                }
+                else
+                {
+                    <p class="text-muted">@L["identity.adminMissing", "The browser address of the Keycloak admin console is not configured."]</p>
+                }
+                <p class="text-muted small mt-3 mb-0">@L["identity.localUsers", "Users, groups, privileges, and sessions in this application are the imported staff register. They name the person on a cash row. They are not the login directory while Keycloak is the front."]</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IdentityFrontStatus? status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            status = await Http.GetFromJsonAsync<IdentityFrontStatus>("/api/system/identity-front");
+        }
+        catch
+        {
+            status = new IdentityFrontStatus();
+        }
+    }
+
+    private sealed class IdentityFrontStatus
+    {
+        public bool Configured { get; set; }
+        public bool Reachable { get; set; }
+        public bool IsFront { get; set; }
+        public string? Issuer { get; set; }
+        public string? Realm { get; set; }
+        public string? AdminConsoleUrl { get; set; }
+    }
+}

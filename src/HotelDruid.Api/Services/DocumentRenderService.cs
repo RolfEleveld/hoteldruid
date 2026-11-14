@@ -66,8 +66,10 @@ public sealed class DocumentRenderService : IDocumentRenderService
 
         // 4. Charges and cash movements come from the booking's ledger.
         var ledgerLines = await BookingTransactionProjection.LoadAsync(_ledger, _ledgerIndex, bookingId, DateTime.MinValue, DateTime.MaxValue);
-        var totals = BookingLedgerTotals.From(ledgerLines);
-        var costs = ChargeRows(ledgerLines);
+        var chartConfig = await _configStore.GetAsync();
+        var chart = AccountChart.ResolveOrUsali(chartConfig?.AccountingStandard, chartConfig?.AccountCodes);
+        var totals = BookingLedgerTotals.From(ledgerLines, chart);
+        var costs = ChargeRows(ledgerLines, chart);
         var payments = MovementRows(ledgerLines);
 
         // 5. Load additional guests
@@ -161,12 +163,12 @@ public sealed class DocumentRenderService : IDocumentRenderService
         };
     }
 
-    private static List<CostContextRow> ChargeRows(IEnumerable<LedgerEntry> lines)
+    private static List<CostContextRow> ChargeRows(IEnumerable<LedgerEntry> lines, AccountChart chart)
     {
         var rows = new List<CostContextRow>();
         foreach (var group in lines.GroupBy(JournalKey))
         {
-            var revenue = group.Where(line => line.AccountCode is HotelAccounts.RoomRevenue or HotelAccounts.OtherIncome).ToList();
+            var revenue = group.Where(line => line.AccountCode == chart.RoomRevenue || line.AccountCode == chart.OtherIncome).ToList();
             if (revenue.Count == 0)
                 continue;
             var amount = revenue.Sum(line => line.Credit - line.Debit);

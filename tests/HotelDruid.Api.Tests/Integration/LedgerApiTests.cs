@@ -53,6 +53,18 @@ public class LedgerApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ChartOfAccounts_ListsTheUsaliCodesUsedByTheLedger()
+    {
+        var response = await _client.GetAsync("/api/ledger/accounts");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var accounts = await response.Content.ReadFromJsonAsync<List<ChartAccount>>(JsonOptions) ?? [];
+        var codes = accounts.Select(account => account.Code ?? "").ToArray();
+        Assert.Equal(new[] { "1000", "1200", "2400", "4100", "4900", "6100" }, codes);
+        Assert.Contains(accounts, account => account.Code == GuestDeposits && account.Group == "liability");
+        Assert.Contains(accounts, account => account.Code == RoomRevenue && account.Group == "revenue");
+    }
+
+    [Fact]
     public async Task Payment_PostsBalancedJournal_AndFiltersByBooking()
     {
         var booking = await CreateBookingAsync("guest-a");
@@ -247,6 +259,13 @@ public class LedgerApiTests : IAsyncLifetime
         Assert.NotNull(finance);
         Assert.Equal(80m, finance.PaymentsTotal);
         Assert.Equal(4m, finance.RefundsTotal);
+
+        var refundLines = (await GetLinesAsync(bookingId: booking))
+            .Where(line => line.Description == "Overpayment")
+            .ToList();
+        Assert.Contains(refundLines, line => line.AccountCode == GuestLedger && line.Debit == 4m);
+        Assert.Contains(refundLines, line => line.AccountCode == Cash && line.Credit == 4m);
+        Assert.DoesNotContain(refundLines, line => line.AccountCode == RoomRevenue);
     }
 
     private async Task<string> CreateBookingAsync(string clientId)
@@ -284,6 +303,12 @@ public class LedgerApiTests : IAsyncLifetime
     private sealed class BookingCreated
     {
         public string? Id { get; set; }
+    }
+
+    private sealed class ChartAccount
+    {
+        public string? Code { get; set; }
+        public string? Group { get; set; }
     }
 
     private sealed class LedgerLine

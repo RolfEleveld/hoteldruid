@@ -16,7 +16,7 @@
         <div class="col-auto">
             <label class="me-1">Year:</label>
             <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">Load</button>
+            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
         </div>
     </div>
     <div class="row">
@@ -84,7 +84,7 @@
                     <dt>Client</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
                     <dt>Guest Number</dt><dd>@selected.GuestNumber</dd>
                 </dl>
-                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">Edit</button>
+                <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["common.edit", "Edit"]</button>
                 <button class="btn btn-sm btn-outline-danger" @onclick="DeleteSelected">@L["common.delete", "Delete"]</button>
             }
         </div>

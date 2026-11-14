@@ -1362,6 +1362,55 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
 
 ---
 
+## 21. Ledger parity and later work
+
+The PHP-to-Blazor ledger checklist in [docs/ledger-parity-todo.md](docs/ledger-parity-todo.md) is complete. The booking reference is a dimension on the global ledger. Hotel cash leaves it empty. The finance list is a projection of those journals. Deposits credit the guest-deposits bucket until checkout applies them to the guest ledger.
+
+The ledger posts six buckets: cash, guest ledger, guest deposits, room revenue, other income, and operating expense. Setup chooses the numbers. USALI is the default when nothing has been chosen (1000, 1200, 2400, 4100, 4900, 6100). The same buckets are also numbered from published charts: Switzerland, Kontenrahmen KMU (1000, 1100, 2030, 3400, 3600, 6700); Mexico, the SAT código agrupador (101.01, 105.01, 206.01, 401.01, 403.01, 601.84); Spain, the Plan General de Contabilidad (570, 430, 438, 705, 759, 629). Canada has no national account-number chart, and the Italian civil code does not assign numbers, so those hotels use USALI or Custom. Another standard is added by giving those same buckets its own numbers in `AccountChart.Standards`. Custom lets the hotel register the six numbers itself.
+
+Saving setup writes a zero-amount journal, entry type `chart_of_accounts`, with one line on each new account number. The note names the chart and the six numbers in force from that entry forward, and, when a chart was already saved, the numbers the earlier journals keep. A later save of the same chart does not write another journal. The lines are omitted from booking totals. A money journal keeps the numbers it was written with. Changing the chart does not rewrite posted lines.
+
+Base checks live with the API tests: balanced journals and filters in `LedgerApiTests`, stay and checkout and point-of-sale journals in `Layer4ApiTests`, the per-booking ledger index in `BookingLedgerHistoryTests`, and PHP money import in `PhpPackageImportTests`.
+
+Two items were deliberately left for later:
+
+- A per-room timeline that separates revenue earned per night, maintenance and renovation, and issue-driven downtime, so room profitability and utilization can be read over time.
+- A living user manual under `docs/user-guide/`, one page per major screen, with a role index and Playwright screenshots regenerated on release. The folder layout and how tightly the manual is coupled to the code still need a decision before that work starts.
+
+Booking classification is a separate book: [docs/booking-lifecycle-consistency.md](docs/booking-lifecycle-consistency.md). List endpoints, check-in, check-out, and no-show are in place. What remains is import classification tests, a client test that clicks those actions, and the optional checkout audit fields `CheckedOutAt` and `CheckedOutByUserId`. `ActualDepartureDate` is already stored.
+
+## 22. Identity front
+
+Keycloak is a deployment choice, not a compile-time dependency. `IdentityFrontProbe` calls `GET /api/system/identity-front`.
+
+The result is a front only when `Identity:Provider` is `keycloak` and the API receives an OpenID discovery document from `Identity:Issuer`. The browser address of the admin console is `Identity:AdminConsoleUrl` and is not used for the probe. Compose maps these from `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL`. See [docs/keycloak-setup.md](docs/keycloak-setup.md) and [docs/deployment-runbook.md](docs/deployment-runbook.md).
+
+When `isFront` is true, the drawer shows Identity. That page opens the Keycloak admin console. HotelDruid does not proxy the admin API and does not store the Keycloak admin password. Login users and roles stay in the realm. The probe does not sign a desk user in. Requiring a token stays with the reverse proxy.
+
+When Keycloak is absent, or the probe fails, the Identity item is not shown. An operator can still open `/identity` and see that no front is deployed.
+
+The API data directory is `HOTELDRUID_DATAROOT`. The container image and compose file set that name. The older `HotelDruid_DATAROOT` spelling is not read on Linux.
+
+The browser cannot read the operating-system account, and it cannot read a Keycloak session that lives on another origin. When a request arrives already authenticated, the API records `preferred_username`, then `name`, then `sub`. When it is not, the desk name stored in this browser under `hoteldruid.deskUser` is sent as `X-HotelDruid-Desk-User` and written on ledger lines that do not already name a person. The person sets that name on Profile. Each private browser keeps its own name, so several people can share one desktop. The footer links to that page and shows the name in force. A signed-in token replaces it. An unnamed caller is left blank. The fallback word admin is not written on a journal.
+
+## 23. Navigation
+
+The drawer in `Layout/NavMenu.razor` is the menu. Rooms and Calendar are on it because the dashboard already works through those pages.
+
+These groups stay because the ledger and the desk still use them:
+
+- Rooms, calendar, bookings, booking costs, booking guests, cancelled bookings, tariffs, periods, years, assignment rules, extra costs.
+- Clients and client data, and the reference lists (nations, regions, cities, document types, family relationships).
+- Assets, warehouses, inventory, point of sale, cash registers.
+- Expenses, money history, general ledger, chart of accounts. Money history is the cash journal. The ledger is the book. They are not two copies of the same screen.
+- Messages, contract templates, external integrations, settings, and setup.
+
+Users, user groups, privileges, group memberships, user preferences, and sessions are the imported staff register. A cash row still names a person from that register. They are not the login directory when section 22 says Keycloak is the front. The Identity page says so. The pages stay.
+
+`Shared/NavMenu.razor` was an unused English-only menu and has been removed. `/home` was the unused Blazor template page and has been removed. The desk home is `/`.
+
+Resource keys used by the screens exist in English, Italian, and Spanish. A number of one-off buttons on the older maintenance pages are still literal English (`Add User`, `Change Password`, `Settle & Close Folio`, `Remove from Archive`, `Mark Read`, and similar). Load and Edit on those pages use the shared resource keys.
+
 ## References
 
 - [Architecture Decision Log](ARCHITECTURE.md) (this file)

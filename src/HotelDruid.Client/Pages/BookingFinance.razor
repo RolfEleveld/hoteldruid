@@ -8,6 +8,7 @@
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApi
 @inject IActiveYearService ActiveYearService
+@inject IDeskUserService DeskUser
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
 
@@ -278,6 +279,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (string.IsNullOrWhiteSpace(entryCreatedBy))
+            entryCreatedBy = DeskUser.Name;
         clients = await ClientApi.GetAllAsync();
         rooms = await RoomApi.GetRoomsAsync();
         await LoadBookingsAsync();
@@ -366,8 +369,7 @@
                 entryAmount,
                 entryDescription,
                 entryAppliedTo,
-                entryCreatedBy));
-            entryCreatedBy = null;
+                string.IsNullOrWhiteSpace(entryCreatedBy) ? DeskUser.Name : entryCreatedBy));
             ResetEntryForm();
             await ReloadFinanceAsync();
         }
@@ -392,7 +394,7 @@
         entryType = "payment";
         entryAmount = 0;
         entryAppliedTo = "stay_balance";
-        entryCreatedBy = null;
+        entryCreatedBy = DeskUser.Name;
         entryDescription = null;
         errorMsg = string.Empty;
     }

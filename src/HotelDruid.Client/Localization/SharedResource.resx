@@ -181,6 +181,17 @@
   <data name="Dashboard.Count.Clients" xml:space="preserve"><value>Clients: {0}</value></data>
   <data name="Dashboard.Count.ActiveYear" xml:space="preserve"><value>Active Year: {0}</value></data>
   <data name="Dashboard.Version.Label" xml:space="preserve"><value>Version</value></data>
+  <data name="DeskUser.Label" xml:space="preserve"><value>Your name</value></data>
+  <data name="DeskUser.SignedIn" xml:space="preserve"><value>Signed in as {0}</value></data>
+  <data name="Nav.Profile" xml:space="preserve"><value>Profile</value></data>
+  <data name="profile.title" xml:space="preserve"><value>Profile</value></data>
+  <data name="profile.lead" xml:space="preserve"><value>This name belongs to this browser. On a shared computer, each person uses their own browser profile, and the name saved here is written on ledger entries from that browser.</value></data>
+  <data name="profile.help" xml:space="preserve"><value>Letters, digits, spaces, apostrophes, dots, or hyphens. Up to 80 characters.</value></data>
+  <data name="profile.signedIn" xml:space="preserve"><value>The sign-in name is used on ledger entries. This page does not replace it.</value></data>
+  <data name="profile.setName" xml:space="preserve"><value>Set your name</value></data>
+  <data name="profile.using" xml:space="preserve"><value>Your name: {0}</value></data>
+  <data name="profile.invalid" xml:space="preserve"><value>That name cannot be stored. Use letters, digits, spaces, apostrophes, dots, or hyphens.</value></data>
+  <data name="ledger.recordedBy" xml:space="preserve"><value>Recorded by</value></data>
   <data name="Nav.Toggle" xml:space="preserve"><value>Navigation menu</value></data>
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
   <data name="Nav.Assets" xml:space="preserve"><value>Assets</value></data>
@@ -693,7 +704,7 @@
   <data name="ledger.total" xml:space="preserve"><value>Total</value></data>
   <data name="ledger.balance" xml:space="preserve"><value>Balance (debit − credit)</value></data>
   <data name="chart.title" xml:space="preserve"><value>Chart of accounts</value></data>
-  <data name="chart.hint" xml:space="preserve"><value>USALI accounts used by the hotel ledger. A booking reference is a dimension, not an account. Open a code to see its ledger lines.</value></data>
+  <data name="chart.hint" xml:space="preserve"><value>Accounts from the chart chosen in setup. A booking reference is a dimension, not an account. Open a code to see its ledger lines.</value></data>
   <data name="chart.empty" xml:space="preserve"><value>No accounts are defined.</value></data>
   <data name="chart.code" xml:space="preserve"><value>Code</value></data>
   <data name="chart.name" xml:space="preserve"><value>Account</value></data>
@@ -719,4 +730,158 @@
   <data name="chart.account.4900.use" xml:space="preserve"><value>Walk-up sales, extras, and petty-cash income that is not room revenue.</value></data>
   <data name="chart.account.6100" xml:space="preserve"><value>Operating expense</value></data>
   <data name="chart.account.6100.use" xml:space="preserve"><value>Hotel purchases and petty-cash outflows. The booking reference stays empty.</value></data>
+  <data name="Nav.Rooms" xml:space="preserve"><value>Rooms</value></data>
+  <data name="Nav.Calendar" xml:space="preserve"><value>Calendar</value></data>
+  <data name="Nav.Identity" xml:space="preserve"><value>Identity</value></data>
+  <data name="identity.title" xml:space="preserve"><value>Identity</value></data>
+  <data name="identity.notFront" xml:space="preserve"><value>No identity front is deployed. This installation does not hand sign-in to Keycloak.</value></data>
+  <data name="identity.unreachable" xml:space="preserve"><value>Keycloak is configured as the identity front, but this API cannot reach its discovery document.</value></data>
+  <data name="identity.front" xml:space="preserve"><value>Keycloak is the identity front for this installation. Login users and roles are managed there.</value></data>
+  <data name="identity.realm" xml:space="preserve"><value>Realm</value></data>
+  <data name="identity.issuer" xml:space="preserve"><value>Issuer the API probes</value></data>
+  <data name="identity.admin" xml:space="preserve"><value>Open identity admin</value></data>
+  <data name="identity.adminMissing" xml:space="preserve"><value>The browser address of the Keycloak admin console is not configured.</value></data>
+  <data name="identity.localUsers" xml:space="preserve"><value>Users, groups, privileges, and sessions in this application are the imported staff register. They name the person on a cash row. They are not the login directory while Keycloak is the front.</value></data>
+  <data name="common.add" xml:space="preserve"><value>Add</value></data>
+  <data name="common.apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="common.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="common.new" xml:space="preserve"><value>New</value></data>
+  <data name="common.showAll" xml:space="preserve"><value>Show All</value></data>
+  <data name="assets.title" xml:space="preserve"><value>Assets</value></data>
+  <data name="assets.emptyList" xml:space="preserve"><value>No assets yet.</value></data>
+  <data name="assignmentRules.title" xml:space="preserve"><value>Assignment Rules</value></data>
+  <data name="bookingCosts.title" xml:space="preserve"><value>Booking Costs</value></data>
+  <data name="bookingGuests.title" xml:space="preserve"><value>Booking Guests</value></data>
+  <data name="bookings.preAuthMethod" xml:space="preserve"><value>Guarantee Method</value></data>
+  <data name="bookings.preAuthReference" xml:space="preserve"><value>Guarantee / Pre-auth</value></data>
+  <data name="bookings.prepaidMethod" xml:space="preserve"><value>Prepaid Method</value></data>
+  <data name="bookings.prepaidReference" xml:space="preserve"><value>Prepaid Reference</value></data>
+  <data name="bookings.settlement" xml:space="preserve"><value>Settlement / Folio Close</value></data>
+  <data name="cancelledBookings.title" xml:space="preserve"><value>Cancelled Bookings</value></data>
+  <data name="cashRegisters.title" xml:space="preserve"><value>Cash Registers</value></data>
+  <data name="cashRegisters.emptyList" xml:space="preserve"><value>No cash registers defined.</value></data>
+  <data name="cities.title" xml:space="preserve"><value>Cities</value></data>
+  <data name="cities.emptyList" xml:space="preserve"><value>No cities defined.</value></data>
+  <data name="clientData.title" xml:space="preserve"><value>Client Data</value></data>
+  <data name="contractTemplates.title" xml:space="preserve"><value>Contract Templates</value></data>
+  <data name="contractTemplates.emptyList" xml:space="preserve"><value>No contract templates yet.</value></data>
+  <data name="Dashboard.Reservations.UnknownRoom" xml:space="preserve"><value>Unknown room</value></data>
+  <data name="expenses.title" xml:space="preserve"><value>Expenses</value></data>
+  <data name="export.title" xml:space="preserve"><value>Export Room Configuration</value></data>
+  <data name="export.button" xml:space="preserve"><value>Export Now</value></data>
+  <data name="export.description" xml:space="preserve"><value>Download your room data as a ZIP file for backup or migration</value></data>
+  <data name="export.downloadLink" xml:space="preserve"><value>Download your export file</value></data>
+  <data name="export.exporting" xml:space="preserve"><value>Exporting...</value></data>
+  <data name="export.includeMetadata" xml:space="preserve"><value>Include metadata</value></data>
+  <data name="export.selectAll" xml:space="preserve"><value>Export All Rooms</value></data>
+  <data name="export.selectCustom" xml:space="preserve"><value>Select Custom Rooms</value></data>
+  <data name="export.selectRooms" xml:space="preserve"><value>Select rooms to export:</value></data>
+  <data name="export.statusCompleted" xml:space="preserve"><value>Export completed successfully</value></data>
+  <data name="export.statusFailed" xml:space="preserve"><value>Export failed. Please try again.</value></data>
+  <data name="export.statusInProgress" xml:space="preserve"><value>Export in progress...</value></data>
+  <data name="externalIntegrations.title" xml:space="preserve"><value>External Integrations</value></data>
+  <data name="externalIntegrations.emptyList" xml:space="preserve"><value>No external integrations yet.</value></data>
+  <data name="extraCosts.title" xml:space="preserve"><value>Extra Costs</value></data>
+  <data name="extraCosts.baseValueLabel" xml:space="preserve"><value>Base Value</value></data>
+  <data name="extraCosts.categoryLabel" xml:space="preserve"><value>Category</value></data>
+  <data name="extraCosts.costTypeLabel" xml:space="preserve"><value>Cost Type</value></data>
+  <data name="extraCosts.edit" xml:space="preserve"><value>Edit Extra Cost</value></data>
+  <data name="extraCosts.empty" xml:space="preserve"><value>No extra costs</value></data>
+  <data name="extraCosts.nameLabel" xml:space="preserve"><value>Extra Cost Name</value></data>
+  <data name="extraCosts.new" xml:space="preserve"><value>New Extra Cost</value></data>
+  <data name="extraCosts.numberLimitLabel" xml:space="preserve"><value>Number Limit</value></data>
+  <data name="extraCosts.percentageValueLabel" xml:space="preserve"><value>Percentage Value</value></data>
+  <data name="extraCosts.taxPercentageLabel" xml:space="preserve"><value>Tax %</value></data>
+  <data name="familyRelationships.title" xml:space="preserve"><value>Family Relationships</value></data>
+  <data name="familyRelationships.emptyList" xml:space="preserve"><value>No relationship types defined.</value></data>
+  <data name="groupMemberships.title" xml:space="preserve"><value>Group Memberships</value></data>
+  <data name="home.title" xml:space="preserve"><value>Home</value></data>
+  <data name="home.heading" xml:space="preserve"><value>Hello, world!</value></data>
+  <data name="home.message" xml:space="preserve"><value>Welcome to your new app.</value></data>
+  <data name="identityDocumentTypes.title" xml:space="preserve"><value>Identity Document Types</value></data>
+  <data name="identityDocumentTypes.emptyList" xml:space="preserve"><value>No document types defined.</value></data>
+  <data name="import.title" xml:space="preserve"><value>Import Room Configuration</value></data>
+  <data name="import.description" xml:space="preserve"><value>Upload a ZIP file containing room data to import</value></data>
+  <data name="import.dragDrop" xml:space="preserve"><value>Drag and drop your ZIP file here</value></data>
+  <data name="import.execute" xml:space="preserve"><value>Execute Import</value></data>
+  <data name="import.fileSelected" xml:space="preserve"><value>File selected</value></data>
+  <data name="import.importedCount" xml:space="preserve"><value>Room(s) imported</value></data>
+  <data name="import.selectFile" xml:space="preserve"><value>Select a ZIP file to import</value></data>
+  <data name="import.statusCompleted" xml:space="preserve"><value>Import completed successfully</value></data>
+  <data name="import.statusFailed" xml:space="preserve"><value>Import failed. Please try again.</value></data>
+  <data name="import.statusInProgress" xml:space="preserve"><value>Import in progress...</value></data>
+  <data name="import.updatedCount" xml:space="preserve"><value>Room(s) updated</value></data>
+  <data name="import.validate" xml:space="preserve"><value>Validate</value></data>
+  <data name="import.validating" xml:space="preserve"><value>Validating...</value></data>
+  <data name="import.validationFailed" xml:space="preserve"><value>Validation failed</value></data>
+  <data name="import.validationPassed" xml:space="preserve"><value>Validation passed successfully</value></data>
+  <data name="language.preferenceTitle" xml:space="preserve"><value>Interface Language</value></data>
+  <data name="language.preferenceDescription" xml:space="preserve"><value>Overrides browser language for this device.</value></data>
+  <data name="language.selectLanguage" xml:space="preserve"><value>Select language</value></data>
+  <data name="language.switcher" xml:space="preserve"><value>Language</value></data>
+  <data name="messages.title" xml:space="preserve"><value>Messages</value></data>
+  <data name="messages.emptyList" xml:space="preserve"><value>No messages yet.</value></data>
+  <data name="moneyHistory.title" xml:space="preserve"><value>Money History</value></data>
+  <data name="nations.title" xml:space="preserve"><value>Nations</value></data>
+  <data name="nations.emptyList" xml:space="preserve"><value>No nations defined.</value></data>
+  <data name="periods.title" xml:space="preserve"><value>Periods</value></data>
+  <data name="regions.title" xml:space="preserve"><value>Regions</value></data>
+  <data name="regions.emptyList" xml:space="preserve"><value>No regions defined.</value></data>
+  <data name="rooms.room" xml:space="preserve"><value>Room</value></data>
+  <data name="rooms.capacity" xml:space="preserve"><value>Capacity</value></data>
+  <data name="rooms.description" xml:space="preserve"><value>View and manage your hotel rooms</value></data>
+  <data name="rooms.floor" xml:space="preserve"><value>Floor</value></data>
+  <data name="rooms.house" xml:space="preserve"><value>House</value></data>
+  <data name="sessions.title" xml:space="preserve"><value>Sessions</value></data>
+  <data name="settings.title" xml:space="preserve"><value>Settings and Management</value></data>
+  <data name="settings.description" xml:space="preserve"><value>Export and import room configurations</value></data>
+  <data name="settings.export" xml:space="preserve"><value>Export Rooms</value></data>
+  <data name="settings.import" xml:space="preserve"><value>Import Rooms</value></data>
+  <data name="userGroups.title" xml:space="preserve"><value>User Groups</value></data>
+  <data name="userGroups.emptyList" xml:space="preserve"><value>No user groups defined.</value></data>
+  <data name="userPrivileges.title" xml:space="preserve"><value>User Privileges</value></data>
+  <data name="userRelations.title" xml:space="preserve"><value>User Preferences</value></data>
+  <data name="users.title" xml:space="preserve"><value>Users</value></data>
+  <data name="users.emptyList" xml:space="preserve"><value>No users defined.</value></data>
+  <data name="userSettings.title" xml:space="preserve"><value>Settings</value></data>
+  <data name="userSettings.addSetting" xml:space="preserve"><value>Add Setting</value></data>
+  <data name="userSettings.edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="userSettings.emptyList" xml:space="preserve"><value>No settings defined</value></data>
+  <data name="userSettings.filterByUserId" xml:space="preserve"><value>Filter by User ID</value></data>
+  <data name="userSettings.key" xml:space="preserve"><value>Setting Key</value></data>
+  <data name="userSettings.keyRequired" xml:space="preserve"><value>Setting key is required.</value></data>
+  <data name="userSettings.newSetting" xml:space="preserve"><value>New Setting</value></data>
+  <data name="userSettings.numericValue" xml:space="preserve"><value>Numeric Value</value></data>
+  <data name="userSettings.numericValueShort" xml:space="preserve"><value>Num</value></data>
+  <data name="userSettings.selectToView" xml:space="preserve"><value>Select a setting to view details</value></data>
+  <data name="userSettings.stringValue" xml:space="preserve"><value>Value</value></data>
+  <data name="userSettings.user" xml:space="preserve"><value>User</value></data>
+  <data name="userSettings.userId" xml:space="preserve"><value>User ID</value></data>
+  <data name="warehouses.empty" xml:space="preserve"><value>No warehouses available</value></data>
+  <data name="years.title" xml:space="preserve"><value>Years</value></data>
+  <data name="years.emptyList" xml:space="preserve"><value>No years defined</value></data>
+  <data name="chart.role.cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="chart.role.guest-ledger" xml:space="preserve"><value>Guest ledger</value></data>
+  <data name="chart.role.guest-deposits" xml:space="preserve"><value>Guest deposits</value></data>
+  <data name="chart.role.room-revenue" xml:space="preserve"><value>Room revenue</value></data>
+  <data name="chart.role.other-income" xml:space="preserve"><value>Other income</value></data>
+  <data name="chart.role.operating-expense" xml:space="preserve"><value>Operating expense</value></data>
+  <data name="chart.role.cash.use" xml:space="preserve"><value>Cash registers and hotel cash on hand.</value></data>
+  <data name="chart.role.guest-ledger.use" xml:space="preserve"><value>Amounts owed by staying guests. A payment reduces this balance; it does not create revenue.</value></data>
+  <data name="chart.role.guest-deposits.use" xml:space="preserve"><value>Deposits held until earned or settled. Taking a deposit does not reduce room revenue.</value></data>
+  <data name="chart.role.room-revenue.use" xml:space="preserve"><value>Earned room charges. Recognized when the stay is charged, not when cash is received.</value></data>
+  <data name="chart.role.other-income.use" xml:space="preserve"><value>Walk-up sales, extras, and petty-cash income that is not room revenue.</value></data>
+  <data name="chart.role.operating-expense.use" xml:space="preserve"><value>Hotel purchases and petty-cash outflows. The booking reference stays empty.</value></data>
+  <data name="chart.standard.usali" xml:space="preserve"><value>USALI</value></data>
+  <data name="chart.standard.ch-kmu" xml:space="preserve"><value>Switzerland (Kontenrahmen KMU)</value></data>
+  <data name="chart.standard.mx-sat" xml:space="preserve"><value>Mexico (SAT código agrupador)</value></data>
+  <data name="chart.standard.es-pgc" xml:space="preserve"><value>Spain (PGC)</value></data>
+  <data name="chart.standard.custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Setup.Accounting.Label" xml:space="preserve"><value>Chart of accounts</value></data>
+  <data name="Setup.Accounting.Help" xml:space="preserve"><value>USALI is the lodging chart. Switzerland uses the Kontenrahmen KMU, Mexico the SAT código agrupador, and Spain the Plan General de Contabilidad. Canada has no national account numbers, and the Italian civil code does not assign them, so those hotels use USALI or Custom. Saving writes a ledger entry that names the numbers in force from that moment. Posted journals keep the numbers they were written with.</value></data>
+  <data name="Setup.Accounting.Numbers" xml:space="preserve"><value>Bucket numbers</value></data>
+  <data name="Setup.Accounting.MissingCode" xml:space="preserve"><value>Every bucket needs an account number.</value></data>
+  <data name="Setup.Accounting.DuplicateCode" xml:space="preserve"><value>Each bucket needs its own account number.</value></data>
+  <data name="Setup.Accounting.InvalidCode" xml:space="preserve"><value>An account number must start with a letter or digit and stay within 16 characters.</value></data>
+  <data name="Setup.Accounting.UnknownStandard" xml:space="preserve"><value>That chart is not available.</value></data>
 </root>

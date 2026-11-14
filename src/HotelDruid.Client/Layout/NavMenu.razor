@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<SharedResource> L
+@inject HttpClient Http
 
 <div class="drawer-shell">
     <div class="drawer-title">@L["Nav.Toggle", "Navigation menu"]</div>
@@ -10,6 +11,21 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 @L["Nav.Home", "Home"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="profile">
+                @L["Nav.Profile", "Profile"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="rooms">
+                @L["Nav.Rooms", "Rooms"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="calendar">
+                @L["Nav.Calendar", "Calendar"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -99,6 +115,14 @@
         <div class="nav-item px-3 mt-2">
             <div class="text-muted small px-1" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">@L["Nav.Section.UserManagement", "User Management"]</div>
         </div>
+        @if (identityIsFront)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="identity">
+                    @L["Nav.Identity", "Identity"]
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="user-privileges">
                 @L["Nav.UserPrivileges", "User Privileges"]
@@ -221,9 +245,29 @@
     [Parameter]
     public EventCallback OnNavigate { get; set; }
 
+    private bool identityIsFront;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var status = await Http.GetFromJsonAsync<IdentityFrontStatus>("/api/system/identity-front");
+            identityIsFront = status?.IsFront == true;
+        }
+        catch
+        {
+            identityIsFront = false;
+        }
+    }
+
     private Task HandleNavigate()
     {
         return OnNavigate.HasDelegate ? OnNavigate.InvokeAsync() : Task.CompletedTask;
+    }
+
+    private sealed class IdentityFrontStatus
+    {
+        public bool IsFront { get; set; }
     }
 }
 

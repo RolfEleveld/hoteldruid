@@ -46,10 +46,14 @@ public class BookingFinancePageIntegrationTests : TestContext
             "stay-1", 2026, 96, 0, 96, 100, 0, 0, 0, -4, "EUR", null, "Weekend", 1));
         financeApi.Setup(x => x.ListTransactionsAsync(2026, "stay-1")).ReturnsAsync(new List<BookingTransactionDto>());
 
+        var deskUser = new Mock<IDeskUserService>();
+        deskUser.SetupGet(service => service.Name).Returns((string?)null);
+
         Services.AddScoped(_ => bookingApi.Object);
         Services.AddScoped(_ => financeApi.Object);
         Services.AddScoped(_ => clientApi.Object);
         Services.AddScoped(_ => roomApi.Object);
+        Services.AddScoped(_ => deskUser.Object);
     }
 
     [Fact]

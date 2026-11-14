@@ -13,7 +13,10 @@ services:
       - HotelDruid_data:/data
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      HotelDruid_DATAROOT: /data
+      HOTELDRUID_DATAROOT: /data
+      Identity__Provider: ${IDENTITY_PROVIDER:-none}
+      Identity__Issuer: ${IDENTITY_ISSUER:-}
+      Identity__AdminConsoleUrl: ${IDENTITY_ADMIN_CONSOLE_URL:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s

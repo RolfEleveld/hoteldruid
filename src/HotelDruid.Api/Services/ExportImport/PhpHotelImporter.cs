@@ -14,13 +14,15 @@ public sealed class PhpHotelImporter
     private readonly IKeyValueStore _store;
     private readonly IFinancialPostingService? _ledger;
     private readonly ILogger _logger;
+    private readonly AccountChart _chart;
     private readonly Maps _maps = new();
 
-    public PhpHotelImporter(IKeyValueStore store, IFinancialPostingService? ledger, ILogger logger)
+    public PhpHotelImporter(IKeyValueStore store, IFinancialPostingService? ledger, ILogger logger, AccountChart? chart = null)
     {
         _store = store;
         _ledger = ledger;
         _logger = logger;
+        _chart = chart ?? AccountChart.Usali;
     }
 
     public static bool Handles(string normalized, int? year, CanonicalData data)
@@ -268,7 +270,7 @@ public sealed class PhpHotelImporter
             }
             else if (_ledger is not null && total > 0)
             {
-                await _ledger.PostBalancedAsync(arrival.ToDateTime(new TimeOnly(12, 0)), "booking_stay_charge", "Stay charge imported from PHP", (decimal)total, HotelAccounts.GuestLedger, "asset", HotelAccounts.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
+                await _ledger.PostBalancedAsync(arrival.ToDateTime(new TimeOnly(12, 0)), "booking_stay_charge", "Stay charge imported from PHP", (decimal)total, _chart.GuestLedger, "asset", _chart.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
             }
             count++;
         }
@@ -355,19 +357,19 @@ public sealed class PhpHotelImporter
                 var deposit = !refund && notes.Contains("Caparra", StringComparison.OrdinalIgnoreCase);
                 if (refund && notes.Contains("Caparra", StringComparison.OrdinalIgnoreCase) || refund && notes.Contains("cancellazione", StringComparison.OrdinalIgnoreCase))
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, HotelAccounts.GuestDeposits, "liability", HotelAccounts.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestDeposits, "liability", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
                 }
                 else if (refund)
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, HotelAccounts.GuestLedger, "asset", HotelAccounts.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestLedger, "asset", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
                 }
                 else if (deposit)
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_deposit", notes, magnitude, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_deposit", notes, magnitude, _chart.Cash, "asset", _chart.GuestDeposits, "liability", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
                 }
                 else
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_payment", string.IsNullOrWhiteSpace(notes) ? "Booking payment" : notes, magnitude, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_payment", string.IsNullOrWhiteSpace(notes) ? "Booking payment" : notes, magnitude, _chart.Cash, "asset", _chart.GuestLedger, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
                 }
             }
             count++;
@@ -445,9 +447,9 @@ public sealed class PhpHotelImporter
             {
                 var magnitude = (decimal)Math.Abs(rawAmount);
                 if (outflow)
-                    await _ledger.PostBalancedAsync(when, "petty_cash_expense", description ?? "Petty cash expense", magnitude, HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: registerId, payerName: person, sourceType: "money-history", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
+                    await _ledger.PostBalancedAsync(when, "petty_cash_expense", description ?? "Petty cash expense", magnitude, _chart.OperatingExpense, "expense", _chart.Cash, "asset", cashRegisterId: registerId, payerName: person, sourceType: "money-history", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
                 else
-                    await _ledger.PostBalancedAsync(when, "petty_cash_income", description ?? "Petty cash income", magnitude, HotelAccounts.Cash, "asset", HotelAccounts.OtherIncome, "revenue", cashRegisterId: registerId, payerName: person, sourceType: "money-history", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
+                    await _ledger.PostBalancedAsync(when, "petty_cash_income", description ?? "Petty cash income", magnitude, _chart.Cash, "asset", _chart.OtherIncome, "revenue", cashRegisterId: registerId, payerName: person, sourceType: "money-history", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
             }
             count++;
         }

@@ -1,0 +1,65 @@
+@page "/profile"
+@using HotelDruid.Client.Services
+@inject IDeskUserService DeskUser
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["profile.title"]</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mt-2 mb-3">
+        <div class="col-lg-8">
+            <h5 class="mb-1">@L["profile.title"]</h5>
+            <p class="text-muted">@L["profile.lead"]</p>
+
+            @if (DeskUser.FromIdentity)
+            {
+                <p>@L["DeskUser.SignedIn", DeskUser.Name ?? ""]</p>
+                <p class="text-muted small mb-0">@L["profile.signedIn"]</p>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label" for="desk-name">@L["DeskUser.Label"]</label>
+                    <input id="desk-name" class="form-control" style="max-width: 24rem" @bind="draft" @bind:event="oninput" />
+                    <div class="form-text">@L["profile.help"]</div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(error))
+                {
+                    <div class="alert alert-warning py-2">@error</div>
+                }
+                else if (saved)
+                {
+                    <div class="alert alert-success py-2">@L["common.saved"]</div>
+                }
+                <button class="btn btn-primary" @onclick="SaveAsync">@L["common.save"]</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string draft = string.Empty;
+    private string? error;
+    private bool saved;
+
+    protected override void OnInitialized()
+    {
+        draft = DeskUser.Name ?? string.Empty;
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        saved = false;
+        var entered = draft.Trim();
+        await DeskUser.SetNameAsync(draft);
+        draft = DeskUser.Name ?? string.Empty;
+        if (entered.Length > 0 && DeskUser.Name is null)
+        {
+            error = L["profile.invalid"];
+            return;
+        }
+
+        saved = true;
+    }
+}

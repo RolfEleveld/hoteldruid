@@ -23,13 +23,12 @@ Notes:
 
 ## Checkout State Decision
 
-Recommendation: add an explicit checkout marker on bookings.
+`ActualDepartureDate` is stored on the booking. Check-out sets it and sets status to `CheckedOut`. A booking with that date leaves the stay and departure lists.
 
-Preferred model:
-- `ActualDepartureDate` (date) on booking.
-- Optional: `CheckedOutByUserId`, `CheckedOutAt` (timestamp) for audit.
+Still open, and optional:
+- `CheckedOutByUserId` and `CheckedOutAt` are not stored. The status and `ActualDepartureDate` are the markers in use.
 
-Why this is recommended:
+Why the checkout date is stored:
 - Most PMS/hotel systems keep both planned departure and actual checkout.
 - It removes ambiguity on departure day (guest still in room vs already checked out).
 - It supports accurate operational dashboards, housekeeping, billing cutoff, and night-audit reporting.
@@ -59,9 +58,9 @@ State transition rule:
 Current maturity snapshot:
 - Lifecycle derivation: `M2`
 - Widget/detail list consumption: `M3`
-- Transition action endpoints: `M1` (partially implemented via existing update/cancel flow)
-- Import parity: `M1` (rule documented; import-specific classification tests pending)
-- Test coverage: `M3` (state-list endpoint tests + client routing tests in place)
+- Transition action endpoints: `M4` for check-in, check-out, and no-show. Payment is the ledger transaction endpoint, not a separate `/payment` route.
+- Import parity: `M3` for field mapping (`ActualDepartureDate` is imported when the legacy source has a checkout). Classification tests that assert which list an imported booking appears in are still open, so this is not `M5`.
+- Test coverage: `M4` for API state lists and the three transition endpoints (`Layer4ApiTests`). Client view routing is covered. A client test that clicks check-in, check-out, and no-show is still open, so this is not `M6`.
 
 ## Current Implementation Validation
 
@@ -110,9 +109,9 @@ Action endpoints:
 2. Expose lifecycle list endpoint(s) for reservations, arrivals, stays, departures. ✅
 3. Point landing widgets to those endpoints only. ✅
 4. Point `/bookings?view=...` left column to same endpoint(s). ✅
-5. Add action endpoints that mutate required fields safely. ⏳
-6. Add API integration tests for each state boundary and transition. ◑ (state-list coverage added; transition endpoints pending)
-7. Add client integration tests to verify each view consumes correct endpoint. ◑ (view routing coverage added; action flows pending)
+5. Add action endpoints that mutate required fields safely. ✅ check-in, check-out, and no-show. Payment goes through the ledger transaction endpoint.
+6. Add API integration tests for each state boundary and transition. ◑ state lists and the three actions are covered. The import classification cases at the bottom of this file are not.
+7. Add client integration tests to verify each view consumes correct endpoint. ◑ view routing is covered. Button flows for check-in, check-out, and no-show are not.
 
 ## Import Rule
 
@@ -129,6 +128,13 @@ Checkout-specific import rule:
 - Never infer checkout solely from planned `DepartureDate`.
 
 This guarantees imported and manually entered bookings classify identically.
+
+## Still open
+
+- Import classification tests listed below.
+- A client test that performs check-in, check-out, and no-show from the booking page.
+- Optional audit fields `CheckedOutAt` and `CheckedOutByUserId`.
+- The single `GET /api/bookings/lifecycle?state=` query. The four list endpoints are the contract in use and are equivalent.
 
 Planned import verification tests:
 - Imported booking with `ActualArrivalDate` + `ActualGuestCount` + future `DepartureDate` appears in stays.

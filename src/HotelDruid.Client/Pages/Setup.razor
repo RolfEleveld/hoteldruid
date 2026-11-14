@@ -3,6 +3,7 @@
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Web
 @using HotelDruid.Client.Services
+@using HotelDruid.Shared
 @using HotelDruid.Shared.Configuration
 @inject HttpClient Http
 
@@ -59,6 +60,42 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">@L["Setup.Accounting.Label"]</label>
+                        <select class="form-select" @bind="accountingStandard">
+                            @foreach (var standard in AccountChart.Standards)
+                            {
+                                <option value="@standard.Id">@StandardLabel(standard)</option>
+                            }
+                        </select>
+                        <div class="form-text">@L["Setup.Accounting.Help"]</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-label">@L["Setup.Accounting.Numbers"]</div>
+                        @if (CustomChart)
+                        {
+                            @foreach (var row in accountRows)
+                            {
+                                <div class="row g-2 align-items-center mb-2">
+                                    <label class="col-sm-5 col-form-label">@RoleLabel(row.Role)</label>
+                                    <div class="col-sm-7">
+                                        <input class="form-control" @bind="row.Code" />
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <ul class="mb-0">
+                                @foreach (var account in FixedAccounts)
+                                {
+                                    <li>@RoleLabel(account.Role): @account.Code</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">@L["Setup.Storage.Label"]</label>
                         <input class="form-control" value="@storageInfo?.DataRoot" readonly />
                         <div class="form-text">
@@ -87,9 +124,30 @@
         public string ConfigurationKey { get; set; } = string.Empty;
     }
 
+    private sealed class CodeRow
+    {
+        public CodeRow(string role, string code)
+        {
+            Role = role;
+            Code = code;
+        }
+
+        public string Role { get; }
+        public string Code { get; set; }
+    }
+
     private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
     private string hotelName = "Welcome to HotelDruid";
     private string pricingFallback = "LatestAvailableYear";
+    private string accountingStandard = AccountChart.UsaliId;
+    private readonly List<CodeRow> accountRows = AccountRoles.All
+        .Select(role => new CodeRow(role, AccountChart.Usali.Codes[role]))
+        .ToList();
+    private bool CustomChart => string.Equals(accountingStandard, AccountChart.CustomId, StringComparison.OrdinalIgnoreCase);
+    private IReadOnlyList<ChartAccountDto> FixedAccounts =>
+        AccountChart.TryResolve(accountingStandard, null, out var chart, out _)
+            ? chart.Accounts
+            : AccountChart.Usali.Accounts;
     private StorageInfoResponse? storageInfo;
     private static readonly IReadOnlyList<string> PricingFallbackOptions =
     [
@@ -131,6 +189,21 @@
                 {
                     pricingFallback = NormalizePricingFallback(value);
                 }
+
+                if (!string.IsNullOrWhiteSpace(existing.AccountingStandard)
+                    && AccountChart.Standards.Any(item => string.Equals(item.Id, existing.AccountingStandard, StringComparison.OrdinalIgnoreCase)))
+                {
+                    accountingStandard = existing.AccountingStandard;
+                }
+
+                if (existing.AccountCodes is not null)
+                {
+                    foreach (var row in accountRows)
+                    {
+                        if (existing.AccountCodes.TryGetValue(row.Role, out var code) && !string.IsNullOrWhiteSpace(code))
+                            row.Code = code;
+                    }
+                }
             }
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -150,6 +223,16 @@
         model.Settings["HotelName"] = string.IsNullOrWhiteSpace(hotelName) ? "Welcome to HotelDruid" : hotelName.Trim();
         model.Settings["PriceFallback"] = NormalizePricingFallback(pricingFallback);
 
+        var codes = accountRows.ToDictionary(row => row.Role, row => row.Code);
+        if (!AccountChart.TryResolve(accountingStandard, codes, out var chart, out var chartError))
+        {
+            error = ChartError(chartError);
+            return;
+        }
+
+        model.AccountingStandard = chart.StandardId;
+        model.AccountCodes = new Dictionary<string, string>(chart.Codes);
+
         var response = await Http.PutAsJsonAsync("/api/system/configuration", model);
         if (!response.IsSuccessStatusCode)
         {
@@ -159,6 +242,26 @@
 
         message = L["Setup.Message.SaveSuccess"];
     }
+
+    private string StandardLabel(AccountStandard standard)
+    {
+        var localized = L[$"chart.standard.{standard.Id}"];
+        return localized.ResourceNotFound ? standard.Name : localized.Value;
+    }
+
+    private string RoleLabel(string role)
+    {
+        var localized = L[$"chart.role.{role}"];
+        return localized.ResourceNotFound ? role : localized.Value;
+    }
+
+    private string ChartError(string? code) => code switch
+    {
+        "duplicate-code" => L["Setup.Accounting.DuplicateCode"],
+        "invalid-code" => L["Setup.Accounting.InvalidCode"],
+        "unknown-standard" => L["Setup.Accounting.UnknownStandard"],
+        _ => L["Setup.Accounting.MissingCode"]
+    };
 
     private static string NormalizePricingFallback(string? value)
     {

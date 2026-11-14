@@ -222,9 +222,33 @@ Use these URLs in your application or proxy configuration.
 - Configure **Token Lifespan** in Realm > Sessions to adjust
 - Use refresh tokens to get new access tokens without re-authenticating
 
-## 13. Next Steps
+## 13. HotelDruid detects this front
 
-- Integrate app/proxy with Keycloak's OIDC discovery endpoint
+HotelDruid treats Keycloak as the sign-in front only when both of these are true:
+
+1. The API process has `Identity:Provider=keycloak` (compose variable `IDENTITY_PROVIDER`).
+2. The API can read `{Identity:Issuer}/.well-known/openid-configuration` (compose variable `IDENTITY_ISSUER`).
+
+`GET /api/system/identity-front` returns `configured`, `reachable`, `isFront`, `realm`, `issuer`, and `adminConsoleUrl`. The Blazor menu adds **Identity** only when `isFront` is true. That page states the realm and opens `IDENTITY_ADMIN_CONSOLE_URL` in the browser. User and role changes stay in the Keycloak admin console. The hotel API does not call the Keycloak admin API and does not keep the admin password.
+
+The probe only detects the front. It does not sign a desk user in. Requiring a token is still the reverse proxy's job (section 10).
+
+Use two addresses:
+
+| Variable | Who uses it | Example |
+|---|---|---|
+| `IDENTITY_ISSUER` | API container, on the compose network | `http://keycloak:8080/realms/HotelDruid` |
+| `IDENTITY_ADMIN_CONSOLE_URL` | Browser | `http://localhost:8081/admin/HotelDruid/console` or `https://auth.example.com/admin/HotelDruid/console` |
+
+If the issuer is set but the probe fails, `isFront` stays false and the Identity menu is hidden. Open `/identity` to see the issuer the API tried. A public hostname that the API container cannot reach will fail the probe even when a laptop can open the admin console. Point `IDENTITY_ISSUER` at the address the API can resolve.
+
+The Users, Groups, Privileges, and Sessions pages remain the imported staff register. They name the person on a cash row. They are not the login directory while this front is active.
+
+An internal deployment that does not run `deploy/compose/keycloak.yml` leaves `IDENTITY_PROVIDER=none`. Nothing in the menu offers Keycloak management.
+
+## 14. Next Steps
+
+- Point the reverse proxy at the realm discovery endpoint (section 10) so public traffic requires a token. HotelDruid already probes that document to decide whether to show Identity.
 - Configure role-based access control (RBAC) in your reverse proxy
 - Set up Keycloak backup/restore procedures
 - Document team onboarding process for adding new users/roles

@@ -52,3 +52,4 @@ Customize these templates before production use.
 - Compose file selection is intentionally admin-provided.
 - This avoids forcing a specific proxy or ACME implementation.
 - Public scenarios should not be configured for anonymous access.
+- Keycloak scenarios set `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL` so HotelDruid can detect the identity front. See `docs/keycloak-setup.md`.

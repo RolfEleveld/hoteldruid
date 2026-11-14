@@ -110,7 +110,9 @@ public class ApiDistributor : IApiDistributor
 
         if (phpTables.Count > 0)
         {
-            var phpResult = await new PhpHotelImporter(_store, _ledger, _logger).ImportAsync(phpTables);
+            var chartConfig = await _systemConfigurationStore.GetAsync();
+            var chart = AccountChart.ResolveOrUsali(chartConfig?.AccountingStandard, chartConfig?.AccountCodes);
+            var phpResult = await new PhpHotelImporter(_store, _ledger, _logger, chart).ImportAsync(phpTables);
             totalImported += phpResult.TotalImported;
             foreach (var (name, result) in phpResult.ByTable)
                 results[name] = result;

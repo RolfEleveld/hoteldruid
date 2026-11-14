@@ -1,6 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
-using System.Security.Claims;
 using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -137,6 +136,7 @@ builder.Services.AddSingleton<FileKvStore>();
 // Register Phase 1B repositories
 builder.Services.AddSingleton<IRoomRepository, RoomRepository>();
 builder.Services.AddSingleton<ISystemConfigurationStore, SystemConfigurationStore>();
+builder.Services.AddSingleton<IAccountChart, AccountChartService>();
 builder.Services.AddSingleton<IAssumptionRuleEngine, AssumptionRuleEngine>();
 builder.Services.AddSingleton<ITariffResolutionService, TariffResolutionService>();
 builder.Services.AddSingleton<ILedgerRepository>(sp =>
@@ -144,6 +144,7 @@ builder.Services.AddSingleton<ILedgerRepository>(sp =>
     var logger = sp.GetRequiredService<ILogger<LedgerRepository>>();
     return new LedgerRepository(resolvedDataRoot, logger);
 });
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IFinancialPostingService, FinancialPostingService>();
 builder.Services.AddSingleton<IBookingLedgerIndexRepository>(sp =>
 {
@@ -165,6 +166,11 @@ builder.Services.AddSingleton<ICacheWarmupState>(sp => sp.GetRequiredService<Cac
 builder.Services.AddHostedService<CacheWarmupHostedService>();
 builder.Services.AddSingleton<IDocumentRenderService, DocumentRenderService>();
 builder.Services.AddHostedService<DocumentTemplateSeeder>();
+builder.Services.AddHttpClient<IIdentityFrontProbe, IdentityFrontProbe>((sp, client) =>
+{
+    var seconds = sp.GetRequiredService<IConfiguration>().GetValue("Identity:ProbeTimeoutSeconds", 2);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(seconds, 1, 10));
+});
 builder.Services.AddSingleton<IEndpointQueryCache>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -265,31 +271,7 @@ static string ResolveTraceId(HttpContext context)
 }
 
 static string ResolveActorDisplayName(HttpContext context)
-{
-    var user = context.User;
-    if (user?.Identity?.IsAuthenticated == true)
-    {
-        var preferredUserName = user.FindFirst("preferred_username")?.Value;
-        if (!string.IsNullOrWhiteSpace(preferredUserName))
-        {
-            return preferredUserName;
-        }
-
-        var nameClaim = user.FindFirst(ClaimTypes.Name)?.Value ?? user.FindFirst("name")?.Value;
-        if (!string.IsNullOrWhiteSpace(nameClaim))
-        {
-            return nameClaim;
-        }
-
-        var subject = user.FindFirst("sub")?.Value;
-        if (!string.IsNullOrWhiteSpace(subject))
-        {
-            return subject;
-        }
-    }
-
-    return "admin";
-}
+    => RequestActor.KnownName(context) ?? "admin";
 
 app.UseDefaultFiles();
 app.UseStaticFiles(staticFileOptions);
@@ -348,6 +330,7 @@ app.MapGet("/api/status", (HttpContext httpContext) =>
     {
         ActiveYear = DateTime.UtcNow.Year.ToString(),
         User = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin",
+        Authenticated = RequestActor.IsAuthenticated(httpContext),
         Version = "HotelDruid 3.0.7",
         VersionLabel = "HotelDruid 3.0.7. Blazor",
         BuildNumber = buildNumber
@@ -371,7 +354,7 @@ app.MapGet("/api/system/storage", () => Results.Ok(new
     ConfigurationKey = "DataRoot"
 }));
 
-app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore) =>
+app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore, ILedgerRepository ledger) =>
 {
     if (string.IsNullOrWhiteSpace(config.Id))
         config.Id = "system";
@@ -381,7 +364,16 @@ app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemCo
     config.Settings["LastUpdatedBy"] = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin";
     config.Settings["LastUpdatedTraceId"] = httpContext.Items.TryGetValue(ActorTraceContextItem, out var trace) ? trace?.ToString() ?? "unknown" : "unknown";
 
+    if (!AccountChart.TryResolve(config.AccountingStandard, config.AccountCodes, out var chart, out var chartError))
+        return Results.BadRequest(new { error = chartError });
+
+    var previous = await configurationStore.GetAsync();
+    config.AccountingStandard = chart.StandardId;
+    config.AccountCodes = new Dictionary<string, string>(chart.Codes);
+
     await configurationStore.SaveAsync(config);
+    if (!ChartAdoptionLog.AlreadyRecorded(previous, chart))
+        await ChartAdoptionLog.WriteAsync(ledger, previous, chart, RequestActor.KnownName(httpContext));
     return Results.Ok(config);
 });
 
@@ -419,6 +411,10 @@ app.MapGet("/api/system/setup/status", async (
                 : "configured"
     });
 });
+
+app.MapGet("/api/system/identity-front", async (IIdentityFrontProbe probe, CancellationToken cancellationToken) =>
+    Results.Ok(await probe.GetStatusAsync(cancellationToken)))
+    .WithName("GetIdentityFront");
 
 // --- Bookings endpoints are defined in Layer 4 section below ---
 
@@ -2919,7 +2915,7 @@ app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToBookingDto(id, b));
 }).WithName("GetBooking");
 
-app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger) =>
+app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var validationError = ValidateBookingRequest(request, request.Year);
     if (validationError is not null)
@@ -2960,20 +2956,21 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
     }
 
     var when = DateTime.UtcNow;
+    var chart = await accountChart.CurrentAsync();
     if (stayTotal > 0)
-        await ledger.PostBalancedAsync(when, "booking_stay_charge", "Stay charge on booking creation", stayTotal, HotelAccounts.GuestLedger, "asset", HotelAccounts.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+        await ledger.PostBalancedAsync(when, "booking_stay_charge", "Stay charge on booking creation", stayTotal, chart.GuestLedger, "asset", chart.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
     if (extraTotal > 0)
-        await ledger.PostBalancedAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, HotelAccounts.GuestLedger, "asset", HotelAccounts.OtherIncome, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+        await ledger.PostBalancedAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
 
     var prepaid = Convert.ToDecimal(request.PrepaidAmount ?? 0);
     if (prepaid > 0)
-        await ledger.PostBalancedAsync(when, "booking_prepaid", "Prepaid amount on booking creation", prepaid, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking", sourceId: id);
+        await ledger.PostBalancedAsync(when, "booking_prepaid", "Prepaid amount on booking creation", prepaid, chart.Cash, "asset", chart.GuestDeposits, "liability", bookingId: id, sourceType: "booking", sourceId: id);
 
     queryCache.InvalidateTag("bookings");
     return Results.Created($"/api/bookings/{request.Year}/{id}", ToBookingDto(id, storage));
 }).WithName("CreateBooking");
 
-app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, ILedgerRepository ledgerReader) =>
+app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, ILedgerRepository ledgerReader, IAccountChart accountChart) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
@@ -3005,6 +3002,7 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);
 
+    var chart = await accountChart.CurrentAsync();
     var oldPrepaid = Convert.ToDecimal(b.PrepaidAmount ?? 0);
     var newPrepaid = Convert.ToDecimal(request.PrepaidAmount ?? 0);
     var prepaidDelta = newPrepaid - oldPrepaid;
@@ -3013,9 +3011,9 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         var whenUpd = DateTime.UtcNow;
         var desc = prepaidDelta > 0 ? "Prepaid amount increased" : "Prepaid amount decreased";
         await ledger.PostBalancedAsync(whenUpd, "booking_prepaid", desc, Math.Abs(prepaidDelta),
-            prepaidDelta > 0 ? HotelAccounts.Cash : HotelAccounts.GuestDeposits,
+            prepaidDelta > 0 ? chart.Cash : chart.GuestDeposits,
             prepaidDelta > 0 ? "asset" : "liability",
-            prepaidDelta > 0 ? HotelAccounts.GuestDeposits : HotelAccounts.Cash,
+            prepaidDelta > 0 ? chart.GuestDeposits : chart.Cash,
             prepaidDelta > 0 ? "liability" : "asset",
             bookingId: id, sourceType: "booking", sourceId: id);
     }
@@ -3023,11 +3021,11 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     if (b.ActualDepartureDate == null && request.ActualDepartureDate.HasValue)
     {
         var openLines = await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue);
-        var held = openLines.Where(line => line.AccountCode == HotelAccounts.GuestDeposits).Sum(line => line.Credit - line.Debit);
+        var held = openLines.Where(line => line.AccountCode == chart.GuestDeposits).Sum(line => line.Credit - line.Debit);
         if (held > 0)
         {
             await ledger.PostBalancedAsync(DateTime.UtcNow, "booking_deposit_application", "Deposit applied on checkout", held,
-                HotelAccounts.GuestDeposits, "liability", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
+                chart.GuestDeposits, "liability", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
         }
     }
 
@@ -3191,7 +3189,7 @@ app.MapGet("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKe
     return Results.Ok(ToBookingCostDto(id, c));
 }).WithName("GetBookingCost");
 
-app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
@@ -3199,11 +3197,11 @@ app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore 
     var id = await store.CreateAsync("booking_costs", key, storage);
     var sold = Convert.ToDecimal(request.Amount ?? 0);
     if (sold > 0)
-        await PostExtraCostDeltaAsync(ledger, request.BookingId, sold, request.Description ?? "Extra cost", id);
+        await PostExtraCostDeltaAsync(ledger, await accountChart.CurrentAsync(), request.BookingId, sold, request.Description ?? "Extra cost", id);
     return Results.Created($"/api/booking-costs/{request.Year}/{id}", ToBookingCostDto(id, storage));
 }).WithName("CreateBookingCost");
 
-app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year || c.DeletedAt.HasValue) return Results.NotFound();
@@ -3212,24 +3210,25 @@ app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, Boo
     var storage = new BookingCostStorageModel { Year = year, BookingId = request.BookingId, TariffId = request.TariffId, Amount = request.Amount, Description = request.Description };
     await store.UpdateAsync("booking_costs", id, storage);
     var description = request.Description ?? c.Description ?? "Extra cost";
+    var chart = await accountChart.CurrentAsync();
     if (string.Equals(c.BookingId, request.BookingId, StringComparison.OrdinalIgnoreCase))
-        await PostExtraCostDeltaAsync(ledger, request.BookingId, newAmount - oldAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, chart, request.BookingId, newAmount - oldAmount, description, id);
     else
     {
-        await PostExtraCostDeltaAsync(ledger, c.BookingId, -oldAmount, description, id);
-        await PostExtraCostDeltaAsync(ledger, request.BookingId, newAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, chart, c.BookingId, -oldAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, chart, request.BookingId, newAmount, description, id);
     }
     return Results.Ok(ToBookingCostDto(id, storage));
 }).WithName("UpdateBookingCost");
 
-app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IFinancialPostingService posting) =>
+app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IFinancialPostingService posting, IAccountChart accountChart) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year) return Results.NotFound();
     if (c.DeletedAt.HasValue)
         return Results.NoContent();
 
-    await PostExtraCostDeltaAsync(posting, c.BookingId, -Convert.ToDecimal(c.Amount ?? 0), c.Description ?? "Extra cost removed", id);
+    await PostExtraCostDeltaAsync(posting, await accountChart.CurrentAsync(), c.BookingId, -Convert.ToDecimal(c.Amount ?? 0), c.Description ?? "Extra cost removed", id);
     var cited = await ledger.AnyMatchingAsync(line =>
         string.Equals(line.SourceType, "booking-cost", StringComparison.OrdinalIgnoreCase)
         && string.Equals(line.SourceId, id, StringComparison.OrdinalIgnoreCase));
@@ -3322,15 +3321,15 @@ static async Task AdjustArticleQuantityAsync(IKeyValueStore store, string invent
     await store.UpdateAsync("inventory", inventoryId, row);
 }
 
-static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, string? bookingId, decimal delta, string description, string sourceId)
+static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, AccountChart chart, string? bookingId, decimal delta, string description, string sourceId)
 {
     if (string.IsNullOrWhiteSpace(bookingId) || delta == 0)
         return;
     var when = DateTime.UtcNow;
     if (delta > 0)
-        await ledger.PostBalancedAsync(when, "booking_extra_charge", description, delta, HotelAccounts.GuestLedger, "asset", HotelAccounts.OtherIncome, "revenue", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+        await ledger.PostBalancedAsync(when, "booking_extra_charge", description, delta, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
     else
-        await ledger.PostBalancedAsync(when, "booking_extra_reversal", description, decimal.Abs(delta), HotelAccounts.OtherIncome, "revenue", HotelAccounts.GuestLedger, "asset", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+        await ledger.PostBalancedAsync(when, "booking_extra_reversal", description, decimal.Abs(delta), chart.OtherIncome, "revenue", chart.GuestLedger, "asset", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
 }
 
 // --- Layer 4: BookingGuests (ospiti{year}) ---
@@ -3445,13 +3444,14 @@ app.MapGet("/api/expenses/{year:int}/{id}", async (int year, string id, IKeyValu
     return Results.Ok(ToExpenseDto(id, e));
 }).WithName("GetExpense");
 
-app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPost("/api/expenses", async (ExpenseDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new ExpenseStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Description = request.Description, Date = request.Date };
     var id = await store.CreateAsync("expenses", key, storage);
-    await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "hotel_purchase", request.Description ?? "Hotel purchase", Convert.ToDecimal(request.Amount ?? 0), HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, sourceType: "expense", sourceId: id);
+    var chart = await accountChart.CurrentAsync();
+    await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "hotel_purchase", request.Description ?? "Hotel purchase", Convert.ToDecimal(request.Amount ?? 0), chart.OperatingExpense, "expense", chart.Cash, "asset", cashRegisterId: request.CashRegisterId, sourceType: "expense", sourceId: id);
     return Results.Created($"/api/expenses/{request.Year}/{id}", ToExpenseDto(id, storage));
 }).WithName("CreateExpense");
 
@@ -3511,7 +3511,7 @@ app.MapGet("/api/pos-sales/{year:int}/{id}", async (int year, string id, IKeyVal
     return Results.Ok(ToPosSaleDto(id, sale));
 }).WithName("GetPosSale");
 
-app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, IFinancialPostingService ledger, ISystemConfigurationStore configurationStore) =>
+app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, IFinancialPostingService ledger, ISystemConfigurationStore configurationStore, IAccountChart accountChart) =>
 {
     var amount = Convert.ToDecimal(request.Amount ?? 0);
     if (amount <= 0)
@@ -3523,6 +3523,7 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
         return Results.BadRequest(new { error = "Article units must be greater than zero." });
 
     var year = request.Year > 0 ? request.Year : DateTime.UtcNow.Year;
+    var chart = await accountChart.CurrentAsync();
     var when = request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
     var description = request.Description.Trim();
     var onStay = !string.IsNullOrWhiteSpace(request.BookingId);
@@ -3579,13 +3580,13 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
         bookingId = request.BookingId;
         clientId = stay!.ClientId;
         entryType = "booking_extra_charge";
-        debit = HotelAccounts.GuestLedger;
-        credit = HotelAccounts.OtherIncome;
+        debit = chart.GuestLedger;
+        credit = chart.OtherIncome;
         if (stay.Year > 0) year = stay.Year;
 
         var cost = new BookingCostStorageModel { Year = year, BookingId = bookingId, Amount = (double)amount, Description = description };
         bookingCostId = await store.CreateAsync("booking_costs", $"{year}_{Guid.NewGuid():N}", cost);
-        await PostExtraCostDeltaAsync(ledger, bookingId, amount, description, bookingCostId);
+        await PostExtraCostDeltaAsync(ledger, chart, bookingId, amount, description, bookingCostId);
     }
     else
     {
@@ -3595,8 +3596,8 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
 
         settlement = "cash";
         entryType = "pos_cash_sale";
-        debit = HotelAccounts.Cash;
-        credit = HotelAccounts.OtherIncome;
+        debit = chart.Cash;
+        credit = chart.OtherIncome;
         registerId = register.Id;
         currency = string.IsNullOrWhiteSpace(request.Currency) ? await PosDefaultCurrencyAsync(configurationStore) : request.Currency.Trim();
         running = (double)(await PosRegisterTapeAsync(store, registerId) + amount);
@@ -3643,7 +3644,7 @@ app.MapDelete("/api/pos-sales/{year:int}/{id}", (int year, string id) =>
     return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 }).WithName("DeletePosSale");
 
-app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var original = await store.GetAsync<PosSaleStorageModel>("pos_sales", id);
     if (original is null || original.Year != year) return Results.NotFound();
@@ -3656,6 +3657,7 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
     if (amount == 0)
         return Results.BadRequest(new { error = "A zero amount cannot be reversed." });
 
+    var chart = await accountChart.CurrentAsync();
     var onStay = string.Equals(original.Settlement, "folio", StringComparison.OrdinalIgnoreCase);
     var description = string.IsNullOrWhiteSpace(original.Description) ? "Reversal" : $"Reversal of {original.Description}";
     var reversal = new PosSaleStorageModel
@@ -3696,18 +3698,18 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
         {
             var outstanding = Convert.ToDecimal(cost.Amount ?? 0);
             if (outstanding != 0)
-                await PostExtraCostDeltaAsync(ledger, original.BookingId, -outstanding, description, original.BookingCostId!);
+                await PostExtraCostDeltaAsync(ledger, chart, original.BookingId, -outstanding, description, original.BookingCostId!);
             cost.DeletedAt = DateTime.UtcNow;
             await store.UpdateAsync("booking_costs", original.BookingCostId!, cost);
         }
         else
         {
-            await ledger.PostBalancedAsync(DateTime.UtcNow, "booking_extra_reversal", description, amount, HotelAccounts.OtherIncome, "revenue", HotelAccounts.GuestLedger, "asset", bookingId: original.BookingId, sourceType: "pos-sale", sourceId: reversalId);
+            await ledger.PostBalancedAsync(DateTime.UtcNow, "booking_extra_reversal", description, amount, chart.OtherIncome, "revenue", chart.GuestLedger, "asset", bookingId: original.BookingId, sourceType: "pos-sale", sourceId: reversalId);
         }
     }
     else
     {
-        await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, HotelAccounts.OtherIncome, "revenue", HotelAccounts.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
+        await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, chart.OtherIncome, "revenue", chart.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
     }
 
     if (!string.IsNullOrWhiteSpace(original.ArticleId) && (original.Units ?? 0) > 0)
@@ -3750,21 +3752,22 @@ app.MapGet("/api/money-history/{year:int}/{id}", async (int year, string id, IKe
     return Results.Ok(ToMoneyHistoryDto(id, m));
 }).WithName("GetMoneyHistory");
 
-app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPost("/api/money-history", async (MoneyHistoryDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
     var storage = new MoneyHistoryStorageModel { Year = request.Year, CashRegisterId = request.CashRegisterId, Amount = request.Amount, Type = request.Type, Description = request.Description, Date = request.Date, Person = request.Person, PaymentMethod = request.PaymentMethod, Currency = request.Currency, RunningCashTotal = request.RunningCashTotal };
     var id = await store.CreateAsync("money_history", key, storage);
     var amount = Convert.ToDecimal(request.Amount ?? 0);
+    var chart = await accountChart.CurrentAsync();
     var isOutflow = MoneyHistoryIsOutflow(request.Amount, request.Type);
     if (isOutflow)
     {
-        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", Math.Abs(amount), HotelAccounts.OperatingExpense, "expense", HotelAccounts.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_expense", request.Description ?? "Petty cash expense", Math.Abs(amount), chart.OperatingExpense, "expense", chart.Cash, "asset", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
     }
     else
     {
-        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_income", request.Description ?? "Petty cash income", Math.Abs(amount), HotelAccounts.Cash, "asset", HotelAccounts.OtherIncome, "revenue", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
+        await ledger.PostBalancedAsync(request.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow, "petty_cash_income", request.Description ?? "Petty cash income", Math.Abs(amount), chart.Cash, "asset", chart.OtherIncome, "revenue", cashRegisterId: request.CashRegisterId, payerName: request.Person ?? request.Description, sourceType: "money-history", sourceId: id);
     }
     return Results.Created($"/api/money-history/{request.Year}/{id}", ToMoneyHistoryDto(id, storage));
 }).WithName("CreateMoneyHistory");
@@ -3776,7 +3779,7 @@ app.MapDelete("/api/money-history/{year:int}/{id}", (int year, string id) =>
     return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 }).WithName("DeleteMoneyHistory");
 
-app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger) =>
+app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {
     var original = await store.GetAsync<MoneyHistoryStorageModel>("money_history", id);
     if (original is null || original.Year != year) return Results.NotFound();
@@ -3811,13 +3814,14 @@ app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, strin
 
     var magnitude = Math.Abs(amount);
     var when = DateTime.UtcNow;
+    var chart = await accountChart.CurrentAsync();
     if (MoneyHistoryIsOutflow(original.Amount, original.Type))
     {
-        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, HotelAccounts.Cash, "asset", HotelAccounts.OperatingExpense, "expense", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
+        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, chart.Cash, "asset", chart.OperatingExpense, "expense", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
     }
     else
     {
-        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, HotelAccounts.OtherIncome, "revenue", HotelAccounts.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
+        await ledger.PostBalancedAsync(when, "petty_cash_reversal", reversal.Description, magnitude, chart.OtherIncome, "revenue", chart.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: reversal.Description, sourceType: "money-history", sourceId: reversalId);
     }
 
     return Results.Created($"/api/money-history/{year}/{reversalId}", ToMoneyHistoryDto(reversalId, reversal));
@@ -4168,7 +4172,7 @@ app.MapGet("/api/bookings/{year:int}/{id}/transactions", async (int year, string
     return Results.Ok(BookingTransactionProjection.Project(lines));
 }).WithName("ListBookingTransactions");
 
-app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, BookingTransactionWriteDto request, IKeyValueStore store, IFinancialPostingService posting, ILedgerRepository ledger, IBookingLedgerIndexRepository indexRepo) =>
+app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, string id, BookingTransactionWriteDto request, IKeyValueStore store, IFinancialPostingService posting, ILedgerRepository ledger, IBookingLedgerIndexRepository indexRepo, IAccountChart accountChart) =>
 {
     if (request is null || string.IsNullOrWhiteSpace(request.Type))
         return Results.BadRequest(new { error = "Transaction type is required" });
@@ -4178,6 +4182,7 @@ app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, strin
     var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (booking is null || booking.Year != year) return Results.NotFound();
 
+    var chart = await accountChart.CurrentAsync();
     var when = request.Timestamp ?? DateTime.UtcNow;
     var appliedTo = string.IsNullOrWhiteSpace(request.AppliedTo) ? "stay_balance" : request.AppliedTo.Trim();
     var isDeposit = string.Equals(request.Type, "deposit", StringComparison.OrdinalIgnoreCase) || string.Equals(appliedTo, "deposit", StringComparison.OrdinalIgnoreCase);
@@ -4186,11 +4191,11 @@ app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, strin
 
     LedgerEntry createdEntry;
     if (isRefund)
-        createdEntry = await posting.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? HotelAccounts.GuestDeposits : HotelAccounts.RoomRevenue, isDeposit ? "liability" : "revenue", HotelAccounts.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? chart.GuestDeposits : chart.GuestLedger, isDeposit ? "liability" : "asset", chart.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
     else if (isDeposit)
-        createdEntry = await posting.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, chart.Cash, "asset", chart.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
     else
-        createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, HotelAccounts.Cash, "asset", HotelAccounts.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, chart.Cash, "asset", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
 
     var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
     var dto = BookingTransactionProjection.ProjectJournal(lines, createdEntry.JournalId)
@@ -4228,7 +4233,7 @@ app.MapGet("/api/bookings/{year:int}/{id}/finance", async (
     }
 
     var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
-    var totals = BookingLedgerTotals.From(lines);
+    var totals = BookingLedgerTotals.From(lines, AccountChart.ResolveOrUsali(config.AccountingStandard, config.AccountCodes));
     var prepaid = Convert.ToDecimal(booking.PrepaidAmount ?? 0);
     return Results.Ok(new BookingFinanceSummaryDto(
         id,
@@ -4261,7 +4266,8 @@ static LedgerLineDto ToLedgerLineDto(LedgerEntry entry) => new(
     entry.PayerName,
     entry.Notes,
     entry.SourceType,
-    entry.SourceId);
+    entry.SourceId,
+    entry.CreatedBy);
 
 app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? bookingId, bool? unassigned, ILedgerRepository ledger) =>
 {
@@ -4282,7 +4288,8 @@ app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? booki
     return Results.Ok(entries.Select(ToLedgerLineDto).ToList());
 }).WithName("ListLedgerLines");
 
-app.MapGet("/api/ledger/accounts", () => Results.Ok(HotelAccounts.Chart)).WithName("ListChartOfAccounts");
+app.MapGet("/api/ledger/accounts", async (IAccountChart accountChart) =>
+    Results.Ok((await accountChart.CurrentAsync()).Accounts)).WithName("ListChartOfAccounts");
 
 // --- Document Rendering ---
 

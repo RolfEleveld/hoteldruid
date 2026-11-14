@@ -10,6 +10,8 @@ namespace HotelDruid.Shared.Configuration
         public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
         public string? DefaultCurrency { get; set; }
         public int? DefaultYear { get; set; }
+        public string? AccountingStandard { get; set; }
+        public Dictionary<string, string>? AccountCodes { get; set; }
         public List<string>? AdminEmails { get; set; }
         public Dictionary<string, string>? Settings { get; set; }
         // Add more configuration fields as needed

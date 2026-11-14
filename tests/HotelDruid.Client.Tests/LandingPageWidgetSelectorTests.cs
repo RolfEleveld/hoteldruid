@@ -360,7 +360,8 @@ public class LandingPageWidgetSelectorTests : TestContext
         "Dashboard.Widget.VisibleCount.Inventory",
         "Dashboard.Widget.VisibleCount.Warehouses",
         "Dashboard.Widget.VisibleCount.Tariffs",
-        "Dashboard.Widget.VisibleCount.Reports"
+        "Dashboard.Widget.VisibleCount.Reports",
+        "Dashboard.Widget.VisibleCount.PointOfSale"
     ];
 
     private static readonly string[] ExpectedAddActionKeys =
@@ -375,7 +376,8 @@ public class LandingPageWidgetSelectorTests : TestContext
         "Dashboard.Widget.Menu.AddInventoryItem",
         "Dashboard.Widget.Menu.AddWarehouse",
         "Dashboard.Widget.Menu.AddTariff",
-        "Dashboard.Widget.Menu.AddReportTemplate"
+        "Dashboard.Widget.Menu.AddReportTemplate",
+        "Index.Feature.PointOfSale.Button"
     ];
 
     public LandingPageWidgetSelectorTests()
