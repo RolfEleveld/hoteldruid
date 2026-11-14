@@ -19,12 +19,13 @@ namespace HotelDruid.Client.Services
 
     public interface IBookingApiService
     {
-        Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false);
+        Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null);
         Task<List<BookingDto>> ListStaysAsync(int? year = null);
         Task<List<BookingDto>> ListReservationsAsync(int? year = null);
         Task<List<BookingDto>> ListArrivalsAsync(int? year = null, int? lookAheadDays = null);
         Task<List<BookingDto>> ListDeparturesAsync(int? year = null);
         Task<BookingDto?> GetAsync(int year, string id);
+        Task<BookingDto?> GetByIdAsync(string id);
         Task<string> CreateAsync(BookingDto dto);
         Task UpdateAsync(int year, string id, BookingDto dto);
         Task DeleteAsync(int year, string id);
@@ -41,13 +42,34 @@ namespace HotelDruid.Client.Services
 
         public BookingApiService(HttpClient httpClient) { _httpClient = httpClient; }
 
-        public async Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false)
+        public async Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null)
         {
             try
             {
-                var url = year.HasValue ? $"/api/bookings?year={year}" : "/api/bookings";
+                var query = new List<string>();
+                if (from.HasValue && to.HasValue)
+                {
+                    var start = from.Value <= to.Value ? from.Value : to.Value;
+                    var end = from.Value <= to.Value ? to.Value : from.Value;
+                    query.Add($"from={start:yyyy-MM-dd}");
+                    query.Add($"to={end:yyyy-MM-dd}");
+                }
+                else if (year.HasValue)
+                {
+                    query.Add($"year={year.Value}");
+                }
+
                 if (includeDeleted)
-                    url += year.HasValue ? "&includeDeleted=true" : "?includeDeleted=true";
+                {
+                    query.Add("includeDeleted=true");
+                }
+
+                if (!string.IsNullOrWhiteSpace(clientId))
+                {
+                    query.Add($"clientId={Uri.EscapeDataString(clientId)}");
+                }
+
+                var url = query.Count == 0 ? "/api/bookings" : $"/api/bookings?{string.Join("&", query)}";
                 var resp = await _httpClient.GetAsync(url);
                 resp.EnsureSuccessStatusCode();
                 return JsonSerializer.Deserialize<List<BookingDto>>(await resp.Content.ReadAsStringAsync(), _json) ?? new();
@@ -119,6 +141,17 @@ namespace HotelDruid.Client.Services
             try
             {
                 var resp = await _httpClient.GetAsync($"/api/bookings/{year}/{id}");
+                resp.EnsureSuccessStatusCode();
+                return JsonSerializer.Deserialize<BookingDto>(await resp.Content.ReadAsStringAsync(), _json);
+            }
+            catch { return null; }
+        }
+
+        public async Task<BookingDto?> GetByIdAsync(string id)
+        {
+            try
+            {
+                var resp = await _httpClient.GetAsync($"/api/bookings/by-id/{Uri.EscapeDataString(id)}");
                 resp.EnsureSuccessStatusCode();
                 return JsonSerializer.Deserialize<BookingDto>(await resp.Content.ReadAsStringAsync(), _json);
             }

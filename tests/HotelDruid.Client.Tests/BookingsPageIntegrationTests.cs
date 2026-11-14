@@ -19,20 +19,29 @@ public class BookingsPageIntegrationTests : TestContext
     private readonly Mock<IRoomApiService> roomApi = new();
     private readonly Mock<IActiveYearService> activeYearService = new();
     private readonly Mock<IBookingFinanceApiService> financeApi = new();
+    private readonly List<BookingDto> sampleBookings;
 
     public BookingsPageIntegrationTests()
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        sampleBookings = new List<BookingDto>
+        {
+            new("b-0", 2026, "client-1", "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3), "Confirmed", "Older booking"),
+            new("b-2", 2026, "client-2", "room-2", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 3), "Pending", "Second booking"),
+            new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking"),
+            new("b-today", today.Year, "client-1", "room-1", today, today.AddDays(2), "Confirmed", "Today stay")
+        };
+
         Services.AddClientLocalizationTestSupport();
         activeYearService.SetupGet(x => x.CurrentYear).Returns(2026);
         activeYearService.Setup(x => x.InitializeAsync()).Returns(Task.CompletedTask);
         activeYearService.Setup(x => x.SetActiveYearAsync(It.IsAny<int>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
 
-        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>())).ReturnsAsync(new List<BookingDto>
-        {
-            new("b-0", 2026, "client-1", "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3), "Confirmed", "Older booking"),
-            new("b-2", 2026, "client-2", "room-2", new DateOnly(2026, 6, 1), new DateOnly(2026, 6, 3), "Pending", "Second booking"),
-            new("b-1", 2026, "client-1", "room-1", new DateOnly(2026, 5, 10), new DateOnly(2026, 5, 12), "Confirmed", "First booking")
-        });
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<string?>()))
+            .ReturnsAsync((int? year, bool includeDeleted, DateOnly? from, DateOnly? to, string? clientId) =>
+                FilterBookings(year, from, to, clientId));
+        bookingApi.Setup(x => x.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((string id) => sampleBookings.FirstOrDefault(booking => string.Equals(booking.Id, id, StringComparison.OrdinalIgnoreCase)));
 
         bookingApi.Setup(x => x.ListStaysAsync(It.IsAny<int?>())).ReturnsAsync(new List<BookingDto>
         {
@@ -81,25 +90,25 @@ public class BookingsPageIntegrationTests : TestContext
     }
 
     [Fact]
-    public void BookingsPage_ShouldRenderBookingsAndDateInputs()
+    public void BookingsPage_ShouldOpenOnTheDeskDateWindow()
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var component = Render<Bookings>();
 
         component.WaitForAssertion(() =>
         {
             var items = component.FindAll(".list-group-item");
-            items.Should().HaveCount(3);
+            items.Should().HaveCount(BookingsInRange(today, today).Count);
+            items[0].TextContent.Should().Contain("Adams Anna");
+            items[0].TextContent.Should().Contain($"{today:yyyy-MM-dd} · Room 1");
         });
 
-        var itemsInOrder = component.FindAll(".list-group-item");
-        itemsInOrder[0].TextContent.Should().Contain("Adams Anna");
-        itemsInOrder[0].TextContent.Should().Contain("2026-05-01 · Room 1");
-        itemsInOrder[1].TextContent.Should().Contain("Adams Anna");
-        itemsInOrder[1].TextContent.Should().Contain("2026-05-10 · Room 1");
-        itemsInOrder[2].TextContent.Should().Contain("Brown Ben");
-        itemsInOrder[2].TextContent.Should().Contain("2026-06-01 · Room 2");
+        var dates = component.FindAll("input[type='date']");
+        dates[0].GetAttribute("value").Should().Be(today.ToString("yyyy-MM-dd"));
+        dates[1].GetAttribute("value").Should().Be(today.ToString("yyyy-MM-dd"));
+        bookingApi.Verify(x => x.ListAsync(null, false, today, today, null), Times.AtLeastOnce);
 
-        itemsInOrder[0].Click();
+        component.FindAll(".list-group-item")[0].Click();
 
         component.WaitForAssertion(() =>
         {
@@ -110,6 +119,70 @@ public class BookingsPageIntegrationTests : TestContext
         component.Markup.Should().Contain("Guest Details");
         component.Markup.Should().Contain("Other Bookings");
         component.Markup.Should().Contain("/clients?selectedId=client-1");
+    }
+
+    [Fact]
+    public void BookingsPage_Load_ShouldAskTheBackendForTheSelectedDates()
+    {
+        var component = Render<Bookings>();
+        component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().NotBeEmpty());
+
+        component.FindAll("input[type='date']")[0].Change("2026-05-01");
+        component.FindAll("input[type='date']")[1].Change("2026-06-30");
+        component.FindAll("button").First(button => button.TextContent.Contains("Load")).Click();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(3);
+            items[0].TextContent.Should().Contain("2026-05-01 · Room 1");
+            items[1].TextContent.Should().Contain("2026-05-10 · Room 1");
+            items[2].TextContent.Should().Contain("2026-06-01 · Room 2");
+        });
+
+        bookingApi.Verify(x => x.ListAsync(null, false, new DateOnly(2026, 5, 1), new DateOnly(2026, 6, 30), null), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void BookingsPage_UrlDates_ShouldLoadThatRangeFromTheBackend()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?from=2026-05-01&to=2026-06-30");
+
+        var component = Render<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().HaveCount(3);
+            items[0].TextContent.Should().Contain("2026-05-01 · Room 1");
+        });
+
+        bookingApi.Verify(x => x.ListAsync(null, false, new DateOnly(2026, 5, 1), new DateOnly(2026, 6, 30), null), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListStaysAsync(It.IsAny<int?>()), Times.Never);
+    }
+
+    [Fact]
+    public void BookingsPage_SelectedId_ShouldHighlightThatStayAndUseItsDates()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/bookings?selectedId=b-0");
+
+        var component = Render<Bookings>();
+
+        component.WaitForAssertion(() =>
+        {
+            var selected = component.FindAll(".list-group-item.active");
+            selected.Should().ContainSingle();
+            selected[0].TextContent.Should().Contain("Adams Anna");
+            selected[0].TextContent.Should().Contain("2026-05-01 · Room 1");
+        });
+
+        var dates = component.FindAll("input[type='date']");
+        dates[0].GetAttribute("value").Should().Be("2026-05-01");
+        dates[1].GetAttribute("value").Should().Be("2026-05-03");
+        bookingApi.Verify(x => x.ListAsync(null, false, new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3), null), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListAsync(null, false, DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today), null), Times.Never);
     }
 
     [Fact]
@@ -235,8 +308,7 @@ public class BookingsPageIntegrationTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            var items = component.FindAll(".list-group-item");
-            items.Should().HaveCount(3);
+            component.FindAll(".list-group-item").Should().HaveCount(BookingsInRange(DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today)).Count);
         });
 
         component.FindAll(".list-group-item")[0].Click();
@@ -279,14 +351,53 @@ public class BookingsPageIntegrationTests : TestContext
     {
         var navigation = Services.GetRequiredService<NavigationManager>();
         var component = Render<Bookings>();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var opened = BookingsInRange(today, today)[0];
 
-        component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().HaveCount(3));
+        component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().NotBeEmpty());
         component.FindAll(".list-group-item")[0].Click();
 
         component.WaitForAssertion(() => component.Markup.Should().Contain("Total due"));
         component.Find("button.form-control").Click();
 
-        navigation.Uri.Should().Contain("/booking-finance?selectedId=b-0&year=2026");
+        navigation.Uri.Should().Contain($"/booking-finance?selectedId={opened.Id}&year={opened.Year}");
         component.Markup.Should().Contain("Invoice");
+    }
+
+    private List<BookingDto> BookingsInRange(DateOnly from, DateOnly to)
+        => FilterBookings(null, from, to, null)
+            .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+            .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private List<BookingDto> FilterBookings(int? year, DateOnly? from, DateOnly? to, string? clientId)
+    {
+        IEnumerable<BookingDto> result = sampleBookings;
+        if (!string.IsNullOrWhiteSpace(clientId))
+        {
+            result = result.Where(booking => string.Equals(booking.ClientId, clientId, StringComparison.OrdinalIgnoreCase));
+        }
+        else if (from.HasValue && to.HasValue)
+        {
+            result = result.Where(booking => StayOverlaps(booking, from.Value, to.Value));
+        }
+        else if (year.HasValue)
+        {
+            result = result.Where(booking => booking.Year == year.Value);
+        }
+
+        return result.ToList();
+    }
+
+    private static bool StayOverlaps(BookingDto booking, DateOnly from, DateOnly to)
+    {
+        var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
+        if (arrival is null)
+        {
+            return booking.Year >= from.Year && booking.Year <= to.Year;
+        }
+
+        var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival.Value;
+        return arrival.Value <= to && departure >= from;
     }
 }

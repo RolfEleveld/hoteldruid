@@ -2750,22 +2750,44 @@ bool IsPendingDeparture(BookingStorageModel booking, DateOnly today)
     return booking.DepartureDate.Value == today;
 }
 
-app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, bool? includeDeleted) =>
+app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, bool? includeDeleted, DateOnly? from, DateOnly? to, string? clientId) =>
 {
     var showDeleted = includeDeleted == true;
-    var key = year.HasValue
-        ? $"bookings:list:year:{year.Value}:deleted:{showDeleted}"
-        : $"bookings:list:all:deleted:{showDeleted}";
+    if (from.HasValue && to.HasValue && to.Value < from.Value)
+    {
+        (from, to) = (to, from);
+    }
+
+    var hasRange = from.HasValue && to.HasValue;
+    var guestId = string.IsNullOrWhiteSpace(clientId) ? null : clientId.Trim();
+    var key = hasRange
+        ? $"bookings:list:from:{from:yyyy-MM-dd}:to:{to:yyyy-MM-dd}:deleted:{showDeleted}:client:{guestId}"
+        : guestId is not null
+            ? $"bookings:list:client:{guestId}:deleted:{showDeleted}"
+            : year.HasValue
+                ? $"bookings:list:year:{year.Value}:deleted:{showDeleted}"
+                : $"bookings:list:all:deleted:{showDeleted}";
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
-        var prefix = year.HasValue ? $"{year}_" : null;
+        var prefix = !hasRange && guestId is null && year.HasValue ? $"{year}_" : null;
+        var earliestArrivalYear = hasRange ? from!.Value.Year - 1 : (int?)null;
+        var latestArrivalYear = hasRange ? to!.Value.Year : (int?)null;
         var computed = new List<BookingDto>();
         foreach (var kvp in idx)
         {
             if (prefix != null && !kvp.Key.StartsWith(prefix)) continue;
+            if (earliestArrivalYear.HasValue
+                && latestArrivalYear.HasValue
+                && FilingYearOutsideRange(kvp.Key, earliestArrivalYear.Value, latestArrivalYear.Value))
+            {
+                continue;
+            }
+
             var b = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
             if (b is null || (!showDeleted && b.DeletedAt.HasValue)) continue;
+            if (guestId is not null && !string.Equals(b.ClientId, guestId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (hasRange && !StayOverlapsRange(b, from!.Value, to!.Value)) continue;
             computed.Add(ToBookingDto(kvp.Value, b));
         }
 
@@ -2902,12 +2924,43 @@ app.MapGet("/api/bookings/departures", async (IKeyValueStore store, IEndpointQue
     return Results.Ok(result);
 }).WithName("ListBookingDepartures");
 
+app.MapGet("/api/bookings/by-id/{id}", async (string id, IKeyValueStore store) =>
+{
+    var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (booking is null) return Results.NotFound();
+    return Results.Ok(ToBookingDto(id, booking));
+}).WithName("GetBookingById");
+
 app.MapGet("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store) =>
 {
     var b = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (b is null || b.Year != year) return Results.NotFound();
     return Results.Ok(ToBookingDto(id, b));
 }).WithName("GetBooking");
+
+static bool FilingYearOutsideRange(string key, int earliestYear, int latestYear)
+{
+    var split = key.IndexOf('_');
+    var token = split > 0 ? key[..split] : key;
+    if (!int.TryParse(token, out var year))
+    {
+        return false;
+    }
+
+    return year < earliestYear || year > latestYear;
+}
+
+static bool StayOverlapsRange(BookingStorageModel booking, DateOnly from, DateOnly to)
+{
+    var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
+    if (arrival is null)
+    {
+        return booking.Year >= from.Year && booking.Year <= to.Year;
+    }
+
+    var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival.Value;
+    return arrival.Value <= to && departure >= from;
+}
 
 app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, IAccountChart accountChart) =>
 {

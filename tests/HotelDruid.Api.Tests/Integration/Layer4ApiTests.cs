@@ -249,6 +249,38 @@ public class Layer4ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Booking_List_FilteredByStayRange_ReturnsOverlappingStaysOnly()
+    {
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2070, ClientId = "C-Range-In", ArrivalDate = "2070-03-10", DepartureDate = "2070-03-12" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2070, ClientId = "C-Range-Out", ArrivalDate = "2070-08-01", DepartureDate = "2070-08-03" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2069, ClientId = "C-Range-Cross", ArrivalDate = "2069-12-30", DepartureDate = "2070-01-02" }));
+
+        var ranged = await _client.GetAsync("/api/bookings?from=2070-01-01&to=2070-03-15");
+        Assert.Equal(HttpStatusCode.OK, ranged.StatusCode);
+        var list = await ReadAs<List<BookingDto>>(ranged);
+        Assert.Contains(list!, booking => booking.ClientId == "C-Range-In");
+        Assert.Contains(list!, booking => booking.ClientId == "C-Range-Cross");
+        Assert.DoesNotContain(list!, booking => booking.ClientId == "C-Range-Out");
+
+        var yearList = await ReadAs<List<BookingDto>>(await _client.GetAsync("/api/bookings?year=2070"));
+        Assert.Contains(yearList!, booking => booking.ClientId == "C-Range-Out");
+        Assert.Contains(yearList!, booking => booking.ClientId == "C-Range-In");
+        Assert.DoesNotContain(yearList!, booking => booking.ClientId == "C-Range-Cross");
+    }
+
+    [Fact]
+    public async Task Booking_GetById_ReturnsTheStayWithoutAYear()
+    {
+        var create = await _client.PostAsync("/api/bookings", Json(new { Year = 2071, ClientId = "C-ById", ArrivalDate = "2071-04-01", DepartureDate = "2071-04-03" }));
+        var created = await ReadAs<BookingDto>(create);
+        var response = await _client.GetAsync($"/api/bookings/by-id/{created!.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var dto = await ReadAs<BookingDto>(response);
+        Assert.Equal("C-ById", dto?.ClientId);
+        Assert.Equal(2071, dto?.Year);
+    }
+
+    [Fact]
     public async Task Booking_List_FilteredByYear()
     {
         await _client.PostAsync("/api/bookings", Json(new { Year = 2060, ClientId = "C010", ArrivalDate = "2060-05-10", DepartureDate = "2060-05-12" }));

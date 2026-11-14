@@ -59,5 +59,12 @@ window.hotelDruidCulture = {
         }
 
         document.documentElement.lang = cultureName;
+    },
+
+    revealActiveBooking: function () {
+        const item = document.querySelector(".bookings-manager .list-group-item.active");
+        if (item && typeof item.scrollIntoView === "function") {
+            item.scrollIntoView({ block: "nearest" });
+        }
     }
 };

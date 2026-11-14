@@ -1,9 +1,12 @@
 @page "/bookings"
 @page "/bookings/new"
+@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.DependencyInjection
 @using HotelDruid.Client.Services
 @using HotelDruid.Shared
+@using HotelDruid.Shared.Configuration
 @using ClientRecord = HotelDruid.Client.Services.ClientDto
 @using RoomRecord = HotelDruid.Client.Services.RoomDto
 @inject IBookingApiService BookingApi
@@ -12,6 +15,8 @@
 @inject IRoomApiService RoomApiService
 @inject ITariffApiService TariffApi
 @inject NavigationManager Navigation
+@inject IServiceProvider ServiceProvider
+@inject IJSRuntime JS
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -465,6 +470,12 @@
     [SupplyParameterFromQuery(Name = "lookAheadDays")]
     public int? LookAheadDaysQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public string? ToQuery { get; set; }
+
     [SupplyParameterFromQuery(Name = "focus")]
     public string? FocusQuery { get; set; }
 
@@ -488,8 +499,10 @@
     private bool editing, isNew;
     private bool isGuestHistoryLoading;
     private string errorMsg = "";
-    private DateOnly rangeFrom = new(DateTime.Today.Year, 1, 1);
-    private DateOnly rangeTo = new(DateTime.Today.Year, 12, 31);
+    private DateOnly rangeFrom = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly rangeTo = DateOnly.FromDateTime(DateTime.Today);
+    private bool dateFilterActive;
+    private string? alignedSelectionId;
     private string listFilter = string.Empty;
     private FormModel form = new();
     private ClientFormModel clientForm = new();
@@ -523,23 +536,55 @@
 
     protected override async Task OnInitializedAsync()
     {
-        knownClients = await ClientApi.GetAllAsync();
-        knownRooms = await RoomApiService.GetRoomsAsync();
-        knownTariffs = await TariffApi.GetTariffsAsync();
-        await LoadAll();
+        PrepareRange();
+        var clientsTask = RefreshKnownClients();
+        var roomsTask = RoomApiService.GetRoomsAsync();
+        var tariffsTask = TariffApi.GetTariffsAsync();
 
+        var alignedToSelection = await AlignRangeToSelectedBookingAsync();
+        if (!alignedToSelection)
+        {
+            if (!dateFilterActive && string.IsNullOrWhiteSpace(ViewQuery) && LookAheadDaysQuery is null)
+            {
+                var lookAhead = await ReadArrivalsLookAheadAsync();
+                rangeTo = rangeFrom.AddDays(lookAhead);
+            }
+
+            await LoadAll();
+        }
+
+        await InvokeAsync(StateHasChanged);
+
+        knownRooms = await roomsTask;
+        knownTariffs = await tariffsTask;
         if (IsNewBookingRoute())
         {
             NewRecord();
-            return;
+        }
+        else
+        {
+            await ApplySelectedRecordFromQueryAsync();
         }
 
-        await ApplySelectedRecordFromQueryAsync();
+        await clientsTask;
+        await InvokeAsync(StateHasChanged);
+        await RevealSelectedBookingAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        if (records is null || IsNewBookingRoute())
+        {
+            return;
+        }
+
+        if (!string.Equals(alignedSelectionId, SelectedId, StringComparison.OrdinalIgnoreCase))
+        {
+            await AlignRangeToSelectedBookingAsync();
+        }
+
         await ApplySelectedRecordFromQueryAsync();
+        await RevealSelectedBookingAsync();
     }
 
     private bool IsNewBookingRoute()
@@ -548,55 +593,96 @@
         return string.Equals(relative, "bookings/new", StringComparison.OrdinalIgnoreCase);
     }
 
-    private Task<List<BookingDto>> LoadRecordsAsync(int? year)
+    private void PrepareRange()
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        rangeFrom = today;
+        rangeTo = today.AddDays(Math.Clamp(LookAheadDaysQuery ?? 0, 0, 14));
+        if (TryParseDate(FromQuery, out var from))
+        {
+            rangeFrom = from;
+            dateFilterActive = true;
+        }
+
+        if (TryParseDate(ToQuery, out var to))
+        {
+            rangeTo = to;
+            dateFilterActive = true;
+        }
+    }
+
+    private static bool TryParseDate(string? value, out DateOnly date)
+        => DateOnly.TryParse(value, out date);
+
+    private async Task<int> ReadArrivalsLookAheadAsync()
+    {
+        var http = ServiceProvider.GetService<HttpClient>();
+        if (http is null)
+        {
+            return 0;
+        }
+
+        try
+        {
+            var config = await http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration");
+            if (config?.Settings is not null
+                && config.Settings.TryGetValue("DashboardArrivalsLookAheadDays", out var raw)
+                && int.TryParse(raw, out var days))
+            {
+                return Math.Clamp(days, 0, 14);
+            }
+        }
+        catch
+        {
+            // The desk still opens on today when the setting cannot be read.
+        }
+
+        return 0;
+    }
+
+    private Task<List<BookingDto>>? LoadViewAsync()
+    {
+        if (dateFilterActive || string.IsNullOrWhiteSpace(ViewQuery))
+        {
+            return null;
+        }
+
         if (string.Equals(ViewQuery, "stays", StringComparison.OrdinalIgnoreCase))
         {
-            return BookingApi.ListStaysAsync(year);
+            return BookingApi.ListStaysAsync(null);
         }
 
         if (string.Equals(ViewQuery, "arrivals", StringComparison.OrdinalIgnoreCase))
         {
-            return BookingApi.ListArrivalsAsync(year, LookAheadDaysQuery ?? 0);
+            return BookingApi.ListArrivalsAsync(null, LookAheadDaysQuery ?? 0);
         }
 
         if (string.Equals(ViewQuery, "departures", StringComparison.OrdinalIgnoreCase))
         {
-            return BookingApi.ListDeparturesAsync(year);
+            return BookingApi.ListDeparturesAsync(null);
         }
 
         if (string.Equals(ViewQuery, "reservations", StringComparison.OrdinalIgnoreCase))
         {
-            return BookingApi.ListReservationsAsync(year);
+            return BookingApi.ListReservationsAsync(null);
         }
 
-        return BookingApi.ListAsync(year);
+        return null;
     }
 
     private async Task LoadAll()
     {
-        if (!string.IsNullOrWhiteSpace(ViewQuery))
-        {
-            records = (await LoadRecordsAsync(null))
-                .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
-                .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            return;
-        }
-
         if (rangeTo < rangeFrom)
         {
             rangeTo = rangeFrom;
         }
 
-        var combined = new List<BookingDto>();
-        for (var year = rangeFrom.Year; year <= rangeTo.Year; year++)
-        {
-            combined.AddRange(await LoadRecordsAsync(year));
-        }
+        var view = LoadViewAsync();
+        var loaded = view is not null
+            ? await view
+            : await BookingApi.ListAsync(from: rangeFrom, to: rangeTo);
 
-        records = combined
-            .Where(booking => StayOverlapsRange(booking, rangeFrom, rangeTo))
+        records = loaded
             .GroupBy(booking => booking.Id ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
@@ -604,16 +690,80 @@
             .ToList();
     }
 
-    private static bool StayOverlapsRange(BookingDto booking, DateOnly from, DateOnly to)
+    private async Task<bool> AlignRangeToSelectedBookingAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedId) || IsNewBookingRoute())
+        {
+            return false;
+        }
+
+        if (string.Equals(alignedSelectionId, SelectedId, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        alignedSelectionId = SelectedId;
+        var opened = records?.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase))
+            ?? await BookingApi.GetByIdAsync(SelectedId);
+        if (opened is null || !TrySetRangeToBooking(opened))
+        {
+            return false;
+        }
+
+        dateFilterActive = true;
+        await LoadAll();
+        EnsureListed(opened);
+        return true;
+    }
+
+    private bool TrySetRangeToBooking(BookingDto booking)
     {
         var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
         if (arrival is null)
         {
-            return booking.Year >= from.Year && booking.Year <= to.Year;
+            return false;
         }
 
-        var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival.Value;
-        return arrival.Value <= to && departure >= from;
+        var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival;
+        rangeFrom = arrival.Value;
+        rangeTo = departure.Value < arrival.Value ? arrival.Value : departure.Value;
+        return true;
+    }
+
+    private void EnsureListed(BookingDto booking)
+    {
+        if (records is null || string.IsNullOrWhiteSpace(booking.Id))
+        {
+            return;
+        }
+
+        if (records.Any(current => string.Equals(current.Id, booking.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        records.Add(booking);
+        records = records
+            .OrderBy(current => current.ArrivalDate ?? DateOnly.MinValue)
+            .ThenBy(current => current.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task RevealSelectedBookingAsync()
+    {
+        if (string.IsNullOrWhiteSpace(selected?.Id))
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("hotelDruidCulture.revealActiveBooking");
+        }
+        catch
+        {
+            // The row stays marked in the list when the page cannot scroll.
+        }
     }
 
     private async Task ApplySelectedRecordFromQueryAsync()
@@ -626,26 +776,23 @@
         var record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
         if (record is null)
         {
-            records = (await LoadRecordsAsync(null)).OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
-                .ThenBy(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            record = records.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (record is null)
-        {
-            var retained = await BookingApi.ListAsync(includeDeleted: true);
-            record = retained.FirstOrDefault(current => string.Equals(current.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
+            record = await BookingApi.GetByIdAsync(SelectedId);
             if (record is null)
             {
                 return;
             }
+
+            EnsureListed(record);
         }
 
         SelectRecord(record);
         await EditSelected();
     }
-    private async Task ApplyFilter() => await LoadAll();
+    private async Task ApplyFilter()
+    {
+        dateFilterActive = true;
+        await LoadAll();
+    }
 
     private void NewRecord()
     {
@@ -666,7 +813,6 @@
     private async Task SelectRecordAndEdit(BookingDto r)
     {
         selected = r;
-        await LoadSelectedGuestHistoryAsync();
         await EditSelected();
     }
 
@@ -887,7 +1033,7 @@
         try
         {
             isGuestHistoryLoading = true;
-            var bookings = await BookingApi.ListAsync();
+            var bookings = await BookingApi.ListAsync(clientId: selected.ClientId);
             selectedGuestBookings = bookings
                 .Where(booking => string.Equals(booking.ClientId, selected.ClientId, StringComparison.OrdinalIgnoreCase)
                     && (!string.Equals(booking.Id, selected.Id, StringComparison.OrdinalIgnoreCase) || booking.Year != selected.Year))
