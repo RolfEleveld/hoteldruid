@@ -569,7 +569,12 @@ public class CanonicalMapper : ICanonicalMapper
             new("actual_arrival_date", "string", true, "Actual check-in date"),
             new("actual_guest_count", "integer", true, "Guest count on arrival"),
             new("prepaid_amount", "number", true, "Prepaid amount"),
-            new("actual_departure_date", "string", true, "Actual checkout date")
+            new("prepaid_method", "string", true, "How the deposit was paid"),
+            new("actual_departure_date", "string", true, "Actual checkout date"),
+            new("expected_guest_count", "integer", true, "Guests expected at booking"),
+            new("tariff_id", "string", true, "Tariff used for the stay"),
+            new("tariff_total_price", "number", true, "Room charge stored on the booking"),
+            new("blazorId", "string", true, "Store id of this row")
         };
 
         var rows = bookings.Select(b => new Dictionary<string, object?>
@@ -585,7 +590,12 @@ public class CanonicalMapper : ICanonicalMapper
             ["actual_arrival_date"] = b.ActualArrivalDate?.ToString("yyyy-MM-dd"),
             ["actual_guest_count"] = b.ActualGuestCount,
             ["prepaid_amount"] = b.PrepaidAmount,
-            ["actual_departure_date"] = b.ActualDepartureDate?.ToString("yyyy-MM-dd")
+            ["prepaid_method"] = b.PrepaidMethod,
+            ["actual_departure_date"] = b.ActualDepartureDate?.ToString("yyyy-MM-dd"),
+            ["expected_guest_count"] = b.ExpectedGuestCount,
+            ["tariff_id"] = b.TariffId,
+            ["tariff_total_price"] = b.TariffTotalPrice,
+            ["blazorId"] = b.Id
         }).ToList();
 
         return new CanonicalData(TableName: BookingsTableName, RowCount: bookings.Length, Rows: rows, Columns: columns);
@@ -613,6 +623,10 @@ public class CanonicalMapper : ICanonicalMapper
             var prepaidAmount = ParseDouble(GetFirstValue(row, "prepaid_amount", "prepaidAmount", "prepagato", "prezzo", "price"));
             // Backward compatibility: absent actual_departure_date remains null.
             var actualDepartureDate = ParseDateOnly(GetFirstValue(row, "actual_departure_date", "actualDepartureDate", "actualdeparturedate", "datauscitaeffettiva", "checkout_date", "checkoutDate"));
+            var expectedGuestCount = ParseInt(GetFirstValue(row, "expected_guest_count", "expectedGuestCount"));
+            var tariffId = GetFirstString(row, "tariff_id", "tariffId");
+            var prepaidMethod = GetFirstString(row, "prepaid_method", "prepaidMethod");
+            var tariffTotal = ParseDouble(GetFirstValue(row, "tariff_total_price", "tariffTotalPrice"));
 
             results.Add(new BookingDto(
                 Id: id,
@@ -626,7 +640,11 @@ public class CanonicalMapper : ICanonicalMapper
                 ActualArrivalDate: actualArrivalDate,
                 ActualGuestCount: actualGuestCount,
                 PrepaidAmount: prepaidAmount,
-                ActualDepartureDate: actualDepartureDate));
+                PrepaidMethod: prepaidMethod,
+                ActualDepartureDate: actualDepartureDate,
+                ExpectedGuestCount: expectedGuestCount,
+                TariffId: tariffId,
+                TariffTotalPrice: tariffTotal));
         }
 
         return results.ToArray();

@@ -399,6 +399,42 @@
   <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Apri punto vendita</value></data>
   <data name="Dashboard.Widget.VisibleCount.PointOfSale" xml:space="preserve"><value>Vendite da mostrare</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>Libro mastro</value></data>
+  <data name="Nav.Performance" xml:space="preserve"><value>Rendimento</value></data>
+  <data name="Performance.Title" xml:space="preserve"><value>Rendimento dell'hotel</value></data>
+  <data name="Performance.Lead" xml:space="preserve"><value>Occupazione, ricavo camere, extra e costi operativi della storia caricata. Ogni camera è confrontata con le stesse date dell'anno prima, così un anno parziale non viene giudicato contro un anno intero. L'ADR è il ricavo camere per notte occupata. Il RevPAR è il ricavo camere per notte vendibile.</value></data>
+  <data name="Performance.Rooms" xml:space="preserve"><value>camere</value></data>
+  <data name="Performance.Bookings" xml:space="preserve"><value>soggiorni</value></data>
+  <data name="Performance.Occupancy" xml:space="preserve"><value>Occupazione</value></data>
+  <data name="Performance.RoomRevenue" xml:space="preserve"><value>Ricavo camere</value></data>
+  <data name="Performance.OtherIncome" xml:space="preserve"><value>Altri ricavi</value></data>
+  <data name="Performance.Expenses" xml:space="preserve"><value>Costi operativi</value></data>
+  <data name="Performance.Adr" xml:space="preserve"><value>ADR</value></data>
+  <data name="Performance.RevPar" xml:space="preserve"><value>RevPAR</value></data>
+  <data name="Performance.ByYear" xml:space="preserve"><value>Per anno</value></data>
+  <data name="Performance.ByRoom" xml:space="preserve"><value>Per camera</value></data>
+  <data name="Performance.Year" xml:space="preserve"><value>Anno</value></data>
+  <data name="Performance.Room" xml:space="preserve"><value>Camera</value></data>
+  <data name="Performance.Nights" xml:space="preserve"><value>Notti occupate</value></data>
+  <data name="Performance.Sellable" xml:space="preserve"><value>Notti vendibili</value></data>
+  <data name="Performance.Closed" xml:space="preserve"><value>Notti chiuse</value></data>
+  <data name="Performance.Actions" xml:space="preserve"><value>Cosa fare</value></data>
+  <data name="Performance.NoActions" xml:space="preserve"><value>Niente in questa storia si discosta abbastanza dall'anno scorso da cambiare le tariffe. Tienile, e tieni la manutenzione fuori dai mesi pieni.</value></data>
+  <data name="Performance.ByRoomYear" xml:space="preserve"><value>Per camera e anno</value></data>
+  <data name="Performance.CompareNote" xml:space="preserve"><value>Le colonne di variazione confrontano ogni camera con se stessa nelle stesse date dell'anno prima.</value></data>
+  <data name="Performance.VsLastYear" xml:space="preserve"><value>rispetto all'anno scorso</value></data>
+  <data name="Performance.WholePeriod" xml:space="preserve"><value>Intero periodo</value></data>
+  <data name="Performance.Action.PaceAhead" xml:space="preserve"><value>{0} è avanti rispetto alle stesse date del {1} sia sulla tariffa sia sull'occupazione (ADR {2} contro {3}, occupazione {4} contro {5}). Proteggi i fine settimana e la settimana di Natale. Non aprire uno sconto generale.</value></data>
+  <data name="Performance.Action.PaceBehind" xml:space="preserve"><value>{0} è indietro rispetto alle stesse date del {1}: occupazione {4} contro {5}, ADR {2} contro {3}. Usa il giorno debole e le camere elencate qui prima di tagliare la tariffa di ogni camera.</value></data>
+  <data name="Performance.Action.PaceVolume" xml:space="preserve"><value>{0} è più pieno delle stesse date del {1} ({4} contro {5}), ma l'ADR è sceso da {3} a {2}. Ferma la perdita di tariffa prima di aggiungere un altro sconto.</value></data>
+  <data name="Performance.Action.PaceRate" xml:space="preserve"><value>{0} rispetto alle stesse date del {1}: ADR {2} contro {3}, occupazione {4} contro {5}. Il guadagno è la tariffa. Non scontare l'hotel per comprare occupazione.</value></data>
+  <data name="Performance.Action.PaceFlat" xml:space="preserve"><value>{0} è in linea con le stesse date del {1} (occupazione {4} contro {5}, ADR {2} contro {3}). Tieni le tariffe attuali.</value></data>
+  <data name="Performance.Action.RaiseRate" xml:space="preserve"><value>La camera {0} nel {1} era piena al {2} con ADR {3}, mentre l'hotel era pieno al {4} con {5}. Gli ospiti scelgono questa camera. Alza la tariffa.</value></data>
+  <data name="Performance.Action.LostDemand" xml:space="preserve"><value>La camera {0} nel {1} ha variato l'occupazione di {2} rispetto alle stesse date del {3}, e il RevPAR non ha recuperato (ADR {4}). Guarda la camera — rumore, vista, l'ultima chiusura — prima di abbassare il prezzo.</value></data>
+  <data name="Performance.Action.Weekday" xml:space="preserve"><value>{0} nel {1} è al {2} di occupazione, contro {3} dell'anno. Metti una tariffa infrasettimanale il {0}, oppure la prossima chiusura breve in quel giorno così un giorno più forte resta in vendita.</value></data>
+  <data name="Performance.Action.WorksQuiet" xml:space="preserve"><value>Le chiusure di {0} {1} cadono in un mese tranquillo ({2} di occupazione, contro {3} dell'anno). Tieni lì il prossimo rinnovo. Lascia in vendita luglio, agosto e la settimana di Natale.</value></data>
+  <data name="Performance.Action.WorksBusy" xml:space="preserve"><value>Le chiusure di {0} {1} sono cadute in un mese pieno ({2} di occupazione, contro {3} dell'anno). Sposta il prossimo blocco di lavori in un mese più debole.</value></data>
+  <data name="Performance.Action.ProtectPremium" xml:space="preserve"><value>Le camere per {0} ospiti hanno reso {1} di ADR al {2} di occupazione, contro {3} di ADR per le camere doppie al {4}. Il sovrapprezzo regge. Non prezzare le camere grandi come doppie.</value></data>
+  <data name="Performance.Action.PremiumHigh" xml:space="preserve"><value>Le camere per {0} ospiti erano piene solo al {1}, contro {2} per le doppie, con una tariffa di {3} contro {4}. Il sovrapprezzo è sopra la domanda. Riducilo, oppure includi qualcosa che serve a una famiglia, come il lettino.</value></data>
   <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Piano dei conti</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messaggi</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Template contratto</value></data>

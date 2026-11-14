@@ -1274,6 +1274,7 @@ app.MapPost("/api/import/validate", async (IFormFile file, IImportService import
     }
 })
 .WithName("ValidateImport")
+.DisableAntiforgery()
 ;
 
 app.MapGet("/api/import/{packageId}/preview", async (string packageId, IImportService importService) =>
@@ -2637,7 +2638,8 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.PreAuthReference,
     s.PreAuthMethod,
     s.SettlementDate,
-    s.DeletedAt);
+    s.DeletedAt,
+    s.TariffTotalPrice);
 
 async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
 {
@@ -4268,6 +4270,10 @@ static LedgerLineDto ToLedgerLineDto(LedgerEntry entry) => new(
     entry.SourceType,
     entry.SourceId,
     entry.CreatedBy);
+
+app.MapGet("/api/reports/performance", async (IKeyValueStore store, ILedgerRepository ledger) =>
+    Results.Ok(await PerformanceReportBuilder.BuildAsync(store, ledger)))
+.WithName("PerformanceReport");
 
 app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? bookingId, bool? unassigned, ILedgerRepository ledger) =>
 {

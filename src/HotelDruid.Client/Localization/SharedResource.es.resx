@@ -399,6 +399,42 @@
   <data name="Index.Feature.PointOfSale.Button" xml:space="preserve"><value>Abrir punto de venta</value></data>
   <data name="Dashboard.Widget.VisibleCount.PointOfSale" xml:space="preserve"><value>Ventas a mostrar</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>Libro mayor</value></data>
+  <data name="Nav.Performance" xml:space="preserve"><value>Rendimiento</value></data>
+  <data name="Performance.Title" xml:space="preserve"><value>Rendimiento del hotel</value></data>
+  <data name="Performance.Lead" xml:space="preserve"><value>Ocupación, ingreso de habitaciones, extras y gasto operativo del historial cargado. Cada habitación se compara con las mismas fechas del año anterior, así un año parcial no se juzga contra uno completo. El ADR es el ingreso de habitaciones por noche ocupada. El RevPAR es el ingreso de habitaciones por noche vendible.</value></data>
+  <data name="Performance.Rooms" xml:space="preserve"><value>habitaciones</value></data>
+  <data name="Performance.Bookings" xml:space="preserve"><value>estancias</value></data>
+  <data name="Performance.Occupancy" xml:space="preserve"><value>Ocupación</value></data>
+  <data name="Performance.RoomRevenue" xml:space="preserve"><value>Ingreso de habitaciones</value></data>
+  <data name="Performance.OtherIncome" xml:space="preserve"><value>Otros ingresos</value></data>
+  <data name="Performance.Expenses" xml:space="preserve"><value>Gasto operativo</value></data>
+  <data name="Performance.Adr" xml:space="preserve"><value>ADR</value></data>
+  <data name="Performance.RevPar" xml:space="preserve"><value>RevPAR</value></data>
+  <data name="Performance.ByYear" xml:space="preserve"><value>Por año</value></data>
+  <data name="Performance.ByRoom" xml:space="preserve"><value>Por habitación</value></data>
+  <data name="Performance.Year" xml:space="preserve"><value>Año</value></data>
+  <data name="Performance.Room" xml:space="preserve"><value>Habitación</value></data>
+  <data name="Performance.Nights" xml:space="preserve"><value>Noches ocupadas</value></data>
+  <data name="Performance.Sellable" xml:space="preserve"><value>Noches vendibles</value></data>
+  <data name="Performance.Closed" xml:space="preserve"><value>Noches cerradas</value></data>
+  <data name="Performance.Actions" xml:space="preserve"><value>Qué hacer</value></data>
+  <data name="Performance.NoActions" xml:space="preserve"><value>Nada en este historial se aleja lo bastante del año pasado como para cambiar las tarifas. Manténgalas, y deje el mantenimiento fuera de los meses fuertes.</value></data>
+  <data name="Performance.ByRoomYear" xml:space="preserve"><value>Por habitación y año</value></data>
+  <data name="Performance.CompareNote" xml:space="preserve"><value>Las columnas de cambio comparan cada habitación consigo misma en las mismas fechas del año anterior.</value></data>
+  <data name="Performance.VsLastYear" xml:space="preserve"><value>vs el año pasado</value></data>
+  <data name="Performance.WholePeriod" xml:space="preserve"><value>Periodo completo</value></data>
+  <data name="Performance.Action.PaceAhead" xml:space="preserve"><value>{0} va por delante de las mismas fechas de {1} en tarifa y ocupación (ADR {2} frente a {3}, ocupación {4} frente a {5}). Proteja los fines de semana y la semana de Navidad. No abra un descuento general.</value></data>
+  <data name="Performance.Action.PaceBehind" xml:space="preserve"><value>{0} va por detrás de las mismas fechas de {1}: ocupación {4} frente a {5}, ADR {2} frente a {3}. Use el día flojo y las habitaciones de esta lista antes de bajar la tarifa de todas.</value></data>
+  <data name="Performance.Action.PaceVolume" xml:space="preserve"><value>{0} está más lleno que las mismas fechas de {1} ({4} frente a {5}), pero el ADR bajó de {3} a {2}. Detenga la pérdida de tarifa antes de añadir otro descuento.</value></data>
+  <data name="Performance.Action.PaceRate" xml:space="preserve"><value>{0} frente a las mismas fechas de {1}: ADR {2} frente a {3}, ocupación {4} frente a {5}. La ganancia es la tarifa. No descuente el hotel para comprar ocupación.</value></data>
+  <data name="Performance.Action.PaceFlat" xml:space="preserve"><value>{0} coincide con las mismas fechas de {1} (ocupación {4} frente a {5}, ADR {2} frente a {3}). Mantenga las tarifas actuales.</value></data>
+  <data name="Performance.Action.RaiseRate" xml:space="preserve"><value>La habitación {0} en {1} estuvo llena al {2} con un ADR de {3}, mientras el hotel estuvo al {4} con {5}. Los huéspedes eligen esta habitación. Suba su tarifa.</value></data>
+  <data name="Performance.Action.LostDemand" xml:space="preserve"><value>La habitación {0} en {1} cambió su ocupación en {2} frente a las mismas fechas de {3}, y el RevPAR no se recuperó (ADR {4}). Mire la habitación — ruido, vista, el último cierre — antes de bajar el precio.</value></data>
+  <data name="Performance.Action.Weekday" xml:space="preserve"><value>{0} en {1} tuvo una ocupación del {2}, frente al {3} del año. Ponga una tarifa de entre semana el {0}, o el próximo cierre corto en ese día para que un día más fuerte siga a la venta.</value></data>
+  <data name="Performance.Action.WorksQuiet" xml:space="preserve"><value>Los cierres de {0} de {1} caen en un mes flojo ({2} de ocupación, frente al {3} del año). Deje ahí la próxima reforma. Mantenga en venta julio, agosto y la semana de Navidad.</value></data>
+  <data name="Performance.Action.WorksBusy" xml:space="preserve"><value>Los cierres de {0} de {1} cayeron en un mes fuerte ({2} de ocupación, frente al {3} del año). Mueva el próximo bloque de obras a un mes más flojo.</value></data>
+  <data name="Performance.Action.ProtectPremium" xml:space="preserve"><value>Las habitaciones para {0} huéspedes dieron un ADR de {1} con una ocupación del {2}, frente a un ADR de {3} en las dobles al {4}. Ese suplemento se sostiene. No cobre las habitaciones grandes como dobles.</value></data>
+  <data name="Performance.Action.PremiumHigh" xml:space="preserve"><value>Las habitaciones para {0} huéspedes solo estuvieron llenas al {1}, frente al {2} de las dobles, cobrando {3} frente a {4}. El suplemento va por delante de la demanda. Bájelo, o incluya algo que una familia necesita, como la cuna.</value></data>
   <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Plan de cuentas</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Mensajes</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Plantillas de contrato</value></data>

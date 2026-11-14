@@ -27,6 +27,9 @@ public sealed class PhpHotelImporter
 
     public static bool Handles(string normalized, int? year, CanonicalData data)
     {
+        if (Has(data, "blazorId") || Has(data, "blazor_id"))
+            return false;
+
         return normalized switch
         {
             "cash_registers" => true,

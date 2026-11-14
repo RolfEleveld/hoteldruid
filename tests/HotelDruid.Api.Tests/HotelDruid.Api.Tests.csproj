@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\HotelDruid.Api\HotelDruid.Api.csproj" />
+    <ProjectReference Include="..\..\tools\HotelDruid.Scenario\HotelDruid.Scenario.csproj" />
   </ItemGroup>
 
 </Project>

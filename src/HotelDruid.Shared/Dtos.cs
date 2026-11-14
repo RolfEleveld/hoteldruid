@@ -62,7 +62,8 @@ public record BookingDto(
     string? PreAuthReference = null,
     string? PreAuthMethod = null,
     DateTime? SettlementDate = null,
-    DateTime? DeletedAt = null
+    DateTime? DeletedAt = null,
+    double? TariffTotalPrice = null
 );
 
 public record BookingCostDto(

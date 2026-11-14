@@ -60,5 +60,8 @@ public interface ILedgerRepository
     /// Returns an ordered list of all entries for the day.
     /// </summary>
     Task<List<LedgerEntry>> GetConsolidatedAsync(DateTime date);
+
+    /// <summary>Every stored line, snapshot plus later sequence files, in date order.</summary>
+    Task<List<LedgerEntry>> ReadAllAsync();
 }
 

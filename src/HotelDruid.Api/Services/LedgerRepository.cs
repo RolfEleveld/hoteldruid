@@ -279,6 +279,14 @@ public class LedgerRepository : ILedgerRepository, IDisposable
     }
 
     /// <inheritdoc />
+    public async Task<List<LedgerEntry>> ReadAllAsync()
+    {
+        var result = new List<LedgerEntry>();
+        foreach (var date in EnumerateExistingPartitionDates(DateTime.MinValue, DateTime.MaxValue))
+            result.AddRange(await GetConsolidatedAsync(date));
+        return result;
+    }
+
     public async Task<List<LedgerEntry>> GetConsolidatedAsync(DateTime date)
     {
         var result = new List<LedgerEntry>();

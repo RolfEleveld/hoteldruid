@@ -113,6 +113,7 @@ public static class PhpExportJson
             JsonValueKind.False => false,
             JsonValueKind.Number when value.TryGetInt64(out var whole) => whole,
             JsonValueKind.Number => value.GetDouble(),
+            JsonValueKind.Object or JsonValueKind.Array => value.Clone(),
             _ => value.GetRawText()
         };
     }

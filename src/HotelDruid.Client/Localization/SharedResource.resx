@@ -263,6 +263,42 @@
   <data name="Dashboard.Widget.VisibleCount.PointOfSale" xml:space="preserve"><value>Sales to display</value></data>
   <data name="Nav.Ledger" xml:space="preserve"><value>General Ledger</value></data>
   <data name="Nav.ChartOfAccounts" xml:space="preserve"><value>Chart of Accounts</value></data>
+  <data name="Nav.Performance" xml:space="preserve"><value>Performance</value></data>
+  <data name="Performance.Title" xml:space="preserve"><value>Hotel performance</value></data>
+  <data name="Performance.Lead" xml:space="preserve"><value>Occupancy, room revenue, extras, and operating cost for the loaded history. A room is compared with the same dates last year, so a partial year is not judged against a full one. ADR is room revenue per occupied night. RevPAR is room revenue per sellable night.</value></data>
+  <data name="Performance.Rooms" xml:space="preserve"><value>rooms</value></data>
+  <data name="Performance.Bookings" xml:space="preserve"><value>stays</value></data>
+  <data name="Performance.Occupancy" xml:space="preserve"><value>Occupancy</value></data>
+  <data name="Performance.RoomRevenue" xml:space="preserve"><value>Room revenue</value></data>
+  <data name="Performance.OtherIncome" xml:space="preserve"><value>Other income</value></data>
+  <data name="Performance.Expenses" xml:space="preserve"><value>Operating expense</value></data>
+  <data name="Performance.Adr" xml:space="preserve"><value>ADR</value></data>
+  <data name="Performance.RevPar" xml:space="preserve"><value>RevPAR</value></data>
+  <data name="Performance.ByYear" xml:space="preserve"><value>By year</value></data>
+  <data name="Performance.ByRoom" xml:space="preserve"><value>By room</value></data>
+  <data name="Performance.Year" xml:space="preserve"><value>Year</value></data>
+  <data name="Performance.Room" xml:space="preserve"><value>Room</value></data>
+  <data name="Performance.Nights" xml:space="preserve"><value>Occupied nights</value></data>
+  <data name="Performance.Sellable" xml:space="preserve"><value>Sellable nights</value></data>
+  <data name="Performance.Closed" xml:space="preserve"><value>Closed nights</value></data>
+  <data name="Performance.Actions" xml:space="preserve"><value>What to do</value></data>
+  <data name="Performance.NoActions" xml:space="preserve"><value>Nothing in this history stands far enough from last year to change the rates. Hold them, and keep maintenance out of the busy months.</value></data>
+  <data name="Performance.ByRoomYear" xml:space="preserve"><value>By room and year</value></data>
+  <data name="Performance.CompareNote" xml:space="preserve"><value>The change columns compare each room with itself on the same dates one year earlier.</value></data>
+  <data name="Performance.VsLastYear" xml:space="preserve"><value>vs last year</value></data>
+  <data name="Performance.WholePeriod" xml:space="preserve"><value>Whole period</value></data>
+  <data name="Performance.Action.PaceAhead" xml:space="preserve"><value>{0} is ahead of the same dates in {1} on both rate and occupancy (ADR {2} versus {3}, occupancy {4} versus {5}). Protect weekends and the Christmas week. Do not open a general discount.</value></data>
+  <data name="Performance.Action.PaceBehind" xml:space="preserve"><value>{0} is behind the same dates in {1}: occupancy {4} versus {5}, ADR {2} versus {3}. Use the weak weekday and the rooms listed here before cutting the rack rate for every room.</value></data>
+  <data name="Performance.Action.PaceVolume" xml:space="preserve"><value>{0} is fuller than the same dates in {1} ({4} versus {5}), but ADR slipped from {3} to {2}. Stop the rate leak before adding another discount.</value></data>
+  <data name="Performance.Action.PaceRate" xml:space="preserve"><value>{0} against the same dates in {1}: ADR {2} versus {3}, occupancy {4} versus {5}. The gain is rate. Do not discount the hotel to buy occupancy.</value></data>
+  <data name="Performance.Action.PaceFlat" xml:space="preserve"><value>{0} matches the same dates in {1} (occupancy {4} versus {5}, ADR {2} versus {3}). Hold the current rates.</value></data>
+  <data name="Performance.Action.RaiseRate" xml:space="preserve"><value>Room {0} in {1} was {2} full at {3} ADR, while the hotel was {4} full at {5}. Guests are taking this room. Raise its rate.</value></data>
+  <data name="Performance.Action.LostDemand" xml:space="preserve"><value>Room {0} in {1} changed by {2} occupancy against the same dates in {3}, and RevPAR did not recover (ADR {4}). Look at the room itself — noise, view, the last closure — before lowering the price.</value></data>
+  <data name="Performance.Action.Weekday" xml:space="preserve"><value>{0} in {1} ran at {2} occupancy, against {3} for the year. Put a midweek rate on {0}, or place the next short closure on that weekday so a stronger day stays on sale.</value></data>
+  <data name="Performance.Action.WorksQuiet" xml:space="preserve"><value>The closures in {0} {1} sit in a quiet month ({2} occupied, against {3} for the year). Keep the next renovation there. Leave July, August, and Christmas week on sale.</value></data>
+  <data name="Performance.Action.WorksBusy" xml:space="preserve"><value>Closures in {0} {1} landed in a busy month ({2} occupied, against {3} for the year). Move the next block of works to a weaker month.</value></data>
+  <data name="Performance.Action.ProtectPremium" xml:space="preserve"><value>Rooms for {0} guests earned {1} ADR at {2} occupancy, against {3} ADR for two-guest rooms at {4}. That premium is holding. Do not price the larger rooms as doubles.</value></data>
+  <data name="Performance.Action.PremiumHigh" xml:space="preserve"><value>Rooms for {0} guests were only {1} full, against {2} for two-guest rooms, while charging {3} against {4}. The premium is ahead of demand. Ease it, or include something a family needs, such as the baby cot.</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Contract Templates</value></data>
   <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>External Integrations</value></data>

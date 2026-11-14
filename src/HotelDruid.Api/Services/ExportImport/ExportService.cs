@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
 using HotelDruid.Shared.Configuration;
@@ -13,22 +15,25 @@ public class ExportService : IExportService
     private readonly IPackageBuilder _packageBuilder;
     private readonly IZipBuilder _zipBuilder;
     private readonly IKeyValueStore _store;
+    private readonly ILedgerRepository? _ledger;
     private readonly ILogger<ExportService> _logger;
     
-    // Track in-progress exports
-    private readonly Dictionary<string, ExportStatusTracker> _exportStatus = new();
+    // Shared across requests. A scoped service would forget an export as soon as the create request ended.
+    private static readonly ConcurrentDictionary<string, ExportStatusTracker> ExportStatus = new();
 
     public ExportService(
         ICanonicalMapper canonicalMapper,
         IPackageBuilder packageBuilder,
         IZipBuilder zipBuilder,
         IKeyValueStore store,
-        ILogger<ExportService> logger)
+        ILogger<ExportService> logger,
+        ILedgerRepository? ledger = null)
     {
         _canonicalMapper = canonicalMapper;
         _packageBuilder = packageBuilder;
         _zipBuilder = zipBuilder;
         _store = store;
+        _ledger = ledger;
         _logger = logger;
     }
 
@@ -46,17 +51,14 @@ public class ExportService : IExportService
             Status = "processing",
             CreatedAt = DateTime.UtcNow
         };
-        _exportStatus[exportId] = tracker;
-
-        // Run export in background
-        _ = Task.Run(async () => await ExecuteExportAsync(exportId, options, tracker));
-
+        ExportStatus[exportId] = tracker;
+        await ExecuteExportAsync(exportId, options, tracker);
         return exportId;
     }
 
     public async Task<ExportStatusResponse> GetExportStatusAsync(string exportId)
     {
-        if (!_exportStatus.TryGetValue(exportId, out var tracker))
+        if (!ExportStatus.TryGetValue(exportId, out var tracker))
         {
             _logger.LogWarning("Export {ExportId} not found", exportId);
             throw new KeyNotFoundException($"Export {exportId} not found");
@@ -76,7 +78,7 @@ public class ExportService : IExportService
 
     public async Task<(Stream FileStream, string FileName)> DownloadExportAsync(string exportId)
     {
-        if (!_exportStatus.TryGetValue(exportId, out var tracker) || tracker.Status != "completed")
+        if (!ExportStatus.TryGetValue(exportId, out var tracker) || tracker.Status != "completed")
         {
             throw new InvalidOperationException($"Export {exportId} is not ready for download");
         }
@@ -103,7 +105,7 @@ public class ExportService : IExportService
 
     public async Task<bool> CancelExportAsync(string exportId)
     {
-        if (_exportStatus.TryGetValue(exportId, out var tracker))
+        if (ExportStatus.TryGetValue(exportId, out var tracker))
         {
             if (tracker.Status == "processing")
             {
@@ -123,24 +125,42 @@ public class ExportService : IExportService
             // Step 1: Collect data from stores
             tracker.ProgressPercent = 20;
             var rooms = await CollectRoomsDataAsync();
-            var assets = await _store.ListAsync<AssetDto>("assets");
-            var warehouses = await _store.ListAsync<WarehouseDto>("warehouses");
-            var inventory = await _store.ListAsync<InventoryDto>("inventory");
+            var assets = await CollectAssetsAsync();
+            var warehouses = await CollectWarehousesAsync();
+            var inventory = await CollectInventoryAsync();
             var bookings = await CollectBookingsDataAsync();
             var systemConfigurations = await _store.ListAsync<SystemConfiguration>("system_configuration");
+            var clients = await CollectDocumentsAsync("clients");
+            var tariffs = await CollectDocumentsAsync("tariffs");
+            var cashRegisters = await CollectDocumentsAsync("cash_registers");
+            var years = await CollectDocumentsAsync("years");
+            var bookingCosts = await CollectDocumentsAsync("booking_costs");
+            var bookingGuests = await CollectDocumentsAsync("booking_guests");
+            var expenses = await CollectDocumentsAsync("expenses");
+            var cancelled = await CollectDocumentsAsync("cancelled_bookings");
+            var ledgerRows = await CollectLedgerAsync();
 
-            _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows, {BookingCount} bookings",
-                rooms.Length, assets.Count, warehouses.Count, inventory.Count, bookings.Length);
+            _logger.LogInformation("Collected {RoomCount} rooms, {AssetCount} assets, {WhCount} warehouses, {InvCount} inventory rows, {BookingCount} bookings, {ClientCount} clients, {LedgerCount} ledger lines",
+                rooms.Length, assets.Length, warehouses.Length, inventory.Length, bookings.Length, clients.RowCount, ledgerRows.RowCount);
 
             // Step 2: Convert to canonical format
             tracker.ProgressPercent = 40;
             var canonicalData = new Dictionary<string, CanonicalData>
             {
+                ["years"] = years,
+                ["cash_registers"] = cashRegisters,
+                ["clients"] = clients,
                 ["rooms"] = _canonicalMapper.ToCanonical(rooms),
-                ["assets"] = _canonicalMapper.ToCanonicalAssets(assets.ToArray()),
-                ["warehouses"] = _canonicalMapper.ToCanonicalWarehouses(warehouses.ToArray()),
-                ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory.ToArray()),
-                ["bookings"] = _canonicalMapper.ToCanonicalBookings(bookings)
+                ["assets"] = _canonicalMapper.ToCanonicalAssets(assets),
+                ["warehouses"] = _canonicalMapper.ToCanonicalWarehouses(warehouses),
+                ["tariffs"] = tariffs,
+                ["inventory"] = _canonicalMapper.ToCanonicalInventory(inventory),
+                ["bookings"] = _canonicalMapper.ToCanonicalBookings(bookings),
+                ["booking_guests"] = bookingGuests,
+                ["booking_costs"] = bookingCosts,
+                ["cancelled_bookings"] = cancelled,
+                ["expenses"] = expenses,
+                ["ledger_entries"] = ledgerRows
             };
 
             if (systemConfigurations.Count > 0)
@@ -155,6 +175,12 @@ public class ExportService : IExportService
             // Step 4: Create ZIP
             tracker.ProgressPercent = 80;
             var zipPath = await _zipBuilder.CreateZipAsync(package);
+            var namedPath = Path.Combine(Path.GetDirectoryName(zipPath)!, $"export_HotelDruid_{exportId}_v1.zip");
+            if (!string.Equals(zipPath, namedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Move(zipPath, namedPath, overwrite: true);
+                zipPath = namedPath;
+            }
             var fileSize = new FileInfo(zipPath).Length;
             tracker.FileSizeBytes = fileSize;
 
@@ -177,8 +203,26 @@ public class ExportService : IExportService
     {
         try
         {
-            // Get all rooms from the file store
-            var rooms = await _store.ListAsync<RoomDto>("rooms");
+            var index = await _store.GetIndexAsync("rooms");
+            var rooms = new List<RoomDto>();
+            foreach (var (_, id) in index)
+            {
+                var storage = await _store.GetAsync<RoomStorageModel>("rooms", id);
+                if (storage is null || string.IsNullOrWhiteSpace(storage.Name))
+                    continue;
+                rooms.Add(new RoomDto(
+                    id,
+                    storage.Name,
+                    storage.Capacity ?? 0,
+                    storage.FloorNumber,
+                    storage.HouseNumber,
+                    storage.Priority,
+                    storage.SecondaryPriority,
+                    storage.HasBeds,
+                    storage.NeighboringRooms,
+                    storage.Comments));
+            }
+
             return rooms.ToArray();
         }
         catch (Exception ex)
@@ -186,6 +230,115 @@ public class ExportService : IExportService
             _logger.LogError(ex, "Error collecting rooms data");
             throw;
         }
+    }
+
+    private async Task<AssetDto[]> CollectAssetsAsync()
+    {
+        var index = await _store.GetIndexAsync("assets");
+        var rows = new List<AssetDto>();
+        foreach (var (_, id) in index)
+        {
+            var storage = await _store.GetAsync<AssetStorageModel>("assets", id);
+            if (storage is null)
+                continue;
+            rows.Add(new AssetDto(id, storage.Name, storage.Code, storage.Description, storage.CreatedAt));
+        }
+
+        return rows.ToArray();
+    }
+
+    private async Task<WarehouseDto[]> CollectWarehousesAsync()
+    {
+        var index = await _store.GetIndexAsync("warehouses");
+        var rows = new List<WarehouseDto>();
+        foreach (var (_, id) in index)
+        {
+            var storage = await _store.GetAsync<WarehouseStorageModel>("warehouses", id);
+            if (storage is null)
+                continue;
+            rows.Add(new WarehouseDto(id, storage.Name, storage.Code, storage.Description, storage.FloorNumber, storage.HouseNumber, storage.CreatedAt));
+        }
+
+        return rows.ToArray();
+    }
+
+    private async Task<InventoryDto[]> CollectInventoryAsync()
+    {
+        var index = await _store.GetIndexAsync("inventory");
+        var rows = new List<InventoryDto>();
+        foreach (var (_, id) in index)
+        {
+            var storage = await _store.GetAsync<InventoryStorageModel>("inventory", id);
+            if (storage is null)
+                continue;
+            rows.Add(new InventoryDto(id, storage.AssetId, storage.RoomId, storage.WarehouseId, storage.Quantity, storage.MinQuantityDefault, storage.RequiredOnCheckin, storage.CreatedAt));
+        }
+
+        return rows.ToArray();
+    }
+
+    private async Task<CanonicalData> CollectDocumentsAsync(string collection)
+    {
+        var index = await _store.GetIndexAsync(collection);
+        var rows = new List<Dictionary<string, object?>>();
+        foreach (var (name, id) in index)
+        {
+            var document = await _store.GetAsync<Dictionary<string, JsonElement>>(collection, id);
+            if (document is null)
+                continue;
+            var row = new Dictionary<string, object?>
+            {
+                ["blazorId"] = id,
+                ["indexName"] = name
+            };
+            foreach (var (key, value) in document)
+                row[key] = value.ValueKind == JsonValueKind.Null ? null : value;
+            rows.Add(row);
+        }
+
+        var columns = new List<ColumnDefinition>
+        {
+            new("blazorId", "string", false, "Store id"),
+            new("indexName", "string", false, "Store index name")
+        };
+        return new CanonicalData(collection, rows.Count, rows, columns);
+    }
+
+    private async Task<CanonicalData> CollectLedgerAsync()
+    {
+        var rows = new List<Dictionary<string, object?>>();
+        if (_ledger is not null)
+        {
+            foreach (var entry in await _ledger.ReadAllAsync())
+            {
+                rows.Add(new Dictionary<string, object?>
+                {
+                    ["blazorId"] = entry.Id,
+                    ["id"] = entry.Id,
+                    ["sequence"] = entry.Sequence,
+                    ["timestamp"] = entry.Timestamp,
+                    ["entryType"] = entry.EntryType,
+                    ["bookingId"] = entry.BookingId,
+                    ["journalId"] = entry.JournalId,
+                    ["accountCode"] = entry.AccountCode,
+                    ["accountGroup"] = entry.AccountGroup,
+                    ["debit"] = entry.Debit,
+                    ["credit"] = entry.Credit,
+                    ["amount"] = entry.Amount,
+                    ["cashRegisterId"] = entry.CashRegisterId,
+                    ["payerName"] = entry.PayerName,
+                    ["sourceType"] = entry.SourceType,
+                    ["sourceId"] = entry.SourceId,
+                    ["method"] = entry.Method,
+                    ["status"] = entry.Status,
+                    ["createdBy"] = entry.CreatedBy,
+                    ["appliedTo"] = entry.AppliedTo,
+                    ["notes"] = entry.Notes
+                });
+            }
+        }
+
+        return new CanonicalData("ledger_entries", rows.Count, rows, [new ColumnDefinition("blazorId", "string", false, "Ledger line id")]);
     }
 
     private async Task<BookingDto[]> CollectBookingsDataAsync()
@@ -215,7 +368,11 @@ public class ExportService : IExportService
                     ActualArrivalDate: storage.ActualArrivalDate,
                     ActualGuestCount: storage.ActualGuestCount,
                     PrepaidAmount: storage.PrepaidAmount,
-                    ActualDepartureDate: storage.ActualDepartureDate));
+                    PrepaidMethod: storage.PrepaidMethod,
+                    ActualDepartureDate: storage.ActualDepartureDate,
+                    ExpectedGuestCount: storage.ExpectedGuestCount,
+                    TariffId: storage.TariffId,
+                    TariffTotalPrice: storage.TariffTotalPrice));
             }
 
             return bookings.ToArray();
@@ -236,6 +393,8 @@ public class ExportService : IExportService
             new("updatedUtc", "string", true, "Updated timestamp UTC"),
             new("defaultCurrency", "string", true, "Default currency"),
             new("defaultYear", "number", true, "Default year"),
+            new("accountingStandard", "string", true, "Chart of accounts standard"),
+            new("accountCodes", "object", true, "Account codes for the six ledger buckets"),
             new("adminEmails", "array", true, "Configured administrator emails"),
             new("settings", "object", true, "Additional settings dictionary")
         };
@@ -247,6 +406,8 @@ public class ExportService : IExportService
             ["updatedUtc"] = c.UpdatedUtc.ToString("O"),
             ["defaultCurrency"] = c.DefaultCurrency,
             ["defaultYear"] = c.DefaultYear,
+            ["accountingStandard"] = c.AccountingStandard,
+            ["accountCodes"] = c.AccountCodes,
             ["adminEmails"] = c.AdminEmails,
             ["settings"] = c.Settings
         }).ToList();

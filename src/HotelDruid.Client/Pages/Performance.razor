@@ -1,0 +1,198 @@
+@page "/performance"
+@using System.Globalization
+@using HotelDruid.Client.Localization
+@using HotelDruid.Shared
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Performance.Title"]</PageTitle>
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col">
+            <h5 class="mb-0">@L["Performance.Title"]</h5>
+            <p class="text-muted small mb-0">@L["Performance.Lead"]</p>
+        </div>
+    </div>
+    @if (_report is null && _error is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else if (_error is not null)
+    {
+        <div class="alert alert-warning">@_error</div>
+    }
+    else if (_report is not null)
+    {
+        <p class="mb-2">@_report.HotelName · @_report.From.ToString("yyyy-MM-dd") – @_report.To.ToString("yyyy-MM-dd") · @_report.RoomCount @L["Performance.Rooms"] · @_report.BookingCount @L["Performance.Bookings"] · @_report.ComputedInMilliseconds ms</p>
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.Occupancy"]</div><strong>@Pct(_report.Occupancy)</strong></div></div>
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.RoomRevenue"]</div><strong>@Money(_report.RoomRevenue)</strong></div></div>
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.OtherIncome"]</div><strong>@Money(_report.OtherIncome)</strong></div></div>
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.Expenses"]</div><strong>@Money(_report.OperatingExpense)</strong></div></div>
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.Adr"]</div><strong>@Money(_report.Adr)</strong></div></div>
+            <div class="col-6 col-md-4 col-lg-2"><div class="border rounded p-2"><div class="text-muted small">@L["Performance.RevPar"]</div><strong>@Money(_report.RevPar)</strong></div></div>
+        </div>
+        <h6>@L["Performance.Actions"]</h6>
+        @if (_report.Actions.Count == 0)
+        {
+            <p class="text-muted">@L["Performance.NoActions"]</p>
+        }
+        else
+        {
+            <ul class="mb-3">
+                @foreach (var action in _report.Actions)
+                {
+                    <li class="mb-1">@Format(action)</li>
+                }
+            </ul>
+        }
+        <h6>@L["Performance.ByYear"]</h6>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@L["Performance.Year"]</th>
+                    <th>@L["Performance.Occupancy"]</th>
+                    <th>@L["Performance.RoomRevenue"]</th>
+                    <th>@L["Performance.OtherIncome"]</th>
+                    <th>@L["Performance.Expenses"]</th>
+                    <th>@L["Performance.Adr"]</th>
+                    <th>@L["Performance.RevPar"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var year in _report.Years)
+                {
+                    <tr>
+                        <td>@year.Year</td>
+                        <td>@Pct(year.Occupancy)</td>
+                        <td>@Money(year.RoomRevenue)</td>
+                        <td>@Money(year.OtherIncome)</td>
+                        <td>@Money(year.OperatingExpense)</td>
+                        <td>@Money(year.Adr)</td>
+                        <td>@Money(year.RevPar)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <h6>@L["Performance.ByRoomYear"]</h6>
+        <p class="text-muted small">@L["Performance.CompareNote"]</p>
+        <div class="btn-group btn-group-sm mb-2" role="group">
+            @foreach (var year in _report.RoomYears.Select(row => row.Year).Distinct())
+            {
+                <button type="button" class="btn @(year == _year ? "btn-primary" : "btn-outline-secondary")" @onclick="() => _year = year">@year</button>
+            }
+        </div>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@L["Performance.Room"]</th>
+                    <th>@L["Performance.Occupancy"]</th>
+                    <th>@L["Performance.VsLastYear"]</th>
+                    <th>@L["Performance.Adr"]</th>
+                    <th>@L["Performance.VsLastYear"]</th>
+                    <th>@L["Performance.RevPar"]</th>
+                    <th>@L["Performance.VsLastYear"]</th>
+                    <th>@L["Performance.Closed"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var room in _report.RoomYears.Where(row => row.Year == _year))
+                {
+                    <tr>
+                        <td>@room.RoomName</td>
+                        <td>@Pct(room.Occupancy)</td>
+                        <td class="@DeltaClass(room.OccupancyChange)">@Points(room.OccupancyChange)</td>
+                        <td>@Money(room.Adr)</td>
+                        <td class="@DeltaClass(room.AdrChange)">@Signed(room.AdrChange)</td>
+                        <td>@Money(room.RevPar)</td>
+                        <td class="@DeltaClass(room.RevParChange)">@Signed(room.RevParChange)</td>
+                        <td>@room.MaintenanceNights</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <h6>@L["Performance.WholePeriod"]</h6>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@L["Performance.Room"]</th>
+                    <th>@L["Performance.Nights"]</th>
+                    <th>@L["Performance.Sellable"]</th>
+                    <th>@L["Performance.Closed"]</th>
+                    <th>@L["Performance.Occupancy"]</th>
+                    <th>@L["Performance.RoomRevenue"]</th>
+                    <th>@L["Performance.Adr"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var room in _report.Rooms)
+                {
+                    <tr>
+                        <td>@room.RoomName</td>
+                        <td>@room.OccupiedNights</td>
+                        <td>@room.SellableNights</td>
+                        <td>@room.MaintenanceNights</td>
+                        <td>@Pct(room.Occupancy)</td>
+                        <td>@Money(room.RoomRevenue)</td>
+                        <td>@Money(room.Adr)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private PerformanceReportDto? _report;
+    private string? _error;
+    private int _year;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _report = await Http.GetFromJsonAsync<PerformanceReportDto>("/api/reports/performance");
+            var comparable = _report?.RoomYears.Where(row => row.OccupancyChange.HasValue).Select(row => row.Year).ToList();
+            _year = comparable is { Count: > 0 }
+                ? comparable.Max()
+                : _report?.RoomYears.Select(row => row.Year).DefaultIfEmpty().Max() ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private string Format(PerformanceActionDto action)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        return action.Code switch
+        {
+            "pace-ahead" => L["Performance.Action.PaceAhead", action.Year, action.CompareYear, Money(action.Secondary), Money(action.BenchmarkSecondary), Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "pace-behind" => L["Performance.Action.PaceBehind", action.Year, action.CompareYear, Money(action.Secondary), Money(action.BenchmarkSecondary), Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "pace-volume" => L["Performance.Action.PaceVolume", action.Year, action.CompareYear, Money(action.Secondary), Money(action.BenchmarkSecondary), Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "pace-rate" => L["Performance.Action.PaceRate", action.Year, action.CompareYear, Money(action.Secondary), Money(action.BenchmarkSecondary), Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "pace-flat" => L["Performance.Action.PaceFlat", action.Year, action.CompareYear, Money(action.Secondary), Money(action.BenchmarkSecondary), Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "raise-rate" => L["Performance.Action.RaiseRate", action.RoomName ?? "", action.Year, Pct(action.Primary), Money(action.Secondary), Pct(action.Benchmark), Money(action.BenchmarkSecondary)].Value,
+            "lost-demand" => L["Performance.Action.LostDemand", action.RoomName ?? "", action.Year, Points(action.Primary), action.CompareYear, Money(action.Secondary)].Value,
+            "weekday" => L["Performance.Action.Weekday", DayName(action.Detail), action.Year, Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "works-quiet" => L["Performance.Action.WorksQuiet", MonthName(action.Detail), action.Year, Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "works-busy" => L["Performance.Action.WorksBusy", MonthName(action.Detail), action.Year, Pct(action.Primary), Pct(action.Benchmark)].Value,
+            "protect-premium" => L["Performance.Action.ProtectPremium", action.Detail ?? "", Money(action.Primary), Pct(action.Secondary), Money(action.Benchmark), Pct(action.BenchmarkSecondary)].Value,
+            "premium-high" => L["Performance.Action.PremiumHigh", action.Detail ?? "", Pct(action.Secondary), Pct(action.BenchmarkSecondary), Money(action.Primary), Money(action.Benchmark)].Value,
+            _ => action.Code
+        };
+
+        string DayName(string? detail) =>
+            int.TryParse(detail, out var day) ? culture.DateTimeFormat.GetDayName((DayOfWeek)day) : detail ?? "";
+
+        string MonthName(string? detail) =>
+            int.TryParse(detail, out var month) && month is >= 1 and <= 12 ? culture.DateTimeFormat.GetMonthName(month) : detail ?? "";
+    }
+
+    private static string Pct(decimal rate) => (rate * 100m).ToString("0.0") + "%";
+    private static string Money(decimal amount) => amount.ToString("N2");
+    private static string Points(decimal? change) => change is null ? "—" : (change.Value * 100m).ToString("+0.0;-0.0") + " pp";
+    private static string Signed(decimal? change) => change is null ? "—" : change.Value.ToString("+0.00;-0.00");
+    private static string DeltaClass(decimal? change) => change is null ? "text-muted" : change < 0 ? "text-danger" : change > 0 ? "text-success" : "";
+}

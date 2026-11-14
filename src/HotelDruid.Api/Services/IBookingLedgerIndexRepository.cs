@@ -21,4 +21,7 @@ public interface IBookingLedgerIndexRepository
     /// Adds ids when the index already exists. A missing index stays missing so the next read can record the whole history.
     /// </summary>
     Task AppendIfPresentAsync(string bookingId, IReadOnlyCollection<string> entryIds);
+
+    /// <summary>Replaces the booking's ledger index, creating it when missing.</summary>
+    Task ReplaceAsync(string bookingId, IReadOnlyList<string> entryIds);
 }

@@ -98,6 +98,27 @@ public class BookingLedgerIndexRepository : IBookingLedgerIndexRepository
         }
     }
 
+    public async Task ReplaceAsync(string bookingId, IReadOnlyList<string> entryIds)
+    {
+        if (string.IsNullOrWhiteSpace(bookingId))
+            return;
+
+        var gate = GetLock(bookingId);
+        await gate.WaitAsync();
+        try
+        {
+            var ids = entryIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            await WriteUnlockedAsync(bookingId, ids);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
     private async Task<List<string>?> ReadUnlockedAsync(string bookingId)
     {
         var path = GetIndexPath(bookingId);

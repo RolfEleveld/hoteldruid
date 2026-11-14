@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HotelDruid.Api.Models;
@@ -23,10 +24,10 @@ public class ImportService : IImportService
         PropertyNameCaseInsensitive = true
     };
 
-    // Track in-progress imports
-    private readonly Dictionary<string, ImportStatusTracker> _importStatus = new();
-    private readonly Dictionary<string, ImportPackageInfo> _validatedPackages = new();
-    private readonly Dictionary<string, string> _extractedDirectories = new();
+    // Shared across requests so validate, execute, and status see the same package.
+    private static readonly ConcurrentDictionary<string, ImportStatusTracker> ImportStatus = new();
+    private static readonly ConcurrentDictionary<string, ImportPackageInfo> ValidatedPackages = new();
+    private static readonly ConcurrentDictionary<string, string> ExtractedDirectories = new();
 
     public ImportService(
         IZipBuilder zipBuilder,
@@ -114,7 +115,7 @@ public class ImportService : IImportService
             }
 
             // Store validated package info
-            _validatedPackages[packageId] = new ImportPackageInfo(
+            ValidatedPackages[packageId] = new ImportPackageInfo(
                 PackageId: packageId,
                 FileName: zipFile.FileName,
                 FileSizeBytes: zipFile.Length,
@@ -124,7 +125,7 @@ public class ImportService : IImportService
             );
             var isValid = !errors.Any();
             if (isValid)
-                _extractedDirectories[packageId] = tempDir;
+                ExtractedDirectories[packageId] = tempDir;
             else
             {
                 try { Directory.Delete(tempDir, true); } catch { }
@@ -160,7 +161,7 @@ public class ImportService : IImportService
 
     public async Task<ImportValidationResponse> GetImportPreviewAsync(string packageId)
     {
-        if (!_validatedPackages.TryGetValue(packageId, out var pkgInfo))
+        if (!ValidatedPackages.TryGetValue(packageId, out var pkgInfo))
         {
             throw new KeyNotFoundException($"Package {packageId} not found");
         }
@@ -194,7 +195,7 @@ public class ImportService : IImportService
     {
         var importId = Guid.NewGuid().ToString();
 
-        if (!_validatedPackages.TryGetValue(packageId, out var pkgInfo))
+        if (!ValidatedPackages.TryGetValue(packageId, out var pkgInfo))
         {
             throw new KeyNotFoundException($"Package {packageId} not found");
         }
@@ -207,21 +208,20 @@ public class ImportService : IImportService
             Status = "processing",
             CreatedAt = DateTime.UtcNow
         };
-        _importStatus[importId] = tracker;
+        ImportStatus[importId] = tracker;
 
-        // Run import in background
-        _ = Task.Run(async () => await ExecuteImportInternalAsync(importId, pkgInfo, request, tracker));
+        await ExecuteImportInternalAsync(importId, pkgInfo, request, tracker);
 
         return new ImportExecuteResponse(
             ImportId: importId,
-            Status: "processing",
+            Status: tracker.Status,
             StatusUrl: $"/api/import/{importId}/status"
         );
     }
 
     public async Task<ImportStatusResponse> GetImportStatusAsync(string importId)
     {
-        if (!_importStatus.TryGetValue(importId, out var tracker))
+        if (!ImportStatus.TryGetValue(importId, out var tracker))
         {
             throw new KeyNotFoundException($"Import {importId} not found");
         }
@@ -239,7 +239,7 @@ public class ImportService : IImportService
 
     public async Task<bool> CancelImportAsync(string importId)
     {
-        if (_importStatus.TryGetValue(importId, out var tracker))
+        if (ImportStatus.TryGetValue(importId, out var tracker))
         {
             if (tracker.Status == "processing")
             {
@@ -264,7 +264,7 @@ public class ImportService : IImportService
 
             // Step 1: Re-extract package (since temp dir was deleted after validation)
             tracker.ProgressPercent = 10;
-            if (!_extractedDirectories.TryGetValue(pkgInfo.PackageId, out tempDir) || !Directory.Exists(tempDir))
+            if (!ExtractedDirectories.TryGetValue(pkgInfo.PackageId, out tempDir) || !Directory.Exists(tempDir))
                 throw new InvalidOperationException("The validated package is no longer available. Validate it again.");
 
             tracker.ProgressPercent = 30;
@@ -320,9 +320,9 @@ public class ImportService : IImportService
             tracker.ProgressPercent = 100;
             tracker.Status = "completed";
             tracker.CompletedAt = DateTime.UtcNow;
-            if (_extractedDirectories.TryGetValue(pkgInfo.PackageId, out var extracted))
+            if (ExtractedDirectories.TryGetValue(pkgInfo.PackageId, out var extracted))
             {
-                _extractedDirectories.Remove(pkgInfo.PackageId);
+                ExtractedDirectories.TryRemove(pkgInfo.PackageId, out _);
                 try { Directory.Delete(extracted, true); } catch { }
             }
 
