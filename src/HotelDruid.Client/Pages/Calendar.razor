@@ -9,7 +9,6 @@
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApiService
 @inject ITariffApiService TariffApi
-@inject IActiveYearService ActiveYearService
 @inject NavigationManager Navigation
 
 @inject IStringLocalizer<SharedResource> L
@@ -46,7 +45,7 @@
                 <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h3 class="panel-title mb-0">@selectedMonth.ToString("MMMM yyyy")</h3>
-                        <small class="text-muted">@string.Format(L["calendar.summaryRooms", "{0} rooms"], rooms.Count) · @string.Format(L["calendar.summaryBookings", "{0} bookings"], bookings.Count)</small>
+                        <small class="text-muted">@L["calendar.summaryRooms", rooms.Count] · @L["calendar.summaryBookings", yearBookingCount]</small>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="SelectPreviousMonth">@L["calendar.prev", "Previous"]</button>
@@ -56,43 +55,51 @@
                 </div>
 
                 <div class="panel-body flex-grow-1 overflow-auto">
-                    @if (isLoading)
-                    {
-                        <div class="d-flex align-items-center gap-2 text-muted">
-                            <div class="spinner-border spinner-border-sm" role="status"></div>
-                            <span>@L["calendar.loading", "Loading calendar..."]</span>
-                        </div>
-                    }
-                    else if (!rooms.Any())
-                    {
-                        <div class="alert alert-info mb-0">@L["calendar.noRooms", "No rooms available."]</div>
-                    }
-                    else
-                    {
-                        <div class="calendar-table-wrap">
-                            <table class="calendar-table">
-                                <thead>
-                                    <tr>
-                                        <th class="calendar-room-column-header" scope="col">
+                    <div class="calendar-table-wrap">
+                        <table class="calendar-table">
+                            <thead>
+                                <tr>
+                                    <th class="calendar-room-column-header" scope="col">
+                                        <button type="button"
+                                                class="calendar-room-header @(selectedDetailsMode == CalendarDetailsMode.Room ? "selected" : string.Empty)"
+                                                @onclick="SelectCurrentRoomDetails">
+                                            @L["calendar.roomColumn", "Room"]
+                                        </button>
+                                    </th>
+                                    @foreach (var day in monthDays)
+                                    {
+                                        <th scope="col" class="calendar-day-column-header @(GetWeekendClass(day))">
                                             <button type="button"
-                                                    class="calendar-room-header @(selectedDetailsMode == CalendarDetailsMode.Room ? "selected" : string.Empty)"
-                                                    @onclick="SelectCurrentRoomDetails">
-                                                @L["calendar.roomColumn", "Room"]
+                                                    class="calendar-day-header @(GetWeekendClass(day)) @(selectedDetailsMode == CalendarDetailsMode.Day && selectedDate == day ? "selected" : string.Empty)"
+                                                    @onclick="() => SelectDate(day)">
+                                                <span class="day-number">@day.Day</span>
                                             </button>
                                         </th>
-                                        @foreach (var day in monthDays)
-                                        {
-                                            <th scope="col" class="calendar-day-column-header @(GetWeekendClass(day))">
-                                                <button type="button"
-                                                        class="calendar-day-header @(GetWeekendClass(day)) @(selectedDetailsMode == CalendarDetailsMode.Day && selectedDate == day ? "selected" : string.Empty)"
-                                                        @onclick="() => SelectDate(day)">
-                                                    <span class="day-number">@day.Day</span>
-                                                </button>
-                                            </th>
-                                        }
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (isLoading)
+                                {
+                                    <tr>
+                                        <td colspan="@(monthDays.Count + 1)">
+                                            <div class="d-flex align-items-center gap-2 text-muted p-2">
+                                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                                <span>@L["calendar.loading", "Loading calendar..."]</span>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
+                                }
+                                else if (!rooms.Any())
+                                {
+                                    <tr>
+                                        <td colspan="@(monthDays.Count + 1)">
+                                            <div class="alert alert-info mb-0">@L["calendar.noRooms", "No rooms available."]</div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
                                     @foreach (var room in rooms)
                                     {
                                         <tr>
@@ -118,10 +125,10 @@
                                             }
                                         </tr>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -136,10 +143,14 @@
                     {
                         <div class="mb-3">
                             <div class="fw-semibold">@GetRoomDetailsHeading()</div>
-                            <div class="text-muted small">@string.Format(L["calendar.roomBookingCount", "{0} booking(s) in this room"], roomBookings.Count)</div>
+                            <div class="text-muted small">@L["calendar.roomBookingCount", roomBookings.Count]</div>
                         </div>
 
-                        @if (!roomBookings.Any())
+                        @if (isLoading)
+                        {
+                            <div class="text-muted small">@L["calendar.loading", "Loading calendar..."]</div>
+                        }
+                        else if (!roomBookings.Any())
                         {
                             <div class="alert alert-light border mb-0">@L["calendar.noRoomBookings", "No bookings assigned to this room."]</div>
                         }
@@ -165,10 +176,14 @@
                     {
                         <div class="mb-3">
                             <div class="fw-semibold">@selectedDate.ToString("dddd, dd MMMM yyyy")</div>
-                            <div class="text-muted small">@string.Format(L["calendar.dayBookingCount", "{0} booking(s)"], dayBookings.Count)</div>
+                            <div class="text-muted small">@L["calendar.dayBookingCount", dayBookings.Count]</div>
                         </div>
 
-                        @if (!dayBookings.Any())
+                        @if (isLoading)
+                        {
+                            <div class="text-muted small">@L["calendar.loading", "Loading calendar..."]</div>
+                        }
+                        else if (!dayBookings.Any())
                         {
                             <div class="alert alert-light border mb-0">@L["calendar.noDayBookings", "No room occupancy on this date."]</div>
                         }
@@ -403,6 +418,11 @@
     private BookingDto? selectedBooking;
     private CalendarDetailsMode selectedDetailsMode = CalendarDetailsMode.Day;
     private bool isLoading = true;
+    private bool clientsLoading = true;
+    private bool loadStarted;
+    private int loadGeneration;
+    private int? bookingsLoadedForYear;
+    private int yearBookingCount;
 
 
 
@@ -415,27 +435,32 @@
 
 
 
-    private bool dataLoaded = false;
-    protected override async Task OnInitializedAsync()
+    protected override void OnParametersSet()
     {
-        if (!dataLoaded)
-        {
-            await LoadDataAsync();
-            dataLoaded = true;
-        }
-    }
-
-
-    protected override async Task OnParametersSetAsync()
-    {
+        var previousMonth = selectedMonth;
         ApplyYearMonthParameters();
-        if (!dataLoaded)
+        if (previousMonth != selectedMonth)
         {
-            await LoadDataAsync();
-            dataLoaded = true;
+            selectedBooking = null;
+            selectedDetailsMode = CalendarDetailsMode.Day;
+            selectedDate = selectedMonth;
         }
+
         RebuildMonthItems();
         BuildMonthView();
+        if (!loadStarted)
+        {
+            loadStarted = true;
+            _ = LoadCalendarAsync();
+            return;
+        }
+
+        if (bookingsLoadedForYear != selectedYear)
+        {
+            isLoading = true;
+            yearBookingCount = 0;
+            _ = LoadBookingsForDisplayedYearAsync();
+        }
     }
 
     private void ApplyYearMonthParameters()
@@ -512,25 +537,108 @@
         selectedYear = selectedMonth.Year;
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadCalendarAsync()
+    {
+        var roomsTask = LoadRoomsAsync();
+        await LoadBookingsForDisplayedYearAsync();
+        await roomsTask;
+        await LoadGuestNamesAsync();
+    }
+
+    private async Task LoadRoomsAsync()
     {
         try
         {
-            isLoading = true;
             rooms = (await RoomApiService.GetRoomsAsync())
                 .OrderBy(room => GetRoomNumberSortValue(room.Name))
                 .ThenBy(room => room.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(room => room.Id, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            clients = await ClientApi.GetAllAsync();
-            bookings = await BookingApi.ListAsync(ActiveYearService.CurrentYear);
-            knownTariffs = await TariffApi.GetTariffsAsync();
+        }
+        catch
+        {
+            // The month frame stays visible when rooms cannot be loaded.
+        }
+
+        Notify();
+    }
+
+    private async Task LoadBookingsForDisplayedYearAsync()
+    {
+        var year = selectedYear;
+        var generation = ++loadGeneration;
+        try
+        {
+            var currentTask = BookingApi.ListAsync(year);
+            var previousTask = BookingApi.ListAsync(year - 1);
+            await Task.WhenAll(currentTask, previousTask);
+            if (generation != loadGeneration || year != selectedYear)
+            {
+                return;
+            }
+
+            var current = await currentTask;
+            var carriedIn = (await previousTask)
+                .Where(booking => booking.Year != year && StayOverlapsYear(booking, year));
+            bookings = current
+                .Concat(carriedIn)
+                .GroupBy(booking => booking.Id ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+            bookingsLoadedForYear = year;
+            yearBookingCount = current.Count;
+            BuildMonthView();
+        }
+        catch
+        {
+            // Keep the month frame; the grid fills when a later year load succeeds.
         }
         finally
         {
-            isLoading = false;
+            if (generation == loadGeneration)
+            {
+                isLoading = false;
+                Notify();
+            }
         }
     }
+
+    private static bool StayOverlapsYear(BookingDto booking, int year)
+    {
+        var arrival = booking.ActualArrivalDate ?? booking.ArrivalDate;
+        var departure = booking.DepartureDate;
+        if (!arrival.HasValue || !departure.HasValue)
+        {
+            return false;
+        }
+
+        var yearStart = new DateOnly(year, 1, 1);
+        var nextYear = new DateOnly(year + 1, 1, 1);
+        return arrival.Value < nextYear && departure.Value > yearStart;
+    }
+
+    private async Task LoadGuestNamesAsync()
+    {
+        try
+        {
+            var clientsTask = ClientApi.GetAllAsync();
+            var tariffsTask = TariffApi.GetTariffsAsync();
+            await Task.WhenAll(clientsTask, tariffsTask);
+            clients = await clientsTask;
+            knownTariffs = await tariffsTask;
+        }
+        catch
+        {
+            // Names stay unresolved; the grid is already on screen.
+        }
+        finally
+        {
+            clientsLoading = false;
+            Notify();
+        }
+    }
+
+    private void Notify() => _ = InvokeAsync(StateHasChanged);
 
     private void BuildMonthView()
     {
@@ -560,12 +668,7 @@
 
     private void SelectMonth(DateOnly month)
     {
-        selectedMonth = new DateOnly(month.Year, month.Month, 1);
-        selectedYear = selectedMonth.Year;
-        selectedDate = selectedMonth;
-        selectedBooking = null;
-        selectedDetailsMode = CalendarDetailsMode.Day;
-        BuildMonthView();
+        Navigation.NavigateTo($"/calendar/{month.Year}/{month.Month}");
     }
 
     private void SelectPreviousMonth() => SelectMonth(selectedMonth.AddMonths(-1));
@@ -776,7 +879,7 @@
         var client = clients.FirstOrDefault(current => string.Equals(current.Id, clientId, StringComparison.OrdinalIgnoreCase));
         if (client is null)
         {
-            return "Unknown client";
+            return clientsLoading ? L["common.loading"] : "Unknown client";
         }
 
         if (!string.IsNullOrWhiteSpace(client.LastName) && !string.IsNullOrWhiteSpace(client.FirstName))
