@@ -1,7 +1,6 @@
 @page "/expenses"
 @using HotelDruid.Client.Services
 @inject IExpenseApiService ExpenseApi
-@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -9,10 +8,10 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Expenses</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
+        <div class="col-auto d-flex gap-1 align-items-center">
+            <input class="form-control form-control-sm" type="date" @bind="rangeFrom" aria-label="@L["bookings.stayFrom"]" />
+            <input class="form-control form-control-sm" type="date" @bind="rangeTo" aria-label="@L["bookings.stayTo"]" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="LoadAll">@L["common.load", "Load"]</button>
         </div>
     </div>
     <div class="row">
@@ -27,7 +26,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.Date</div>
+                            <div class="fw-bold">@r.Date · @L["accounting.countsToward"] @r.Year</div>
                             <small>@r.Description (@r.Amount)</small>
                         </li>
                     }
@@ -39,10 +38,14 @@
             {
                 <h5 class="mt-1">@(isNew ? "New Expense" : "Edit Expense")</h5>
                 <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6"><label>Cash Register ID</label><input class="form-control" @bind="form.CashRegisterId" /></div>
                     <div class="col-6"><label>Amount</label><input class="form-control" type="number" @bind="form.Amount" /></div>
-                    <div class="col-6"><label>Date</label><input class="form-control" placeholder="YYYY-MM-DD" @bind="form.Date" /></div>
+                    <div class="col-6"><label>@L["accounting.invoiceDate"]</label><input class="form-control" type="date" @bind="form.InvoiceDate" @bind:after="OnInvoiceDateChanged" /></div>
+                    <div class="col-6">
+                        <label>@L["accounting.countsToward"]</label>
+                        <input class="form-control" type="number" @bind="form.Year" @bind:after="OnCountsTowardChanged" />
+                    </div>
+                    <div class="col-12"><div class="form-text">@L["accounting.countsTowardHelp"]</div></div>
                     <div class="col-12"><label>Description</label><input class="form-control" @bind="form.Description" /></div>
                 </div>
                 @if (!string.IsNullOrEmpty(errorMsg)) { <div class="alert alert-danger mt-2">@errorMsg</div> }
@@ -57,10 +60,10 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
+                    <dt>@L["accounting.invoiceDate"]</dt><dd>@selected.Date</dd>
+                    <dt>@L["accounting.countsToward"]</dt><dd>@selected.Year</dd>
                     <dt>Cash Register</dt><dd>@selected.CashRegisterId</dd>
                     <dt>Amount</dt><dd>@selected.Amount</dd>
-                    <dt>Date</dt><dd>@selected.Date</dd>
                     <dt>Description</dt><dd>@selected.Description</dd>
                 </dl>
                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="EditSelected">@L["common.edit", "Edit"]</button>
@@ -75,31 +78,70 @@
     private ExpenseClientDto? selected;
     private bool editing, isNew;
     private string errorMsg = "";
-    private int? filterYear;
+    private bool countsTowardFollowsDate = true;
+    private DateOnly rangeFrom = new(DateTime.Today.Year, 1, 1);
+    private DateOnly rangeTo = new(DateTime.Today.Year, 12, 31);
     private FormModel form = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAll();
+
+    private async Task LoadAll()
     {
-        filterYear = ActiveYearService.CurrentYear;
-        await LoadAll();
+        if (rangeTo < rangeFrom)
+        {
+            rangeTo = rangeFrom;
+        }
+
+        var combined = new List<ExpenseClientDto>();
+        for (var year = rangeFrom.Year; year <= rangeTo.Year; year++)
+        {
+            combined.AddRange(await ExpenseApi.ListAsync(year));
+        }
+
+        records = combined
+            .GroupBy(item => item.Id ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
     }
 
-    private async Task LoadAll() => records = await ExpenseApi.ListAsync(filterYear);
-    private async Task ApplyFilter() => await LoadAll();
+    private void NewRecord()
+    {
+        countsTowardFollowsDate = true;
+        form = new()
+        {
+            InvoiceDate = DateOnly.FromDateTime(DateTime.Today),
+            Year = DateTime.Today.Year
+        };
+        isNew = true;
+        editing = true;
+        selected = null;
+        errorMsg = "";
+    }
 
-    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(ExpenseClientDto r) { selected = r; editing = false; }
     private void EditSelected()
     {
         if (selected is null) return;
-        form = new() { Year = selected.Year, CashRegisterId = selected.CashRegisterId, Amount = selected.Amount, Date = selected.Date, Description = selected.Description };
+        DateOnly.TryParse(selected.Date, out var date);
+        form = new() { Year = selected.Year, CashRegisterId = selected.CashRegisterId, Amount = selected.Amount, InvoiceDate = date == default ? null : date, Description = selected.Description };
+        countsTowardFollowsDate = date != default && date.Year == selected.Year;
         isNew = false; editing = true; errorMsg = "";
     }
 
+    private void OnInvoiceDateChanged()
+    {
+        if (countsTowardFollowsDate && form.InvoiceDate is DateOnly date)
+        {
+            form.Year = date.Year;
+        }
+    }
+
+    private void OnCountsTowardChanged() => countsTowardFollowsDate = false;
+
     private async Task Save()
     {
-        if (form.Year == 0) { errorMsg = "Year is required."; return; }
-        var dto = new ExpenseClientDto(selected?.Id, form.Year, form.CashRegisterId, form.Amount, form.Description, form.Date);
+        if (form.Year == 0) { errorMsg = "Counts toward is required."; return; }
+        var dto = new ExpenseClientDto(selected?.Id, form.Year, form.CashRegisterId, form.Amount, form.Description, form.InvoiceDate?.ToString("yyyy-MM-dd"));
         try
         {
             if (isNew) await ExpenseApi.CreateAsync(dto);
@@ -124,7 +166,7 @@
         public int Year { get; set; }
         public string? CashRegisterId { get; set; }
         public double? Amount { get; set; }
-        public string? Date { get; set; }
+        public DateOnly? InvoiceDate { get; set; }
         public string? Description { get; set; }
     }
 }

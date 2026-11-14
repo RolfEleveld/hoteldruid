@@ -438,13 +438,17 @@ public class LandingPageWidgetSelectorTests : TestContext
                     .Select(x => x.TextContent.Trim())
                     .ToList();
 
-                Assert.Contains(ExpectedAddActionKeys[i], items);
-
                 if (i == CalendarWidgetMenuIndex)
                 {
+                    Assert.DoesNotContain("Dashboard.Widget.Menu.AddYear", items);
                     Assert.DoesNotContain("Dashboard.Widget.VisibleCount.Calendar", headers);
                 }
                 else
+                {
+                    Assert.Contains(ExpectedAddActionKeys[i], items);
+                }
+
+                if (i != CalendarWidgetMenuIndex)
                 {
                     var expectedHeaderIndex = i > CalendarWidgetMenuIndex ? i - 1 : i;
                     Assert.Contains(ExpectedVisibleCountHeaderKeys[expectedHeaderIndex], headers);

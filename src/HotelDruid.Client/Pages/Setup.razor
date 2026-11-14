@@ -44,22 +44,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">@L["Setup.DefaultYear.Label"]</label>
-                        <input type="number" class="form-control" @bind="model.DefaultYear" min="2000" max="2100" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">@L["Setup.Fallback.Label"]</label>
-                        <select class="form-select" @bind="pricingFallback">
-                            @foreach (var optionValue in PricingFallbackOptions)
-                            {
-                                <option value="@optionValue">@GetPricingFallbackLabel(optionValue)</option>
-                            }
-                        </select>
-                        <div class="form-text">@L["Setup.Fallback.Help"]</div>
-                    </div>
-
-                    <div class="mb-3">
                         <label class="form-label">@L["Setup.Accounting.Label"]</label>
                         <select class="form-select" @bind="accountingStandard">
                             @foreach (var standard in AccountChart.Standards)
@@ -138,7 +122,6 @@
 
     private SystemConfiguration model = new() { Id = "system", DefaultCurrency = "EUR", DefaultYear = DateTime.UtcNow.Year };
     private string hotelName = "Welcome to HotelDruid";
-    private string pricingFallback = "LatestAvailableYear";
     private string accountingStandard = AccountChart.UsaliId;
     private readonly List<CodeRow> accountRows = AccountRoles.All
         .Select(role => new CodeRow(role, AccountChart.Usali.Codes[role]))
@@ -149,22 +132,6 @@
             ? chart.Accounts
             : AccountChart.Usali.Accounts;
     private StorageInfoResponse? storageInfo;
-    private static readonly IReadOnlyList<string> PricingFallbackOptions =
-    [
-        "LatestAvailableYear",
-        "NoSuggestion"
-    ];
-
-    private string GetPricingFallbackLabel(string optionValue)
-    {
-        return optionValue switch
-        {
-            "LatestAvailableYear" => L["Setup.Fallback.Option.LatestAvailableYear"],
-            "NoSuggestion" => L["Setup.Fallback.Option.NoSuggestion"],
-            _ => optionValue
-        };
-    }
-
     private string? message;
     private string? error;
 
@@ -183,11 +150,6 @@
                     && !string.IsNullOrWhiteSpace(configuredHotelName))
                 {
                     hotelName = configuredHotelName;
-                }
-
-                if (existing.Settings is not null && existing.Settings.TryGetValue("PriceFallback", out var value) && !string.IsNullOrWhiteSpace(value))
-                {
-                    pricingFallback = NormalizePricingFallback(value);
                 }
 
                 if (!string.IsNullOrWhiteSpace(existing.AccountingStandard)
@@ -221,7 +183,7 @@
         model.UpdatedUtc = DateTime.UtcNow;
         model.Settings ??= new Dictionary<string, string>();
         model.Settings["HotelName"] = string.IsNullOrWhiteSpace(hotelName) ? "Welcome to HotelDruid" : hotelName.Trim();
-        model.Settings["PriceFallback"] = NormalizePricingFallback(pricingFallback);
+        model.Settings["PriceFallback"] = "NoSuggestion";
 
         var codes = accountRows.ToDictionary(row => row.Role, row => row.Code);
         if (!AccountChart.TryResolve(accountingStandard, codes, out var chart, out var chartError))
@@ -263,14 +225,5 @@
         _ => L["Setup.Accounting.MissingCode"]
     };
 
-    private static string NormalizePricingFallback(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "LatestAvailableYear";
-        }
-
-        return PricingFallbackOptions.Contains(value, StringComparer.Ordinal) ? value : "LatestAvailableYear";
-    }
 }
 

@@ -4,7 +4,6 @@
 @inject IBookingCostApiService BookingCostApi
 @inject IBookingApiService BookingApi
 @inject IRoomApiService RoomApi
-@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -12,11 +11,6 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Booking Costs</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
-        </div>
     </div>
     <div class="row">
         <div class="col-md-3 border-end">
@@ -42,7 +36,6 @@
             {
                 <h5 class="mt-1">@(isNew ? "New Booking Cost" : "Edit Booking Cost")</h5>
                 <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6">
                         <label>@L["ledger.bookingColumn", "Booking"]</label>
                         <select class="form-select" @bind="form.BookingId">
@@ -69,7 +62,6 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>@L["ledger.bookingColumn", "Booking"]</dt>
                     <dd>
                         @if (string.IsNullOrWhiteSpace(selected.BookingId))
@@ -113,7 +105,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = YearQuery ?? ActiveYearService.CurrentYear;
+        filterYear = YearQuery ?? DateTime.Today.Year;
         await Task.WhenAll(LoadAll(), LoadCatalogAsync());
         ApplyQueryContext();
     }
@@ -145,7 +137,6 @@
         var label = catalog.Label(id);
         return string.IsNullOrWhiteSpace(label) ? L["ledger.bookingUnknown", "Booking"] : label;
     }
-    private async Task ApplyFilter() => await LoadAll();
 
     private void ApplyQueryContext()
     {
@@ -156,7 +147,7 @@
 
         if (StartNew == true && !string.IsNullOrWhiteSpace(BookingIdQuery))
         {
-            form = new() { Year = filterYear ?? ActiveYearService.CurrentYear, BookingId = BookingIdQuery };
+            form = new() { BookingId = BookingIdQuery };
             isNew = true;
             editing = true;
             selected = null;
@@ -176,7 +167,7 @@
         }
     }
 
-    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord() { form = new() { BookingId = BookingIdQuery }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(BookingCostClientDto r) { selected = r; editing = false; }
     private void EditSelected()
     {
@@ -192,14 +183,9 @@
             return;
         }
 
-        if (form.Year == 0)
-        {
-            errorMsg = "Year is required.";
-            return;
-        }
-
         isSaving = true;
-        var dto = new BookingCostClientDto(selected?.Id, form.Year, form.BookingId, form.TariffId, form.Amount, form.Description);
+        var year = isNew ? YearOfBooking(form.BookingId) : selected!.Year;
+        var dto = new BookingCostClientDto(selected?.Id, year, form.BookingId, form.TariffId, form.Amount, form.Description);
         try
         {
             if (isNew) await BookingCostApi.CreateAsync(dto);
@@ -221,6 +207,12 @@
         if (selected?.Id is null) return;
         try { await BookingCostApi.DeleteAsync(selected.Year, selected.Id); selected = null; await LoadAll(); }
         catch { errorMsg = "Delete failed."; }
+    }
+
+    private int YearOfBooking(string? bookingId)
+    {
+        var booking = catalog.Bookings.FirstOrDefault(item => string.Equals(item.Id, bookingId, StringComparison.OrdinalIgnoreCase));
+        return booking is { Year: > 0 } ? booking.Year : (filterYear ?? DateTime.Today.Year);
     }
 
     private class FormModel

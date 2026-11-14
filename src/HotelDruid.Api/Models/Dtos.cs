@@ -414,6 +414,8 @@ public class ExtraCostStorageModel
     public double? TaxPercentage { get; set; }
     public string? Category { get; set; }
     public int? NumberLimit { get; set; }
+    public DateOnly? ValidFrom { get; set; }
+    public DateOnly? ValidUntil { get; set; }
     public string? Tariff1 { get; set; }
     public string? Tariff2 { get; set; }
     public string? Tariff3 { get; set; }
@@ -460,7 +462,7 @@ public record PeriodDto(string? Id, int Year, DateOnly? StartDate, DateOnly? End
     double? Tariff11, double? Tariff11PerPerson,
     double? Tariff12, double? Tariff12PerPerson);
 
-public record ExtraCostDto(string? Id, int Year, string? ExtraCostName, string? CostType, double? BaseValue, double? PercentageValue, double? TaxPercentage, string? Category, int? NumberLimit);
+public record ExtraCostDto(string? Id, int Year, string? ExtraCostName, string? CostType, double? BaseValue, double? PercentageValue, double? TaxPercentage, string? Category, int? NumberLimit, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null);
 
 public record AssignmentRuleDto(string? Id, int Year, string? RoomOrAgency, string? ClosedTariff, string? TariffPerRoom, int? StartPeriodId, int? EndPeriodId, string? Reason1);
 

@@ -915,4 +915,15 @@
   <data name="Setup.Accounting.DuplicateCode" xml:space="preserve"><value>Cada cuenta debe tener su propio número.</value></data>
   <data name="Setup.Accounting.InvalidCode" xml:space="preserve"><value>Un número de cuenta empieza por una letra o un dígito y no pasa de 16 caracteres.</value></data>
   <data name="Setup.Accounting.UnknownStandard" xml:space="preserve"><value>Ese plan de cuentas no está disponible.</value></data>
+  <data name="bookings.reportingYear" xml:space="preserve"><value>Año de informe {0}, tomado de la fecha de llegada.</value></data>
+  <data name="bookings.stayFrom" xml:space="preserve"><value>Desde</value></data>
+  <data name="bookings.stayTo" xml:space="preserve"><value>Hasta</value></data>
+  <data name="accounting.countsToward" xml:space="preserve"><value>Cuenta para</value></data>
+  <data name="accounting.countsTowardHelp" xml:space="preserve"><value>El rendimiento y la contabilidad usan este año. Empieza como el año de la fecha, y se cambia cuando el documento pertenece a otro año. Una factura de reforma recibida en julio de 2026 puede contar para 2025.</value></data>
+  <data name="accounting.invoiceDate" xml:space="preserve"><value>Fecha de factura</value></data>
+  <data name="accounting.cashDate" xml:space="preserve"><value>Fecha de caja</value></data>
+  <data name="extras.validFrom" xml:space="preserve"><value>Válido desde</value></data>
+  <data name="extras.validUntil" xml:space="preserve"><value>Válido hasta</value></data>
+  <data name="extras.datesHelp" xml:space="preserve"><value>El precio vale en estas fechas. Una temporada puede entrar en el año siguiente.</value></data>
+  <data name="periods.datesHelp" xml:space="preserve"><value>Estas fechas son la temporada. Pueden entrar en el año siguiente.</value></data>
 </root>

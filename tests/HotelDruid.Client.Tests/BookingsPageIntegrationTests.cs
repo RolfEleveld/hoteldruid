@@ -103,7 +103,7 @@ public class BookingsPageIntegrationTests : TestContext
 
         component.WaitForAssertion(() =>
         {
-            component.FindAll("input[type='date']").Should().HaveCount(4);
+            component.FindAll("input[type='date']").Should().HaveCount(6);
         });
 
         component.Markup.Should().Contain("Actual Checkout Date");
@@ -143,7 +143,7 @@ public class BookingsPageIntegrationTests : TestContext
             items[0].TextContent.Should().Contain("2026-08-06 · Room 1");
         });
 
-        bookingApi.Verify(x => x.ListStaysAsync(2026), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListStaysAsync(null), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class BookingsPageIntegrationTests : TestContext
             items[0].TextContent.Should().Contain("2026-08-08 · Room 2");
         });
 
-        bookingApi.Verify(x => x.ListArrivalsAsync(2026, 2), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListArrivalsAsync(null, 2), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class BookingsPageIntegrationTests : TestContext
             items[0].TextContent.Should().Contain("2026-08-06 · Room 1");
         });
 
-        bookingApi.Verify(x => x.ListDeparturesAsync(2026), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListDeparturesAsync(null), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class BookingsPageIntegrationTests : TestContext
             items[0].TextContent.Should().Contain("2026-08-11 · Room 2");
         });
 
-        bookingApi.Verify(x => x.ListReservationsAsync(2026), Times.AtLeastOnce);
+        bookingApi.Verify(x => x.ListReservationsAsync(null), Times.AtLeastOnce);
     }
 
     [Fact]

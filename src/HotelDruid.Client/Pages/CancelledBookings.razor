@@ -3,7 +3,6 @@
 @inject ICancelledBookingApiService CancelledBookingApi
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApiService
-@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -11,10 +10,10 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Cancelled Bookings</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
+        <div class="col-auto d-flex gap-1">
+            <input class="form-control form-control-sm" type="date" @bind="rangeFrom" aria-label="@L["bookings.stayFrom"]" />
+            <input class="form-control form-control-sm" type="date" @bind="rangeTo" aria-label="@L["bookings.stayTo"]" />
+            <button class="btn btn-sm btn-outline-secondary" @onclick="LoadAll">@L["common.load", "Load"]</button>
         </div>
     </div>
     <div class="row">
@@ -40,7 +39,6 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>Client</dt><dd>@GetClientDisplayName(selected.ClientId)</dd>
                     <dt>Room</dt><dd>@GetRoomDisplayName(selected.RoomId)</dd>
                     <dt>Status</dt><dd>@selected.Status</dd>
@@ -62,18 +60,46 @@
     private List<RoomDto> rooms = new();
     private CancelledBookingClientDto? selected;
     private string errorMsg = "";
-    private int? filterYear;
+    private DateOnly rangeFrom = new(DateTime.Today.Year, 1, 1);
+    private DateOnly rangeTo = new(DateTime.Today.Year, 12, 31);
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = ActiveYearService.CurrentYear;
         clients = await ClientApi.GetAllAsync();
         rooms = await RoomApiService.GetRoomsAsync();
         await LoadAll();
     }
 
-    private async Task LoadAll() => records = await CancelledBookingApi.ListAsync(filterYear);
-    private async Task ApplyFilter() => await LoadAll();
+    private async Task LoadAll()
+    {
+        if (rangeTo < rangeFrom)
+        {
+            rangeTo = rangeFrom;
+        }
+
+        var combined = new List<CancelledBookingClientDto>();
+        for (var year = rangeFrom.Year; year <= rangeTo.Year; year++)
+        {
+            combined.AddRange(await CancelledBookingApi.ListAsync(year));
+        }
+
+        records = combined
+            .Where(item => StayOverlaps(item, rangeFrom, rangeTo))
+            .GroupBy(item => item.Id ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+    }
+
+    private static bool StayOverlaps(CancelledBookingClientDto item, DateOnly from, DateOnly to)
+    {
+        if (!DateOnly.TryParse(item.ArrivalDate, out var arrival))
+        {
+            return item.Year >= from.Year && item.Year <= to.Year;
+        }
+
+        var departure = DateOnly.TryParse(item.DepartureDate, out var parsed) ? parsed : arrival;
+        return arrival <= to && departure >= from;
+    }
     private void SelectRecord(CancelledBookingClientDto r) { selected = r; errorMsg = ""; }
 
     private async Task DeleteSelected()

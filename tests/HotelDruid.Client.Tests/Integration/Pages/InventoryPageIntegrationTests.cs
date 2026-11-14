@@ -1,4 +1,5 @@
 using System.Reflection;
+using AngleSharp.Dom;
 using Bunit;
 using HotelDruid.Client.Pages;
 using HotelDruid.Client.Services;
@@ -97,8 +98,8 @@ public class InventoryPageIntegrationTests : TestContext
         component.WaitForAssertion(() => Assert.Contains("Bed Linen", component.Markup));
         component.Find("button.list-group-item").Click();
 
-        component.WaitForAssertion(() => Assert.NotNull(component.Find("select.form-select")));
-        component.Find("select.form-select").Change(new ChangeEventArgs { Value = "room-1" });
+        component.WaitForAssertion(() => Assert.NotNull(RoomSelect(component)));
+        RoomSelect(component).Change(new ChangeEventArgs { Value = "room-1" });
 
         component.WaitForAssertion(() => Assert.Equal("room-1", GetEditValue(component, "RoomId")));
         component.Find("input[placeholder='Select warehouse...']").Input("Main");
@@ -110,11 +111,14 @@ public class InventoryPageIntegrationTests : TestContext
         {
             Assert.Equal("room-1", GetEditValue(component, "RoomId"));
             Assert.Equal("wh-1", GetEditValue(component, "WarehouseId"));
-            Assert.Contains("101", component.Find("select.form-select").TextContent);
+            Assert.Contains("101", RoomSelect(component).TextContent);
             Assert.Contains("Main Store", component.Markup);
             Assert.Contains("Clear", component.Markup);
         });
     }
+
+    private static AngleSharp.Dom.IElement RoomSelect(IRenderedComponent<Inventory> component)
+        => component.FindAll("select.form-select")[1];
 
     private static string? GetEditValue(IRenderedComponent<Inventory> component, string propertyName)
     {
@@ -138,7 +142,7 @@ public class InventoryPageIntegrationTests : TestContext
         component.Find(".list-group button.list-group-item").Click();
 
         component.WaitForAssertion(() => Assert.Contains("Clear", component.Markup));
-        component.Find("select.form-select").Change(new ChangeEventArgs { Value = "room-1" });
+        RoomSelect(component).Change(new ChangeEventArgs { Value = "room-1" });
 
         component.WaitForAssertion(() =>
         {

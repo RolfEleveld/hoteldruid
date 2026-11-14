@@ -7,7 +7,6 @@
 @inject IBookingFinanceApiService FinanceApi
 @inject IClientApiService ClientApi
 @inject IRoomApiService RoomApi
-@inject IActiveYearService ActiveYearService
 @inject IDeskUserService DeskUser
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
@@ -294,8 +293,14 @@
             return;
         }
 
-        var year = YearQuery ?? ActiveYearService.CurrentYear;
-        booking = await BookingApi.GetAsync(year, SelectedId);
+        booking = YearQuery.HasValue ? await BookingApi.GetAsync(YearQuery.Value, SelectedId) : null;
+        if (booking is null)
+        {
+            for (var year = DateTime.Today.Year; year >= DateTime.Today.Year - 5 && booking is null; year--)
+            {
+                booking = await BookingApi.GetAsync(year, SelectedId);
+            }
+        }
         if (booking is null)
         {
             summary = null;

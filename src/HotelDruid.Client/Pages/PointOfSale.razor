@@ -9,18 +9,12 @@
 @inject IInventoryApiService InventoryApi
 @inject IAssetApiService AssetApi
 @inject IWarehouseApiService WarehouseApi
-@inject IActiveYearService ActiveYearService
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["pos.title", "Point of sale"]</PageTitle>
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">@L["pos.title", "Point of sale"]</h5></div>
-        <div class="col-auto">
-            <label class="me-1">@L["common.year", "Year"]:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
-        </div>
     </div>
     <p class="text-muted small">@L["pos.hint", "Sell an extra to a checked-in stay, or take it in cash with no booking."]</p>
     <div class="row">
@@ -220,7 +214,6 @@
     private string errorMsg = "";
     private string listFilter = "";
     private string articleSearch = "";
-    private int? filterYear;
     private FormModel form = new();
 
     private IEnumerable<BookingDto> inHouse => bookings.Where(IsInHouse);
@@ -245,7 +238,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = ActiveYearService.CurrentYear;
         await LoadAll();
         OpenBookingQuery();
     }
@@ -254,11 +246,18 @@
     {
         try
         {
-            records = await PosApi.ListAsync(filterYear);
-            bookings = await BookingApi.ListAsync(filterYear) ?? new();
+            var year = DateTime.Today.Year;
+            records = await PosApi.ListAsync(year);
+            var currentBookings = await BookingApi.ListAsync(year) ?? new();
+            var previousBookings = await BookingApi.ListAsync(year - 1) ?? new();
+            bookings = currentBookings
+                .Concat(previousBookings)
+                .GroupBy(booking => booking.Id ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
             clients = await ClientApi.GetAllAsync() ?? new();
             registers = await RegisterApi.GetAllAsync() ?? new();
-            catalog = await ExtraCostApi.ListAsync(filterYear) ?? new();
+            catalog = await ExtraCostApi.ListAsync() ?? new();
             stock = await InventoryApi.GetInventoryAsync() ?? new();
             assets = await AssetApi.GetAssetsAsync() ?? new();
             warehouses = await WarehouseApi.GetWarehousesAsync() ?? new();
@@ -270,8 +269,6 @@
             errorMsg = ex.Message;
         }
     }
-
-    private async Task ApplyFilter() => await LoadAll();
 
     private void NewSale()
     {
@@ -357,8 +354,12 @@
         var onStay = form.Settlement == "folio";
         if (onStay && string.IsNullOrWhiteSpace(form.BookingId)) { errorMsg = L["pos.checkedInOnly", "A stay sale is available after arrival and until checkout."]; return; }
 
+        var booking = bookings.FirstOrDefault(item => string.Equals(item.Id, form.BookingId, StringComparison.OrdinalIgnoreCase));
+        var year = onStay && booking is { Year: > 0 }
+            ? booking.Year
+            : form.Date?.Year ?? DateTime.Today.Year;
         var dto = new PosSaleClientDto(
-            Year: filterYear ?? ActiveYearService.CurrentYear,
+            Year: year,
             Date: form.Date,
             Description: form.Description.Trim(),
             Amount: form.Amount,

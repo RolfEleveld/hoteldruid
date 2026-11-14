@@ -19,7 +19,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">User @r.UserId — @r.Year</div>
+                            <div class="fw-bold">User @r.UserId</div>
                             <small>@r.BookingInsertPriv</small>
                         </li>
                     }
@@ -32,7 +32,6 @@
                 <h5 class="mt-3">@(isNew ? "New Privilege" : "Edit Privilege")</h5>
                 <div class="row g-2">
                     <div class="col-6"><label>User ID *</label><input class="form-control" type="number" @bind="form.UserId" /></div>
-                    <div class="col-6"><label>Year</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6"><label>Allowed Rules</label><input class="form-control" @bind="form.AllowedRules" /></div>
                     <div class="col-6"><label>Allowed Tariffs</label><input class="form-control" @bind="form.AllowedTariffs" /></div>
                     <div class="col-6"><label>Allowed Cash Registers</label><input class="form-control" @bind="form.AllowedCashRegisters" /></div>
@@ -54,7 +53,6 @@
                 <h5 class="mt-3">@L["common.details", "Details"]</h5>
                 <dl>
                     <dt>User ID</dt><dd>@selected.UserId</dd>
-                    <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>Allowed Rules</dt><dd>@selected.AllowedRules</dd>
                     <dt>Booking Insert</dt><dd>@selected.BookingInsertPriv</dd>
                 </dl>
@@ -93,11 +91,13 @@
     private async Task Save()
     {
         if (form.UserId is null) { errorMsg = "User ID is required."; return; }
-        var dto = new UserPrivilegeDto(selected?.Id, form.UserId, form.Year, form.AllowedRules, form.AllowedTariffs, null, null, form.AllowedCashRegisters, null, form.BookingInsertPriv, form.BookingModifyPriv, null, form.ClientInsertPriv, null, null, null, null, null, null, form.InventoryPriv);
+        var year = isNew ? 0 : selected!.Year ?? 0;
+        form.Year = year;
+        var dto = new UserPrivilegeDto(selected?.Id, form.UserId, year, form.AllowedRules, form.AllowedTariffs, null, null, form.AllowedCashRegisters, null, form.BookingInsertPriv, form.BookingModifyPriv, null, form.ClientInsertPriv, null, null, null, null, null, null, form.InventoryPriv);
         try
         {
             if (isNew) await UserPrivilegeApi.CreateAsync(dto);
-            else await UserPrivilegeApi.UpdateAsync(selected!.UserId!.Value, selected!.Year!.Value, dto);
+            else await UserPrivilegeApi.UpdateAsync(selected!.UserId!.Value, year, dto);
             editing = false;
             if (form.UserId.HasValue) records = await UserPrivilegeApi.GetByUserAsync(form.UserId.Value);
         }

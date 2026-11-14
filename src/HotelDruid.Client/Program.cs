@@ -46,7 +46,6 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IUserPrivilegeApiService, 
 builder.Services.AddScoped<HotelDruid.Client.Services.IUserRelationApiService, HotelDruid.Client.Services.UserRelationApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IGroupMembershipApiService, HotelDruid.Client.Services.GroupMembershipApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IYearApiService, HotelDruid.Client.Services.YearApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IPeriodApiService, HotelDruid.Client.Services.PeriodApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IExtraCostApiService, HotelDruid.Client.Services.ExtraCostApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IAssignmentRuleApiService, HotelDruid.Client.Services.AssignmentRuleApiService>();
 

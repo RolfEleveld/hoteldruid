@@ -45,7 +45,7 @@ public class SetupPageSmokeTests : TestContext
     }
 
     [Fact]
-    public void SetupPage_ShouldShowUpdatedCurrencyStorageAndFallbackChoices()
+    public void SetupPage_ShouldShowCurrencyAndStorageWithoutADefaultYear()
     {
         var component = Render<Setup>();
 
@@ -54,9 +54,8 @@ public class SetupPageSmokeTests : TestContext
             component.Markup.Should().Contain("Setup.SystemCurrency.Label");
             component.Markup.Should().Contain("Setup.Storage.Label");
             component.Markup.Should().Contain("HOTELDRUID_DATAROOT");
-            component.Markup.Should().Contain("Setup.Fallback.Label");
-            component.Markup.Should().Contain("value=\"LatestAvailableYear\"");
-            component.Markup.Should().Contain("value=\"NoSuggestion\"");
+            component.Markup.Should().NotContain("Setup.DefaultYear.Label");
+            component.Markup.Should().NotContain("Setup.Fallback.Label");
         });
     }
 }

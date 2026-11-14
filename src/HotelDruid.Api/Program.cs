@@ -2398,7 +2398,7 @@ PeriodDto ToPeriodDto(string id, PeriodStorageModel s) => new(
     s.Tariff9, s.Tariff9PerPerson, s.Tariff10, s.Tariff10PerPerson,
     s.Tariff11, s.Tariff11PerPerson, s.Tariff12, s.Tariff12PerPerson);
 
-app.MapGet("/api/periods", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
+app.MapGet("/api/periods", async (IKeyValueStore store, int? year) =>
 {
     var idx = await store.GetIndexAsync("periods");
     var prefix = year.HasValue ? $"{year}_" : null;
@@ -2409,11 +2409,6 @@ app.MapGet("/api/periods", async (IKeyValueStore store, IAssumptionRuleEngine as
         var p = await store.GetAsync<PeriodStorageModel>("periods", kvp.Value);
         if (p is null) continue;
         result.Add(ToPeriodDto(kvp.Value, p));
-    }
-
-    if (year.HasValue && result.Count == 0)
-    {
-        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("periods", year.Value));
     }
 
     return Results.Ok(result);
@@ -2485,9 +2480,9 @@ app.MapDelete("/api/periods/{year:int}/{id}", async (int year, string id, IKeyVa
 // --- Layer 3: Extra Costs (ntariffe{year}) ---
 
 ExtraCostDto ToExtraCostDto(string id, ExtraCostStorageModel s) => new(
-    id, s.Year, s.ExtraCostName, s.CostType, s.BaseValue, s.PercentageValue, s.TaxPercentage, s.Category, s.NumberLimit);
+    id, s.Year, s.ExtraCostName, s.CostType, s.BaseValue, s.PercentageValue, s.TaxPercentage, s.Category, s.NumberLimit, s.ValidFrom, s.ValidUntil);
 
-app.MapGet("/api/extra-costs", async (IKeyValueStore store, IAssumptionRuleEngine assumptionRuleEngine, int? year) =>
+app.MapGet("/api/extra-costs", async (IKeyValueStore store, int? year) =>
 {
     var idx = await store.GetIndexAsync("extra_costs");
     var prefix = year.HasValue ? $"{year}_" : null;
@@ -2498,11 +2493,6 @@ app.MapGet("/api/extra-costs", async (IKeyValueStore store, IAssumptionRuleEngin
         var t = await store.GetAsync<ExtraCostStorageModel>("extra_costs", kvp.Value);
         if (t is null) continue;
         result.Add(ToExtraCostDto(kvp.Value, t));
-    }
-
-    if (year.HasValue && result.Count == 0)
-    {
-        _ = Task.Run(() => assumptionRuleEngine.TriggerMissingYearHealingAsync("extra_costs", year.Value));
     }
 
     return Results.Ok(result);
@@ -2523,7 +2513,8 @@ app.MapPost("/api/extra-costs", async (ExtraCostDto request, IKeyValueStore stor
     {
         Year = request.Year, ExtraCostName = request.ExtraCostName, CostType = request.CostType,
         BaseValue = request.BaseValue, PercentageValue = request.PercentageValue,
-        TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit
+        TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit,
+        ValidFrom = request.ValidFrom, ValidUntil = request.ValidUntil
     };
     var id = await store.CreateAsync("extra_costs", key, storage);
     return Results.Created($"/api/extra-costs/{request.Year}/{id}", ToExtraCostDto(id, storage));
@@ -2537,7 +2528,8 @@ app.MapPut("/api/extra-costs/{year:int}/{id}", async (int year, string id, Extra
     {
         Year = year, ExtraCostName = request.ExtraCostName, CostType = request.CostType,
         BaseValue = request.BaseValue, PercentageValue = request.PercentageValue,
-        TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit
+        TaxPercentage = request.TaxPercentage, Category = request.Category, NumberLimit = request.NumberLimit,
+        ValidFrom = request.ValidFrom, ValidUntil = request.ValidUntil
     };
     await store.UpdateAsync("extra_costs", id, storage);
     return Results.Ok(ToExtraCostDto(id, storage));

@@ -24,7 +24,9 @@ namespace HotelDruid.Client.Services
         double? PercentageValue = null,
         double? TaxPercentage = null,
         string? Category = null,
-        int? NumberLimit = null
+        int? NumberLimit = null,
+        DateOnly? ValidFrom = null,
+        DateOnly? ValidUntil = null
     );
 
     public class ExtraCostApiService : IExtraCostApiService

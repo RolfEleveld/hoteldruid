@@ -1,7 +1,6 @@
 @page "/assignment-rules"
 @using HotelDruid.Client.Services
 @inject IAssignmentRuleApiService AssignmentRuleApi
-@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -9,11 +8,6 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Assignment Rules</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
-        </div>
     </div>
     <div class="row">
         <div class="col-md-3 border-end">
@@ -27,7 +21,7 @@
                     {
                         <li class="list-group-item list-group-item-action @(selected?.Id == r.Id ? "active" : "")"
                             style="cursor:pointer" @onclick="() => SelectRecord(r)">
-                            <div class="fw-bold">@r.Year — @r.RoomOrAgency</div>
+                            <div class="fw-bold">@r.RoomOrAgency</div>
                             <small>@r.ClosedTariff</small>
                         </li>
                     }
@@ -39,7 +33,6 @@
             {
                 <h5 class="mt-1">@(isNew ? "New Assignment Rule" : "Edit Assignment Rule")</h5>
                 <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6"><label>Room or Agency</label><input class="form-control" @bind="form.RoomOrAgency" /></div>
                     <div class="col-6"><label>Closed Tariff</label><input class="form-control" @bind="form.ClosedTariff" /></div>
                     <div class="col-6"><label>Tariff Per Room</label><input class="form-control" @bind="form.TariffPerRoom" /></div>
@@ -59,7 +52,6 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>Room / Agency</dt><dd>@selected.RoomOrAgency</dd>
                     <dt>Closed Tariff</dt><dd>@selected.ClosedTariff</dd>
                     <dt>Tariff Per Room</dt><dd>@selected.TariffPerRoom</dd>
@@ -79,19 +71,13 @@
     private AssignmentRuleDto? selected;
     private bool editing, isNew;
     private string errorMsg = "";
-    private int? filterYear;
     private FormModel form = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        filterYear = ActiveYearService.CurrentYear;
-        await LoadAll();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAll();
 
-    private async Task LoadAll() => records = await AssignmentRuleApi.ListAsync(filterYear);
-    private async Task ApplyFilter() => await LoadAll();
+    private async Task LoadAll() => records = await AssignmentRuleApi.ListAsync();
 
-    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord() { form = new(); isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(AssignmentRuleDto r) { selected = r; editing = false; }
     private void EditSelected()
     {
@@ -102,8 +88,8 @@
 
     private async Task Save()
     {
-        if (form.Year == 0) { errorMsg = "Year is required."; return; }
-        var dto = new AssignmentRuleDto(selected?.Id, form.Year, form.RoomOrAgency, form.ClosedTariff, form.TariffPerRoom, form.StartPeriodId, form.EndPeriodId, form.Reason1);
+        var year = isNew ? DateTime.Today.Year : selected!.Year;
+        var dto = new AssignmentRuleDto(selected?.Id, year, form.RoomOrAgency, form.ClosedTariff, form.TariffPerRoom, form.StartPeriodId, form.EndPeriodId, form.Reason1);
         try
         {
             if (isNew) await AssignmentRuleApi.CreateAsync(dto);

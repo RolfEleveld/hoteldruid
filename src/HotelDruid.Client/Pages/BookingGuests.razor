@@ -5,7 +5,6 @@
 @inject IBookingApiService BookingApi
 @inject IRoomApiService RoomApi
 @inject IClientApiService ClientApi
-@inject IActiveYearService ActiveYearService
 
 @inject IStringLocalizer<SharedResource> L
 
@@ -13,11 +12,6 @@
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col-auto"><h5 class="mb-0">Booking Guests</h5></div>
-        <div class="col-auto">
-            <label class="me-1">Year:</label>
-            <input class="form-control d-inline-block" type="number" @bind="filterYear" style="width:90px" />
-            <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="ApplyFilter">@L["common.load", "Load"]</button>
-        </div>
     </div>
     <div class="row">
         <div class="col-md-3 border-end">
@@ -43,7 +37,6 @@
             {
                 <h5 class="mt-1">@(isNew ? "New Booking Guest" : "Edit Booking Guest")</h5>
                 <div class="row g-2">
-                    <div class="col-6"><label>Year *</label><input class="form-control" type="number" @bind="form.Year" /></div>
                     <div class="col-6">
                         <label>@L["ledger.bookingColumn", "Booking"]</label>
                         <select class="form-select" @bind="form.BookingId">
@@ -69,7 +62,6 @@
             {
                 <h5 class="mt-1">@L["common.details", "Details"]</h5>
                 <dl>
-                    <dt>Year</dt><dd>@selected.Year</dd>
                     <dt>@L["ledger.bookingColumn", "Booking"]</dt>
                     <dd>
                         @if (string.IsNullOrWhiteSpace(selected.BookingId))
@@ -115,7 +107,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = YearQuery ?? ActiveYearService.CurrentYear;
+        filterYear = YearQuery ?? DateTime.Today.Year;
         clients = await ClientApi.GetAllAsync();
         await Task.WhenAll(LoadAll(), LoadCatalogAsync());
         ApplyQueryContext();
@@ -148,8 +140,6 @@
         var label = catalog.Label(id);
         return string.IsNullOrWhiteSpace(label) ? L["ledger.bookingUnknown", "Booking"] : label;
     }
-    private async Task ApplyFilter() => await LoadAll();
-
     private void ApplyQueryContext()
     {
         if (YearQuery.HasValue)
@@ -161,7 +151,6 @@
         {
             form = new()
             {
-                Year = filterYear ?? ActiveYearService.CurrentYear,
                 BookingId = BookingIdQuery,
                 ClientId = ClientIdQuery
             };
@@ -185,7 +174,7 @@
         }
     }
 
-    private void NewRecord() { form = new() { Year = filterYear ?? ActiveYearService.CurrentYear }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord() { form = new() { BookingId = BookingIdQuery, ClientId = ClientIdQuery }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(BookingGuestClientDto r) { selected = r; editing = false; }
     private void EditSelected()
     {
@@ -196,8 +185,8 @@
 
     private async Task Save()
     {
-        if (form.Year == 0) { errorMsg = "Year is required."; return; }
-        var dto = new BookingGuestClientDto(selected?.Id, form.Year, form.BookingId, form.ClientId, form.GuestNumber);
+        var year = isNew ? YearOfBooking(form.BookingId) : selected!.Year;
+        var dto = new BookingGuestClientDto(selected?.Id, year, form.BookingId, form.ClientId, form.GuestNumber);
         try
         {
             if (isNew) await BookingGuestApi.CreateAsync(dto);
@@ -236,6 +225,12 @@
         }
 
         return client.LastName ?? client.FirstName ?? "Unknown client";
+    }
+
+    private int YearOfBooking(string? bookingId)
+    {
+        var booking = catalog.Bookings.FirstOrDefault(item => string.Equals(item.Id, bookingId, StringComparison.OrdinalIgnoreCase));
+        return booking is { Year: > 0 } ? booking.Year : (filterYear ?? DateTime.Today.Year);
     }
 
     private class FormModel

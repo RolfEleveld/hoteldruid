@@ -4,7 +4,6 @@
 @inject IBookingFinanceApiService FinanceApi
 @inject IBookingApiService BookingApi
 @inject IRoomApiService RoomApi
-@inject IActiveYearService ActiveYearService
 @inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
 
@@ -137,15 +136,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await ActiveYearService.InitializeAsync();
         bookingId = string.IsNullOrWhiteSpace(BookingQuery) ? null : BookingQuery;
         accountCode = AccountQuery ?? "";
-        if (!string.IsNullOrWhiteSpace(accountCode))
-        {
-            var year = ActiveYearService.CurrentYear;
-            fromDate = new DateTime(year, 1, 1);
-            toDate = new DateTime(year, 12, 31);
-        }
         try
         {
             accounts = await FinanceApi.ListChartOfAccountsAsync();

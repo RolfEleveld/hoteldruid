@@ -68,21 +68,6 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>("/api/extra-costs?year=2027");
         Assert.NotNull(firstRead);
         Assert.Empty(firstRead!);
-
-        List<TariffDto> healed = new();
-        for (var i = 0; i < 20; i++)
-        {
-            healed = await _client.GetFromJsonAsync<List<TariffDto>>("/api/extra-costs?year=2027") ?? new();
-            if (healed.Count > 0)
-            {
-                break;
-            }
-
-            await Task.Delay(50);
-        }
-
-        Assert.NotEmpty(healed);
-        Assert.All(healed, t => Assert.Equal(2027, t.Year));
     }
 
     [Fact]
@@ -134,21 +119,6 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         var firstRead = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/extra-costs?year={requestedYear}");
         Assert.NotNull(firstRead);
         Assert.Empty(firstRead!);
-
-        List<TariffDto> healed = new();
-        for (var i = 0; i < 20; i++)
-        {
-            healed = await _client.GetFromJsonAsync<List<TariffDto>>($"/api/extra-costs?year={requestedYear}") ?? new();
-            if (healed.Count > 0)
-            {
-                break;
-            }
-
-            await Task.Delay(50);
-        }
-
-        Assert.NotEmpty(healed);
-        Assert.All(healed, t => Assert.Equal(requestedYear, t.Year));
     }
 
     [Fact]
@@ -240,21 +210,6 @@ public class AssumptionRuleEngineApiTests : IAsyncLifetime
         var firstRead = await _client.GetFromJsonAsync<List<PeriodDto>>("/api/periods?year=2027");
         Assert.NotNull(firstRead);
         Assert.Empty(firstRead!);
-
-        List<PeriodDto> healed = new();
-        for (var i = 0; i < 20; i++)
-        {
-            healed = await _client.GetFromJsonAsync<List<PeriodDto>>("/api/periods?year=2027") ?? new();
-            if (healed.Count > 0)
-            {
-                break;
-            }
-
-            await Task.Delay(50);
-        }
-
-        Assert.NotEmpty(healed);
-        Assert.All(healed, p => Assert.Equal(2027, p.Year));
     }
 
     [Fact]

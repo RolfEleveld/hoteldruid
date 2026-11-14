@@ -13,7 +13,6 @@
 @inject ITariffApiService TariffApiService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject IActiveYearService ActiveYearService
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Index.PageTitle"]</PageTitle>
@@ -438,10 +437,9 @@
 
       <div class="@GetWidgetColumnClass("calendar")">
         <div class="card feature-card border-purple dashboard-widget h-100">
-          @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"], "Dashboard.Widget.VisibleCount.Calendar", "Dashboard.Widget.Menu.AddYear", "/years")
+          @WidgetHeader("calendar", "bi-calendar2-week-fill", L["Index.Feature.Calendar.Title"], "Dashboard.Widget.VisibleCount.Calendar")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Calendar.Subtitle"]</p>
-            <p class="small fw-semibold">@L["Dashboard.Count.ActiveYear", activeYearDisplay]</p>
             <div class="calendar-months-widget-list mb-2">
               @foreach (var month in GetCalendarWidgetMonths())
               {
@@ -720,7 +718,6 @@
     private bool departuresLoading = true;
     private bool clientsLoading = true;
     private bool bookingsLoading = true;
-    private string activeYearDisplay = DateTime.Now.Year.ToString();
     private string hotelName = "Welcome to HotelDruid";
     private string hotelNameDraft = string.Empty;
     private bool isEditingHotelName;
@@ -799,7 +796,6 @@
     {
         try
         {
-          activeYearDisplay = ActiveYearService.CurrentYear.ToString();
           var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
           var setupQuery = uri.Query.Contains("configure=true", StringComparison.OrdinalIgnoreCase) ? "?configure=true" : string.Empty;
           var setup = await Http.GetFromJsonAsync<SetupStatusDto>($"/api/system/setup/status{setupQuery}");
