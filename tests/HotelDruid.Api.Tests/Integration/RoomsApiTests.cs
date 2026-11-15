@@ -11,8 +11,8 @@ namespace HotelDruid.Api.Tests.Integration;
 /// Comprehensive integration tests for Room API endpoints.
 /// 
 /// PROPERTY MAPPING (HotelDruid database → API):
-/// - Id          ← idappartamenti (Room identifier, e.g., "101", "Suite-A")
-/// - Name        ← idappartamenti (Same as Id, required)
+/// - Id          ← document id (GUID). Created automatically and never shown as the room number.
+/// - Name        ← label shown to staff and guests. Unique inside one building, not across the hotel.
 /// - Capacity    ← maxoccupanti (Max occupants, required, must be > 0)
 /// - FloorNumber ← numpiano (Physical floor, optional, e.g., "1", "2", "Ground")
 /// - HouseNumber ← numcasa (House/building section, optional, e.g., "A", "B1")
@@ -272,6 +272,36 @@ public class RoomsApiTests : IAsyncLifetime
         Assert.Equal(4, result.Capacity);
 
         // Cleanup: Clear test data after test completes
+        await ClearRoomsAsync();
+    }
+
+    [Fact]
+    public async Task CreateRoom_SameNameInAnotherHouse_IsADifferentRoom()
+    {
+        await ClearRoomsAsync();
+
+        async Task<HttpResponseMessage> Create(string name, string? house)
+        {
+            var json = JsonSerializer.Serialize(new RoomDto { Name = name, Capacity = 2, HouseNumber = house });
+            return await _client.PostAsync("/api/rooms", new StringContent(json, Encoding.UTF8, "application/json"));
+        }
+
+        var first = await Create("101", "A");
+        var second = await Create("101", "B");
+        var duplicate = await Create("101", "A");
+
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+
+        var createdA = JsonSerializer.Deserialize<RoomDto>(await first.Content.ReadAsStringAsync());
+        var createdB = JsonSerializer.Deserialize<RoomDto>(await second.Content.ReadAsStringAsync());
+        Assert.NotNull(createdA?.Id);
+        Assert.NotNull(createdB?.Id);
+        Assert.NotEqual(createdA!.Id, createdB!.Id);
+        Assert.Equal("101", createdA.Name);
+        Assert.Equal("101", createdB.Name);
+
         await ClearRoomsAsync();
     }
 
@@ -789,11 +819,14 @@ public class RoomsApiTests : IAsyncLifetime
         await _client.PostAsync("/api/rooms",
             new StringContent(JsonSerializer.Serialize(roomA), Encoding.UTF8, "application/json"));
 
+        var aResponse = await _client.GetAsync("/api/rooms?name=RoomA");
+        var aResult = JsonSerializer.Deserialize<RoomDto>(await aResponse.Content.ReadAsStringAsync());
         var bResponse = await _client.GetAsync("/api/rooms?name=RoomB");
         Assert.Equal(HttpStatusCode.OK, bResponse.StatusCode);
         var bResult = JsonSerializer.Deserialize<RoomDto>(await bResponse.Content.ReadAsStringAsync());
+        Assert.NotNull(aResult?.Id);
         Assert.NotNull(bResult);
-        Assert.Contains("RoomA", (bResult!.NeighboringRooms ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        Assert.Contains(aResult!.Id, (bResult!.NeighboringRooms ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         await ClearRoomsAsync();
     }

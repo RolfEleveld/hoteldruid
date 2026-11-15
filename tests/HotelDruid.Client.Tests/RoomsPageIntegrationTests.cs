@@ -154,7 +154,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             // Assert
             var markup = component.Markup;
             // Check for key form labels
-            markup.Should().Contain("Room Name");
+            markup.Should().Contain("Room name");
             markup.Should().Contain("Capacity");
             markup.Should().Contain("Floor Number");
             markup.Should().Contain("House Number");
@@ -484,7 +484,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         }
 
         [Theory]
-        [InlineData("Room Name")]
+        [InlineData("Room name")]
         [InlineData("Capacity")]
         [InlineData("Floor Number")]
         [InlineData("House Number")]
@@ -512,7 +512,7 @@ namespace HotelDruid.Client.Tests.Integration.Pages
             var markup = component.Markup;
             // Check for form control helper text
             markup.Should().Contain("form-text");
-            markup.Should().Contain("Unique identifier");
+            markup.Should().Contain("Another building may use the same name");
             markup.Should().Contain("Max occupants");
         }
 

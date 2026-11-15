@@ -115,25 +115,25 @@ public class ApiDistributor : IApiDistributor
                         else if (yearResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, yearResult.ErrorMessage));
                         break;
                     case "booking_costs":
-                        var costResult = await ImportStoredAsync<BookingCostStorageModel>("booking_costs", tableData, rememberId: false, rewriteBooking: true);
+                        var costResult = await ImportStoredAsync<BookingCostStorageModel>("booking_costs", tableData, rememberId: true);
                         results[normalizedTable] = costResult;
                         if (costResult.Success) totalImported += costResult.ImportedCount;
                         else if (costResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, costResult.ErrorMessage));
                         break;
                     case "booking_guests":
-                        var guestResult = await ImportStoredAsync<BookingGuestStorageModel>("booking_guests", tableData, rememberId: false, rewriteBooking: true);
+                        var guestResult = await ImportStoredAsync<BookingGuestStorageModel>("booking_guests", tableData, rememberId: true);
                         results[normalizedTable] = guestResult;
                         if (guestResult.Success) totalImported += guestResult.ImportedCount;
                         else if (guestResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, guestResult.ErrorMessage));
                         break;
                     case "expenses":
-                        var expenseResult = await ImportStoredAsync<ExpenseStorageModel>("expenses", tableData, rememberId: false, rewriteCash: true);
+                        var expenseResult = await ImportStoredAsync<ExpenseStorageModel>("expenses", tableData, rememberId: true);
                         results[normalizedTable] = expenseResult;
                         if (expenseResult.Success) totalImported += expenseResult.ImportedCount;
                         else if (expenseResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, expenseResult.ErrorMessage));
                         break;
                     case "cancelled_bookings":
-                        var cancelledResult = await ImportStoredAsync<CancelledBookingStorageModel>("cancelled_bookings", tableData, rememberId: false, rewriteBooking: true, rewriteClient: true, rewriteRoom: true);
+                        var cancelledResult = await ImportStoredAsync<CancelledBookingStorageModel>("cancelled_bookings", tableData, rememberId: true);
                         results[normalizedTable] = cancelledResult;
                         if (cancelledResult.Success) totalImported += cancelledResult.ImportedCount;
                         else if (cancelledResult.ErrorMessage != null) errors.Add(new ImportError(normalizedTable, cancelledResult.ErrorMessage));
@@ -196,9 +196,13 @@ public class ApiDistributor : IApiDistributor
 
             // Convert canonical data to RoomDto objects
             var rooms = _canonicalMapper.FromCanonical(tableData);
+            var nameCounts = rooms
+                .Where(room => !string.IsNullOrWhiteSpace(room.Name))
+                .GroupBy(room => room.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
 
-            // Store each room
             var importedCount = 0;
+            var storedRooms = new List<(string Id, RoomDto Room)>();
             
             foreach (var room in rooms)
             {
@@ -210,31 +214,33 @@ public class ApiDistributor : IApiDistributor
                         continue;
                     }
 
-                    // Create new room with name as the index key
-                    // This will auto-generate a storage ID
-                    try
-                    {
-                        var newId = await _store.CreateAsync<RoomDto>("rooms", room.Name, room);
-                        Remember(room.Id, newId);
-                        importedCount++;
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // Name already exists - update it instead
-                        var existing = await _store.GetByNameAsync<RoomDto>("rooms", room.Name);
-                        if (existing?.Id != null)
-                        {
-                            await _store.UpdateAsync<RoomDto>("rooms", existing.Id, room);
-                            Remember(room.Id, existing.Id);
-                            importedCount++;
-                        }
-                    }
+                    var storedRoom = room with { Id = null, NeighboringRooms = null };
+                    var existingId = await FindRoomByPlaceAsync(room.Name, room.HouseNumber);
+                    var newId = existingId ?? await _store.CreateAsync<RoomDto>("rooms", room.Name, storedRoom, indexByDocumentId: true);
+                    if (existingId is not null)
+                        await _store.UpdateAsync<RoomDto>("rooms", existingId, storedRoom);
+                    Remember(room.Id, newId);
+                    if (!string.IsNullOrWhiteSpace(room.HouseNumber))
+                        Remember($"{room.HouseNumber.Trim()}/{room.Name.Trim()}", newId);
+                    if (nameCounts.GetValueOrDefault(room.Name.Trim()) == 1)
+                        Remember(room.Name, newId);
+                    storedRooms.Add((newId, room));
+
+                    importedCount++;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error storing room {RoomName}", room.Name);
                     throw;
                 }
+            }
+
+            foreach (var (id, room) in storedRooms)
+            {
+                var neighbors = RemapList(room.NeighboringRooms);
+                if (string.IsNullOrWhiteSpace(neighbors))
+                    continue;
+                await _store.UpdateAsync<RoomDto>("rooms", id, room with { Id = null, NeighboringRooms = neighbors });
             }
 
             _logger.LogInformation("Successfully imported {Count} rooms", importedCount);
@@ -269,14 +275,15 @@ public class ApiDistributor : IApiDistributor
                 if (string.IsNullOrEmpty(asset.Name)) { _logger.LogWarning("Skipping asset without name"); continue; }
                 try
                 {
-                    var newId = await _store.CreateAsync<AssetDto>("assets", asset.Name, asset);
+                    var newId = await _store.CreateAsync<AssetDto>("assets", asset.Name, asset with { Id = null });
                     Remember(asset.Id, newId);
+                    Remember(asset.Name, newId);
                     imported++;
                 }
                 catch (InvalidOperationException)
                 {
                     var existing = await _store.GetByNameAsync<AssetDto>("assets", asset.Name);
-                    if (existing?.Id != null) { await _store.UpdateAsync<AssetDto>("assets", existing.Id, asset); Remember(asset.Id, existing.Id); imported++; }
+                    if (existing?.Id != null) { await _store.UpdateAsync<AssetDto>("assets", existing.Id, asset with { Id = null }); Remember(asset.Id, existing.Id); Remember(asset.Name, existing.Id); imported++; }
                 }
             }
 
@@ -301,14 +308,15 @@ public class ApiDistributor : IApiDistributor
                 if (string.IsNullOrEmpty(w.Name)) { _logger.LogWarning("Skipping warehouse without name"); continue; }
                 try
                 {
-                    var newId = await _store.CreateAsync<WarehouseDto>("warehouses", w.Name, w);
+                    var newId = await _store.CreateAsync<WarehouseDto>("warehouses", w.Name, w with { Id = null });
                     Remember(w.Id, newId);
+                    Remember(w.Name, newId);
                     imported++;
                 }
                 catch (InvalidOperationException)
                 {
                     var existing = await _store.GetByNameAsync<WarehouseDto>("warehouses", w.Name);
-                    if (existing?.Id != null) { await _store.UpdateAsync<WarehouseDto>("warehouses", existing.Id, w); Remember(w.Id, existing.Id); imported++; }
+                    if (existing?.Id != null) { await _store.UpdateAsync<WarehouseDto>("warehouses", existing.Id, w with { Id = null }); Remember(w.Id, existing.Id); Remember(w.Name, existing.Id); imported++; }
                 }
             }
 
@@ -337,16 +345,19 @@ public class ApiDistributor : IApiDistributor
                     RoomId = Remap(inv.RoomId),
                     WarehouseId = Remap(inv.WarehouseId)
                 };
-                var key = string.IsNullOrWhiteSpace(inv.Id) ? $"inv-{stored.AssetId}-{stored.RoomId}-{stored.WarehouseId}-{imported}" : "inv-" + inv.Id;
+                var canonicalKey = $"inv-{stored.AssetId}-{stored.RoomId}-{stored.WarehouseId}";
+                var key = CanonicalReferences.IsStoreId(inv.Id) || string.IsNullOrWhiteSpace(inv.Id)
+                    ? canonicalKey
+                    : inv.Id!;
                 try
                 {
-                    await _store.CreateAsync<InventoryDto>("inventory", key, stored);
+                    await _store.CreateAsync<InventoryDto>("inventory", key, stored with { Id = null });
                     imported++;
                 }
                 catch (InvalidOperationException)
                 {
                     var existing = await _store.GetByNameAsync<InventoryDto>("inventory", key);
-                    if (existing?.Id != null) { await _store.UpdateAsync<InventoryDto>("inventory", existing.Id, stored); imported++; }
+                    if (existing?.Id != null) { await _store.UpdateAsync<InventoryDto>("inventory", existing.Id, stored with { Id = null }); imported++; }
                 }
             }
 
@@ -375,9 +386,10 @@ public class ApiDistributor : IApiDistributor
                     continue;
                 }
 
-                var logicalKey = !string.IsNullOrWhiteSpace(booking.Id)
-                    ? $"{booking.Year}_{booking.Id}"
-                    : $"{booking.Year}_{Guid.NewGuid():N}";
+                var fileKey = booking.Id;
+                var logicalKey = !string.IsNullOrWhiteSpace(fileKey) && !CanonicalReferences.IsStoreId(fileKey)
+                    ? $"{booking.Year}_{fileKey}"
+                    : null;
 
                 var storage = new BookingStorageModel
                 {
@@ -400,17 +412,19 @@ public class ApiDistributor : IApiDistributor
 
                 try
                 {
-                    var newId = await _store.CreateAsync<BookingStorageModel>("bookings", logicalKey, storage);
-                    Remember(booking.Id, newId);
+                    var newId = logicalKey is null
+                        ? await _store.CreateAsync<BookingStorageModel>("bookings", Guid.NewGuid().ToString("N"), storage, indexByDocumentId: true)
+                        : await _store.CreateAsync<BookingStorageModel>("bookings", logicalKey, storage);
+                    Remember(fileKey, newId);
                     imported++;
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException) when (logicalKey is not null)
                 {
                     var index = await _store.GetIndexAsync("bookings");
                     if (index.TryGetValue(logicalKey, out var existingId))
                     {
                         await _store.UpdateAsync("bookings", existingId, storage);
-                        Remember(booking.Id, existingId);
+                        Remember(fileKey, existingId);
                         imported++;
                     }
                 }
@@ -479,47 +493,64 @@ public class ApiDistributor : IApiDistributor
     private async Task<TableImportResult> ImportStoredAsync<T>(
         string collection,
         CanonicalData data,
-        bool rememberId,
-        bool rewriteBooking = false,
-        bool rewriteClient = false,
-        bool rewriteRoom = false,
-        bool rewriteCash = false) where T : class
+        bool rememberId) where T : class
     {
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var imported = 0;
+        var saved = new List<(string Id, T Model)>();
         foreach (var row in data.Rows)
         {
-            var oldId = Text(row, "blazorId") ?? Text(row, "id");
-            var indexName = Text(row, "indexName") ?? oldId ?? Guid.NewGuid().ToString("N");
+            var fileId = Text(row, "id");
+            var legacyId = Text(row, "blazorId");
+            var indexName = Text(row, "indexName");
+            var indexKey = new[] { indexName, fileId }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value) && !CanonicalReferences.IsStoreId(value));
             var model = JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(row), options);
             if (model is null)
                 continue;
-            if (rewriteBooking)
-                SetString(model, "BookingId", Remap(ReadString(model, "BookingId")));
-            if (rewriteClient)
-                SetString(model, "ClientId", Remap(ReadString(model, "ClientId")));
-            if (rewriteRoom)
-                SetString(model, "RoomId", Remap(ReadString(model, "RoomId")));
-            if (rewriteCash)
-                SetString(model, "CashRegisterId", Remap(ReadString(model, "CashRegisterId")));
+            RemapReferences(model);
 
             try
             {
-                var newId = await _store.CreateAsync(collection, indexName, model);
+                var newId = indexKey is null
+                    ? await _store.CreateAsync(collection, Guid.NewGuid().ToString("N"), model, indexByDocumentId: true)
+                    : await _store.CreateAsync(collection, indexKey, model);
                 if (rememberId)
-                    Remember(oldId, newId);
+                {
+                    Remember(fileId, newId);
+                    Remember(legacyId, newId);
+                    Remember(indexName, newId);
+                }
+                saved.Add((newId, model));
                 imported++;
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException) when (indexKey is not null)
             {
                 var index = await _store.GetIndexAsync(collection);
-                if (index.TryGetValue(indexName, out var existingId))
+                if (index.TryGetValue(indexKey, out var existingId))
                 {
                     await _store.UpdateAsync(collection, existingId, model);
                     if (rememberId)
-                        Remember(oldId, existingId);
+                    {
+                        Remember(fileId, existingId);
+                        Remember(legacyId, existingId);
+                        Remember(indexName, existingId);
+                    }
+                    saved.Add((existingId, model));
                     imported++;
                 }
+            }
+        }
+
+        if (typeof(T).GetProperty("CompanionIds") is not null)
+        {
+            foreach (var (id, model) in saved)
+            {
+                var current = ReadString(model, "CompanionIds");
+                var mapped = RemapList(current);
+                if (string.Equals(mapped, current, StringComparison.Ordinal))
+                    continue;
+                SetString(model, "CompanionIds", mapped);
+                await _store.UpdateAsync(collection, id, model);
             }
         }
 
@@ -532,6 +563,7 @@ public class ApiDistributor : IApiDistributor
             return new TableImportResult("ledger_entries", 0, false, "Ledger repository is not available.");
 
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var journals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var byDate = new Dictionary<DateOnly, List<LedgerEntry>>();
         foreach (var row in data.Rows)
         {
@@ -540,8 +572,8 @@ public class ApiDistributor : IApiDistributor
                 continue;
             entry.BookingId = string.IsNullOrWhiteSpace(entry.BookingId) ? null : Remap(entry.BookingId);
             entry.CashRegisterId = string.IsNullOrWhiteSpace(entry.CashRegisterId) ? null : Remap(entry.CashRegisterId);
-            if (string.Equals(entry.SourceType, "booking", StringComparison.OrdinalIgnoreCase))
-                entry.SourceId = Remap(entry.SourceId);
+            entry.SourceId = string.IsNullOrWhiteSpace(entry.SourceId) ? null : Remap(entry.SourceId);
+            entry.JournalId = NewJournalId(entry.JournalId, journals);
             var day = DateOnly.FromDateTime(entry.Timestamp);
             if (!byDate.TryGetValue(day, out var list))
                 byDate[day] = list = [];
@@ -585,6 +617,26 @@ public class ApiDistributor : IApiDistributor
         return new TableImportResult("ledger_entries", count, true);
     }
 
+    private async Task<string?> FindRoomByPlaceAsync(string name, string? house)
+    {
+        await _store.UseDocumentIdsAsIndexAsync("rooms");
+        var index = await _store.GetIndexAsync("rooms");
+        foreach (var id in index.Values.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+            var stored = await _store.GetAsync<RoomStorageModel>("rooms", id);
+            if (stored is null)
+                continue;
+            var sameName = string.Equals((stored.Name ?? "").Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase);
+            var sameHouse = string.Equals((stored.HouseNumber ?? "").Trim(), (house ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+            if (sameName && sameHouse)
+                return id;
+        }
+
+        return null;
+    }
+
     private void Remember(string? oldId, string newId)
     {
         if (!string.IsNullOrWhiteSpace(oldId))
@@ -596,6 +648,40 @@ public class ApiDistributor : IApiDistributor
         if (string.IsNullOrWhiteSpace(id))
             return id;
         return _ids.TryGetValue(id, out var mapped) ? mapped : id;
+    }
+
+    private static string NewJournalId(string? current, Dictionary<string, string> journals)
+    {
+        var key = string.IsNullOrWhiteSpace(current) ? Guid.NewGuid().ToString("N") : current.Trim();
+        if (!journals.TryGetValue(key, out var created))
+        {
+            created = Guid.NewGuid().ToString("N");
+            journals[key] = created;
+        }
+
+        return created;
+    }
+
+    private void RemapReferences(object model)
+    {
+        foreach (var name in new[] { "BookingId", "ClientId", "RoomId", "TariffId", "CashRegisterId", "AssetId", "WarehouseId", "TargetId", "SourceId" })
+        {
+            var property = model.GetType().GetProperty(name);
+            if (property is null || property.PropertyType != typeof(string))
+                continue;
+            property.SetValue(model, Remap(property.GetValue(model) as string));
+        }
+    }
+
+    private string? RemapList(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return raw;
+        var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(Remap)
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+        var joined = string.Join(",", parts);
+        return string.IsNullOrWhiteSpace(joined) ? null : joined;
     }
 
     private static string? Text(Dictionary<string, object?> row, string key)

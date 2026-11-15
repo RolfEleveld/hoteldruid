@@ -38,7 +38,13 @@ public interface IKeyValueStore
     /// <param name="document">Document object to store</param>
     /// <returns>Generated GUID-base32 ID</returns>
     /// <exception cref="InvalidOperationException">If name already exists in index</exception>
-    Task<string> CreateAsync<T>(string collectionName, string name, T document) where T : class;
+    Task<string> CreateAsync<T>(string collectionName, string name, T document, bool indexByDocumentId = false) where T : class;
+
+    /// <summary>
+    /// Point the index at document ids. A name used as the index key becomes the document id,
+    /// so the same label can be stored more than once.
+    /// </summary>
+    Task UseDocumentIdsAsIndexAsync(string collectionName);
 
     /// <summary>
     /// Update an existing document by ID.

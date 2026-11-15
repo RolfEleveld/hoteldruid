@@ -493,8 +493,8 @@
   <data name="rooms.capacityPeople" xml:space="preserve"><value>{0} personas</value></data>
   <data name="rooms.newRoom" xml:space="preserve"><value>Nueva Habitación</value></data>
   <data name="rooms.manageRoom" xml:space="preserve"><value>Gestionar la habitación</value></data>
-  <data name="rooms.nameLabel" xml:space="preserve"><value>Nombre / ID de Habitación</value></data>
-  <data name="rooms.nameHelp" xml:space="preserve"><value>Identificador único (p. ej., 101, Suite-A)</value></data>
+  <data name="rooms.nameLabel" xml:space="preserve"><value>Nombre de habitación</value></data>
+  <data name="rooms.nameHelp" xml:space="preserve"><value>Se muestra al personal y a los huéspedes. Otro edificio puede usar el mismo nombre.</value></data>
   <data name="rooms.capacityLabel" xml:space="preserve"><value>Capacidad</value></data>
   <data name="rooms.capacityHelp" xml:space="preserve"><value>Ocupantes máximos</value></data>
   <data name="rooms.floorNumber" xml:space="preserve"><value>Número de Planta</value></data>

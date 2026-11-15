@@ -136,7 +136,7 @@ public class FileKeyValueStore : IKeyValueStore, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<string> CreateAsync<T>(string collectionName, string name, T document) where T : class
+    public async Task<string> CreateAsync<T>(string collectionName, string name, T document, bool indexByDocumentId = false) where T : class
     {
         ValidateCollectionName(collectionName);
         if (string.IsNullOrWhiteSpace(name))
@@ -149,17 +149,16 @@ public class FileKeyValueStore : IKeyValueStore, IDisposable
         await lockObj.WaitAsync();
         try
         {
-            // Check if name already exists in index
             var index = await LoadIndexAsync(collectionName);
-            if (index.ContainsKey(name))
+            var id = IdGenerator.GenerateId();
+            var indexKey = indexByDocumentId ? id : name;
+            if (!indexByDocumentId && index.ContainsKey(name))
             {
                 var ex = new InvalidOperationException($"Document '{name}' already exists in collection '{collectionName}'");
                 _logger.LogError(ex, "Create failed: duplicate name");
                 throw ex;
             }
 
-            // Generate ID and create document
-            var id = IdGenerator.GenerateId();
             var filePath = GetDocumentPath(collectionName, id);
             
             // Ensure collection directory exists
@@ -168,12 +167,39 @@ public class FileKeyValueStore : IKeyValueStore, IDisposable
             // Write document with atomic pattern
             await AtomicWriteAsync(filePath, JsonSerializer.Serialize(document, _jsonOptions));
 
-            // Update index
-            index[name] = id;
+            index[indexKey] = id;
             await SaveIndexAsync(collectionName, index);
 
             _logger.LogInformation("Created document: {Collection}/{Name} -> {Id}", collectionName, name, id);
             return id;
+        }
+        finally
+        {
+            lockObj.Release();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task UseDocumentIdsAsIndexAsync(string collectionName)
+    {
+        ValidateCollectionName(collectionName);
+        var lockObj = GetCollectionLock(collectionName);
+        await lockObj.WaitAsync();
+        try
+        {
+            var index = await LoadIndexAsync(collectionName);
+            if (index.Count == 0 || index.All(pair => string.Equals(pair.Key, pair.Value, StringComparison.Ordinal)))
+                return;
+
+            var next = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var id in index.Values)
+            {
+                if (!string.IsNullOrWhiteSpace(id))
+                    next[id] = id;
+            }
+
+            await SaveIndexAsync(collectionName, next);
+            _logger.LogInformation("Reindexed {Collection} by document id ({Count} rooms)", collectionName, next.Count);
         }
         finally
         {

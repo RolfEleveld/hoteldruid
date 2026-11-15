@@ -123,14 +123,18 @@ public class CachedKeyValueStoreDecorator : IKeyValueStore
     /// <summary>
     /// Create invalidates the collection cache and delegates to inner store.
     /// </summary>
-    public async Task<string> CreateAsync<T>(string collectionName, string name, T document) where T : class
+    public async Task<string> CreateAsync<T>(string collectionName, string name, T document, bool indexByDocumentId = false) where T : class
     {
-        var id = await _inner.CreateAsync(collectionName, name, document);
+        var id = await _inner.CreateAsync(collectionName, name, document, indexByDocumentId);
         await SignalCollectionInvalidationAsync(collectionName);
         InvalidateCollectionCache(collectionName);
         _logger.LogInformation("Cache invalidated (Create): {Collection}", collectionName);
         return id;
     }
+
+    /// <inheritdoc />
+    public Task UseDocumentIdsAsIndexAsync(string collectionName)
+        => _inner.UseDocumentIdsAsIndexAsync(collectionName);
 
     /// <summary>
     /// Update invalidates the collection cache and delegates to inner store.

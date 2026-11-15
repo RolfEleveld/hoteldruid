@@ -215,9 +215,78 @@ public class ExportImportIntegrationTests : IAsyncLifetime
         Assert.Equal(2, result.ByTable["rooms"].ImportedCount);
         Assert.Equal(2, result.TotalImported);
 
-        // Verify rooms were stored by name (the key value store uses names as index keys)
-        Assert.NotNull(await _roomsStore.GetByNameAsync<RoomDto>("rooms", "Room 1"));
-        Assert.NotNull(await _roomsStore.GetByNameAsync<RoomDto>("rooms", "Room 2"));
+        var index = await _roomsStore.GetIndexAsync("rooms");
+        Assert.Equal(2, index.Count);
+        Assert.DoesNotContain("r1", index.Values);
+        Assert.DoesNotContain("r2", index.Values);
+        var names = new List<string>();
+        foreach (var id in index.Values)
+        {
+            var stored = await _roomsStore.GetAsync<RoomStorageModel>("rooms", id);
+            Assert.NotNull(stored);
+            names.Add(stored!.Name ?? "");
+        }
+
+        Assert.Contains("Room 1", names);
+        Assert.Contains("Room 2", names);
+    }
+
+    [Fact]
+    public async Task Import_MintsNewIdsAndRewiresTheBookingToTheRoomName()
+    {
+        var canonical = new Dictionary<string, CanonicalData>
+        {
+            ["rooms"] = new CanonicalData("rooms", 1, new()
+            {
+                new() { ["id"] = "ek6nv6lggweubnew24bkpq7oci", ["name"] = "101", ["capacity"] = 2, ["house_number"] = "A" }
+            }, new()),
+            ["clients"] = new CanonicalData("clients", 1, new()
+            {
+                new()
+                {
+                    ["id"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    ["blazorId"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    ["lastName"] = "Bauer",
+                    ["firstName"] = "Felix"
+                }
+            }, new()),
+            ["bookings"] = new CanonicalData("bookings", 1, new()
+            {
+                new()
+                {
+                    ["id"] = "Bauer, Felix|101|2026-11-10|2026-11-11",
+                    ["year"] = 2026,
+                    ["client_id"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    ["room_id"] = "101",
+                    ["arrival_date"] = "2026-11-10",
+                    ["departure_date"] = "2026-11-11",
+                    ["status"] = "Confirmed"
+                }
+            }, new())
+        };
+
+        CanonicalReferences.Apply(canonical);
+        Assert.Equal("101", canonical["rooms"].Rows[0]["id"]);
+        Assert.Equal("Bauer, Felix|101|2026-11-10|2026-11-11", canonical["bookings"].Rows[0]["id"]);
+        Assert.Equal("101", canonical["bookings"].Rows[0]["room_id"]);
+
+        var result = await _apiDistributor.DistributeAsync(canonical);
+        Assert.True(result.ByTable["bookings"].Success, string.Join("; ", result.Errors.Select(error => error.ErrorMessage)));
+
+        var roomIndex = await _roomsStore.GetIndexAsync("rooms");
+        var roomId = Assert.Single(roomIndex.Values);
+        Assert.NotEqual("ek6nv6lggweubnew24bkpq7oci", roomId);
+
+        var bookingIndex = await _roomsStore.GetIndexAsync("bookings");
+        var bookingId = Assert.Single(bookingIndex.Values);
+        var booking = await _roomsStore.GetAsync<BookingStorageModel>("bookings", bookingId);
+        Assert.NotNull(booking);
+        Assert.Equal(roomId, booking!.RoomId);
+        var clientIndex = await _roomsStore.GetIndexAsync("clients");
+        var clientId = Assert.Single(clientIndex.Values);
+        Assert.NotEqual("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", clientId);
+        Assert.NotEqual("Bauer, Felix", clientId);
+        Assert.Equal(clientId, booking.ClientId);
     }
 
     [Fact]

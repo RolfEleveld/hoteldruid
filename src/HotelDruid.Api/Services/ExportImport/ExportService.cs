@@ -168,6 +168,8 @@ public class ExportService : IExportService
                 canonicalData["system_configuration"] = ToCanonicalSystemConfiguration(systemConfigurations);
             }
 
+            CanonicalReferences.Apply(canonicalData);
+
             // Step 3: Build package
             tracker.ProgressPercent = 60;
             var package = await _packageBuilder.BuildAsync(canonicalData, options);

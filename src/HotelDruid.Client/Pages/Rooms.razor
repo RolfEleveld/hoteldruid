@@ -43,10 +43,10 @@
                             @foreach (var room in rooms)
                             {
                                 <button type="button"
-                                    class="list-group-item list-group-item-action @(selectedRoom?.Name == room.Name ? "active" : "")"
+                                    class="list-group-item list-group-item-action @(selectedRoom?.Id == room.Id ? "active" : "")"
                                     @onclick="() => SelectRoom(room)">
                                     <div class="d-flex justify-content-between">
-                                        <span>@room.Name</span>
+                                        <span>@room.Name @if (ShowsHouseHeadings() && !string.IsNullOrWhiteSpace(room.HouseNumber)) { <small class="text-muted ms-1">@room.HouseNumber</small> }</span>
                                         <small class="text-muted">@L["rooms.capacityPeople", room.Capacity]</small>
                                     </div>
                                 </button>
@@ -114,10 +114,10 @@
                     <div class="panel-body flex-grow-1 overflow-auto">
                         <form>
                             <div class="mb-3">
-                                <label class="form-label">@L["rooms.nameLabel", "Room Name / ID"] <span class="text-danger">*</span></label>
+                                <label class="form-label">@L["rooms.nameLabel", "Room name"] <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" @bind="editModel.Name" 
                                     @bind:event="oninput" @onchange="() => OnFieldChanged()" disabled="@(editModel.Id is not null)" />
-                                <small class="form-text text-muted">@L["rooms.nameHelp", "Unique identifier (e.g., 101, Suite-A)"]</small>
+                                <small class="form-text text-muted">@L["rooms.nameHelp", "Shown to staff and guests. Another building may use the same name."]</small>
                             </div>
 
                             <div class="mb-3">
@@ -963,8 +963,7 @@
 
         return rooms
             .Where(room => !string.IsNullOrWhiteSpace(room.Name)
-                && !string.Equals(room.Id, current.Id, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(room.Name, current.Name, StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(room.Id, current.Id, StringComparison.OrdinalIgnoreCase))
             .GroupBy(room => PlaceOf(room).House, StringComparer.OrdinalIgnoreCase)
             .OrderBy(group => group.Key, NaturalRoomNameComparer.Instance)
             .Select(group => new NeighborHouse(
@@ -1000,15 +999,15 @@
         return new RoomPlace(house, floor);
     }
 
-    private static bool AreNeighbors(RoomDto left, RoomDto right)
+    private static bool RefersToRoom(string? list, RoomDto room)
     {
-        if (string.IsNullOrWhiteSpace(left.Name) || string.IsNullOrWhiteSpace(right.Name))
-            return false;
-
-        var leftNeighbors = ParseNeighborList(left.NeighboringRooms);
-        var rightNeighbors = ParseNeighborList(right.NeighboringRooms);
-        return leftNeighbors.Contains(right.Name) || rightNeighbors.Contains(left.Name);
+        var tokens = ParseNeighborList(list);
+        return (!string.IsNullOrWhiteSpace(room.Id) && tokens.Contains(room.Id))
+            || (!string.IsNullOrWhiteSpace(room.Name) && tokens.Contains(room.Name));
     }
+
+    private static bool AreNeighbors(RoomDto left, RoomDto right)
+        => RefersToRoom(left.NeighboringRooms, right) || RefersToRoom(right.NeighboringRooms, left);
 
     private async Task UpdateNeighborPair(RoomDto rowRoom, RoomDto colRoom, bool isChecked)
     {
@@ -1026,12 +1025,14 @@
 
         if (isChecked)
         {
-            rowNeighbors.Add(colRoom.Name);
-            colNeighbors.Add(rowRoom.Name);
+            rowNeighbors.Add(colRoom.Id!);
+            colNeighbors.Add(rowRoom.Id!);
         }
         else
         {
+            rowNeighbors.Remove(colRoom.Id!);
             rowNeighbors.Remove(colRoom.Name);
+            colNeighbors.Remove(rowRoom.Id!);
             colNeighbors.Remove(rowRoom.Name);
         }
 

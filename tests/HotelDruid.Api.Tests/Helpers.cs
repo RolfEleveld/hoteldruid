@@ -81,7 +81,7 @@ public class MockFileKeyValueStore : IKeyValueStore
         return result;
     }
 
-    public async Task<string> CreateAsync<T>(string collectionName, string name, T document) where T : class
+    public async Task<string> CreateAsync<T>(string collectionName, string name, T document, bool indexByDocumentId = false) where T : class
     {
         if (!_collections.ContainsKey(collectionName))
         {
@@ -89,17 +89,34 @@ public class MockFileKeyValueStore : IKeyValueStore
             _indexes[collectionName] = new();
         }
 
-        // Check if name already exists
-        if (_indexes[collectionName].ContainsKey(name))
+        var id = Guid.NewGuid().ToString();
+        var indexKey = indexByDocumentId ? id : name;
+        if (_indexes[collectionName].ContainsKey(indexKey))
         {
             throw new InvalidOperationException($"Name '{name}' already exists in collection '{collectionName}'");
         }
 
-        var id = Guid.NewGuid().ToString();
         var json = System.Text.Json.JsonSerializer.Serialize(document);
         _collections[collectionName][id] = json;
-        _indexes[collectionName][name] = id;  // Add to index
+        _indexes[collectionName][indexKey] = id;
         return id;
+    }
+
+    public Task UseDocumentIdsAsIndexAsync(string collectionName)
+    {
+        if (_indexes.TryGetValue(collectionName, out var index))
+        {
+            var next = new Dictionary<string, string>();
+            foreach (var id in index.Values)
+            {
+                if (!string.IsNullOrWhiteSpace(id))
+                    next[id] = id;
+            }
+
+            _indexes[collectionName] = next;
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task UpdateAsync<T>(string collectionName, string id, T document) where T : class
