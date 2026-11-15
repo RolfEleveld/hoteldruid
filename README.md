@@ -55,6 +55,13 @@ The latest implementation adds a staged configuration and assumption workflow to
 - Shared contracts: `src/HotelDruid.Shared`
 - Migration tooling: `tools/HotelDruid.Migration`
 
+## Play with a hotel
+
+The user package and the two ways to run it are in [docs/deployment.md](docs/deployment.md).
+
+- Windows: unzip `artifacts/HotelDruid-desktop.zip` and run `HotelDruid.cmd Install`. `scripts/package-desktop.ps1` builds that zip.
+- Docker, from this repository: `docker compose up --build`, then open `http://localhost:8080/`.
+
 ## Build, Deploy, Test
 
 PowerShell scripts use a convention-over-configuration workflow:

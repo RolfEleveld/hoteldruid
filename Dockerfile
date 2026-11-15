@@ -3,8 +3,13 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS client-build
 WORKDIR /src
 COPY src/HotelDruid.Shared/ src/HotelDruid.Shared/
 COPY src/HotelDruid.Client/ src/HotelDruid.Client/
+COPY scripts/docker/link-assets.py /tmp/link-assets.py
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 \
+ && rm -rf /var/lib/apt/lists/*
 RUN dotnet publish src/HotelDruid.Client/HotelDruid.Client.csproj \
-    -c Release -o /artifacts/client
+    -c Release -o /artifacts/client \
+ && python3 /tmp/link-assets.py /artifacts/client
 
 # Stage 2: Build API
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
@@ -20,8 +25,14 @@ WORKDIR /app
 COPY --from=api-build /artifacts/api ./
 COPY --from=client-build /artifacts/client/wwwroot ./wwwroot/
 
-# Persistent data directory
-RUN mkdir -p /data
+# curl is the health check. /data is the only folder the hotel writes.
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /data \
+ && chown app:app /data
+USER app
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
