@@ -5,6 +5,7 @@
 @using Microsoft.Extensions.Localization
 @using HotelDruid.Client.Localization
 @using HotelDruid.Client.Services
+@using HotelDruid.Client.Reports
 @inject HttpClient Http
 @inject IRoomApiService RoomApiService
 @inject IInventoryApiService InventoryApiService
@@ -58,7 +59,13 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reservations.Subtitle"]</p>
             <p class="small fw-semibold">@(bookingsLoading ? L["common.loading"] : L["Dashboard.Count.Bookings", bookings?.Count ?? 0])</p>
-            @if (reservationsLoading)
+            <div class="room-widget-toolbar mb-2">
+              <input class="form-control form-control-sm"
+                     placeholder="@L["Dashboard.Reservations.FilterPlaceholder"]"
+                     @bind="reservationSearch"
+                     @bind:event="oninput" />
+            </div>
+            @if (reservationsLoading || (!string.IsNullOrWhiteSpace(reservationSearch) && bookingsLoading))
             {
               <p class="small text-muted">@L["common.loading"]</p>
             }
@@ -100,6 +107,10 @@
                   </li>
                 }
               </ul>
+            }
+            else if (!string.IsNullOrWhiteSpace(reservationSearch))
+            {
+              <p class="small text-muted">@L["Dashboard.Reservations.FilterEmpty"]</p>
             }
             else
             {
@@ -299,20 +310,34 @@
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Clients.Subtitle"]</p>
             <p class="small fw-semibold">@(clientsLoading ? L["common.loading"] : L["Dashboard.Count.Clients", clients?.Count ?? 0])</p>
+            <div class="room-widget-toolbar mb-2">
+              <input class="form-control form-control-sm"
+                     placeholder="@L["Dashboard.Clients.FilterPlaceholder"]"
+                     @bind="clientSearch"
+                     @bind:event="oninput" />
+            </div>
             @if (clientsLoading)
             {
               <p class="small text-muted">@L["common.loading"]</p>
             }
-            else if (clients is { Count: > 0 })
+            else
             {
-              <ul class="list-group list-group-flush mb-3">
-                @foreach (var client in clients.OrderBy(c => c.LastName, StringComparer.OrdinalIgnoreCase).ThenBy(c => c.FirstName, StringComparer.OrdinalIgnoreCase).Take(GetWidgetVisibleCount("clients")))
-                {
-                  <li class="list-group-item list-group-item-action px-0 py-1 small text-start" @onclick="() => GoToClient(client.Id)">
-                    <strong>@BuildClientDisplayName(client)</strong>
-                  </li>
-                }
-              </ul>
+              var visibleClients = GetVisibleClients();
+              if (visibleClients.Count == 0 && !string.IsNullOrWhiteSpace(clientSearch))
+              {
+                <p class="small text-muted">@L["Dashboard.Clients.FilterEmpty"]</p>
+              }
+              else if (visibleClients.Count > 0)
+              {
+                <ul class="list-group list-group-flush mb-3">
+                  @foreach (var client in visibleClients)
+                  {
+                    <li class="list-group-item list-group-item-action px-0 py-1 small text-start" @onclick="() => GoToClient(client.Id)">
+                      <strong>@BuildClientDisplayName(client)</strong>
+                    </li>
+                  }
+                </ul>
+              }
             }
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-warning btn-sm" href="/clients/new">@L["Index.QuickAction.NewClient"]</a>
@@ -602,9 +627,38 @@
 
       <div class="@GetWidgetColumnClass("reports")">
         <div class="card feature-card border-info dashboard-widget h-100">
-          @WidgetHeader("reports", "bi-bar-chart", L["Index.Feature.Reports.Title"], "Dashboard.Widget.VisibleCount.Reports", "Dashboard.Widget.Menu.AddReportTemplate", "/contract-templates")
+          @WidgetHeader("reports", "bi-bar-chart", L["Index.Feature.Reports.Title"], "Dashboard.Widget.VisibleCount.Reports", "", "")
           <div class="card-body d-flex flex-column">
             <p class="text-muted small">@L["Index.Feature.Reports.Subtitle"]</p>
+
+            <div class="room-widget-toolbar mb-2">
+              <input class="form-control form-control-sm"
+                     placeholder="@L["reports.filterPlaceholder"]"
+                     @bind="reportSearch"
+                     @bind:event="oninput" />
+            </div>
+
+            @{
+              var visibleReports = GetVisibleReports();
+            }
+            @if (!visibleReports.Any())
+            {
+              <p class="small text-muted">@L["reports.filterEmpty"]</p>
+            }
+            else
+            {
+              <ul class="list-group list-group-flush actionable-room-list mb-3">
+                @foreach (var report in visibleReports.Take(GetWidgetVisibleCount("reports")))
+                {
+                  <li class="list-group-item px-0 py-2">
+                    <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToReport(report.Key)">
+                      <span class="fw-semibold">@L[report.TitleKey]</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
             <div class="d-flex gap-2 mt-auto">
               <a class="btn btn-outline-info btn-sm" href="/reports">@L["Index.Feature.Reports.Button"]</a>
             </div>
@@ -758,7 +812,7 @@
       ["inventory"] = 3,
       ["warehouses"] = 3,
       ["tariffs"] = 3,
-      ["reports"] = 3,
+      ["reports"] = 7,
       ["pointOfSale"] = 3
     };
 
@@ -773,7 +827,10 @@
 
     private string roomsSearch = string.Empty;
     private string inventorySearch = string.Empty;
+    private string clientSearch = string.Empty;
+    private string reservationSearch = string.Empty;
     private string warehouseSearch = string.Empty;
+    private string reportSearch = string.Empty;
     private string tariffSearch = string.Empty;
     private RoomSortMode roomSortMode = RoomSortMode.Priority;
     private bool showRoomsWithoutBeds = true;
@@ -1320,17 +1377,112 @@
 
     private List<BookingDto> GetVisibleReservations()
     {
-      if (reservations is null)
+      var terms = reservationSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+      IEnumerable<BookingDto> query = terms.Length == 0
+        ? reservations ?? new List<BookingDto>()
+        : bookings ?? new List<BookingDto>();
+
+      if (terms.Length > 0)
       {
-        return new List<BookingDto>();
+        var names = ClientNamesById();
+        var rooms = RoomNamesById();
+        query = query.Where(booking => ReservationMatches(booking, terms, names, rooms));
       }
 
-      return reservations
+      return query
         .OrderByDescending(GetBookingSortDate)
         .ThenByDescending(booking => booking.Year)
         .ThenByDescending(booking => booking.Id, StringComparer.OrdinalIgnoreCase)
         .Take(GetWidgetVisibleCount("reservations"))
         .ToList();
+    }
+
+    private List<ClientDto> GetVisibleClients()
+    {
+      IEnumerable<ClientDto> query = clients ?? new List<ClientDto>();
+      var term = clientSearch.Trim();
+      if (term.Length > 0)
+      {
+        query = query.Where(client => GuestNameMatches(client, term));
+      }
+
+      return query
+        .OrderBy(client => client.LastName, StringComparer.OrdinalIgnoreCase)
+        .ThenBy(client => client.FirstName, StringComparer.OrdinalIgnoreCase)
+        .Take(GetWidgetVisibleCount("clients"))
+        .ToList();
+    }
+
+    private static bool GuestNameMatches(ClientDto client, string term)
+    {
+      var last = client.LastName ?? string.Empty;
+      var first = client.FirstName ?? string.Empty;
+      if (term.Length == 1)
+      {
+        return last.StartsWith(term, StringComparison.OrdinalIgnoreCase)
+          || first.StartsWith(term, StringComparison.OrdinalIgnoreCase);
+      }
+
+      return last.Contains(term, StringComparison.OrdinalIgnoreCase)
+        || first.Contains(term, StringComparison.OrdinalIgnoreCase)
+        || BuildClientDisplayName(client).Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool ReservationMatches(BookingDto booking, string[] terms, Dictionary<string, string> names, Dictionary<string, string> rooms)
+    {
+      var guest = !string.IsNullOrWhiteSpace(booking.ClientId) && names.TryGetValue(booking.ClientId, out var name)
+        ? name
+        : string.Empty;
+      var room = !string.IsNullOrWhiteSpace(booking.RoomId) && rooms.TryGetValue(booking.RoomId, out var roomName)
+        ? roomName
+        : string.Empty;
+      var arrival = booking.ArrivalDate ?? string.Empty;
+      foreach (var term in terms)
+      {
+        if (guest.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || room.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || arrival.Contains(term, StringComparison.OrdinalIgnoreCase))
+        {
+          continue;
+        }
+
+        return false;
+      }
+
+      return true;
+    }
+
+    private Dictionary<string, string> ClientNamesById()
+    {
+      var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+      if (clients is null)
+      {
+        return names;
+      }
+
+      foreach (var client in clients)
+      {
+        if (!string.IsNullOrWhiteSpace(client.Id))
+        {
+          names[client.Id] = BuildClientDisplayName(client);
+        }
+      }
+
+      return names;
+    }
+
+    private Dictionary<string, string> RoomNamesById()
+    {
+      var rooms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+      foreach (var room in availableRooms)
+      {
+        if (!string.IsNullOrWhiteSpace(room.Id) && !string.IsNullOrWhiteSpace(room.Name))
+        {
+          rooms[room.Id] = room.Name;
+        }
+      }
+
+      return rooms;
     }
 
     private List<BookingDto> GetCurrentStays()
@@ -1841,6 +1993,8 @@
       arrivalsLookAheadDays = 0;
       roomsSearch = string.Empty;
       inventorySearch = string.Empty;
+      clientSearch = string.Empty;
+      reservationSearch = string.Empty;
 
       await SavePreferencesAsync();
       await SaveSystemDefaultsAsync();
@@ -2036,6 +2190,26 @@
       }
 
       Navigation.NavigateTo(route);
+    }
+
+    private void GoToReport(string key)
+    {
+      openMenuWidgetId = null;
+      Navigation.NavigateTo($"/reports/{key}");
+    }
+
+    private List<ReportLink> GetVisibleReports()
+    {
+      IEnumerable<ReportLink> query = ReportCatalog.All;
+      if (!string.IsNullOrWhiteSpace(reportSearch))
+      {
+        var term = reportSearch.Trim();
+        query = query.Where(report =>
+          L[report.TitleKey].Value.Contains(term, StringComparison.OrdinalIgnoreCase)
+          || L[report.BlurbKey].Value.Contains(term, StringComparison.OrdinalIgnoreCase));
+      }
+
+      return query.ToList();
     }
 
     private List<WarehouseDto> GetVisibleWarehouses()

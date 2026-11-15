@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 public sealed record ScenarioRequest(DateOnly Start, DateOnly End, int Rooms, double Occupancy, int Seed);
@@ -73,6 +74,699 @@ public static class ScenarioWriter
             plan.MaintenanceNights,
             elapsed);
     }
+
+    /// <summary>
+    /// Adds stays after the hotel's current scenario end. Past nights keep the winter fill already used.
+    /// Nights still ahead follow a normal booking curve: fuller close to today, thinner further out, with a Valentine peak.
+    /// </summary>
+    public static ScenarioResult Extend(string dataRoot, DateOnly end, int seed)
+    {
+        var started = DateTime.UtcNow;
+        var root = Path.GetFullPath(dataRoot);
+        var asOf = DateOnly.FromDateTime(DateTime.Today);
+        var configPath = Directory.GetFiles(Path.Combine(root, "collections", "system_configuration"), "*.json")
+            .First(path => !path.EndsWith("_index.json", StringComparison.OrdinalIgnoreCase));
+        var config = JsonNode.Parse(File.ReadAllText(configPath))!.AsObject();
+        var settings = config["settings"]!.AsObject();
+        var currentEnd = DateOnly.Parse(settings["ScenarioEnd"]!.GetValue<string>(), CultureInfo.InvariantCulture);
+        if (end <= currentEnd)
+            throw new ArgumentException($"End {end:yyyy-MM-dd} is not after the current scenario end {currentEnd:yyyy-MM-dd}.");
+
+        var rooms = LoadRooms(root);
+        var taken = LoadOccupied(root, currentEnd.AddDays(-21), end);
+        var request = new ScenarioRequest(currentEnd, end, rooms.Count, 0.67, seed);
+        var rng = new Random(seed);
+        var already = new HashSet<string>(taken, StringComparer.Ordinal);
+        var maint = new bool[rooms.Count, end.DayNumber - currentEnd.DayNumber];
+        MarkMaintenance(request, rooms.Select(room => new RoomSpec(room.Name, room.Floor, room.Capacity)).ToArray(), maint, rng);
+        for (var r = 0; r < rooms.Count; r++)
+        {
+            for (var day = currentEnd; day < end; day = day.AddDays(1))
+            {
+                var offset = day.DayNumber - currentEnd.DayNumber;
+                if (!maint[r, offset])
+                    continue;
+                if (already.Contains(Key(rooms[r].Id, day)))
+                    maint[r, offset] = false;
+                else
+                    taken.Add(Key(rooms[r].Id, day));
+            }
+        }
+
+        var guests = new List<Guest>();
+        var stays = new List<Stay>();
+        for (var r = 0; r < rooms.Count; r++)
+        {
+            var day = currentEnd;
+            while (day < end)
+            {
+                if (taken.Contains(Key(rooms[r].Id, day)))
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                if (rng.NextDouble() > Demand(day, asOf))
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                var length = Math.Min(StayLength(rng), end.DayNumber - day.DayNumber);
+                var cursor = day;
+                var last = day;
+                while (cursor < day.AddDays(length) && cursor < end && !taken.Contains(Key(rooms[r].Id, cursor)))
+                {
+                    last = cursor.AddDays(1);
+                    cursor = cursor.AddDays(1);
+                }
+
+                if (last == day)
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                for (var night = day; night < last; night = night.AddDays(1))
+                    taken.Add(Key(rooms[r].Id, night));
+
+                var party = PartySize(rng, rooms[r].Capacity);
+                var primary = TakeGuest(rng, guests, primary: true);
+                var companions = new List<Guest>();
+                for (var g = 1; g < party; g++)
+                    companions.Add(TakeCompanion(rng, guests, primary));
+                var cot = party is 2 or 3 && rng.NextDouble() < 0.16;
+                var stay = MakeStay(rng, new RoomSpec(rooms[r].Name, rooms[r].Floor, rooms[r].Capacity), primary, companions, day, last, party, cot, null);
+                stay.RoomId = rooms[r].Id;
+                if (stay.Departure <= asOf)
+                    stay.Status = "CheckedOut";
+                else if (stay.Arrival <= asOf)
+                    stay.Status = "CheckedIn";
+                else
+                    stay.Status = "Confirmed";
+                if (rng.NextDouble() < (stay.Status == "Confirmed" ? 0.55 : 0.62))
+                    stay.Prepaid = decimal.Round(stay.Nightly.Sum() * 0.30m, 2, MidpointRounding.AwayFromZero);
+                stay.RoomRevenue = stay.Nightly.Sum();
+                stay.ExtraTotal = stay.Extras.Sum(extra => extra.Amount);
+                stays.Add(stay);
+                day = last;
+            }
+        }
+
+        var maintenance = new List<Stay>();
+        foreach (var room in rooms)
+        {
+            DateOnly? open = null;
+            for (var day = currentEnd; day <= end; day = day.AddDays(1))
+            {
+                var offset = day.DayNumber - currentEnd.DayNumber;
+                var blocked = day < end && offset >= 0 && offset < maint.GetLength(1) && maint[rooms.IndexOf(room), offset];
+                if (blocked && open is null)
+                    open = day;
+                if ((!blocked || day == end) && open is not null)
+                {
+                    maintenance.Add(new Stay
+                    {
+                        Id = NewId(),
+                        Kind = "maintenance",
+                        Status = "Maintenance",
+                        RoomNumber = room.Name,
+                        RoomId = room.Id,
+                        Arrival = open.Value,
+                        Departure = day,
+                        Notes = day.DayNumber - open.Value.DayNumber >= 7
+                            ? $"Floor {room.Floor} segment closed for renovation."
+                            : $"Room {room.Name} closed for maintenance."
+                    });
+                    open = null;
+                }
+            }
+        }
+
+        var tariffId = DocumentId(root, "tariffs");
+        var cashId = DocumentId(root, "cash_registers");
+        var houseGuestId = Directory.GetFiles(Path.Combine(root, "collections", "clients"), "*.json")
+            .Where(path => !path.EndsWith("_index.json", StringComparison.OrdinalIgnoreCase))
+            .Select(path => (Path: path, Json: File.ReadAllText(path)))
+            .Where(item => item.Json.Contains("\"lastName\": \"Maintenance\"", StringComparison.Ordinal))
+            .Select(item => Path.GetFileNameWithoutExtension(item.Path))
+            .First();
+
+        var indexes = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        JsonObject Index(string collection)
+        {
+            if (indexes.TryGetValue(collection, out var cached))
+                return cached;
+            var path = Path.Combine(root, "collections", collection, "_index.json");
+            var parsed = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path))!.AsObject() : new JsonObject();
+            indexes[collection] = parsed;
+            return parsed;
+        }
+
+        void Put(string collection, string name, string id, object document)
+        {
+            var dir = Path.Combine(root, "collections", collection);
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, id + ".json"), JsonSerializer.Serialize(document, Json));
+            Index(collection)[name] = id;
+        }
+
+        foreach (var guest in guests)
+            Put("clients", "guest-" + guest.Id, guest.Id, GuestDocument(guest));
+
+        if (!Index("years").ContainsKey("2027"))
+            Put("years", "2027", NewId(), new { periodType = "variable" });
+
+        var ledger = new Dictionary<DateOnly, List<JsonObject>>();
+        var bookingIndex = new Dictionary<string, List<string>>();
+        void Post(DateOnly date, string type, string notes, decimal amount, string debitAccount, string debitGroup, string creditAccount, string creditGroup, string? bookingId, string? sourceId, string createdBy, string? applied, string? method)
+        {
+            if (amount == 0)
+                return;
+            var journal = Guid.NewGuid().ToString("N");
+            var when = date.ToDateTime(new TimeOnly(11, 0), DateTimeKind.Utc);
+            if (!ledger.TryGetValue(date, out var lines))
+                ledger[date] = lines = [];
+            void Line(string account, string group, decimal debit, decimal credit)
+            {
+                lines.Add(new JsonObject
+                {
+                    ["timestamp"] = when,
+                    ["entryType"] = type,
+                    ["bookingId"] = bookingId,
+                    ["journalId"] = journal,
+                    ["accountCode"] = account,
+                    ["accountGroup"] = group,
+                    ["debit"] = debit,
+                    ["credit"] = credit,
+                    ["amount"] = debit - credit,
+                    ["cashRegisterId"] = account == "1000" ? cashId : null,
+                    ["sourceType"] = bookingId is null ? "expense" : "booking",
+                    ["sourceId"] = sourceId,
+                    ["method"] = method,
+                    ["status"] = "posted",
+                    ["createdBy"] = createdBy,
+                    ["appliedTo"] = applied,
+                    ["notes"] = notes
+                });
+            }
+
+            Line(debitAccount, debitGroup, amount, 0);
+            Line(creditAccount, creditGroup, 0, amount);
+            if (bookingId is not null)
+            {
+                if (!bookingIndex.TryGetValue(bookingId, out var ids))
+                    bookingIndex[bookingId] = ids = [];
+                ids.Add(journal);
+            }
+        }
+
+        var desk = 0;
+        foreach (var stay in stays)
+        {
+            var who = Desk[desk++ % Desk.Length];
+            Put("bookings", $"{stay.Arrival.Year}_{stay.Id}", stay.Id, new
+            {
+                year = stay.Arrival.Year,
+                clientId = stay.Guest!.Id,
+                roomId = stay.RoomId,
+                arrivalDate = stay.Arrival,
+                departureDate = stay.Departure,
+                status = stay.Status,
+                notes = string.IsNullOrWhiteSpace(stay.Notes) ? null : stay.Notes,
+                actualArrivalDate = stay.Status is "CheckedIn" or "CheckedOut" ? stay.Arrival : (DateOnly?)null,
+                actualDepartureDate = stay.Status == "CheckedOut" ? stay.Departure : (DateOnly?)null,
+                actualGuestCount = stay.Status is "CheckedIn" or "CheckedOut" ? stay.GuestCount : (int?)null,
+                prepaidAmount = stay.Prepaid > 0 ? (double)stay.Prepaid : (double?)null,
+                prepaidMethod = stay.Prepaid > 0 ? "transfer" : null,
+                expectedGuestCount = stay.GuestCount,
+                tariffId,
+                tariffTotalPrice = (double)stay.RoomRevenue
+            });
+            Put("booking_guests", $"{stay.Arrival.Year}_{NewId()}", NewId(), new { year = stay.Arrival.Year, bookingId = stay.Id, clientId = stay.Guest.Id, guestNumber = 1 });
+            var number = 1;
+            foreach (var companion in stay.Companions)
+                Put("booking_guests", $"{stay.Arrival.Year}_{NewId()}", NewId(), new { year = stay.Arrival.Year, bookingId = stay.Id, clientId = companion.Id, guestNumber = ++number });
+            foreach (var extra in stay.Extras)
+                Put("booking_costs", $"{stay.Arrival.Year}_{NewId()}", NewId(), new { year = stay.Arrival.Year, bookingId = stay.Id, amount = (double)extra.Amount, description = extra.Description });
+
+            if (stay.Arrival <= asOf)
+            {
+                Post(stay.Arrival, "booking_stay_charge", "Room charge", stay.RoomRevenue, "1200", "asset", "4100", "revenue", stay.Id, stay.Id, who, "stay_balance", null);
+                if (stay.ExtraTotal > 0)
+                    Post(stay.Arrival, "booking_extra_charge", "Extras", stay.ExtraTotal, "1200", "asset", "4900", "revenue", stay.Id, stay.Id, who, "extras", null);
+            }
+
+            if (stay.Prepaid > 0)
+            {
+                var daysAgo = (int)Math.Clamp(Math.Abs(Gaussian(rng)) * 8, 0, 28);
+                var bookedOn = asOf.AddDays(-daysAgo);
+                if (bookedOn >= stay.Arrival)
+                    bookedOn = stay.Arrival.AddDays(-1);
+                if (bookedOn > asOf)
+                    bookedOn = asOf;
+                Post(bookedOn, "booking_prepaid", "Deposit", stay.Prepaid, "1000", "asset", "2400", "liability", stay.Id, stay.Id, who, "deposit", "transfer");
+            }
+
+            if (stay.Status == "CheckedOut")
+            {
+                var due = stay.RoomRevenue + stay.ExtraTotal;
+                if (stay.Prepaid > 0)
+                {
+                    Post(stay.Departure, "booking_deposit_application", "Deposit applied", stay.Prepaid, "2400", "liability", "1200", "asset", stay.Id, stay.Id, who, "stay_balance", null);
+                    due -= stay.Prepaid;
+                }
+
+                if (due > 0)
+                    Post(stay.Departure, "booking_payment", "Guest settlement", due, "1000", "asset", "1200", "asset", stay.Id, stay.Id, who, "stay_balance", stay.Id[0] % 3 == 0 ? "cash" : "card");
+            }
+        }
+
+        foreach (var stay in maintenance)
+        {
+            Put("bookings", $"{stay.Arrival.Year}_{stay.Id}", stay.Id, new
+            {
+                year = stay.Arrival.Year,
+                clientId = houseGuestId,
+                roomId = stay.RoomId,
+                arrivalDate = stay.Arrival,
+                departureDate = stay.Departure,
+                status = "Maintenance",
+                notes = stay.Notes,
+                expectedGuestCount = 0,
+                tariffTotalPrice = 0d
+            });
+        }
+
+        foreach (var expense in ExpenseTotalSource(request))
+        {
+            var id = NewId();
+            Put("expenses", $"{expense.Date.Year}_{id}", id, new
+            {
+                year = expense.Date.Year,
+                cashRegisterId = cashId,
+                amount = (double)expense.Amount,
+                description = expense.Description,
+                date = expense.Date
+            });
+            Post(expense.Date, "hotel_expense", expense.Description, expense.Amount, "6100", "expense", "1000", "asset", null, id, Desk[0], null, "transfer");
+        }
+
+        foreach (var (date, lines) in ledger)
+            MergeLedger(root, date, lines, bookingIndex);
+
+        foreach (var (bookingId, ids) in bookingIndex.Where(pair => pair.Value.Count > 0 && pair.Value.Any(id => id.StartsWith("ledger_", StringComparison.Ordinal))))
+        {
+            var path = Path.Combine(root, "bookings", bookingId, "_ledger_index.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var existing = File.Exists(path)
+                ? JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? []
+                : [];
+            existing.AddRange(ids.Where(id => id.StartsWith("ledger_", StringComparison.Ordinal)));
+            File.WriteAllText(path, JsonSerializer.Serialize(existing));
+        }
+
+        settings["ScenarioEnd"] = end.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        config["updatedUtc"] = DateTime.UtcNow;
+        File.WriteAllText(configPath, config.ToJsonString(Json));
+        foreach (var (collection, index) in indexes)
+        {
+            var count = index.Count(pair => pair.Key != "_metadata");
+            index["_metadata"] = JsonSerializer.Serialize(new
+            {
+                version = "1",
+                lastUpdated = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+                entryCount = count
+            });
+            File.WriteAllText(Path.Combine(root, "collections", collection, "_index.json"), index.ToJsonString(Json));
+        }
+
+        var occupied = stays.Sum(stay => stay.Departure.DayNumber - stay.Arrival.DayNumber);
+        var elapsed = (long)(DateTime.UtcNow - started).TotalMilliseconds;
+        return new ScenarioResult(
+            HotelName, root, currentEnd, end, rooms.Count, 0.67, 0,
+            stays.Count, maintenance.Count, 0, guests.Count, stays.Count(stay => stay.Cot), 0,
+            stays.Where(stay => stay.Arrival <= asOf).Sum(stay => stay.RoomRevenue),
+            stays.Where(stay => stay.Arrival <= asOf).Sum(stay => stay.ExtraTotal),
+            ExpenseTotal(request), occupied, 0, maintenance.Sum(stay => stay.Departure.DayNumber - stay.Arrival.DayNumber), elapsed);
+    }
+
+    /// <summary>
+    /// Fills 20 December through 6 January at this hotel's high-season rate.
+    /// Those nights are already sold by mid-November; the booking curve had left them thin.
+    /// </summary>
+    public static ScenarioResult TopUpHighSeason(string dataRoot, int seed)
+    {
+        var started = DateTime.UtcNow;
+        var root = Path.GetFullPath(dataRoot);
+        var asOf = DateOnly.FromDateTime(DateTime.Today);
+        var from = new DateOnly(2026, 12, 20);
+        var lastNight = new DateOnly(2027, 1, 6);
+        var rooms = LoadRooms(root);
+        var taken = LoadOccupied(root, from.AddDays(-7), lastNight.AddDays(8));
+        var rng = new Random(seed);
+        var guests = new List<Guest>();
+        var stays = new List<Stay>();
+        for (var r = 0; r < rooms.Count; r++)
+        {
+            var day = from;
+            while (day <= lastNight)
+            {
+                if (taken.Contains(Key(rooms[r].Id, day)))
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                var fromSaturday = day.DayOfWeek switch
+                {
+                    DayOfWeek.Saturday => 0,
+                    DayOfWeek.Friday or DayOfWeek.Sunday => 1,
+                    DayOfWeek.Thursday or DayOfWeek.Monday => 2,
+                    _ => 3
+                };
+                var shape = 0.72 + 0.48 * Math.Exp(-0.5 * fromSaturday * fromSaturday / (1.35 * 1.35));
+                if (rng.NextDouble() > Math.Min(0.96, Season(day) * 0.82 * shape))
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                var length = StayLength(rng);
+                var last = day;
+                var cursor = day;
+                var limit = lastNight.AddDays(5);
+                while (cursor < day.AddDays(length) && cursor <= limit && !taken.Contains(Key(rooms[r].Id, cursor)))
+                {
+                    last = cursor.AddDays(1);
+                    cursor = cursor.AddDays(1);
+                }
+
+                if (last == day)
+                {
+                    day = day.AddDays(1);
+                    continue;
+                }
+
+                for (var night = day; night < last; night = night.AddDays(1))
+                    taken.Add(Key(rooms[r].Id, night));
+
+                var party = PartySize(rng, rooms[r].Capacity);
+                var primary = TakeGuest(rng, guests, primary: true);
+                var companions = new List<Guest>();
+                for (var g = 1; g < party; g++)
+                    companions.Add(TakeCompanion(rng, guests, primary));
+                var cot = party is 2 or 3 && rng.NextDouble() < 0.16;
+                var stay = MakeStay(rng, new RoomSpec(rooms[r].Name, rooms[r].Floor, rooms[r].Capacity), primary, companions, day, last, party, cot, null);
+                stay.RoomId = rooms[r].Id;
+                stay.Status = "Confirmed";
+                if (rng.NextDouble() < 0.7)
+                    stay.Prepaid = decimal.Round(stay.Nightly.Sum() * 0.30m, 2, MidpointRounding.AwayFromZero);
+                stay.RoomRevenue = stay.Nightly.Sum();
+                stay.ExtraTotal = stay.Extras.Sum(extra => extra.Amount);
+                stays.Add(stay);
+                day = last > lastNight ? lastNight.AddDays(1) : last;
+            }
+        }
+
+        var tariffId = DocumentId(root, "tariffs");
+        var cashId = DocumentId(root, "cash_registers");
+        var indexes = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        JsonObject Index(string collection)
+        {
+            if (indexes.TryGetValue(collection, out var cached))
+                return cached;
+            var path = Path.Combine(root, "collections", collection, "_index.json");
+            var parsed = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path))!.AsObject() : new JsonObject();
+            indexes[collection] = parsed;
+            return parsed;
+        }
+
+        void Put(string collection, string name, string id, object document)
+        {
+            var dir = Path.Combine(root, "collections", collection);
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, id + ".json"), JsonSerializer.Serialize(document, Json));
+            Index(collection)[name] = id;
+        }
+
+        foreach (var guest in guests)
+            Put("clients", "guest-" + guest.Id, guest.Id, GuestDocument(guest));
+
+        var ledger = new Dictionary<DateOnly, List<JsonObject>>();
+        var bookingIndex = new Dictionary<string, List<string>>();
+        void Post(DateOnly date, decimal amount, string bookingId, string who)
+        {
+            if (amount == 0)
+                return;
+            var journal = Guid.NewGuid().ToString("N");
+            var when = date.ToDateTime(new TimeOnly(11, 0), DateTimeKind.Utc);
+            if (!ledger.TryGetValue(date, out var lines))
+                ledger[date] = lines = [];
+            void Line(string account, string group, decimal debit, decimal credit)
+            {
+                lines.Add(new JsonObject
+                {
+                    ["timestamp"] = when,
+                    ["entryType"] = "booking_prepaid",
+                    ["bookingId"] = bookingId,
+                    ["journalId"] = journal,
+                    ["accountCode"] = account,
+                    ["accountGroup"] = group,
+                    ["debit"] = debit,
+                    ["credit"] = credit,
+                    ["amount"] = debit - credit,
+                    ["cashRegisterId"] = account == "1000" ? cashId : null,
+                    ["sourceType"] = "booking",
+                    ["sourceId"] = bookingId,
+                    ["method"] = "transfer",
+                    ["status"] = "posted",
+                    ["createdBy"] = who,
+                    ["appliedTo"] = "deposit",
+                    ["notes"] = "Deposit"
+                });
+            }
+
+            Line("1000", "asset", amount, 0);
+            Line("2400", "liability", 0, amount);
+        }
+
+        var desk = 0;
+        foreach (var stay in stays)
+        {
+            var who = Desk[desk++ % Desk.Length];
+            Put("bookings", $"{stay.Arrival.Year}_{stay.Id}", stay.Id, new
+            {
+                year = stay.Arrival.Year,
+                clientId = stay.Guest!.Id,
+                roomId = stay.RoomId,
+                arrivalDate = stay.Arrival,
+                departureDate = stay.Departure,
+                status = stay.Status,
+                notes = string.IsNullOrWhiteSpace(stay.Notes) ? null : stay.Notes,
+                expectedGuestCount = stay.GuestCount,
+                prepaidAmount = stay.Prepaid > 0 ? (double)stay.Prepaid : (double?)null,
+                prepaidMethod = stay.Prepaid > 0 ? "transfer" : null,
+                tariffId,
+                tariffTotalPrice = (double)stay.RoomRevenue
+            });
+            var primaryGuestId = NewId();
+            Put("booking_guests", $"{stay.Arrival.Year}_{primaryGuestId}", primaryGuestId, new { year = stay.Arrival.Year, bookingId = stay.Id, clientId = stay.Guest.Id, guestNumber = 1 });
+            var number = 1;
+            foreach (var companion in stay.Companions)
+            {
+                var guestRow = NewId();
+                Put("booking_guests", $"{stay.Arrival.Year}_{guestRow}", guestRow, new { year = stay.Arrival.Year, bookingId = stay.Id, clientId = companion.Id, guestNumber = ++number });
+            }
+
+            foreach (var extra in stay.Extras)
+            {
+                var costId = NewId();
+                Put("booking_costs", $"{stay.Arrival.Year}_{costId}", costId, new { year = stay.Arrival.Year, bookingId = stay.Id, amount = (double)extra.Amount, description = extra.Description });
+            }
+
+            if (stay.Prepaid > 0)
+            {
+                var bookedOn = asOf.AddDays(-(int)Math.Clamp(Math.Abs(Gaussian(rng)) * 6, 0, 20));
+                Post(bookedOn, stay.Prepaid, stay.Id, who);
+            }
+        }
+
+        foreach (var (date, lines) in ledger)
+            MergeLedger(root, date, lines, bookingIndex);
+
+        foreach (var (bookingId, ids) in bookingIndex.Where(pair => pair.Value.Any(id => id.StartsWith("ledger_", StringComparison.Ordinal))))
+        {
+            var path = Path.Combine(root, "bookings", bookingId, "_ledger_index.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var existing = File.Exists(path)
+                ? JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? []
+                : [];
+            existing.AddRange(ids.Where(id => id.StartsWith("ledger_", StringComparison.Ordinal)));
+            File.WriteAllText(path, JsonSerializer.Serialize(existing));
+        }
+
+        foreach (var (collection, index) in indexes)
+        {
+            var count = index.Count(pair => pair.Key != "_metadata");
+            index["_metadata"] = JsonSerializer.Serialize(new
+            {
+                version = "1",
+                lastUpdated = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+                entryCount = count
+            });
+            File.WriteAllText(Path.Combine(root, "collections", collection, "_index.json"), index.ToJsonString(Json));
+        }
+
+        var elapsed = (long)(DateTime.UtcNow - started).TotalMilliseconds;
+        return new ScenarioResult(
+            HotelName, root, from, lastNight.AddDays(1), rooms.Count, 0.67, 0,
+            stays.Count, 0, 0, guests.Count, stays.Count(stay => stay.Cot), 0,
+            0, 0, 0, stays.Sum(stay => stay.Nights), 0, 0, elapsed);
+    }
+
+    private static double Demand(DateOnly date, DateOnly asOf)
+    {
+        var fromSaturday = date.DayOfWeek switch
+        {
+            DayOfWeek.Saturday => 0,
+            DayOfWeek.Friday => 1,
+            DayOfWeek.Sunday => 1,
+            DayOfWeek.Thursday => 2,
+            DayOfWeek.Monday => 2,
+            _ => 3
+        };
+        var weekend = Math.Exp(-0.5 * fromSaturday * fromSaturday / (1.35 * 1.35));
+        var shape = 0.72 + 0.48 * weekend;
+        var lead = date.DayNumber - asOf.DayNumber;
+        var booked = lead <= 0 ? 1d : NormalCdf((24d - lead) / 16d);
+        if ((date.Month == 12 && date.Day >= 20) || (date.Month == 1 && date.Day <= 6))
+            booked = 1;
+        var valentine = new DateOnly(date.Year, 2, 13);
+        var distance = date.DayNumber - valentine.DayNumber;
+        var celebration = date.Month == 2 ? Math.Exp(-0.5 * distance * distance / (2.1 * 2.1)) : 0d;
+        if (celebration > 0.45)
+            booked = Math.Max(booked, 0.9);
+        var chance = Season(date) * 0.82 * shape * Math.Max(0.22, booked);
+        if (celebration > 0.25)
+            chance = Math.Max(chance, 0.62 + 0.3 * celebration);
+        return Math.Min(0.96, chance);
+    }
+
+    private static double NormalCdf(double z)
+    {
+        var sign = z < 0 ? -1d : 1d;
+        var x = Math.Abs(z) / Math.Sqrt(2);
+        var t = 1d / (1d + 0.3275911 * x);
+        var erf = 1d - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-x * x);
+        return 0.5 * (1 + sign * erf);
+    }
+
+    private static double Gaussian(Random rng)
+    {
+        var u1 = 1d - rng.NextDouble();
+        var u2 = 1d - rng.NextDouble();
+        return Math.Sqrt(-2d * Math.Log(u1)) * Math.Cos(2d * Math.PI * u2);
+    }
+
+    private static List<(string Id, string Name, string Floor, int Capacity)> LoadRooms(string root)
+    {
+        return Directory.GetFiles(Path.Combine(root, "collections", "rooms"), "*.json")
+            .Where(path => !path.EndsWith("_index.json", StringComparison.OrdinalIgnoreCase))
+            .Select(path =>
+            {
+                var room = JsonNode.Parse(File.ReadAllText(path))!;
+                return (
+                    Path.GetFileNameWithoutExtension(path),
+                    room["name"]!.GetValue<string>(),
+                    room["floorNumber"]?.GetValue<string>() ?? "",
+                    room["capacity"]?.GetValue<int>() ?? 2);
+            })
+            .OrderBy(room => room.Item2, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static HashSet<string> LoadOccupied(string root, DateOnly from, DateOnly to)
+    {
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var path in Directory.GetFiles(Path.Combine(root, "collections", "bookings"), "*.json"))
+        {
+            if (path.EndsWith("_index.json", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var booking = JsonNode.Parse(File.ReadAllText(path))!;
+            var status = booking["status"]?.GetValue<string>();
+            if (status is "Cancelled" or "Void" or "Deleted")
+                continue;
+            if (!DateOnly.TryParse(booking["arrivalDate"]?.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var arrival))
+                continue;
+            if (!DateOnly.TryParse(booking["departureDate"]?.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var departure))
+                continue;
+            if (departure <= from || arrival >= to)
+                continue;
+            var roomId = booking["roomId"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(roomId))
+                continue;
+            for (var night = arrival < from ? from : arrival; night < departure && night < to; night = night.AddDays(1))
+                taken.Add(Key(roomId, night));
+        }
+
+        return taken;
+    }
+
+    private static string DocumentId(string root, string collection)
+    {
+        var path = Directory.GetFiles(Path.Combine(root, "collections", collection), "*.json")
+            .First(file => !file.EndsWith("_index.json", StringComparison.OrdinalIgnoreCase));
+        return Path.GetFileNameWithoutExtension(path);
+    }
+
+    private static void MergeLedger(string root, DateOnly date, List<JsonObject> lines, Dictionary<string, List<string>> bookingIndex)
+    {
+        var dir = Path.Combine(root, "ledger", date.Year.ToString("D4"), date.Month.ToString("D2"), date.Day.ToString("D2"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "_snapshot.json");
+        JsonArray entries;
+        if (File.Exists(path))
+        {
+            var existing = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            entries = existing["entries"]?.AsArray() ?? [];
+            existing.Remove("entries");
+        }
+        else
+            entries = [];
+
+        var sequence = entries.Count;
+        foreach (var line in lines)
+        {
+            sequence++;
+            var id = $"ledger_{date:yyyyMMdd}_{sequence:D6}";
+            line["id"] = id;
+            line["sequence"] = sequence;
+            entries.Add(line);
+            var bookingNode = line["bookingId"];
+            var bookingId = bookingNode is null || bookingNode.GetValueKind() == JsonValueKind.Null
+                ? null
+                : bookingNode.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(bookingId))
+            {
+                if (!bookingIndex.TryGetValue(bookingId, out var ids))
+                    bookingIndex[bookingId] = ids = [];
+                ids.Add(id);
+            }
+        }
+
+        var snapshot = new JsonObject
+        {
+            ["date"] = date.ToDateTime(TimeOnly.MinValue),
+            ["timestamp"] = date.ToDateTime(new TimeOnly(23, 0), DateTimeKind.Utc),
+            ["entries"] = entries,
+            ["totalDayBalance"] = 0m,
+            ["sequenceAt"] = entries.Count
+        };
+        File.WriteAllText(path, snapshot.ToJsonString(Json));
+    }
+
+    private static string Key(string roomId, DateOnly night) => roomId + "|" + night.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 
     private static void Wipe(string dataRoot)
     {
@@ -1160,7 +1854,7 @@ public static class ScenarioWriter
         public string Kind { get; init; } = "guest";
         public string Status { get; set; } = "";
         public string RoomNumber { get; init; } = "";
-        public string RoomId { get; init; } = "";
+        public string RoomId { get; set; } = "";
         public Guest? Guest { get; init; }
         public List<Guest> Companions { get; init; } = [];
         public DateOnly Arrival { get; init; }

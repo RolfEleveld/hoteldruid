@@ -1,16 +1,22 @@
 @page "/performance"
+@page "/reports/performance"
 @using System.Globalization
 @using HotelDruid.Client.Localization
 @using HotelDruid.Shared
 @inject HttpClient Http
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime Js
 
 <PageTitle>@L["Performance.Title"]</PageTitle>
 <div class="container-fluid">
     <div class="row align-items-center mb-2 mt-2">
         <div class="col">
             <h5 class="mb-0">@L["Performance.Title"]</h5>
-            <p class="text-muted small mb-0">@L["Performance.Lead"]</p>
+            <p class="text-muted small mb-0">@L["reports.performance.blurb"]</p>
+        </div>
+        <div class="col-auto no-print d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/reports">@L["reports.back"]</a>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="Print">@L["reports.print"]</button>
         </div>
     </div>
     @if (_report is null && _error is null)
@@ -76,7 +82,7 @@
         </table>
         <h6>@L["Performance.ByRoomYear"]</h6>
         <p class="text-muted small">@L["Performance.CompareNote"]</p>
-        <div class="btn-group btn-group-sm mb-2" role="group">
+        <div class="btn-group btn-group-sm mb-2 no-print" role="group">
             @foreach (var year in _report.RoomYears.Select(row => row.Year).Distinct())
             {
                 <button type="button" class="btn @(year == _year ? "btn-primary" : "btn-outline-secondary")" @onclick="() => _year = year">@year</button>
@@ -195,4 +201,5 @@
     private static string Points(decimal? change) => change is null ? "—" : (change.Value * 100m).ToString("+0.0;-0.0") + " pp";
     private static string Signed(decimal? change) => change is null ? "—" : change.Value.ToString("+0.00;-0.00");
     private static string DeltaClass(decimal? change) => change is null ? "text-muted" : change < 0 ? "text-danger" : change > 0 ? "text-success" : "";
+    private Task Print() => Js.InvokeVoidAsync("print").AsTask();
 }

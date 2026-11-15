@@ -156,6 +156,60 @@ code {
     text-align: end;
 }
 
+.paper-sheet {
+    max-width: 64rem;
+    margin: 0 auto 2rem;
+    padding: 1.5rem 1.75rem;
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    color: #1a1a1a;
+}
+
+.paper-head { margin-bottom: 1.25rem; border-bottom: 2px solid #1a1a1a; padding-bottom: 0.75rem; }
+.paper-hotel { font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.paper-title { font-size: 1.6rem; margin: 0.15rem 0; }
+.paper-period, .paper-purpose { margin: 0.15rem 0; }
+.paper-purpose { color: #444; }
+.paper-section { margin-top: 1.25rem; break-inside: avoid; }
+.paper-section h2 { font-size: 1rem; margin-bottom: 0.4rem; }
+.paper-empty { color: #666; font-style: italic; }
+.paper-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.paper-table th, .paper-table td { border-bottom: 1px solid #ccc; padding: 0.35rem 0.4rem; text-align: left; vertical-align: top; }
+.paper-table th { border-bottom: 1px solid #1a1a1a; font-weight: 600; }
+.paper-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.paper-check { width: 2.2rem; text-align: center; }
+.paper-box { display: inline-block; width: 0.95rem; height: 0.95rem; border: 1.5px solid #1a1a1a; }
+.paper-totals { list-style: none; padding: 0.4rem 0 0; margin: 0; }
+.paper-totals li { display: flex; justify-content: space-between; gap: 1rem; max-width: 22rem; margin-left: auto; padding: 0.15rem 0; }
+
+@media print {
+    .app-header, .app-drawer, .app-drawer-backdrop, .global-footer, .no-print { display: none !important; }
+    .page-body, .content, .paper-sheet { margin: 0; padding: 0; box-shadow: none; border: 0; max-width: none; }
+    body { background: #fff; }
+}
+
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
+}
+
+.report-catalog-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.report-catalog-name {
+    font-weight: 600;
+}
+
+.report-catalog-blurb {
+    color: #667;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    white-space: normal;
 }

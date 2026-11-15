@@ -101,6 +101,10 @@
   <data name="DashboardRooms.Compact.Off" xml:space="preserve"><value>Expanded</value></data>
   <data name="DashboardRooms.IncludeWithoutBeds" xml:space="preserve"><value>Include rooms without beds</value></data>
   <data name="DashboardRooms.FilterEmpty" xml:space="preserve"><value>No rooms match the current filter.</value></data>
+  <data name="Dashboard.Clients.FilterPlaceholder" xml:space="preserve"><value>Filter guests</value></data>
+  <data name="Dashboard.Clients.FilterEmpty" xml:space="preserve"><value>No guests match the current filter.</value></data>
+  <data name="Dashboard.Reservations.FilterPlaceholder" xml:space="preserve"><value>Guest, room, or arrival</value></data>
+  <data name="Dashboard.Reservations.FilterEmpty" xml:space="preserve"><value>No reservations match the current filter.</value></data>
   <data name="DashboardInventory.FilterPlaceholder" xml:space="preserve"><value>Filter inventory</value></data>
   <data name="DashboardInventory.Loading" xml:space="preserve"><value>Loading inventory...</value></data>
   <data name="DashboardInventory.FilterEmpty" xml:space="preserve"><value>No inventory items match the current filter.</value></data>
@@ -935,4 +939,115 @@
   <data name="extras.validUntil" xml:space="preserve"><value>Valid until</value></data>
   <data name="extras.datesHelp" xml:space="preserve"><value>The price applies on these dates. A season may run into the next year.</value></data>
   <data name="periods.datesHelp" xml:space="preserve"><value>These dates are the season. They may run into the next year.</value></data>
+  <data name="Nav.Reports" xml:space="preserve"><value>Reports</value></data>
+  <data name="reports.filterPlaceholder" xml:space="preserve"><value>Filter reports</value></data>
+  <data name="reports.filterEmpty" xml:space="preserve"><value>No reports match the current filter.</value></data>
+  <data name="reports.back" xml:space="preserve"><value>All reports</value></data>
+  <data name="reports.print" xml:space="preserve"><value>Print</value></data>
+  <data name="reports.date" xml:space="preserve"><value>Date</value></data>
+  <data name="reports.loading" xml:space="preserve"><value>Loading the sheet...</value></data>
+  <data name="reports.missing" xml:space="preserve"><value>This report is not in the set.</value></data>
+  <data name="reports.none" xml:space="preserve"><value>Nothing for this date.</value></data>
+  <data name="reports.arrivals.title" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="reports.arrivals.blurb" xml:space="preserve"><value>Who arrives, the room, the rate, and what is still due.</value></data>
+  <data name="reports.inhouse.title" xml:space="preserve"><value>In house</value></data>
+  <data name="reports.inhouse.blurb" xml:space="preserve"><value>Who is staying tonight.</value></data>
+  <data name="reports.departures.title" xml:space="preserve"><value>Departures</value></data>
+  <data name="reports.departures.blurb" xml:space="preserve"><value>Who leaves, the balance to collect, and a box to tick when the room is checked.</value></data>
+  <data name="reports.rooms.title" xml:space="preserve"><value>Room status</value></data>
+  <data name="reports.rooms.blurb" xml:space="preserve"><value>Cleaning, repairs, arrival preparation, and departure checks for the house.</value></data>
+  <data name="reports.cashier.title" xml:space="preserve"><value>Cashier close</value></data>
+  <data name="reports.cashier.blurb" xml:space="preserve"><value>Money posted today, with lines to write the opening float and the counted cash.</value></data>
+  <data name="reports.flash.title" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="reports.flash.blurb" xml:space="preserve"><value>Rooms sold, revenue, extras, money taken, and what departures still owe.</value></data>
+  <data name="reports.forecast.title" xml:space="preserve"><value>Next 14 days</value></data>
+  <data name="reports.forecast.blurb" xml:space="preserve"><value>Occupancy and room revenue already on the books, night by night.</value></data>
+  <data name="reports.balances.title" xml:space="preserve"><value>Balances and deposits</value></data>
+  <data name="reports.balances.blurb" xml:space="preserve"><value>Quoted room charge, deposit taken, and the amount still due.</value></data>
+  <data name="reports.performance.title" xml:space="preserve"><value>Performance</value></data>
+  <data name="reports.performance.blurb" xml:space="preserve"><value>Occupancy, average rate, and revenue per available room.</value></data>
+  <data name="reports.tax.title" xml:space="preserve"><value>Tax</value></data>
+  <data name="reports.tax.blurb" xml:space="preserve"><value>Room and other revenue for the month. The ledger date is the tax point. Output tax appears when the hotel has a VAT rate.</value></data>
+  <data name="reports.statistics.title" xml:space="preserve"><value>Guest statistics</value></data>
+  <data name="reports.statistics.blurb" xml:space="preserve"><value>Arrivals with nationality and document details for the statistics office and the police list.</value></data>
+  <data name="reports.col.room" xml:space="preserve"><value>Room</value></data>
+  <data name="reports.col.guest" xml:space="preserve"><value>Guest</value></data>
+  <data name="reports.col.guests" xml:space="preserve"><value>Guests</value></data>
+  <data name="reports.col.nights" xml:space="preserve"><value>Nights</value></data>
+  <data name="reports.col.rate" xml:space="preserve"><value>Room charge</value></data>
+  <data name="reports.col.due" xml:space="preserve"><value>Still due</value></data>
+  <data name="reports.col.notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="reports.col.departure" xml:space="preserve"><value>Departure</value></data>
+  <data name="reports.col.deposit" xml:space="preserve"><value>Deposit</value></data>
+  <data name="reports.col.checked" xml:space="preserve"><value>Checked</value></data>
+  <data name="reports.col.condition" xml:space="preserve"><value>Condition</value></data>
+  <data name="reports.col.work" xml:space="preserve"><value>Work</value></data>
+  <data name="reports.col.clean" xml:space="preserve"><value>Clean</value></data>
+  <data name="reports.col.repair" xml:space="preserve"><value>Repair</value></data>
+  <data name="reports.col.ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="reports.col.register" xml:space="preserve"><value>Register</value></data>
+  <data name="reports.col.movement" xml:space="preserve"><value>Movement</value></data>
+  <data name="reports.col.detail" xml:space="preserve"><value>Detail</value></data>
+  <data name="reports.col.amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="reports.col.item" xml:space="preserve"><value>Item</value></data>
+  <data name="reports.col.date" xml:space="preserve"><value>Date</value></data>
+  <data name="reports.col.arrivals" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="reports.col.departures" xml:space="preserve"><value>Departures</value></data>
+  <data name="reports.col.occupied" xml:space="preserve"><value>Occupied</value></data>
+  <data name="reports.col.occupancy" xml:space="preserve"><value>Occupancy</value></data>
+  <data name="reports.col.revenue" xml:space="preserve"><value>Room revenue</value></data>
+  <data name="reports.col.stay" xml:space="preserve"><value>Stay</value></data>
+  <data name="reports.col.nationality" xml:space="preserve"><value>Nationality</value></data>
+  <data name="reports.col.document" xml:space="preserve"><value>Document</value></data>
+  <data name="reports.col.number" xml:space="preserve"><value>Number</value></data>
+  <data name="reports.col.born" xml:space="preserve"><value>Born</value></data>
+  <data name="reports.col.year" xml:space="preserve"><value>Year</value></data>
+  <data name="reports.col.adr" xml:space="preserve"><value>Average rate</value></data>
+  <data name="reports.col.revpar" xml:space="preserve"><value>Revenue per room</value></data>
+  <data name="reports.col.other" xml:space="preserve"><value>Other income</value></data>
+  <data name="reports.col.expense" xml:space="preserve"><value>Expenses</value></data>
+  <data name="reports.col.account" xml:space="preserve"><value>Account</value></data>
+  <data name="reports.col.description" xml:space="preserve"><value>Description</value></data>
+  <data name="reports.col.sold" xml:space="preserve"><value>Rooms sold</value></data>
+  <data name="reports.col.sellable" xml:space="preserve"><value>Sellable</value></data>
+  <data name="reports.section.arrivals" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="reports.section.inhouse" xml:space="preserve"><value>In house</value></data>
+  <data name="reports.section.departures" xml:space="preserve"><value>Departures</value></data>
+  <data name="reports.section.rooms" xml:space="preserve"><value>Rooms</value></data>
+  <data name="reports.section.movements" xml:space="preserve"><value>Posted movements</value></data>
+  <data name="reports.section.count" xml:space="preserve"><value>Count</value></data>
+  <data name="reports.section.flash" xml:space="preserve"><value>The day</value></data>
+  <data name="reports.section.forecast" xml:space="preserve"><value>On the books</value></data>
+  <data name="reports.section.balances" xml:space="preserve"><value>Open balances</value></data>
+  <data name="reports.section.performance" xml:space="preserve"><value>The period</value></data>
+  <data name="reports.section.years" xml:space="preserve"><value>By year</value></data>
+  <data name="reports.section.roomsEarned" xml:space="preserve"><value>By room</value></data>
+  <data name="reports.section.tax" xml:space="preserve"><value>Taxable revenue</value></data>
+  <data name="reports.section.statistics" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="reports.work.repair" xml:space="preserve"><value>Repair</value></data>
+  <data name="reports.work.departure" xml:space="preserve"><value>Check the departure, then clean</value></data>
+  <data name="reports.work.arrival" xml:space="preserve"><value>Prepare for arrival</value></data>
+  <data name="reports.work.turn" xml:space="preserve"><value>Check the departure, clean, and prepare the arrival</value></data>
+  <data name="reports.work.stayover" xml:space="preserve"><value>Stayover service</value></data>
+  <data name="reports.work.vacant" xml:space="preserve"><value>Vacant check</value></data>
+  <data name="reports.condition.outoforder" xml:space="preserve"><value>Out of order</value></data>
+  <data name="reports.condition.occupied" xml:space="preserve"><value>Occupied</value></data>
+  <data name="reports.condition.vacant" xml:space="preserve"><value>Vacant</value></data>
+  <data name="reports.total.rooms" xml:space="preserve"><value>Rooms</value></data>
+  <data name="reports.total.due" xml:space="preserve"><value>Still due</value></data>
+  <data name="reports.total.deposit" xml:space="preserve"><value>Deposits</value></data>
+  <data name="reports.total.taken" xml:space="preserve"><value>Taken</value></data>
+  <data name="reports.total.base" xml:space="preserve"><value>Taxable base</value></data>
+  <data name="reports.total.output" xml:space="preserve"><value>Output tax in the price</value></data>
+  <data name="reports.total.posted" xml:space="preserve"><value>Posted</value></data>
+  <data name="reports.count.opening" xml:space="preserve"><value>Opening float</value></data>
+  <data name="reports.count.counted" xml:space="preserve"><value>Counted cash</value></data>
+  <data name="reports.register.desk" xml:space="preserve"><value>Desk</value></data>
+  <data name="reports.move.payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="reports.move.deposit" xml:space="preserve"><value>Deposit</value></data>
+  <data name="reports.move.prepaid" xml:space="preserve"><value>Prepaid</value></data>
+  <data name="reports.move.refund" xml:space="preserve"><value>Refund</value></data>
+  <data name="reports.move.expense" xml:space="preserve"><value>Expense</value></data>
+  <data name="reports.account.rooms" xml:space="preserve"><value>Rooms</value></data>
+  <data name="reports.account.other" xml:space="preserve"><value>Other income</value></data>
 </root>

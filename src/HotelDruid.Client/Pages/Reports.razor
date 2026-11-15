@@ -1,0 +1,229 @@
+@page "/reports"
+@page "/reports/{Key}"
+@using System.Globalization
+@using System.Net.Http.Json
+@using HotelDruid.Client.Localization
+@using HotelDruid.Client.Reports
+@using HotelDruid.Shared
+@using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime Js
+@inject NavigationManager Navigation
+
+<PageTitle>@(string.IsNullOrWhiteSpace(Key) ? L["Index.Feature.Reports.Title"] : Link is null ? Key : L[Link.TitleKey])</PageTitle>
+
+@if (string.IsNullOrWhiteSpace(Key))
+{
+    <div class="container-fluid">
+        <div class="row align-items-center mb-2 mt-2">
+            <div class="col">
+                <h5 class="mb-0">@L["Index.Feature.Reports.Title"]</h5>
+                <p class="text-muted small mb-0">@L["Index.Feature.Reports.Subtitle"]</p>
+            </div>
+        </div>
+        <div class="room-widget-toolbar mb-3" style="max-width: 24rem;">
+            <input class="form-control form-control-sm"
+                   placeholder="@L["reports.filterPlaceholder"]"
+                   @bind="_filter"
+                   @bind:event="oninput" />
+        </div>
+        @if (!Visible().Any())
+        {
+            <p class="text-muted">@L["reports.filterEmpty"]</p>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush actionable-room-list">
+                @foreach (var report in Visible())
+                {
+                    <li class="list-group-item px-0 py-2">
+                        <a class="report-catalog-item" href="@($"/reports/{report.Key}")">
+                            <span class="report-catalog-name">@L[report.TitleKey]</span>
+                            <span class="report-catalog-blurb">@L[report.BlurbKey]</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="container-fluid mt-2">
+        <div class="alert alert-warning">@_error</div>
+        <a href="/reports">@L["reports.back"]</a>
+    </div>
+}
+else if (_report is null)
+{
+    <p class="mt-2"><em>@L["reports.loading"]</em></p>
+}
+else
+{
+    <div class="container-fluid">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3 no-print">
+            <a class="btn btn-outline-secondary btn-sm" href="/reports">@L["reports.back"]</a>
+            <div>
+                <label class="form-label small mb-0" for="report-date">@L["reports.date"]</label>
+                <input id="report-date" type="date" class="form-control form-control-sm" value="@Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" @onchange="OnDate" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="Print">@L["reports.print"]</button>
+        </div>
+
+        <article class="paper-sheet">
+            <header class="paper-head">
+                <div class="paper-hotel">@_report.HotelName</div>
+                <h1 class="paper-title">@(Link is null ? _report.Key : L[Link.TitleKey])</h1>
+                <p class="paper-period">@Period()</p>
+                @if (Link is not null)
+                {
+                    <p class="paper-purpose">@L[Link.BlurbKey]</p>
+                }
+            </header>
+
+            @foreach (var section in _report.Sections)
+            {
+                <section class="paper-section">
+                    <h2>@L[section.HeadingKey]</h2>
+                    @if (section.Rows.Count == 0)
+                    {
+                        <p class="paper-empty">@L["reports.none"]</p>
+                    }
+                    else
+                    {
+                        <table class="paper-table">
+                            <thead>
+                                <tr>
+                                    @foreach (var column in section.Columns)
+                                    {
+                                        <th>@L[column]</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in section.Rows)
+                                {
+                                    <tr>
+                                        @for (var i = 0; i < section.Columns.Count; i++)
+                                        {
+                                            var kind = i < section.Kinds.Count ? section.Kinds[i] : "text";
+                                            var value = i < row.Cells.Count ? row.Cells[i] : "";
+                                            <td class="@KindClass(kind)">@Cell(kind, value)</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    @if (section.Totals.Count > 0)
+                    {
+                        <ul class="paper-totals">
+                            @foreach (var total in section.Totals)
+                            {
+                                <li><span>@L[total.LabelKey]</span><strong>@Cell(total.Kind, total.Value)</strong></li>
+                            }
+                        </ul>
+                    }
+                </section>
+            }
+        </article>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Key { get; set; }
+
+    private PaperReportDto? _report;
+    private string? _error;
+    private string? _loaded;
+    private string _filter = "";
+    private DateOnly Day = DateOnly.FromDateTime(DateTime.Today);
+
+    private ReportLink? Link => ReportCatalog.All.FirstOrDefault(item => string.Equals(item.Key, Key, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Key))
+        {
+            _loaded = null;
+            _report = null;
+            _error = null;
+            return;
+        }
+
+        if (string.Equals(_loaded, Key, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        Day = string.Equals(Key, "flash", StringComparison.OrdinalIgnoreCase)
+            ? DateOnly.FromDateTime(DateTime.Today).AddDays(-1)
+            : DateOnly.FromDateTime(DateTime.Today);
+        _loaded = Key;
+        await Load();
+    }
+
+    private async Task OnDate(ChangeEventArgs change)
+    {
+        if (DateOnly.TryParse(change.Value?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var day))
+        {
+            Day = day;
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        _error = null;
+        _report = null;
+        try
+        {
+            _report = await Http.GetFromJsonAsync<PaperReportDto>($"/api/reports/desk/{Uri.EscapeDataString(Key!)}?date={Day:yyyy-MM-dd}");
+            if (_report is null)
+                _error = L["reports.missing"].Value;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private IEnumerable<ReportLink> Visible()
+    {
+        if (string.IsNullOrWhiteSpace(_filter))
+            return ReportCatalog.All;
+        var term = _filter.Trim();
+        return ReportCatalog.All.Where(report =>
+            L[report.TitleKey].Value.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || L[report.BlurbKey].Value.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string Period()
+    {
+        if (_report is null)
+            return "";
+        var culture = CultureInfo.CurrentCulture;
+        var from = _report.From.ToString("d", culture);
+        var to = _report.To.ToString("d", culture);
+        return _report.From == _report.To ? from : $"{from} – {to}";
+    }
+
+    private MarkupString Cell(string kind, string value)
+    {
+        if (kind == "check")
+            return new MarkupString("<span class=\"paper-box\"></span>");
+        if (string.IsNullOrWhiteSpace(value))
+            return new MarkupString("");
+        if (kind == "key" || value.StartsWith("reports.", StringComparison.Ordinal))
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(L[value].Value));
+        if (kind == "money" && decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(amount.ToString("N2") + " " + (_report?.Currency ?? "")));
+        if (kind == "date" && DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(date.ToString("d", CultureInfo.CurrentCulture)));
+        return new MarkupString(System.Net.WebUtility.HtmlEncode(value));
+    }
+
+    private static string KindClass(string kind) => kind is "money" or "number" ? "paper-num" : kind == "check" ? "paper-check" : "";
+
+    private Task Print() => Js.InvokeVoidAsync("print").AsTask();
+}

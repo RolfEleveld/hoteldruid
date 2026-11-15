@@ -4402,6 +4402,12 @@ app.MapGet("/api/reports/performance", async (IKeyValueStore store, ILedgerRepos
     Results.Ok(await PerformanceReportBuilder.BuildAsync(store, ledger)))
 .WithName("PerformanceReport");
 
+app.MapGet("/api/reports/desk/{key}", async (string key, DateOnly? date, IKeyValueStore store, ILedgerRepository ledger) =>
+{
+    var report = await DeskReportBuilder.BuildAsync(key, date ?? DateOnly.FromDateTime(DateTime.Now), store, ledger);
+    return report is null ? Results.NotFound() : Results.Ok(report);
+}).WithName("DeskReport");
+
 app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? bookingId, bool? unassigned, ILedgerRepository ledger) =>
 {
     if (to < from) return Results.BadRequest(new { error = "to must be on or after from" });
