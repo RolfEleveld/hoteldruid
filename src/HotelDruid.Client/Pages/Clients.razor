@@ -26,6 +26,12 @@
                 <div class="panel-body flex-grow-1 overflow-auto">
                     <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewClient">@L["clients.add", "Add Client"]</button>
 
+                    <div class="d-flex gap-1 mb-3">
+                        <input class="form-control form-control-sm" type="date" @bind="rangeFrom" aria-label="@L["bookings.stayFrom"]" />
+                        <input class="form-control form-control-sm" type="date" @bind="rangeTo" aria-label="@L["bookings.stayTo"]" />
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="ApplyFilter">@L["bookings.load", "Load"]</button>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">@L["clients.searchLabel", "Find client"]</label>
                         <input type="text" class="form-control" @bind="filterText" @bind:event="oninput" placeholder="@L["clients.searchPlaceholder", "Search by name, email, phone, or city"]" />
@@ -427,6 +433,9 @@
     private string? lastError;
     private string? statusMessage = string.Empty;
     private string filterText = string.Empty;
+    private DateOnly rangeFrom = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly rangeTo = DateOnly.FromDateTime(DateTime.Today);
+    private string? alignedSelectionId;
     private List<RoomDto>? rooms;
     private List<BookingDto>? clientBookings;
     private bool isBookingLoading;
@@ -473,16 +482,31 @@
     protected override async Task OnInitializedAsync()
     {
         statusMessage = L["common.noChanges", "No changes"];
-        await LoadClients();
-        rooms = await RoomApi.GetRoomsAsync();
+        PrepareRange();
+        var roomsTask = RoomApi.GetRoomsAsync();
+        var alignedToSelection = await AlignRangeToSelectedClientAsync();
+        if (!alignedToSelection)
+        {
+            await LoadClients();
+        }
+
+        await InvokeAsync(StateHasChanged);
+        rooms = await roomsTask;
         await ApplySelectedClientFromQueryAsync();
         InitializeAutoSaveTimer();
+        await RevealSelectedClientAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        if (clients is not null && !string.Equals(alignedSelectionId, SelectedId, StringComparison.OrdinalIgnoreCase))
+        {
+            await AlignRangeToSelectedClientAsync();
+        }
+
         await ApplySelectedClientFromQueryAsync();
         EnsureNewClientRoute();
+        await RevealSelectedClientAsync();
     }
 
     private void EnsureNewClientRoute()
@@ -509,13 +533,167 @@
         autoSaveTimer.AutoReset = false;
     }
 
+    private void PrepareRange()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        rangeFrom = today;
+        rangeTo = today;
+        if (TryParseDate(FromQuery, out var from))
+        {
+            rangeFrom = from;
+        }
+
+        if (TryParseDate(ToQuery, out var to))
+        {
+            rangeTo = to;
+        }
+    }
+
+    [SupplyParameterFromQuery(Name = "from")]
+    public string? FromQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "to")]
+    public string? ToQuery { get; set; }
+
+    private static bool TryParseDate(string? value, out DateOnly date)
+        => DateOnly.TryParse(value, out date);
+
     private async Task LoadClients()
     {
-        clients = (await ClientApi.GetAllAsync())
+        if (rangeTo < rangeFrom)
+        {
+            rangeTo = rangeFrom;
+        }
+
+        clients = (await ClientApi.GetAllAsync(from: rangeFrom, to: rangeTo))
             .OrderBy(client => client.LastName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(client => client.FirstName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(client => client.Id, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private async Task ApplyFilter()
+    {
+        await LoadClients();
+    }
+
+    private async Task<bool> AlignRangeToSelectedClientAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedId) || IsNewClientRoute())
+        {
+            return false;
+        }
+
+        if (string.Equals(alignedSelectionId, SelectedId, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        alignedSelectionId = SelectedId;
+        filterText = string.Empty;
+        var opened = await ClientApi.GetByIdAsync(SelectedId);
+        var bookings = await BookingApi.ListAsync(clientId: SelectedId) ?? new List<BookingDto>();
+        var stay = ChooseStay(bookings);
+        if (stay is not null)
+        {
+            TrySetRangeToBooking(stay);
+        }
+
+        await LoadClients();
+        if (opened is not null)
+        {
+            EnsureListed(opened);
+        }
+
+        return true;
+    }
+
+    private static BookingDto? ChooseStay(IReadOnlyList<BookingDto> bookings)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var dated = bookings.Where(booking => (booking.ArrivalDate ?? booking.ActualArrivalDate) is not null).ToList();
+        if (dated.Count == 0)
+        {
+            return null;
+        }
+
+        var onDesk = dated.Where(booking => StayOverlaps(booking, today, today) || CheckedOutOn(booking, today)).ToList();
+        var pool = onDesk.Count > 0 ? onDesk : dated;
+        return pool
+            .OrderBy(booking => Math.Abs((booking.ArrivalDate ?? booking.ActualArrivalDate ?? today).DayNumber - today.DayNumber))
+            .ThenByDescending(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+            .First();
+    }
+
+    private static bool CheckedOutOn(BookingDto booking, DateOnly day)
+        => booking.ActualDepartureDate == day;
+
+    private static bool StayOverlaps(BookingDto booking, DateOnly from, DateOnly to)
+    {
+        var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
+        if (arrival is null)
+        {
+            return false;
+        }
+
+        var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival.Value;
+        return arrival.Value <= to && departure >= from;
+    }
+
+    private void TrySetRangeToBooking(BookingDto booking)
+    {
+        var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
+        if (arrival is null)
+        {
+            return;
+        }
+
+        var departure = booking.DepartureDate ?? booking.ActualDepartureDate ?? arrival;
+        rangeFrom = arrival.Value;
+        rangeTo = departure.Value < arrival.Value ? arrival.Value : departure.Value;
+    }
+
+    private void EnsureListed(ClientDto client)
+    {
+        if (clients is null || string.IsNullOrWhiteSpace(client.Id))
+        {
+            return;
+        }
+
+        if (clients.Any(current => string.Equals(current.Id, client.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        clients.Add(client);
+        clients = clients
+            .OrderBy(current => current.LastName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(current => current.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(current => current.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private bool IsNewClientRoute()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/');
+        return string.Equals(path, "clients/new", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task RevealSelectedClientAsync()
+    {
+        if (string.IsNullOrWhiteSpace(selectedClient?.Id))
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("hotelDruidCulture.revealActiveBooking");
+        }
+        catch
+        {
+            // The row stays marked in the list when the page cannot scroll.
+        }
     }
 
     private async Task ApplySelectedClientFromQueryAsync()
@@ -526,7 +704,18 @@
         }
 
         var requestedClient = clients.FirstOrDefault(client => string.Equals(client.Id, SelectedId, StringComparison.OrdinalIgnoreCase));
-        if (requestedClient is not null && !string.Equals(selectedClient?.Id, requestedClient.Id, StringComparison.OrdinalIgnoreCase))
+        if (requestedClient is null)
+        {
+            requestedClient = await ClientApi.GetByIdAsync(SelectedId);
+            if (requestedClient is null)
+            {
+                return;
+            }
+
+            EnsureListed(requestedClient);
+        }
+
+        if (!string.Equals(selectedClient?.Id, requestedClient.Id, StringComparison.OrdinalIgnoreCase))
         {
             await SelectClientAsync(requestedClient);
         }
@@ -559,7 +748,7 @@
         try
         {
             isBookingLoading = true;
-            var bookings = await BookingApi.ListAsync();
+            var bookings = await BookingApi.ListAsync(clientId: selectedClient.Id) ?? new List<BookingDto>();
             clientBookings = bookings
                 .Where(booking => string.Equals(booking.ClientId, selectedClient.Id, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(booking => booking.ArrivalDate ?? DateOnly.MinValue)

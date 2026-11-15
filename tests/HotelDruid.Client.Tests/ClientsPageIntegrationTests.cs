@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -5,6 +6,7 @@ using Bunit;
 using FluentAssertions;
 using HotelDruid.Client.Pages;
 using HotelDruid.Client.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -22,14 +24,21 @@ public class ClientsPageIntegrationTests : TestContext
     {
         Services.AddClientLocalizationTestSupport();
 
-        clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>())).ReturnsAsync(new List<ClientDto>
+        var knownClients = new List<ClientDto>
         {
             new("c-3", "Brown", "Zoe"),
             new("c-1", "Adams", "Anna"),
             new("c-2", "Adams", "Ben")
-        });
+        };
+        clientApi.Setup(x => x.GetAllAsync(It.IsAny<string?>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>())).ReturnsAsync(knownClients);
+        clientApi.Setup(x => x.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((string id) => knownClients.FirstOrDefault(client => string.Equals(client.Id, id, StringComparison.OrdinalIgnoreCase)));
         roomApi.Setup(x => x.GetRoomsAsync()).ReturnsAsync(new List<RoomDto>());
-        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>())).ReturnsAsync(new List<HotelDruid.Shared.BookingDto>());
+        bookingApi.Setup(x => x.ListAsync(It.IsAny<int?>(), It.IsAny<bool>(), It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<string?>()))
+            .ReturnsAsync((int? year, bool includeDeleted, DateOnly? from, DateOnly? to, string? clientId) =>
+                string.Equals(clientId, "c-1", StringComparison.OrdinalIgnoreCase)
+                    ? new List<HotelDruid.Shared.BookingDto> { new("b-anna", 2026, "c-1", "room-1", new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3), "Confirmed") }
+                    : new List<HotelDruid.Shared.BookingDto>());
         financeApi.Setup(x => x.GetSummaryAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync((int year, string bookingId) => null);
 
@@ -53,6 +62,63 @@ public class ClientsPageIntegrationTests : TestContext
         items[0].TextContent.Should().Contain("Adams, Anna");
         items[1].TextContent.Should().Contain("Adams, Ben");
         items[2].TextContent.Should().Contain("Brown, Zoe");
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var dates = component.FindAll("input[type='date']");
+        dates[0].GetAttribute("value").Should().Be(today.ToString("yyyy-MM-dd"));
+        dates[1].GetAttribute("value").Should().Be(today.ToString("yyyy-MM-dd"));
+        clientApi.Verify(x => x.GetAllAsync(null, today, today), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void ClientsPage_NameFilter_ShouldNarrowTheLoadedClients()
+    {
+        var component = Render<Clients>();
+        component.WaitForAssertion(() => component.FindAll(".list-group-item").Should().HaveCount(3));
+
+        component.Find("input[type=text]").Input("Brown");
+
+        component.WaitForAssertion(() =>
+        {
+            var items = component.FindAll(".list-group-item");
+            items.Should().ContainSingle();
+            items[0].TextContent.Should().Contain("Brown, Zoe");
+        });
+    }
+
+    [Fact]
+    public void ClientsPage_Load_ShouldAskForClientsInTheSelectedDates()
+    {
+        var component = Render<Clients>();
+        component.WaitForAssertion(() => component.FindAll("input[type='date']").Should().HaveCount(2));
+
+        component.FindAll("input[type='date']")[0].Change("2026-05-01");
+        component.FindAll("input[type='date']")[1].Change("2026-05-03");
+        component.FindAll("button").First(button => button.TextContent.Contains("Load")).Click();
+
+        component.WaitForAssertion(() =>
+            clientApi.Verify(x => x.GetAllAsync(null, new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3)), Times.AtLeastOnce));
+    }
+
+    [Fact]
+    public void ClientsPage_SelectedId_ShouldHighlightThatClientAndUseTheStayDates()
+    {
+        var navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/clients?selectedId=c-1");
+
+        var component = Render<Clients>();
+
+        component.WaitForAssertion(() =>
+        {
+            var selected = component.FindAll(".list-group-item.active");
+            selected.Should().ContainSingle();
+            selected[0].TextContent.Should().Contain("Adams, Anna");
+        });
+
+        var dates = component.FindAll("input[type='date']");
+        dates[0].GetAttribute("value").Should().Be("2026-05-01");
+        dates[1].GetAttribute("value").Should().Be("2026-05-03");
+        clientApi.Verify(x => x.GetAllAsync(null, new DateOnly(2026, 5, 1), new DateOnly(2026, 5, 3)), Times.AtLeastOnce);
     }
 
     [Fact]

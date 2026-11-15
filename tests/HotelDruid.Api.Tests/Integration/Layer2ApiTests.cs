@@ -169,6 +169,28 @@ public class Layer2ApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Client_List_ByStayRange_ReturnsGuestsArrivingStayingOrCheckedOut()
+    {
+        var arriving = await ReadAs<ClientDto>(await _client.PostAsync("/api/clients", Json(new { LastName = "ArrivingGuest" })));
+        var staying = await ReadAs<ClientDto>(await _client.PostAsync("/api/clients", Json(new { LastName = "StayingGuest" })));
+        var departed = await ReadAs<ClientDto>(await _client.PostAsync("/api/clients", Json(new { LastName = "DepartedGuest" })));
+        var other = await ReadAs<ClientDto>(await _client.PostAsync("/api/clients", Json(new { LastName = "OtherGuest" })));
+
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2072, ClientId = arriving!.Id, ArrivalDate = "2072-04-10", DepartureDate = "2072-04-12", Status = "Confirmed" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2072, ClientId = staying!.Id, ArrivalDate = "2072-04-08", DepartureDate = "2072-04-15", Status = "CheckedIn", ActualArrivalDate = "2072-04-08", ActualGuestCount = 1 }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2072, ClientId = departed!.Id, ArrivalDate = "2072-04-08", DepartureDate = "2072-04-10", Status = "CheckedOut", ActualArrivalDate = "2072-04-08", ActualGuestCount = 1, ActualDepartureDate = "2072-04-10" }));
+        await _client.PostAsync("/api/bookings", Json(new { Year = 2072, ClientId = other!.Id, ArrivalDate = "2072-09-01", DepartureDate = "2072-09-03", Status = "Confirmed" }));
+
+        var response = await _client.GetAsync("/api/clients?from=2072-04-10&to=2072-04-10");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await ReadAs<List<ClientDto>>(response);
+        Assert.Contains(list!, client => client.LastName == "ArrivingGuest");
+        Assert.Contains(list!, client => client.LastName == "StayingGuest");
+        Assert.Contains(list!, client => client.LastName == "DepartedGuest");
+        Assert.DoesNotContain(list!, client => client.LastName == "OtherGuest");
+    }
+
+    [Fact]
     public async Task Client_Create_AndGet_RoundTripsExtendedFields()
     {
         var birthDate = new DateTime(1988, 4, 2, 0, 0, 0, DateTimeKind.Utc);

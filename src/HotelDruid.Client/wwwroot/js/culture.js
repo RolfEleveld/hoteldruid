@@ -62,7 +62,7 @@ window.hotelDruidCulture = {
     },
 
     revealActiveBooking: function () {
-        const item = document.querySelector(".bookings-manager .list-group-item.active");
+        const item = document.querySelector(".bookings-manager .list-group-item.active, .clients-manager .list-group-item.active");
         if (item && typeof item.scrollIntoView === "function") {
             item.scrollIntoView({ block: "nearest" });
         }

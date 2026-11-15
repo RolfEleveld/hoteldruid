@@ -9,7 +9,7 @@ namespace HotelDruid.Client.Services
 {
     public interface IClientApiService
     {
-        Task<List<ClientDto>> GetAllAsync(string? lastName = null);
+        Task<List<ClientDto>> GetAllAsync(string? lastName = null, DateOnly? from = null, DateOnly? to = null);
         Task<ClientDto?> GetByIdAsync(string id);
         Task<string> CreateAsync(ClientDto dto);
         Task UpdateAsync(string id, ClientDto dto);
@@ -67,11 +67,25 @@ namespace HotelDruid.Client.Services
 
         public ClientApiService(HttpClient httpClient) { _httpClient = httpClient; }
 
-        public async Task<List<ClientDto>> GetAllAsync(string? lastName = null)
+        public async Task<List<ClientDto>> GetAllAsync(string? lastName = null, DateOnly? from = null, DateOnly? to = null)
         {
             try
             {
-                var url = string.IsNullOrEmpty(lastName) ? "/api/clients" : $"/api/clients?lastName={Uri.EscapeDataString(lastName)}";
+                var query = new List<string>();
+                if (!string.IsNullOrEmpty(lastName))
+                {
+                    query.Add($"lastName={Uri.EscapeDataString(lastName)}");
+                }
+
+                if (from.HasValue && to.HasValue)
+                {
+                    var start = from.Value <= to.Value ? from.Value : to.Value;
+                    var end = from.Value <= to.Value ? to.Value : from.Value;
+                    query.Add($"from={start:yyyy-MM-dd}");
+                    query.Add($"to={end:yyyy-MM-dd}");
+                }
+
+                var url = query.Count == 0 ? "/api/clients" : $"/api/clients?{string.Join("&", query)}";
                 var resp = await _httpClient.GetAsync(url);
                 resp.EnsureSuccessStatusCode();
                 return JsonSerializer.Deserialize<List<ClientDto>>(await resp.Content.ReadAsStringAsync(), _json) ?? new();

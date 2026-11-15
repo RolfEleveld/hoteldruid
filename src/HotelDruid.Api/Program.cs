@@ -2030,19 +2030,91 @@ app.MapGet("/api/clients/{id}", async (string id, IKeyValueStore store) =>
     return Results.Ok(ToClientFullDto(id, c));
 }).WithName("GetClient");
 
-app.MapGet("/api/clients", async (IKeyValueStore store, string? lastName) =>
+app.MapGet("/api/clients", async (IKeyValueStore store, string? lastName, DateOnly? from, DateOnly? to) =>
 {
+    if (from.HasValue && to.HasValue && to.Value < from.Value)
+    {
+        (from, to) = (to, from);
+    }
+
+    if (from.HasValue && to.HasValue)
+    {
+        var guestIds = await CollectDeskGuestIdsAsync(store, from.Value, to.Value);
+        var matched = new List<ClientFullDto>();
+        foreach (var guestId in guestIds)
+        {
+            var guest = await store.GetAsync<ClientStorageModel>("clients", guestId);
+            if (guest is null || !ClientMatchesLastName(guest, lastName)) continue;
+            matched.Add(ToClientFullDto(guestId, guest));
+        }
+
+        return Results.Ok(matched);
+    }
+
     var idx = await store.GetIndexAsync("clients");
     var result = new List<ClientFullDto>();
     foreach (var kvp in idx)
     {
         var c = await store.GetAsync<ClientStorageModel>("clients", kvp.Value);
-        if (c is null) continue;
-        if (!string.IsNullOrEmpty(lastName) && (c.LastName == null || !c.LastName.Contains(lastName, StringComparison.OrdinalIgnoreCase))) continue;
+        if (c is null || !ClientMatchesLastName(c, lastName)) continue;
         result.Add(ToClientFullDto(kvp.Value, c));
     }
     return Results.Ok(result);
 }).WithName("ListClients");
+
+static bool ClientMatchesLastName(ClientStorageModel client, string? lastName)
+    => string.IsNullOrEmpty(lastName)
+        || (client.LastName is not null && client.LastName.Contains(lastName, StringComparison.OrdinalIgnoreCase));
+
+static async Task<HashSet<string>> CollectDeskGuestIdsAsync(IKeyValueStore store, DateOnly from, DateOnly to)
+{
+    var guestIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var idx = await store.GetIndexAsync("bookings");
+    foreach (var kvp in idx)
+    {
+        if (FilingYearOutsideRange(kvp.Key, from.Year - 1, to.Year))
+        {
+            continue;
+        }
+
+        var booking = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
+        if (booking is null || booking.DeletedAt.HasValue || string.IsNullOrWhiteSpace(booking.ClientId))
+        {
+            continue;
+        }
+
+        if (!GuestIsOnDesk(booking, from, to))
+        {
+            continue;
+        }
+
+        guestIds.Add(booking.ClientId);
+    }
+
+    return guestIds;
+}
+
+static bool GuestIsOnDesk(BookingStorageModel booking, DateOnly from, DateOnly to)
+{
+    var status = booking.Status;
+    if (!string.IsNullOrWhiteSpace(status)
+        && (status.Contains("cancel", StringComparison.OrdinalIgnoreCase)
+            || status.Contains("void", StringComparison.OrdinalIgnoreCase)
+            || status.Contains("deleted", StringComparison.OrdinalIgnoreCase)))
+    {
+        return false;
+    }
+
+    if (DateFallsInRange(booking.ActualArrivalDate, from, to) || DateFallsInRange(booking.ActualDepartureDate, from, to))
+    {
+        return true;
+    }
+
+    return StayOverlapsRange(booking, from, to);
+}
+
+static bool DateFallsInRange(DateOnly? day, DateOnly from, DateOnly to)
+    => day.HasValue && day.Value >= from && day.Value <= to;
 
 app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyValueStore store) =>
 {
