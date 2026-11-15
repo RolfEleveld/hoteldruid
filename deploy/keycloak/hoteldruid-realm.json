@@ -1,0 +1,75 @@
+{
+  "realm": "HotelDruid",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "administrator",
+        "description": "The whole hotel, including setup and who may sign in.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "clerk",
+        "description": "The desk: reservations, guests, arrivals, stays, the cashier, and reports.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "room-service",
+        "description": "The house: room status, who is staying, and who is leaving.",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "reports",
+        "description": "Reports only. No changes to the hotel.",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "groups": [
+    { "name": "administrator", "realmRoles": ["administrator"] },
+    { "name": "clerk", "realmRoles": ["clerk"] },
+    { "name": "room-service", "realmRoles": ["room-service"] },
+    { "name": "reports", "realmRoles": ["reports"] }
+  ],
+  "clients": [
+    {
+      "clientId": "HotelDruid-api",
+      "name": "HotelDruid",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://localhost:5001/*",
+        "http://localhost:5001/*"
+      ],
+      "webOrigins": ["+"],
+      "protocolMappers": [
+        {
+          "name": "hoteldruid-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "hoteldruid_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -58,20 +58,22 @@ curl -X POST http://localhost:8081/realms/HotelDruid/protocol/openid-connect/tok
   -d "grant_type=client_credentials"
 ```
 
-## 5. Create Roles
+## 5. Import the desk roles
 
-1. In the left sidebar, go to **Roles**
-2. Click **Create role**
-3. Create the following roles:
+The realm file `deploy/keycloak/hoteldruid-realm.json` creates the realm, the client `HotelDruid-api`, four groups, and the claim the hotel reads.
 
-   - **HotelDruid-admin**: Full access to all operations
-   - **HotelDruid-staff**: Can view bookings, manage check-ins
-   - **HotelDruid-guest**: Read-only access to own reservations
+In the admin console: **Realm settings** is not required first. From the realm dropdown, **Create realm**, then **Browse** the file and **Create**. On an existing `HotelDruid` realm, use **Partial import** and choose the same file.
 
-Example (repeat for each role):
-- Name: `HotelDruid-admin`
-- Description: `Full HotelDruid access`
-- Click **Save**
+Each group carries one realm role. Put a person in the group, or assign the role directly. The client mapper writes that role into the token claim `hoteldruid_roles`.
+
+| Group and role | What that person may do |
+| --- | --- |
+| `administrator` | The whole hotel, including setup and who may sign in |
+| `clerk` | Reservations, guests, arrivals, stays, the cashier, and reports |
+| `room-service` | Room status, who is staying, and who is leaving |
+| `reports` | Reports only |
+
+A person in more than one group keeps every matching area. `reports` is the smallest grant. Without Keycloak in front of the hotel, HotelDruid does not apply these roles: the desk is open, and the user-management menus stay hidden.
 
 ## 6. Create Users
 
@@ -95,7 +97,7 @@ Repeat for additional users.
 1. In the Users list, click the user (e.g., `john.staff`)
 2. Go to the **Role mapping** tab
 3. Under **Assign roles**, click **Assign role**
-4. Filter and select `HotelDruid-admin` (or appropriate role)
+4. Filter and select `clerk` (or `administrator`, `room-service`, `reports`)
 5. Click **Assign**
 
 The user now has the selected role.
@@ -108,9 +110,11 @@ The user now has the selected role.
 4. Go to the **Mappers** tab
 5. Click **Configure a new mapper** and select **User Roles**
 6. Fill in:
-   - **Name**: `user_roles`
-   - **Token Claim Name**: `roles`
+   - **Name**: `hoteldruid-roles`
+   - **Token Claim Name**: `hoteldruid_roles`
    - **Add to ID token**: ✅
+   - **Add to access token**: ✅
+   - **Add to userinfo**: ✅
 7. Click **Save**
 
 This ensures role information is included in ID tokens.

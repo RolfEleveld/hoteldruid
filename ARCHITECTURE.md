@@ -1385,9 +1385,48 @@ Keycloak is a deployment choice, not a compile-time dependency. `IdentityFrontPr
 
 The result is a front only when `Identity:Provider` is `keycloak` and the API receives an OpenID discovery document from `Identity:Issuer`. The browser address of the admin console is `Identity:AdminConsoleUrl` and is not used for the probe. Compose maps these from `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL`. See [docs/keycloak-setup.md](docs/keycloak-setup.md) and [docs/deployment-runbook.md](docs/deployment-runbook.md).
 
-When `isFront` is true, the drawer shows Identity. That page opens the Keycloak admin console. HotelDruid does not proxy the admin API and does not store the Keycloak admin password. Login users and roles stay in the realm. The probe does not sign a desk user in. Requiring a token stays with the reverse proxy.
+The realm to import is [deploy/keycloak/hoteldruid-realm.json](deploy/keycloak/hoteldruid-realm.json). It creates the realm `HotelDruid`, the client `HotelDruid-api`, and four groups. Each group carries one realm role. The client mapper writes those roles into the token claim `hoteldruid_roles`.
 
-When Keycloak is absent, or the probe fails, the Identity item is not shown. An operator can still open `/identity` and see that no front is deployed.
+Sign-in is one directory, and that directory is Keycloak. The hotel does not create login users, does not assign groups, and does not call the Keycloak admin API. The Identity page only opens the Keycloak admin console in the browser. Who may use that console is a Keycloak administrator, which is not the hotel role `administrator`.
+
+```mermaid
+flowchart LR
+  subgraph keycloak [Keycloak]
+    account[Login account]
+    group[Group and role]
+    token["Token: name and hoteldruid_roles"]
+    account --> group --> token
+  end
+  console[Keycloak admin console]
+  console -->|creates the account and puts it in a group| account
+  identity[HotelDruid Identity page]
+  identity -.->|opens the console in the browser| console
+  token -.->|consumed when a token reaches the hotel| desk[Desk menus]
+  register[Staff register in HotelDruid]
+  register -->|names the person on a cash row| cash[Cash and ledger line]
+```
+
+| What | Where it is kept | Who changes it |
+| --- | --- | --- |
+| Who may sign in | Keycloak account | A Keycloak administrator, in the Keycloak console |
+| `administrator`, `clerk`, `room-service`, `reports` | Keycloak group and realm role, then the claim `hoteldruid_roles` | The same console. The hotel only reads the claim |
+| Name on a cash or ledger line | HotelDruid staff register: Users, groups, privileges | The hotel pages, from the imported PHP register |
+| What the desk shows | Not stored. Derived from `hoteldruid_roles` once a token arrives | Nobody edits this list inside the hotel |
+
+The staff register is the old list of people who worked the desk. It is not a second copy of Keycloak. A cash row still needs a name when no token is present, which is why those pages exist. They do not grant sign-in, and Keycloak does not read them.
+
+| Group and role | What that person may do |
+| --- | --- |
+| `administrator` | The whole hotel, including setup |
+| `clerk` | Reservations, guests, arrivals, stays, the cashier, and reports |
+| `room-service` | Room status, who is staying, and who is leaving |
+| `reports` | Reports only |
+
+A person is placed in a group, or given the role directly. More than one role keeps every matching area. The hotel does not narrow the desk from this claim until a signed-in token reaches it. Until then the desk stays open.
+
+When `isFront` is true, the drawer shows Identity plus the staff-register pages (Users, User Groups, and User Management). Those pages edit the register. They do not write to Keycloak. The probe does not sign a desk user in. Requiring a token stays with the reverse proxy.
+
+When Keycloak is absent, or the probe fails, that whole segment stays out of the drawer. The desk is open: every other menu remains. An operator can still open `/identity` and see that no front is deployed.
 
 The API data directory is `HOTELDRUID_DATAROOT`. The container image and compose file set that name. The older `HotelDruid_DATAROOT` spelling is not read on Linux.
 
@@ -1405,7 +1444,7 @@ These groups stay because the ledger and the desk still use them:
 - Expenses, money history, general ledger, chart of accounts. Money history is the cash journal. The ledger is the book. They are not two copies of the same screen.
 - Messages, contract templates, external integrations, settings, and setup.
 
-Users, user groups, privileges, group memberships, user preferences, and sessions are the imported staff register. A cash row still names a person from that register. They are not the login directory when section 22 says Keycloak is the front. The Identity page says so. The pages stay.
+Users, user groups, privileges, group memberships, and user preferences are the imported staff register. A cash row still names a person from that register. They are not the login directory. Section 22 shows them in the drawer only while Keycloak is the front. Sessions stays under Communication.
 
 `Shared/NavMenu.razor` was an unused English-only menu and has been removed. `/home` was the unused Blazor template page and has been removed. The desk home is `/`.
 
