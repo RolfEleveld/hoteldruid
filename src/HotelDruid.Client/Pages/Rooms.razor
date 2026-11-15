@@ -274,40 +274,46 @@
                     {
                         <div class="alert alert-info">@L["rooms.emptyList", "No rooms available"]</div>
                     }
-                    else if (rooms.Count == 1)
+                    else if (selectedRoom is null || string.IsNullOrWhiteSpace(selectedRoom.Name))
                     {
-                        <div class="alert alert-info">@L["rooms.selectForNeighbors", "Create or select a room to edit neighbors"]</div>
+                        <div class="alert alert-info">@L["rooms.selectForNeighbors"]</div>
                     }
                     else
                     {
-                        <div class="neighbors-matrix">
-                            <div class="matrix-header">
-                                <div class="matrix-corner"></div>
-                                @for (var colIndex = 0; colIndex < rooms.Count; colIndex++)
-                                {
-                                    var room = rooms[colIndex];
-                                    <div class="matrix-label-col">@room.Name</div>
-                                }
+                        var current = selectedRoom;
+                        var houses = NeighborHouses(current);
+                        var showHouses = ShowsHouseHeadings();
+                        <div class="neighbor-board">
+                            <div>
+                                <div class="fw-semibold">@current.Name</div>
+                                <div class="text-muted small">@L["rooms.neighborHint"]</div>
                             </div>
-
-                            @for (var rowIndex = 0; rowIndex < rooms.Count; rowIndex++)
+                            @foreach (var house in houses)
                             {
-                                var rowRoom = rooms[rowIndex];
-                                <div class="matrix-row">
-                                    <div class="matrix-label-row">@rowRoom.Name</div>
-                                    @for (var colIndex = 0; colIndex < rooms.Count; colIndex++)
+                                <div class="neighbor-house">
+                                    @if (showHouses && !string.IsNullOrWhiteSpace(house.House))
                                     {
-                                        var colRoom = rooms[colIndex];
-                                        var isEditableCell = rowIndex > colIndex;
-                                        var isNeighbor = isEditableCell && AreNeighbors(rowRoom, colRoom);
-
-                                        <div class="matrix-cell">
-                                            @if (isEditableCell)
+                                        <div class="neighbor-house-label">@L["rooms.house"] @house.House</div>
+                                    }
+                                    @foreach (var floor in house.Floors)
+                                    {
+                                        <div>
+                                            @if (!string.IsNullOrWhiteSpace(floor.Floor))
                                             {
-                                                <input type="checkbox" class="form-check-input"
-                                                    checked="@isNeighbor"
-                                                    @onchange="e => UpdateNeighborPair(rowRoom, colRoom, (bool)(e.Value ?? false))" />
+                                                <div class="neighbor-floor-label">@L["rooms.floor"] @floor.Floor</div>
                                             }
+                                            <div class="neighbor-chips">
+                                                @foreach (var other in floor.Rooms)
+                                                {
+                                                    var linked = AreNeighbors(current, other);
+                                                    <button type="button"
+                                                        class="neighbor-chip @(linked ? "is-linked" : null)"
+                                                        aria-pressed="@(linked ? "true" : "false")"
+                                                        @onclick="() => UpdateNeighborPair(current, other, !linked)">
+                                                        @other.Name
+                                                    </button>
+                                                }
+                                            </div>
                                         </div>
                                     }
                                 </div>
@@ -359,49 +365,56 @@
     font-size: 0.875rem;
 }
 
-.neighbors-matrix {
-    display: grid;
-    gap: 2px;
+.neighbor-board {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.neighbor-house {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.neighbor-house-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.15rem;
+}
+
+.neighbor-floor-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.35rem;
+}
+
+.neighbor-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.neighbor-chip {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #212529;
+    border-radius: 999px;
+    padding: 0.15rem 0.7rem;
+    min-height: 2rem;
     font-size: 0.875rem;
+    line-height: 1.4;
 }
 
-.matrix-header,
-.matrix-row {
-    display: grid;
-    grid-template-columns: 80px repeat(auto-fit, minmax(50px, 1fr));
-    gap: 2px;
-}
-
-.matrix-corner,
-.matrix-label-col,
-.matrix-label-row {
-    background-color: #f0f0f0;
-    padding: 8px 4px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #ddd;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.matrix-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #ddd;
-    background-color: #f9f9f9;
-    min-height: 40px;
-}
-
-.matrix-cell:has(input[type="checkbox"]) {
-    background-color: white;
-}
-
-.matrix-cell input[type="checkbox"] {
-    cursor: pointer;
-    transform: scale(1.2);
+.neighbor-chip.is-linked {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
 }
 
 .list-group-item {
@@ -916,6 +929,75 @@
             return null;
 
         return string.Join(",", neighbors.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private sealed record NeighborFloor(string Floor, List<RoomDto> Rooms);
+
+    private sealed record NeighborHouse(string House, List<NeighborFloor> Floors);
+
+    private readonly record struct RoomPlace(string House, string Floor);
+
+    private bool ShowsHouseHeadings()
+    {
+        if (rooms is null)
+        {
+            return false;
+        }
+
+        var houses = rooms
+            .Where(room => !string.IsNullOrWhiteSpace(room.Name))
+            .Select(room => PlaceOf(room).House)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return houses.Count(house => house.Length > 0) > 1
+            || (houses.Any(house => house.Length > 0) && houses.Any(house => house.Length == 0));
+    }
+
+    private List<NeighborHouse> NeighborHouses(RoomDto current)
+    {
+        if (rooms is null)
+        {
+            return new List<NeighborHouse>();
+        }
+
+        return rooms
+            .Where(room => !string.IsNullOrWhiteSpace(room.Name)
+                && !string.Equals(room.Id, current.Id, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(room.Name, current.Name, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(room => PlaceOf(room).House, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, NaturalRoomNameComparer.Instance)
+            .Select(group => new NeighborHouse(
+                group.Key,
+                group
+                    .GroupBy(room => PlaceOf(room).Floor, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(floor => floor.Key, NaturalRoomNameComparer.Instance)
+                    .Select(floor => new NeighborFloor(floor.Key, floor.ToList()))
+                    .ToList()))
+            .ToList();
+    }
+
+    private static RoomPlace PlaceOf(RoomDto room)
+    {
+        var house = room.HouseNumber?.Trim() ?? string.Empty;
+        var floor = room.FloorNumber?.Trim() ?? string.Empty;
+        var name = room.Name.Trim();
+        var dot = name.IndexOf('.');
+        var dottedHouse = dot > 0
+            && dot < name.Length - 1
+            && name[..dot].All(char.IsDigit)
+            && name[(dot + 1)..].All(char.IsDigit);
+
+        if (house.Length == 0 && dottedHouse)
+        {
+            house = name[..dot];
+        }
+        else if (floor.Length == 0 && !dottedHouse && name.Length >= 3 && name.All(char.IsDigit))
+        {
+            floor = name[..^2];
+        }
+
+        return new RoomPlace(house, floor);
     }
 
     private static bool AreNeighbors(RoomDto left, RoomDto right)

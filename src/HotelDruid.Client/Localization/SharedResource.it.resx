@@ -508,6 +508,7 @@
   <data name="rooms.selectPrompt" xml:space="preserve"><value>Seleziona una camera dalla lista o aggiungine una nuova</value></data>
   <data name="rooms.selectForNeighbors" xml:space="preserve"><value>Crea o seleziona una camera per modificare le adiacenze</value></data>
   <data name="rooms.neighboringRooms" xml:space="preserve"><value>Camere Adiacenti</value></data>
+  <data name="rooms.neighborHint" xml:space="preserve"><value>Tocca una camera per segnarla come attigua.</value></data>
   <data name="rooms.duplicate" xml:space="preserve"><value>Duplica</value></data>
   <data name="rooms.nameRequired" xml:space="preserve"><value>Il nome della camera è obbligatorio</value></data>
   <data name="rooms.capacityRequired" xml:space="preserve"><value>La capacità deve essere maggiore di 0</value></data>

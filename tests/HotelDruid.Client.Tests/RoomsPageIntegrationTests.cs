@@ -43,6 +43,24 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         }
     }
 
+    internal class RoomsPageHousesHandler : System.Net.Http.HttpMessageHandler
+    {
+        protected override Task<System.Net.Http.HttpResponseMessage> SendAsync(
+            System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+        {
+            if (request.Method == System.Net.Http.HttpMethod.Get &&
+                (request.RequestUri?.ToString() ?? "").Contains("/api/rooms"))
+                return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new System.Net.Http.StringContent(
+                        "[{\"id\":\"a1\",\"name\":\"101\",\"capacity\":2,\"floorNumber\":\"1\",\"houseNumber\":\"A\"},{\"id\":\"a2\",\"name\":\"102\",\"capacity\":2,\"floorNumber\":\"1\",\"houseNumber\":\"A\"},{\"id\":\"b1\",\"name\":\"201\",\"capacity\":2,\"floorNumber\":\"1\",\"houseNumber\":\"B\"}]",
+                        System.Text.Encoding.UTF8,
+                        "application/json")
+                });
+            return Task.FromResult(new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+        }
+    }
+
     /// <summary>
     /// Integration tests for the Rooms management page (/rooms)
     /// Tests the full CRUD functionality and UI interactions
@@ -301,15 +319,31 @@ namespace HotelDruid.Client.Tests.Integration.Pages
         }
 
         [Fact]
-        public void RoomsPage_NeighboringRoomsMatrix_ShouldRenderUniquePairCellsOnly()
+        public void RoomsPage_NeighborChips_ShouldListTheOtherRoomsForTheSelection()
         {
-            // Act
             var component = Render<Rooms>();
 
-            // Assert
-            // With 3 rooms, lower triangle has 3 pair-edit cells: (2,1), (3,1), (3,2)
-            var matrixCheckboxes = component.FindAll(".neighbors-matrix .matrix-cell input[type='checkbox']");
-            matrixCheckboxes.Count.Should().Be(3);
+            component.FindAll(".neighbor-chip").Should().BeEmpty();
+            component.FindAll(".list-group-item").First(item => item.TextContent.Contains("01.01")).Click();
+
+            var chips = component.FindAll(".neighbor-chip");
+            chips.Select(chip => chip.TextContent.Trim()).Should().Equal("01.02", "01.10");
+            chips.Should().OnlyContain(chip => chip.GetAttribute("aria-pressed") == "false");
+            component.FindAll(".neighbor-house-label").Should().BeEmpty();
+        }
+
+        [Fact]
+        public void RoomsPage_NeighborChips_ShouldGroupASecondHouseOnItsOwn()
+        {
+            Services.AddScoped(_ => new HttpClient(new RoomsPageHousesHandler()) { BaseAddress = new Uri("http://localhost/") });
+            var component = Render<Rooms>();
+
+            component.FindAll(".list-group-item").First(item => item.TextContent.Contains("101")).Click();
+
+            component.FindAll(".neighbor-house-label").Select(label => label.TextContent.Trim())
+                .Should().Equal("rooms.house A", "rooms.house B");
+            component.FindAll(".neighbor-chip").Select(chip => chip.TextContent.Trim())
+                .Should().Equal("102", "201");
         }
 
         [Fact]
