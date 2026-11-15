@@ -32,6 +32,7 @@ jobs:
           New-Item -ItemType Directory -Path ./deployment-package -Force | Out-Null
           Copy-Item -Recurse -Force ./artifacts/* ./deployment-package/
           Copy-Item -Force ./scripts/deploy.ps1 ./deployment-package/
+          Copy-Item -Recurse -Force ./scripts/desktop ./deployment-package/desktop
           Copy-Item -Force ./README.md ./deployment-package/
         shell: pwsh
 
@@ -62,14 +63,25 @@ jobs:
         run: |
           $tag = 'blazor-latest'
           $title = 'Blazor Latest Deployment Package'
-          $notes = "Automated deployment package from commit $env:GITHUB_SHA"
+          $notes = @"
+          Automated deployment package from commit $env:GITHUB_SHA
+
+          Desk install, from the release asset:
+          iex (irm https://github.com/$env:GITHUB_REPOSITORY/releases/download/blazor-latest/install.ps1)
+
+          Or download HotelDruid-desktop.zip, unzip it, and run HotelDruid.cmd Install.
+          "@
+          Copy-Item ./artifacts/HotelDruid-package.zip ./HotelDruid-desktop.zip -Force
+          $installer = Get-Content ./scripts/desktop/install.ps1 -Raw
+          $installer = $installer.Replace('__GITHUB_REPOSITORY__', $env:GITHUB_REPOSITORY)
+          [System.IO.File]::WriteAllText((Join-Path (Get-Location) 'install.ps1'), $installer)
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag ./hoteldruid-deployment-package.zip --clobber
+            gh release upload $tag ./hoteldruid-deployment-package.zip ./HotelDruid-desktop.zip ./install.ps1 --clobber
             gh release upload $tag ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json --clobber
             gh release upload $tag ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --clobber
             gh release edit $tag --title $title --notes $notes --target $env:GITHUB_SHA
           } else {
-            gh release create $tag ./hoteldruid-deployment-package.zip ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --title $title --notes $notes --target $env:GITHUB_SHA
+            gh release create $tag ./hoteldruid-deployment-package.zip ./HotelDruid-desktop.zip ./install.ps1 ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --title $title --notes $notes --target $env:GITHUB_SHA
           }
         shell: pwsh

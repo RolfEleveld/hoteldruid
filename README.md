@@ -112,6 +112,18 @@ You can download the package from either:
 3. Run the included `deploy.ps1` script (see usage below).
 4. For more details, see the rest of this README and the `scripts/README.md`.
 
+**Desk computer:**
+
+The release also carries `HotelDruid-desktop.zip` and `install.ps1`. On the front-desk computer, an administrator runs:
+
+```powershell
+iex (irm https://github.com/<owner>/<repo>/releases/download/blazor-latest/install.ps1)
+```
+
+That installs one hotel for the whole computer, starts it with Windows, and puts HotelDruid on the desktop. Opening HotelDruid checks the desk and launches the browser. `HotelDruid.cmd Uninstall` writes the export into the current user's Temp folder before it removes the hotel. The next install reports that folder.
+
+The package stays the framework-dependent build, so the computer needs the ASP.NET Core 10 runtime. A winget manifest that checks the zip hash, without a code-signing certificate, is in `deploy/winget/HotelDruid.HotelDruid.yaml`. Winget portable does not register the startup task; an administrator still runs `HotelDruid.cmd Install` once.
+
 The deployment package includes:
 - Build outputs produced under `artifacts/` (including `HotelDruid-package.zip`)
 - The deployment script: `scripts/deploy.ps1`

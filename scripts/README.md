@@ -6,6 +6,9 @@ This folder contains all automation scripts for building, deploying, and testing
 
 - **build.ps1**: Build and assemble the Blazor client and API for local development. Always produces a deployable package (`artifacts/HotelDruid-package.zip`) and CycloneDX SBOM JSON artifacts under `artifacts/sbom/`.
 - **deploy.ps1**: Deploy the package locally, as a per-user install (`-User`), or to a specified target (`-Target <path>`). For per-user installs it creates or trusts the localhost certificate, writes install metadata, creates Start Menu shortcuts, and generates the uninstall script and registry entry.
+- **desktop/HotelDruid.cmd**: The desk program. `Install` is the one administrator setup: it installs ASP.NET Core 10 when it is missing, copies the hotel to `ProgramData\HotelDruid`, and registers a startup task as Local Service with write access only to the data and log folders. Opening HotelDruid afterwards checks that the desk answers, starts it when it is down, and opens the browser. `Uninstall` writes the data export into the current user's Temp folder.
+- **desktop/Start-Sandbox.ps1**: Starts a Windows Sandbox with the built hotel mapped in. The sandbox installs Windows Package Manager, PowerShell 7, and the .NET 10 host and ASP.NET runtime, then installs HotelDruid when it is not already installed. Close an open sandbox first.
+- **desktop/Load-DemoHotel.ps1**: On an installed desk, exports the current hotel into the current user's Temp folder, then replaces the data folder with Hotel Belvedere. The range is five years before today through six months after today, 20 rooms, occupancy 0.67. The last line of output is the export path.
 - **test.ps1**: Run all unit and integration tests, generate reports.
 - **scenario-up.ps1**: Bring up a selected deployment scenario with admin-provided compose files.
 - **scenario-test.ps1**: Run health and optional auth-gate checks for a deployed scenario.

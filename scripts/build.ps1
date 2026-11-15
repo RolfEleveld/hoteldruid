@@ -244,6 +244,12 @@ Write-Host "   SBOM artifacts: $sbomOut" -ForegroundColor DarkGray
 
 # 6. Create deployment package (zip)
 Write-Host "`n[6/6] Creating deployment package..." -ForegroundColor Cyan
+$desktopDir = Join-Path $PSScriptRoot 'desktop'
+if (-not (Test-Path (Join-Path $desktopDir 'HotelDruid.ps1'))) {
+    throw "Desktop launcher not found at $desktopDir"
+}
+Copy-Item -Path (Join-Path $desktopDir '*') -Destination $apiOut -Force
+Write-Host "  Copied the desktop launcher into the package." -ForegroundColor DarkGray
 $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 if (Test-Path $packagePath) { Remove-Item $packagePath -Force }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
