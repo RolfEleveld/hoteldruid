@@ -12,8 +12,23 @@ public static class AccountRoles
     public const string RoomRevenue = "room-revenue";
     public const string OtherIncome = "other-income";
     public const string OperatingExpense = "operating-expense";
+    public const string OutputTax = "output-tax";
+    public const string CityTax = "city-tax";
 
     public static readonly IReadOnlyList<string> All =
+    [
+        Cash,
+        GuestLedger,
+        GuestDeposits,
+        RoomRevenue,
+        OtherIncome,
+        OperatingExpense,
+        OutputTax,
+        CityTax
+    ];
+
+    /// <summary>The original six buckets. A custom chart must name these. Tax buckets have a default when omitted.</summary>
+    public static readonly IReadOnlyList<string> Required =
     [
         Cash,
         GuestLedger,
@@ -36,7 +51,7 @@ public sealed record AccountStandard(
     IReadOnlyDictionary<string, string>? Codes);
 
 /// <summary>
-/// The six bucket codes for one installation.
+/// The bucket codes for one installation. Output tax and city tax sit beside the original six.
 /// </summary>
 public sealed class AccountChart
 {
@@ -54,7 +69,9 @@ public sealed class AccountChart
             [AccountRoles.GuestDeposits] = ("Guest deposits", "liability", "credit", "Deposits held until earned or settled. Taking a deposit does not reduce room revenue."),
             [AccountRoles.RoomRevenue] = ("Room revenue", "revenue", "credit", "Earned room charges. Recognized when the stay is charged, not when cash is received."),
             [AccountRoles.OtherIncome] = ("Other income", "revenue", "credit", "Walk-up sales, extras, and petty-cash income that is not room revenue."),
-            [AccountRoles.OperatingExpense] = ("Operating expense", "expense", "debit", "Hotel purchases and petty-cash outflows. The booking reference stays empty.")
+            [AccountRoles.OperatingExpense] = ("Operating expense", "expense", "debit", "Hotel purchases and petty-cash outflows. The booking reference stays empty."),
+            [AccountRoles.OutputTax] = ("Output tax", "liability", "credit", "Value-added tax collected on guest charges. Room revenue and other income are recorded net of this tax."),
+            [AccountRoles.CityTax] = ("City tax", "liability", "credit", "Tourist tax collected for the municipality. It is not room revenue and it is outside value-added tax.")
         };
 
     private readonly Dictionary<string, string> _codes;
@@ -74,6 +91,8 @@ public sealed class AccountChart
     public string RoomRevenue => _codes[AccountRoles.RoomRevenue];
     public string OtherIncome => _codes[AccountRoles.OtherIncome];
     public string OperatingExpense => _codes[AccountRoles.OperatingExpense];
+    public string OutputTax => _codes[AccountRoles.OutputTax];
+    public string CityTax => _codes[AccountRoles.CityTax];
 
     public IReadOnlyDictionary<string, string> Codes => _codes;
 
@@ -86,7 +105,9 @@ public sealed class AccountChart
         [AccountRoles.GuestDeposits] = "2400",
         [AccountRoles.RoomRevenue] = "4100",
         [AccountRoles.OtherIncome] = "4900",
-        [AccountRoles.OperatingExpense] = "6100"
+        [AccountRoles.OperatingExpense] = "6100",
+        [AccountRoles.OutputTax] = "2300",
+        [AccountRoles.CityTax] = "2500"
     });
 
     /// <summary>
@@ -101,7 +122,9 @@ public sealed class AccountChart
         [AccountRoles.GuestDeposits] = "2030",
         [AccountRoles.RoomRevenue] = "3400",
         [AccountRoles.OtherIncome] = "3600",
-        [AccountRoles.OperatingExpense] = "6700"
+        [AccountRoles.OperatingExpense] = "6700",
+        [AccountRoles.OutputTax] = "2200",
+        [AccountRoles.CityTax] = "2300"
     });
 
     /// <summary>
@@ -116,7 +139,9 @@ public sealed class AccountChart
         [AccountRoles.GuestDeposits] = "206.01",
         [AccountRoles.RoomRevenue] = "401.01",
         [AccountRoles.OtherIncome] = "403.01",
-        [AccountRoles.OperatingExpense] = "601.84"
+        [AccountRoles.OperatingExpense] = "601.84",
+        [AccountRoles.OutputTax] = "208.01",
+        [AccountRoles.CityTax] = "216.10"
     });
 
     /// <summary>
@@ -131,7 +156,9 @@ public sealed class AccountChart
         [AccountRoles.GuestDeposits] = "438",
         [AccountRoles.RoomRevenue] = "705",
         [AccountRoles.OtherIncome] = "759",
-        [AccountRoles.OperatingExpense] = "629"
+        [AccountRoles.OperatingExpense] = "629",
+        [AccountRoles.OutputTax] = "477",
+        [AccountRoles.CityTax] = "475"
     });
 
     public static IReadOnlyList<AccountStandard> Standards { get; } =
@@ -185,31 +212,52 @@ public sealed class AccountChart
 
         var codes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var role in AccountRoles.All)
+        foreach (var role in AccountRoles.Required)
+        {
+            if (!TryTakeCode(customCodes, role, seen, codes, out errorCode))
+                return false;
+        }
+
+        foreach (var (role, fallback) in new[] { (AccountRoles.OutputTax, "2300"), (AccountRoles.CityTax, "2500") })
         {
             if (!customCodes.TryGetValue(role, out var raw) || string.IsNullOrWhiteSpace(raw))
-            {
-                errorCode = "missing-code";
+                raw = fallback;
+            if (!TryTakeCode(new Dictionary<string, string> { [role] = raw }, role, seen, codes, out errorCode))
                 return false;
-            }
-
-            var code = raw.Trim();
-            if (code.Length > 16 || !IsAccountCode(code))
-            {
-                errorCode = "invalid-code";
-                return false;
-            }
-
-            if (!seen.Add(code))
-            {
-                errorCode = "duplicate-code";
-                return false;
-            }
-
-            codes[role] = code;
         }
 
         chart = new AccountChart(CustomId, codes);
+        errorCode = null;
+        return true;
+    }
+
+    private static bool TryTakeCode(
+        IReadOnlyDictionary<string, string> source,
+        string role,
+        HashSet<string> seen,
+        Dictionary<string, string> codes,
+        out string? errorCode)
+    {
+        if (!source.TryGetValue(role, out var raw) || string.IsNullOrWhiteSpace(raw))
+        {
+            errorCode = "missing-code";
+            return false;
+        }
+
+        var code = raw.Trim();
+        if (code.Length > 16 || !IsAccountCode(code))
+        {
+            errorCode = "invalid-code";
+            return false;
+        }
+
+        if (!seen.Add(code))
+        {
+            errorCode = "duplicate-code";
+            return false;
+        }
+
+        codes[role] = code;
         errorCode = null;
         return true;
     }

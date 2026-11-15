@@ -5,6 +5,7 @@
 @using HotelDruid.Client.Localization
 @using HotelDruid.Client.Reports
 @using HotelDruid.Shared
+@using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
 @inject HttpClient Http
 @inject IStringLocalizer<SharedResource> L
@@ -105,11 +106,9 @@ else
                                 @foreach (var row in section.Rows)
                                 {
                                     <tr>
-                                        @for (var i = 0; i < section.Columns.Count; i++)
+                                        @foreach (var cell in Cells(section, row))
                                         {
-                                            var kind = i < section.Kinds.Count ? section.Kinds[i] : "text";
-                                            var value = i < row.Cells.Count ? row.Cells[i] : "";
-                                            <td class="@KindClass(kind)">@Cell(kind, value)</td>
+                                            <td colspan="@cell.Span" class="@CellClass(cell.Kind, cell.Value)">@Cell(cell.Kind, cell.Value)</td>
                                         }
                                     </tr>
                                 }
@@ -141,6 +140,9 @@ else
     private string _filter = "";
     private DateOnly Day = DateOnly.FromDateTime(DateTime.Today);
 
+    [SupplyParameterFromQuery(Name = "date")]
+    public string? DateText { get; set; }
+
     private ReportLink? Link => ReportCatalog.All.FirstOrDefault(item => string.Equals(item.Key, Key, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnParametersSetAsync()
@@ -153,13 +155,16 @@ else
             return;
         }
 
-        if (string.Equals(_loaded, Key, StringComparison.OrdinalIgnoreCase))
+        var token = $"{Key}|{DateText}";
+        if (string.Equals(_loaded, token, StringComparison.OrdinalIgnoreCase))
             return;
 
         Day = string.Equals(Key, "flash", StringComparison.OrdinalIgnoreCase)
             ? DateOnly.FromDateTime(DateTime.Today).AddDays(-1)
             : DateOnly.FromDateTime(DateTime.Today);
-        _loaded = Key;
+        if (DateOnly.TryParse(DateText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var requested))
+            Day = requested;
+        _loaded = token;
         await Load();
     }
 
@@ -212,6 +217,14 @@ else
     {
         if (kind == "check")
             return new MarkupString("<span class=\"paper-box\"></span>");
+        if (kind == "band")
+        {
+            var parts = value.Split('|');
+            var text = parts.Length >= 2 && parts[0] == "occupied" && !string.IsNullOrWhiteSpace(parts[1])
+                ? parts[1]
+                : L["reports.band." + parts[0]].Value;
+            return new MarkupString(System.Net.WebUtility.HtmlEncode(text));
+        }
         if (string.IsNullOrWhiteSpace(value))
             return new MarkupString("");
         if (kind == "key" || value.StartsWith("reports.", StringComparison.Ordinal))
@@ -224,6 +237,28 @@ else
     }
 
     private static string KindClass(string kind) => kind is "money" or "number" ? "paper-num" : kind == "check" ? "paper-check" : "";
+
+    private static string CellClass(string kind, string value)
+    {
+        if (kind != "band")
+            return KindClass(kind);
+        var code = value.Split('|', 2)[0];
+        return string.IsNullOrWhiteSpace(code) ? "paper-band" : "paper-band paper-band-" + code;
+    }
+
+    private static IEnumerable<(string Kind, string Value, int Span)> Cells(PaperSectionDto section, PaperRowDto row)
+    {
+        var cursor = 0;
+        for (var cell = 0; cell < row.Cells.Count && cursor < section.Columns.Count; cell++)
+        {
+            var span = row.Spans is not null && cell < row.Spans.Count ? Math.Max(1, row.Spans[cell]) : 1;
+            if (cursor + span > section.Columns.Count)
+                span = section.Columns.Count - cursor;
+            var kind = cursor < section.Kinds.Count ? section.Kinds[cursor] : "text";
+            yield return (kind, row.Cells[cell], span);
+            cursor += span;
+        }
+    }
 
     private Task Print() => Js.InvokeVoidAsync("print").AsTask();
 }

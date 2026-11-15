@@ -193,6 +193,7 @@ public class LedgerRepository : ILedgerRepository, IDisposable
         if (entryIds is null) return result;
 
         var unresolved = new List<string>();
+        var dayCache = new Dictionary<DateTime, List<LedgerEntry>>();
         foreach (var id in entryIds.Distinct(StringComparer.Ordinal))
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -205,12 +206,23 @@ public class LedgerRepository : ILedgerRepository, IDisposable
             }
 
             var path = GetSeqPath(GetPartitionDir(date), sequence);
-            if (!File.Exists(path))
+            if (File.Exists(path))
+            {
+                var entry = await ReadEntryAsync(path);
+                if (entry is not null)
+                    result.Add(entry);
                 continue;
+            }
 
-            var entry = await ReadEntryAsync(path);
-            if (entry is not null)
-                result.Add(entry);
+            if (!dayCache.TryGetValue(date.Date, out var day))
+            {
+                day = await GetConsolidatedAsync(date);
+                dayCache[date.Date] = day;
+            }
+
+            var stored = day.FirstOrDefault(line => string.Equals(line.Id, id, StringComparison.Ordinal));
+            if (stored is not null)
+                result.Add(stored);
         }
 
         if (unresolved.Count > 0)

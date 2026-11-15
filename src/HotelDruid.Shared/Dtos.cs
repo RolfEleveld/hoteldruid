@@ -63,8 +63,21 @@ public record BookingDto(
     string? PreAuthMethod = null,
     DateTime? SettlementDate = null,
     DateTime? DeletedAt = null,
-    double? TariffTotalPrice = null
+    double? TariffTotalPrice = null,
+    string? Source = null,
+    string? ExternalReference = null,
+    string? GroupCode = null,
+    bool RoomFixed = false,
+    string? ContinuedFromId = null,
+    string? ContinuedToId = null,
+    string? GroupName = null
 );
+
+public record BookingMoveRequest(DateOnly FromDate, string RoomId, string? Reason, string? Note);
+
+public record StayGroupDto(string? Id, string? Name, DateOnly? FirstArrival, DateOnly? LastDeparture, int RoomCount);
+
+public record StayGroupRequest(string? Name);
 
 public record BookingCostDto(
     string? Id = null,
@@ -216,7 +229,8 @@ public record RoomDto(
     int? SecondaryPriority = null,
     string? HasBeds = null,
     string? NeighboringRooms = null,
-    string? Comments = null
+    string? Comments = null,
+    string? Condition = null
 );
 
 // --- Layer 5: Communication/Integration DTOs ---
@@ -226,6 +240,24 @@ public record MessageDto(string? Id, string? MessageType, string? Status, string
 public record ContractTemplateDto(string? Id, string? Type, int Number, string? Content);
 
 public record ExternalIntegrationDto(string? Id, string? IntegrationName, string? IdType, int? LocalId, string? RemoteId1, string? RemoteId2, int? Year, DateTime? CreatedAt);
+
+public record NightAuditDto(
+    DateOnly BusinessDate,
+    bool Signed,
+    DateTime? SignedAt,
+    string? SignedBy,
+    bool CashAgrees,
+    bool BalancesReviewed,
+    bool RoomsSeen,
+    string? Note,
+    string? CashTaken,
+    string? RoomRevenue,
+    string? OtherIncome,
+    string? StillDue,
+    string? Occupancy,
+    string? Sold);
+
+public record NightAuditSignRequest(bool CashAgrees, bool BalancesReviewed, bool RoomsSeen, string? Note);
 
 public record SessionDto(string? SessionId, int? UserId, string? IpAddress, string? ConnectionType, DateTime? LastAccess);
 

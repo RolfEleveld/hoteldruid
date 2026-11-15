@@ -13,6 +13,8 @@ public class AccountChartTests
         Assert.Equal("1000", chart.Cash);
         Assert.Equal("2400", chart.GuestDeposits);
         Assert.Equal("6100", chart.OperatingExpense);
+        Assert.Equal("2300", chart.OutputTax);
+        Assert.Equal("2500", chart.CityTax);
     }
 
     [Fact]

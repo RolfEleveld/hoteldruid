@@ -58,6 +58,25 @@ public class DeskReportBuilderTests
         Assert.Equal("10.00", report.Sections[0].Totals[1].Value);
     }
 
+    [Fact]
+    public void RoomBoard_ShowsTheGuestAndTheStoredCondition()
+    {
+        var facts = Sample() with
+        {
+            Rooms = [new DeskRoom("r1", "101", "A", "1"), new DeskRoom("r2", "102", "A", "1", "dirty")]
+        };
+        var report = DeskReportBuilder.Build("room-board", Day, facts);
+        Assert.Equal(new DateOnly(2026, 11, 1), report.From);
+        Assert.Equal(new DateOnly(2026, 11, 30), report.To);
+        var occupied = report.Sections[0].Rows.Single(row => row.Cells[0] == "101");
+        var dirty = report.Sections[0].Rows.Single(row => row.Cells[0] == "102");
+        var bauer = occupied.Cells.ToList().FindIndex(cell => cell.StartsWith("occupied|Bauer, Felix", StringComparison.Ordinal));
+        Assert.True(bauer > 0);
+        Assert.Equal(2, occupied.Spans![bauer]);
+        Assert.Contains(dirty.Cells, cell => cell == "dirty");
+        Assert.Equal(30, dirty.Spans!.Where((span, index) => dirty.Cells[index] == "dirty").Sum());
+    }
+
     private static DeskFacts Sample() => new(
         "Belvedere",
         "EUR",

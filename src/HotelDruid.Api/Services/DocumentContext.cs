@@ -58,6 +58,8 @@ public sealed class DocumentContext
     public string InvoiceRefundsTotal { get; init; } = string.Empty;
     public string InvoiceDepositsHeld { get; init; } = string.Empty;
     public string InvoiceTotalDue { get; init; } = string.Empty;
+    public string TaxNotice { get; init; } = string.Empty;
+    public string TaxNoticeDe { get; init; } = string.Empty;
 
     // --- Document meta ---
     public string DocumentToday { get; init; } = string.Empty;
@@ -67,6 +69,8 @@ public sealed class DocumentContext
     public IReadOnlyList<GuestContextRow> Guests { get; init; } = [];
     public IReadOnlyList<CostContextRow> Costs { get; init; } = [];
     public IReadOnlyList<PaymentContextRow> Payments { get; init; } = [];
+    public IReadOnlyList<TaxContextRow> Taxes { get; init; } = [];
+    public IReadOnlyList<TaxLineContextRow> TaxLines { get; init; } = [];
 }
 
 public sealed class GuestContextRow
@@ -86,6 +90,21 @@ public sealed class CostContextRow
     public string Description { get; init; } = string.Empty;
     public string Amount { get; init; } = string.Empty;
     public string TariffId { get; init; } = string.Empty;
+}
+
+public sealed class TaxContextRow
+{
+    public string Label { get; init; } = string.Empty;
+    public string Rate { get; init; } = string.Empty;
+    public string Net { get; init; } = string.Empty;
+    public string Tax { get; init; } = string.Empty;
+    public string Gross { get; init; } = string.Empty;
+}
+
+public sealed class TaxLineContextRow
+{
+    public string Label { get; init; } = string.Empty;
+    public string Amount { get; init; } = string.Empty;
 }
 
 public sealed class PaymentContextRow

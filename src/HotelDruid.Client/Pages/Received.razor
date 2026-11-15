@@ -1,0 +1,116 @@
+@page "/received"
+@using HotelDruid.Client.Localization
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@using Microsoft.Extensions.Localization
+@inject IBookingApiService BookingApi
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["received.title"]</PageTitle>
+
+<div class="container-fluid">
+    <div class="row align-items-center mb-2 mt-2">
+        <div class="col">
+            <h5 class="mb-0">@L["received.title"]</h5>
+            <p class="text-muted small mb-0">@L["received.subtitle"]</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(failed ? "alert-warning" : "alert-success")">@message</div>
+    }
+
+    @if (loading)
+    {
+        <p class="text-muted">@L["common.loading"]</p>
+    }
+    else if (incoming.Count == 0)
+    {
+        <p class="text-muted">@L["received.empty"]</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>@L["bookings.arrivalDate"]</th>
+                        <th>@L["bookings.departureDate"]</th>
+                        <th>@L["bookings.source"]</th>
+                        <th>@L["bookings.externalReference"]</th>
+                        <th>@L["bookings.groupCode"]</th>
+                        <th>@L["reports.col.room"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var booking in incoming)
+                    {
+                        <tr>
+                            <td>@booking.ArrivalDate?.ToString("yyyy-MM-dd")</td>
+                            <td>@booking.DepartureDate?.ToString("yyyy-MM-dd")</td>
+                            <td>@booking.Source</td>
+                            <td>@booking.ExternalReference</td>
+                            <td>@(string.IsNullOrWhiteSpace(booking.GroupName) ? booking.GroupCode : booking.GroupName)</td>
+                            <td>@(string.IsNullOrWhiteSpace(booking.RoomId) ? L["received.noRoom"] : L["received.roomAssigned"])</td>
+                            <td class="text-end">
+                                <a class="btn btn-outline-secondary btn-sm" href="@OpenUrl(booking)">@L["received.open"]</a>
+                                @if (!string.IsNullOrWhiteSpace(booking.GroupCode))
+                                {
+                                    <button type="button" class="btn btn-dark btn-sm" disabled="@busy" @onclick="() => ConfirmGroup(booking.GroupCode!)">@L["received.confirmGroup"]</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<BookingDto> incoming = new();
+    private bool loading = true;
+    private bool busy;
+    private bool failed;
+    private string? message;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        loading = true;
+        incoming = (await BookingApi.ListAsync())
+            .Where(booking => string.Equals(booking.Status, "Incoming", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(booking => booking.ArrivalDate)
+            .ThenBy(booking => booking.GroupCode)
+            .ToList();
+        loading = false;
+    }
+
+    private static string OpenUrl(BookingDto booking)
+        => $"/bookings?selectedId={Uri.EscapeDataString(booking.Id ?? "")}&year={booking.Year}&edit=true";
+
+    private async Task ConfirmGroup(string code)
+    {
+        busy = true;
+        failed = false;
+        message = null;
+        try
+        {
+            await BookingApi.ConfirmGroupAsync(code);
+            message = L["received.confirmed", code];
+            await Load();
+        }
+        catch (InvalidOperationException ex)
+        {
+            failed = true;
+            message = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

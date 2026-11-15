@@ -19,7 +19,7 @@ namespace HotelDruid.Client.Services
 
     public interface IBookingApiService
     {
-        Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null);
+        Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null, string? groupCode = null);
         Task<List<BookingDto>> ListStaysAsync(int? year = null);
         Task<List<BookingDto>> ListReservationsAsync(int? year = null);
         Task<List<BookingDto>> ListArrivalsAsync(int? year = null, int? lookAheadDays = null);
@@ -33,6 +33,10 @@ namespace HotelDruid.Client.Services
         Task<BookingDto?> CheckInAsync(int year, string id, BookingCheckInRequest request);
         Task<BookingDto?> CheckOutAsync(int year, string id, BookingCheckOutRequest request);
         Task<BookingDto?> MarkNoShowAsync(int year, string id, BookingNoShowRequest request);
+        Task ConfirmGroupAsync(string code);
+        Task<BookingDto?> MoveAsync(int year, string id, BookingMoveRequest request);
+        Task<List<StayGroupDto>> ListStayGroupsAsync();
+        Task<StayGroupDto?> CreateStayGroupAsync(string name);
     }
 
     public class BookingApiService : IBookingApiService
@@ -42,7 +46,7 @@ namespace HotelDruid.Client.Services
 
         public BookingApiService(HttpClient httpClient) { _httpClient = httpClient; }
 
-        public async Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null)
+        public async Task<List<BookingDto>> ListAsync(int? year = null, bool includeDeleted = false, DateOnly? from = null, DateOnly? to = null, string? clientId = null, string? groupCode = null)
         {
             try
             {
@@ -67,6 +71,11 @@ namespace HotelDruid.Client.Services
                 if (!string.IsNullOrWhiteSpace(clientId))
                 {
                     query.Add($"clientId={Uri.EscapeDataString(clientId)}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(groupCode))
+                {
+                    query.Add($"groupCode={Uri.EscapeDataString(groupCode)}");
                 }
 
                 var url = query.Count == 0 ? "/api/bookings" : $"/api/bookings?{string.Join("&", query)}";
@@ -205,6 +214,40 @@ namespace HotelDruid.Client.Services
             var response = await _httpClient.PostAsJsonAsync($"/api/bookings/{year}/{id}/no-show", request, _json);
             await EnsureSuccessOrThrowAsync(response);
             return JsonSerializer.Deserialize<BookingDto>(await response.Content.ReadAsStringAsync(), _json);
+        }
+
+        public async Task ConfirmGroupAsync(string code)
+        {
+            var response = await _httpClient.PostAsync($"/api/bookings/groups/{Uri.EscapeDataString(code)}/confirm", null);
+            await EnsureSuccessOrThrowAsync(response);
+        }
+
+        public async Task<BookingDto?> MoveAsync(int year, string id, BookingMoveRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"/api/bookings/{year}/{id}/move", request, _json);
+            await EnsureSuccessOrThrowAsync(response);
+            return JsonSerializer.Deserialize<BookingDto>(await response.Content.ReadAsStringAsync(), _json);
+        }
+
+        public async Task<List<StayGroupDto>> ListStayGroupsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("/api/stay-groups");
+                response.EnsureSuccessStatusCode();
+                return JsonSerializer.Deserialize<List<StayGroupDto>>(await response.Content.ReadAsStringAsync(), _json) ?? new();
+            }
+            catch
+            {
+                return new List<StayGroupDto>();
+            }
+        }
+
+        public async Task<StayGroupDto?> CreateStayGroupAsync(string name)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/stay-groups", new StayGroupRequest(name), _json);
+            await EnsureSuccessOrThrowAsync(response);
+            return JsonSerializer.Deserialize<StayGroupDto>(await response.Content.ReadAsStringAsync(), _json);
         }
 
         private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response)

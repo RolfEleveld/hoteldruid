@@ -20,6 +20,8 @@ public class RoomStorageModel
     public string? HasBeds { get; set; }
     public string? NeighboringRooms { get; set; }
     public string? Comments { get; set; }
+    /// <summary>Housekeeping condition: clean, dirty, blocked, or maintenance. Occupied and available are derived from stays.</summary>
+    public string? Condition { get; set; }
 }
 
 public class AssetStorageModel
@@ -488,11 +490,47 @@ public class BookingStorageModel
     /// <summary>Tariff resolved for this booking; recomputed whenever room/dates/guest count change.</summary>
     public string? TariffId { get; set; }
     public double? TariffTotalPrice { get; set; }
+    /// <summary>Where the booking came from: desk, phone, email, homepage, or a channel name.</summary>
+    public string? Source { get; set; }
+    /// <summary>The channel's own reservation number.</summary>
+    public string? ExternalReference { get; set; }
+    /// <summary>Shared by every room that must be confirmed together. This is the party id, not the name.</summary>
+    public string? GroupCode { get; set; }
+    /// <summary>The party name printed for the desk. A later party can use the same name and a different id.</summary>
+    public string? GroupName { get; set; }
+    /// <summary>The guest asked for this room. A later assignment must not move it.</summary>
+    public bool RoomFixed { get; set; }
+    /// <summary>The booking this stay continues from, when the guest moved rooms.</summary>
+    public string? ContinuedFromId { get; set; }
+    /// <summary>The booking this stay continues into, when the guest moved rooms.</summary>
+    public string? ContinuedToId { get; set; }
     public string? PreAuthReference { get; set; }
     public string? PreAuthMethod { get; set; }
     public DateTime? SettlementDate { get; set; }
     /// <summary>Set when the working lists hide this booking because the ledger still cites it.</summary>
     public DateTime? DeletedAt { get; set; }
+}
+
+public class StayGroupStorageModel
+{
+    public string? Name { get; set; }
+}
+
+public class NightAuditStorageModel
+{
+    public DateOnly BusinessDate { get; set; }
+    public DateTime SignedAt { get; set; }
+    public string? SignedBy { get; set; }
+    public bool CashAgrees { get; set; }
+    public bool BalancesReviewed { get; set; }
+    public bool RoomsSeen { get; set; }
+    public string? Note { get; set; }
+    public string? CashTaken { get; set; }
+    public string? RoomRevenue { get; set; }
+    public string? OtherIncome { get; set; }
+    public string? StillDue { get; set; }
+    public string? Occupancy { get; set; }
+    public string? Sold { get; set; }
 }
 
 public class BookingCostStorageModel

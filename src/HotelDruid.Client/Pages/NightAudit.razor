@@ -1,0 +1,201 @@
+@page "/night-audit"
+@using System.Globalization
+@using System.Net.Http.Json
+@using HotelDruid.Client.Localization
+@using HotelDruid.Shared
+@using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["nightAudit.title"]</PageTitle>
+
+<div class="container-fluid">
+    <div class="row g-3 mt-2">
+        <div class="col-md-3">
+            <div class="panel panel-default h-100">
+                <div class="panel-heading d-flex justify-content-between align-items-center">
+                    <h3 class="panel-title mb-0">@MonthLabel</h3>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="PreviousMonth">@L["nightAudit.previous"]</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="NextMonth" disabled="@AtCurrentMonth">@L["nightAudit.next"]</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    @if (OpenDate.Year == month.Year && OpenDate.Month == month.Month && !Signed(OpenDate))
+                    {
+                        <button type="button" class="list-group-item list-group-item-action @(SameDay(shown, OpenDate) ? "active" : "")" @onclick="() => Show(OpenDate)">
+                            <div class="fw-semibold">@OpenDate.ToString("d")</div>
+                            <div class="small">@L["nightAudit.open"]</div>
+                        </button>
+                    }
+                    @foreach (var audit in signed)
+                    {
+                        <button type="button" class="list-group-item list-group-item-action @(SameDay(shown, audit.BusinessDate) ? "active" : "")" @onclick="() => Show(audit.BusinessDate)">
+                            <div class="fw-semibold">@audit.BusinessDate.ToString("d")</div>
+                            <div class="small text-muted">@audit.SignedBy · @audit.CashTaken</div>
+                        </button>
+                    }
+                    @if (signed.Count == 0 && Signed(OpenDate))
+                    {
+                        <p class="text-muted small mb-0">@L["nightAudit.none"]</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="panel panel-default h-100">
+                <div class="panel-heading">
+                    <h3 class="panel-title mb-0">@L["nightAudit.signTitle"] @shown.ToString("d")</h3>
+                </div>
+                <div class="panel-body">
+                    @if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        <div class="alert @(failed ? "alert-warning" : "alert-success")">@message</div>
+                    }
+                    @if (current is null)
+                    {
+                        <p class="text-muted">@L["common.loading"]</p>
+                    }
+                    else
+                    {
+                        <dl class="row mb-3">
+                            <dt class="col-6">@L["nightAudit.sold"]</dt><dd class="col-6">@current.Sold</dd>
+                            <dt class="col-6">@L["nightAudit.occupancy"]</dt><dd class="col-6">@current.Occupancy</dd>
+                            <dt class="col-6">@L["nightAudit.revenue"]</dt><dd class="col-6">@current.RoomRevenue</dd>
+                            <dt class="col-6">@L["nightAudit.other"]</dt><dd class="col-6">@current.OtherIncome</dd>
+                            <dt class="col-6">@L["nightAudit.taken"]</dt><dd class="col-6">@current.CashTaken</dd>
+                            <dt class="col-6">@L["nightAudit.due"]</dt><dd class="col-6">@current.StillDue</dd>
+                        </dl>
+                        <p class="small text-muted">@L["nightAudit.meaning"]</p>
+                        @if (current.Signed)
+                        {
+                            <p class="mb-0">@L["nightAudit.signed", current.SignedBy ?? "", current.SignedAt?.ToLocalTime().ToString("g") ?? ""]</p>
+                            @if (!string.IsNullOrWhiteSpace(current.Note))
+                            {
+                                <p class="mt-2 mb-0">@current.Note</p>
+                            }
+                        }
+                        else
+                        {
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="cashSeen" @bind="cashAgrees" /><label class="form-check-label" for="cashSeen">@L["nightAudit.cashSeen"]</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="balancesSeen" @bind="balancesReviewed" /><label class="form-check-label" for="balancesSeen">@L["nightAudit.balancesSeen"]</label></div>
+                            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="roomsSeen" @bind="roomsSeen" /><label class="form-check-label" for="roomsSeen">@L["nightAudit.roomsSeen"]</label></div>
+                            <label class="form-label">@L["bookings.notes"]</label>
+                            <textarea class="form-control mb-3" rows="2" @bind="note"></textarea>
+                            <button type="button" class="btn btn-dark" disabled="@(!CanSign || busy)" @onclick="Sign">@L["nightAudit.sign"]</button>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="panel panel-default h-100">
+                <div class="panel-heading"><h3 class="panel-title mb-0">@L["nightAudit.reports"]</h3></div>
+                <div class="list-group list-group-flush">
+                    @foreach (var link in ReportLinks)
+                    {
+                        <a class="list-group-item list-group-item-action" href="@($"/reports/{link.Key}?date={shown:yyyy-MM-dd}")">@L[link.Title]</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly (string Key, string Title)[] ReportLinks =
+    [
+        ("flash", "reports.flash.title"),
+        ("cashier", "reports.cashier.title"),
+        ("balances", "reports.balances.title"),
+        ("tax", "reports.tax.title"),
+        ("room-status", "reports.rooms.title"),
+        ("arrivals", "reports.arrivals.title"),
+        ("in-house", "reports.inhouse.title"),
+        ("departures", "reports.departures.title")
+    ];
+
+    private DateOnly month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateOnly shown = DateOnly.FromDateTime(DateTime.Today).AddDays(-1);
+    private List<NightAuditDto> signed = new();
+    private NightAuditDto? current;
+    private bool cashAgrees;
+    private bool balancesReviewed;
+    private bool roomsSeen;
+    private string? note;
+    private string? message;
+    private bool failed;
+    private bool busy;
+
+    private DateOnly OpenDate => DateOnly.FromDateTime(DateTime.Today).AddDays(-1);
+    private bool AtCurrentMonth => month.Year == DateTime.Today.Year && month.Month == DateTime.Today.Month;
+    private string MonthLabel => month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+    private bool CanSign => cashAgrees && balancesReviewed && roomsSeen && shown <= DateOnly.FromDateTime(DateTime.Today);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+        await Show(OpenDate);
+    }
+
+    private bool Signed(DateOnly date) => signed.Any(audit => audit.BusinessDate == date);
+    private static bool SameDay(DateOnly left, DateOnly right) => left == right;
+
+    private async Task PreviousMonth()
+    {
+        month = month.AddMonths(-1);
+        await Reload();
+    }
+
+    private async Task NextMonth()
+    {
+        if (AtCurrentMonth)
+            return;
+        month = month.AddMonths(1);
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        signed = await Http.GetFromJsonAsync<List<NightAuditDto>>($"/api/night-audits?year={month.Year}&month={month.Month}") ?? new();
+    }
+
+    private async Task Show(DateOnly date)
+    {
+        shown = date;
+        message = null;
+        current = await Http.GetFromJsonAsync<NightAuditDto>($"/api/night-audits/day?date={date:yyyy-MM-dd}");
+        cashAgrees = current?.CashAgrees == true;
+        balancesReviewed = current?.BalancesReviewed == true;
+        roomsSeen = current?.RoomsSeen == true;
+        note = current?.Note;
+    }
+
+    private async Task Sign()
+    {
+        busy = true;
+        failed = false;
+        message = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/night-audits/day?date={shown:yyyy-MM-dd}", new NightAuditSignRequest(cashAgrees, balancesReviewed, roomsSeen, note));
+            if (!response.IsSuccessStatusCode)
+            {
+                failed = true;
+                message = await response.Content.ReadAsStringAsync();
+                return;
+            }
+
+            message = L["nightAudit.done", shown.ToString("d")];
+            if (shown.Year == month.Year && shown.Month == month.Month)
+                await Reload();
+            await Show(shown);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

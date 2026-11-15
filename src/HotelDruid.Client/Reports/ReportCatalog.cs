@@ -11,6 +11,7 @@ public static class ReportCatalog
         new("in-house", "reports.inhouse.title", "reports.inhouse.blurb"),
         new("departures", "reports.departures.title", "reports.departures.blurb"),
         new("room-status", "reports.rooms.title", "reports.rooms.blurb"),
+        new("room-board", "reports.roomBoard.title", "reports.roomBoard.blurb"),
         new("cashier", "reports.cashier.title", "reports.cashier.blurb"),
         new("flash", "reports.flash.title", "reports.flash.blurb"),
         new("forecast", "reports.forecast.title", "reports.forecast.blurb"),

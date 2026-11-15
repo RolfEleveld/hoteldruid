@@ -1042,4 +1042,110 @@
   <data name="reports.move.expense" xml:space="preserve"><value>Costo</value></data>
   <data name="reports.account.rooms" xml:space="preserve"><value>Camere</value></data>
   <data name="reports.account.other" xml:space="preserve"><value>Altri ricavi</value></data>
+  <data name="reports.roomBoard.title" xml:space="preserve"><value>Quadro camere</value></data>
+  <data name="reports.roomBoard.blurb" xml:space="preserve"><value>Ogni camera nel mese, con l'ospite e un colore per occupata, libera, sporca, bloccata e manutenzione.</value></data>
+  <data name="reports.roomBoard.section" xml:space="preserve"><value>Camere del mese</value></data>
+  <data name="reports.band.available" xml:space="preserve"><value>Libera</value></data>
+  <data name="reports.band.dirty" xml:space="preserve"><value>Sporca</value></data>
+  <data name="reports.band.blocked" xml:space="preserve"><value>Bloccata</value></data>
+  <data name="reports.band.maintenance" xml:space="preserve"><value>Manutenzione</value></data>
+  <data name="reports.band.occupied" xml:space="preserve"><value>Occupata</value></data>
+  <data name="rooms.conditionLabel" xml:space="preserve"><value>Condizione</value></data>
+  <data name="rooms.condition.clean" xml:space="preserve"><value>Pulita</value></data>
+  <data name="rooms.condition.dirty" xml:space="preserve"><value>Sporca</value></data>
+  <data name="rooms.condition.blocked" xml:space="preserve"><value>Bloccata</value></data>
+  <data name="rooms.condition.maintenance" xml:space="preserve"><value>Manutenzione</value></data>
+  <data name="rooms.conditionHelp" xml:space="preserve"><value>Occupata e libera vengono dai soggiorni. Usi questo per la camera stessa.</value></data>
+  <data name="bookings.source" xml:space="preserve"><value>Origine</value></data>
+  <data name="bookings.externalReference" xml:space="preserve"><value>Riferimento esterno</value></data>
+  <data name="bookings.groupCode" xml:space="preserve"><value>Gruppo</value></data>
+  <data name="bookings.newGroup" xml:space="preserve"><value>Nuovo gruppo</value></data>
+  <data name="bookings.groupHelp" xml:space="preserve"><value>Un gruppo è una comitiva. Le camere possono arrivare in giorni diversi. Scelga la comitiva già in hotel, oppure ne inizi una nuova. Lo stesso nome più avanti è un'altra comitiva.</value></data>
+  <data name="bookings.groupNamePlaceholder" xml:space="preserve"><value>Nome della comitiva</value></data>
+  <data name="bookings.groupNameRequired" xml:space="preserve"><value>Scriva il nome della comitiva.</value></data>
+  <data name="bookings.groupCreateFailed" xml:space="preserve"><value>Non è stato possibile creare il gruppo.</value></data>
+  <data name="bookings.groupRemove" xml:space="preserve"><value>Togli</value></data>
+  <data name="bookings.groupWhen" xml:space="preserve"><value>{0} – {1} · {2} camere</value></data>
+  <data name="bookings.assignRoom" xml:space="preserve"><value>Assegna un'altra camera</value></data>
+  <data name="bookings.roomStaying" xml:space="preserve"><value>Questo ospite è in questa camera. Assegni un'altra camera per spostarlo da una notte successiva.</value></data>
+  <data name="bookings.roomStayingShort" xml:space="preserve"><value>Questo ospite è in questa camera.</value></data>
+  <data name="bookings.roomFixed" xml:space="preserve"><value>Camera fissa su richiesta</value></data>
+  <data name="bookingFinance.emailInvoice" xml:space="preserve"><value>Invia fattura</value></data>
+  <data name="bookingFinance.emailReceipt" xml:space="preserve"><value>Invia ricevuta</value></data>
+  <data name="bookingFinance.emailConfirmation" xml:space="preserve"><value>Invia conferma</value></data>
+  <data name="Nav.Received" xml:space="preserve"><value>Ricevute</value></data>
+  <data name="Dashboard.Incoming.Title" xml:space="preserve"><value>Ricevute</value></data>
+  <data name="Dashboard.Incoming.Subtitle" xml:space="preserve"><value>Prenotazioni in attesa di accettazione.</value></data>
+  <data name="Dashboard.Incoming.Count" xml:space="preserve"><value>{0} in attesa</value></data>
+  <data name="Dashboard.Incoming.Empty" xml:space="preserve"><value>Niente in attesa.</value></data>
+  <data name="Dashboard.Incoming.Button" xml:space="preserve"><value>Apri ricevute</value></data>
+  <data name="Dashboard.Incoming.UnknownSource" xml:space="preserve"><value>Senza origine</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Incoming" xml:space="preserve"><value>Ricevute da mostrare</value></data>
+  <data name="received.title" xml:space="preserve"><value>Prenotazioni ricevute</value></data>
+  <data name="received.subtitle" xml:space="preserve"><value>Assegni una camera e confermi l'intero gruppo. Il gruppo è accettato solo quando ogni camera ne ha una.</value></data>
+  <data name="received.empty" xml:space="preserve"><value>Nessuna prenotazione in attesa.</value></data>
+  <data name="received.noRoom" xml:space="preserve"><value>Senza camera</value></data>
+  <data name="received.roomAssigned" xml:space="preserve"><value>Assegnata</value></data>
+  <data name="received.open" xml:space="preserve"><value>Apri</value></data>
+  <data name="received.confirmGroup" xml:space="preserve"><value>Conferma gruppo</value></data>
+  <data name="received.confirmed" xml:space="preserve"><value>Il gruppo {0} è confermato.</value></data>
+  <data name="bookings.groupRoomsTitle" xml:space="preserve"><value>Altre camere del gruppo</value></data>
+  <data name="bookings.noGroupRooms" xml:space="preserve"><value>Nessun'altra camera condivide questo gruppo.</value></data>
+  <data name="reports.total.added" xml:space="preserve"><value>Imposta aggiunta</value></data>
+  <data name="Nav.NightAudit" xml:space="preserve"><value>Audit notturno</value></data>
+  <data name="Nav.Taxes" xml:space="preserve"><value>Aliquote</value></data>
+  <data name="nightAudit.title" xml:space="preserve"><value>Audit notturno</value></data>
+  <data name="nightAudit.previous" xml:space="preserve"><value>Precedente</value></data>
+  <data name="nightAudit.next" xml:space="preserve"><value>Successivo</value></data>
+  <data name="nightAudit.open" xml:space="preserve"><value>Non firmato</value></data>
+  <data name="nightAudit.none" xml:space="preserve"><value>Nessun giorno firmato in questo mese.</value></data>
+  <data name="nightAudit.signTitle" xml:space="preserve"><value>Firma</value></data>
+  <data name="nightAudit.sold" xml:space="preserve"><value>Camere vendute</value></data>
+  <data name="nightAudit.occupancy" xml:space="preserve"><value>Occupazione</value></data>
+  <data name="nightAudit.revenue" xml:space="preserve"><value>Ricavo camere</value></data>
+  <data name="nightAudit.other" xml:space="preserve"><value>Altri ricavi</value></data>
+  <data name="nightAudit.taken" xml:space="preserve"><value>Cassa incassata</value></data>
+  <data name="nightAudit.due" xml:space="preserve"><value>Ancora dovuto</value></data>
+  <data name="nightAudit.meaning" xml:space="preserve"><value>Firmare significa che il giorno è stato visto e le cifre accettate. I saldi aperti restano aperti.</value></data>
+  <data name="nightAudit.signed" xml:space="preserve"><value>Firmato da {0} alle {1}.</value></data>
+  <data name="nightAudit.cashSeen" xml:space="preserve"><value>Il contante contato coincide con quello registrato</value></data>
+  <data name="nightAudit.balancesSeen" xml:space="preserve"><value>Saldi e depositi rivisti</value></data>
+  <data name="nightAudit.roomsSeen" xml:space="preserve"><value>Stato camere visto</value></data>
+  <data name="nightAudit.sign" xml:space="preserve"><value>Firma e timbro</value></data>
+  <data name="nightAudit.done" xml:space="preserve"><value>{0} è firmato.</value></data>
+  <data name="nightAudit.reports" xml:space="preserve"><value>Report di questo giorno</value></data>
+  <data name="taxes.title" xml:space="preserve"><value>Aliquote</value></data>
+  <data name="taxes.help" xml:space="preserve"><value>L'hotel lavora con imposta inclusa, salvo scelta di aggiungerla. Soggiorno, cibo, servizio e prodotto hanno ciascuno la propria aliquota. La tassa di soggiorno è separata dal ricavo camera. Il foglio imposte usa l'aliquota del soggiorno.</value></data>
+  <data name="taxes.pricing" xml:space="preserve"><value>Prezzi</value></data>
+  <data name="taxes.inclusive" xml:space="preserve"><value>Imposta inclusa nel prezzo</value></data>
+  <data name="taxes.exclusive" xml:space="preserve"><value>Imposta aggiunta</value></data>
+  <data name="taxes.stay" xml:space="preserve"><value>Soggiorno %</value></data>
+  <data name="taxes.food" xml:space="preserve"><value>Cibo %</value></data>
+  <data name="taxes.service" xml:space="preserve"><value>Servizio %</value></data>
+  <data name="taxes.product" xml:space="preserve"><value>Prodotto %</value></data>
+  <data name="taxes.cityBasis" xml:space="preserve"><value>Tassa di soggiorno</value></data>
+  <data name="taxes.cityNone" xml:space="preserve"><value>Nessuna</value></data>
+  <data name="taxes.cityRoom" xml:space="preserve"><value>Per camera a notte</value></data>
+  <data name="taxes.cityPerson" xml:space="preserve"><value>Per persona a notte</value></data>
+  <data name="taxes.cityAmount" xml:space="preserve"><value>Importo della tassa</value></data>
+  <data name="taxes.save" xml:space="preserve"><value>Salva aliquote</value></data>
+  <data name="taxes.saved" xml:space="preserve"><value>Aliquote salvate.</value></data>
+  <data name="reports.account.city" xml:space="preserve"><value>Tassa di soggiorno</value></data>
+  <data name="bookingFinance.printRechnung" xml:space="preserve"><value>Rechnung</value></data>
+  <data name="bookingFinance.emailRechnung" xml:space="preserve"><value>Invia Rechnung</value></data>
+  <data name="bookings.moveTitle" xml:space="preserve"><value>Spostamento</value></data>
+  <data name="bookings.move" xml:space="preserve"><value>Sposta</value></data>
+  <data name="bookings.moveHelp" xml:space="preserve"><value>L'ospite resta in questa camera fino alla notte scelta. Può essere domani. Una nuova prenotazione continua il soggiorno, e il denaro già pagato copre prima questa camera.</value></data>
+  <data name="bookings.moveFrom" xml:space="preserve"><value>Dalla notte</value></data>
+  <data name="bookings.moveRoom" xml:space="preserve"><value>Nuova camera</value></data>
+  <data name="bookings.moveChooseRoom" xml:space="preserve"><value>Scegli una camera</value></data>
+  <data name="bookings.moveReason" xml:space="preserve"><value>Motivo</value></data>
+  <data name="bookings.moveMaintenance" xml:space="preserve"><value>La camera va in manutenzione</value></data>
+  <data name="bookings.moveRelocate" xml:space="preserve"><value>Spostare l'ospite</value></data>
+  <data name="bookings.moveNote" xml:space="preserve"><value>Nota</value></data>
+  <data name="bookings.moveConfirm" xml:space="preserve"><value>Conferma spostamento</value></data>
+  <data name="bookings.moveMissing" xml:space="preserve"><value>Scegli la notte e la camera.</value></data>
+  <data name="bookings.continuedTitle" xml:space="preserve"><value>Soggiorno continuato</value></data>
+  <data name="bookings.continuedFrom" xml:space="preserve"><value>Continua dalla camera precedente</value></data>
+  <data name="bookings.continuedTo" xml:space="preserve"><value>Continua nella camera successiva</value></data>
 </root>

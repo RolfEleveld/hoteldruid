@@ -1,0 +1,127 @@
+@page "/taxes"
+@using System.Globalization
+@using System.Net.Http.Json
+@using HotelDruid.Client.Localization
+@using HotelDruid.Shared.Configuration
+@using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["taxes.title"]</PageTitle>
+
+<div class="container-fluid" style="max-width: 40rem;">
+    <h5 class="mt-3">@L["taxes.title"]</h5>
+    <p class="text-muted small">@L["taxes.help"]</p>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(failed ? "alert-warning" : "alert-success")">@message</div>
+    }
+
+    <div class="mb-3">
+        <label class="form-label">@L["taxes.pricing"]</label>
+        <select class="form-select" @bind="pricing">
+            <option value="Inclusive">@L["taxes.inclusive"]</option>
+            <option value="Exclusive">@L["taxes.exclusive"]</option>
+        </select>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-6"><label class="form-label">@L["taxes.stay"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="stay" /></div>
+        <div class="col-6"><label class="form-label">@L["taxes.food"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="food" /></div>
+        <div class="col-6"><label class="form-label">@L["taxes.service"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="service" /></div>
+        <div class="col-6"><label class="form-label">@L["taxes.product"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="product" /></div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-6">
+            <label class="form-label">@L["taxes.cityBasis"]</label>
+            <select class="form-select" @bind="cityBasis">
+                <option value="None">@L["taxes.cityNone"]</option>
+                <option value="RoomNight">@L["taxes.cityRoom"]</option>
+                <option value="PersonNight">@L["taxes.cityPerson"]</option>
+            </select>
+        </div>
+        <div class="col-6"><label class="form-label">@L["taxes.cityAmount"]</label><input class="form-control" type="number" min="0" step="0.01" @bind="cityAmount" /></div>
+    </div>
+
+    <button type="button" class="btn btn-dark mt-3" disabled="@busy" @onclick="Save">@L["taxes.save"]</button>
+</div>
+
+@code {
+    private SystemConfiguration? config;
+    private string pricing = "Inclusive";
+    private decimal? stay;
+    private decimal? food;
+    private decimal? service;
+    private decimal? product;
+    private string cityBasis = "None";
+    private decimal? cityAmount;
+    private string? message;
+    private bool failed;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        config = await Http.GetFromJsonAsync<SystemConfiguration>("/api/system/configuration") ?? new SystemConfiguration();
+        config.Settings ??= new Dictionary<string, string>();
+        pricing = config.Settings.TryGetValue("TaxPricing", out var mode) && mode == "Exclusive" ? "Exclusive" : "Inclusive";
+        stay = ReadRate("TaxRateStay") ?? ReadRate("VatRate");
+        food = ReadRate("TaxRateFood");
+        service = ReadRate("TaxRateService");
+        product = ReadRate("TaxRateProduct");
+        cityBasis = config.Settings.TryGetValue("CityTaxBasis", out var basis) && basis is "RoomNight" or "PersonNight" ? basis : "None";
+        cityAmount = ReadRate("CityTaxAmount");
+    }
+
+    private decimal? ReadRate(string key)
+    {
+        if (config?.Settings is null || !config.Settings.TryGetValue(key, out var text))
+            return null;
+        return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var rate) ? rate : null;
+    }
+
+    private async Task Save()
+    {
+        busy = true;
+        failed = false;
+        message = null;
+        try
+        {
+            config ??= new SystemConfiguration();
+            config.Settings ??= new Dictionary<string, string>();
+            config.Settings["TaxPricing"] = pricing == "Exclusive" ? "Exclusive" : "Inclusive";
+            WriteRate("TaxRateStay", stay);
+            WriteRate("VatRate", stay);
+            WriteRate("TaxRateFood", food);
+            WriteRate("TaxRateService", service);
+            WriteRate("TaxRateProduct", product);
+            config.Settings["CityTaxBasis"] = cityBasis is "RoomNight" or "PersonNight" ? cityBasis : "None";
+            WriteRate("CityTaxAmount", cityAmount);
+            var response = await Http.PutAsJsonAsync("/api/system/configuration", config);
+            if (!response.IsSuccessStatusCode)
+            {
+                failed = true;
+                message = await response.Content.ReadAsStringAsync();
+                return;
+            }
+
+            config = await response.Content.ReadFromJsonAsync<SystemConfiguration>() ?? config;
+            message = L["taxes.saved"];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void WriteRate(string key, decimal? rate)
+    {
+        if (config?.Settings is null)
+            return;
+        if (rate is null)
+            config.Settings.Remove(key);
+        else
+            config.Settings[key] = rate.Value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+}

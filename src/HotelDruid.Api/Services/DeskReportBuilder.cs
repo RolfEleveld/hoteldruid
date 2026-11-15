@@ -21,7 +21,8 @@ public static class DeskReportBuilder
         var chart = AccountChart.ResolveOrUsali(config.AccountingStandard, config.AccountCodes);
         var hotel = settings.GetValueOrDefault("HotelName") ?? "Hotel";
         var currency = config.DefaultCurrency ?? settings.GetValueOrDefault("Currency") ?? "EUR";
-        var vat = ParseRate(settings.GetValueOrDefault("VatRate"));
+        var stayRate = ParseRate(settings.GetValueOrDefault("TaxRateStay")) ?? ParseRate(settings.GetValueOrDefault("VatRate"));
+        var inclusive = !string.Equals(settings.GetValueOrDefault("TaxPricing"), "Exclusive", StringComparison.OrdinalIgnoreCase);
 
         if (string.Equals(key, "performance", StringComparison.OrdinalIgnoreCase))
         {
@@ -36,7 +37,7 @@ public static class DeskReportBuilder
             ? await LinesAsync(ledger, Range(key, date).From, Range(key, date).To)
             : [];
 
-        var facts = new DeskFacts(hotel, currency, vat, chart, rooms, stays, lines, registers);
+        var facts = new DeskFacts(hotel, currency, stayRate, chart, rooms, stays, lines, registers, TaxInclusive: inclusive);
         return Build(key, date, facts);
     }
 
@@ -49,6 +50,7 @@ public static class DeskReportBuilder
             "in-house" => new[] { InHouse(date, facts) },
             "departures" => new[] { Departures(date, facts) },
             "room-status" => new[] { RoomStatus(date, facts) },
+            "room-board" => new[] { RoomBoard(from, to, facts) },
             "cashier" => new[] { Movements(date, facts), CountSheet() },
             "flash" => new[] { Flash(date, facts), Movements(date, facts) },
             "forecast" => new[] { Forecast(date, facts) },
@@ -63,7 +65,7 @@ public static class DeskReportBuilder
     }
 
     public static bool Known(string key) => key is
-        "arrivals" or "in-house" or "departures" or "room-status" or "cashier"
+        "arrivals" or "in-house" or "departures" or "room-status" or "room-board" or "cashier"
         or "flash" or "forecast" or "balances" or "performance" or "tax" or "statistics";
 
     private static PaperSectionDto Arrivals(DateOnly day, DeskFacts facts)
@@ -240,13 +242,33 @@ public static class DeskReportBuilder
             row.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             row.Rooms ? "reports.account.rooms" : "reports.account.other",
             Money(row.Amount))).ToList();
-        var basis = grouped.Sum(row => row.Amount);
-        var totals = new List<PaperTotalDto> { Total("reports.total.base", Money(basis), "money") };
-        if (facts.VatRate is decimal rate && rate > 0)
+        var postedJournals = facts.Lines
+            .Where(line => line.AccountCode == facts.Chart.OutputTax && line.Credit != line.Debit)
+            .Select(line => line.JournalId ?? string.Empty)
+            .ToHashSet(StringComparer.Ordinal);
+        var basis = facts.Lines
+            .Where(line => line.Day >= from && line.Day <= to
+                && (line.AccountCode == facts.Chart.RoomRevenue || line.AccountCode == facts.Chart.OtherIncome)
+                && !postedJournals.Contains(line.JournalId ?? string.Empty))
+            .Sum(line => line.Credit - line.Debit);
+        var postedTax = facts.Lines
+            .Where(line => line.Day >= from && line.Day <= to && line.AccountCode == facts.Chart.OutputTax)
+            .Sum(line => line.Credit - line.Debit);
+        var city = facts.Lines
+            .Where(line => line.Day >= from && line.Day <= to && line.AccountCode == facts.Chart.CityTax)
+            .Sum(line => line.Credit - line.Debit);
+        if (city != 0)
+            rows.Add(Row(to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), "reports.account.city", Money(city)));
+        var totals = new List<PaperTotalDto> { Total("reports.total.base", Money(grouped.Sum(row => row.Amount) + city), "money") };
+        decimal output = postedTax;
+        if (facts.VatRate is decimal rate && rate > 0 && basis != 0)
         {
-            var output = decimal.Round(basis * rate / (100m + rate), 2, MidpointRounding.AwayFromZero);
-            totals.Add(Total("reports.total.output", Money(output), "money"));
+            output += facts.TaxInclusive
+                ? decimal.Round(basis * rate / (100m + rate), 2, MidpointRounding.AwayFromZero)
+                : decimal.Round(basis * rate / 100m, 2, MidpointRounding.AwayFromZero);
         }
+        if (output != 0)
+            totals.Add(Total(facts.TaxInclusive ? "reports.total.output" : "reports.total.added", Money(output), "money"));
 
         return Section("reports.section.tax",
             ["reports.col.date", "reports.col.account", "reports.col.amount"],
@@ -313,10 +335,73 @@ public static class DeskReportBuilder
         return new PaperReportDto("performance", hotel, currency, report.From, report.To, [summary, years, rooms]);
     }
 
+    private static PaperSectionDto RoomBoard(DateOnly from, DateOnly to, DeskFacts facts)
+    {
+        var days = new List<DateOnly>();
+        for (var day = from; day <= to; day = day.AddDays(1))
+            days.Add(day);
+
+        var columns = new List<string> { "reports.col.room" };
+        columns.AddRange(days.Select(day => day.Day.ToString(CultureInfo.InvariantCulture)));
+        var kinds = new List<string> { "text" };
+        kinds.AddRange(days.Select(_ => "band"));
+
+        var rows = facts.Rooms
+            .OrderBy(room => room.House, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(room => room.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(room =>
+            {
+                var bands = days.Select(day => Band(room, Covering(facts, room.Id, day))).ToList();
+                var cells = new List<string> { RoomLabel(facts, room.Id) };
+                var spans = new List<int> { 1 };
+                for (var i = 0; i < bands.Count;)
+                {
+                    var span = 1;
+                    while (i + span < bands.Count && string.Equals(bands[i + span], bands[i], StringComparison.Ordinal))
+                        span++;
+                    cells.Add(bands[i]);
+                    spans.Add(span);
+                    i += span;
+                }
+
+                return new PaperRowDto(cells, spans);
+            })
+            .ToList();
+
+        return new PaperSectionDto("reports.roomBoard.section", columns, kinds, rows, Array.Empty<PaperTotalDto>());
+    }
+
+    private static DeskStay? Covering(DeskFacts facts, string roomId, DateOnly day)
+    {
+        DeskStay? guest = null;
+        DeskStay? block = null;
+        foreach (var stay in facts.Stays)
+        {
+            if (!string.Equals(stay.RoomId, roomId, StringComparison.OrdinalIgnoreCase) || !Covers(stay, day) || Cancelled(stay))
+                continue;
+            if (Maintenance(stay))
+                block ??= stay;
+            else
+                guest ??= stay;
+        }
+
+        return guest ?? block;
+    }
+
+    private static string Band(DeskRoom room, DeskStay? stay)
+    {
+        if (stay is not null && Maintenance(stay))
+            return "maintenance";
+        if (stay is not null)
+            return "occupied|" + stay.Guest + "|" + stay.Id;
+        var condition = (room.Condition ?? "").Trim().ToLowerInvariant();
+        return condition is "dirty" or "blocked" or "maintenance" ? condition : "available";
+    }
+
     private static (DateOnly From, DateOnly To) Range(string key, DateOnly date) => key switch
     {
         "forecast" => (date, date.AddDays(13)),
-        "tax" => (new DateOnly(date.Year, date.Month, 1), new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month))),
+        "tax" or "room-board" => (new DateOnly(date.Year, date.Month, 1), new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month))),
         _ => (date, date)
     };
 
@@ -397,7 +482,7 @@ public static class DeskReportBuilder
         foreach (var (name, id) in index)
         {
             var room = await store.GetAsync<RoomStorageModel>("rooms", id);
-            rooms.Add(new DeskRoom(id, room?.Name ?? name, room?.HouseNumber, room?.FloorNumber));
+            rooms.Add(new DeskRoom(id, room?.Name ?? name, room?.HouseNumber, room?.FloorNumber, room?.Condition));
         }
 
         return rooms;
@@ -478,7 +563,8 @@ public static class DeskReportBuilder
                     entry.CashRegisterId,
                     entry.Method,
                     entry.Notes,
-                    entry.BookingId));
+                    entry.BookingId,
+                    entry.JournalId));
             }
         }
 
@@ -508,9 +594,10 @@ public sealed record DeskFacts(
     IReadOnlyList<DeskStay> Stays,
     IReadOnlyList<DeskLine> Lines,
     IReadOnlyDictionary<string, string> Registers,
-    PerformanceReportDto? Performance = null);
+    PerformanceReportDto? Performance = null,
+    bool TaxInclusive = true);
 
-public sealed record DeskRoom(string Id, string Name, string? House, string? Floor);
+public sealed record DeskRoom(string Id, string Name, string? House, string? Floor, string? Condition = null);
 
 public sealed record DeskStay(
     string Id,
@@ -539,4 +626,5 @@ public sealed record DeskLine(
     string? CashRegisterId,
     string? Method,
     string? Notes,
-    string? BookingId);
+    string? BookingId,
+    string? JournalId = null);

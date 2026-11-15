@@ -23,6 +23,10 @@
                     <h3 class="panel-title">@L["rooms.title", "Top Rooms"]</h3>
                 </div>
                 <div class="panel-body flex-grow-1 overflow-auto">
+                    <div class="d-flex gap-2 mb-2">
+                        <a class="btn btn-outline-secondary btn-sm flex-grow-1" href="/reports/room-status">@L["reports.rooms.title", "Room status"]</a>
+                        <a class="btn btn-outline-secondary btn-sm flex-grow-1" href="/reports/room-board">@L["reports.roomBoard.title", "Room board"]</a>
+                    </div>
                     <button class="btn btn-success btn-sm w-100 mb-3" @onclick="AddNewRoom">
                         <span class="bi bi-plus"></span> @L["rooms.add", "Add Room"]
                     </button>
@@ -161,6 +165,17 @@
                                     <option value="S">@L["common.yes", "Yes"]</option>
                                     <option value="N">@L["common.no", "No"]</option>
                                 </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">@L["rooms.conditionLabel", "Condition"]</label>
+                                <select class="form-select" @bind="editModel.Condition" @bind:after="OnFieldChanged">
+                                    <option value="">@L["rooms.condition.clean", "Clean"]</option>
+                                    <option value="dirty">@L["rooms.condition.dirty", "Dirty"]</option>
+                                    <option value="blocked">@L["rooms.condition.blocked", "Blocked"]</option>
+                                    <option value="maintenance">@L["rooms.condition.maintenance", "Maintenance"]</option>
+                                </select>
+                                <small class="form-text text-muted">@L["rooms.conditionHelp", "Occupied and available come from the stays. Use this for the room itself."]</small>
                             </div>
 
                             <div class="mb-3">
@@ -477,11 +492,13 @@
         public string? HasBeds { get; set; }
         public string? NeighboringRooms { get; set; }
         public string? Comments { get; set; }
+        public string? Condition { get; set; }
 
         public RoomDto ToDto()
         {
             return new RoomDto(Id, Name, Capacity, FloorNumber, HouseNumber, 
-                Priority, SecondaryPriority, HasBeds, NeighboringRooms, Comments);
+                Priority, SecondaryPriority, HasBeds, NeighboringRooms, Comments,
+                string.IsNullOrWhiteSpace(Condition) ? null : Condition);
         }
 
         public static RoomEditModel FromDto(RoomDto dto)
@@ -497,7 +514,8 @@
                 SecondaryPriority = dto.SecondaryPriority,
                 HasBeds = dto.HasBeds,
                 NeighboringRooms = dto.NeighboringRooms,
-                Comments = dto.Comments
+                Comments = dto.Comments,
+                Condition = dto.Condition
             };
         }
     }
@@ -810,7 +828,8 @@
             SecondaryPriority = editModel.SecondaryPriority,
             HasBeds = editModel.HasBeds,
             NeighboringRooms = editModel.NeighboringRooms,
-            Comments = editModel.Comments
+            Comments = editModel.Comments,
+            Condition = editModel.Condition
         };
         isSaved = false;
     }

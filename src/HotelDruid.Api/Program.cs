@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using System.Net;
@@ -484,7 +485,18 @@ async Task<List<(string Id, RoomStorageModel Room)>> LoadStoredRoomsAsync(IKeyVa
 
 RoomDto ToRoomDto(string id, RoomStorageModel room) => new(
     id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
-    room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments);
+    room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments,
+    NormalizeRoomCondition(room.Condition));
+
+string? NormalizeRoomCondition(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return null;
+    var condition = value.Trim().ToLowerInvariant();
+    return condition is "clean" or "dirty" or "blocked" or "maintenance" ? condition : null;
+}
+
+static string? BlankToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
 bool SameRoomPlace(RoomStorageModel room, string? name, string? house)
     => SameRoomLabel(room.Name, name) && SameRoomLabel(room.HouseNumber, house);
@@ -586,7 +598,8 @@ app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpoin
             SecondaryPriority = request.SecondaryPriority,
             HasBeds = request.HasBeds,
             NeighboringRooms = normalizedNeighbors,
-            Comments = request.Comments
+            Comments = request.Comments,
+            Condition = NormalizeRoomCondition(request.Condition)
         };
 
         var existing = await LoadStoredRoomsAsync(store);
@@ -598,7 +611,8 @@ app.MapPost("/api/rooms", async (RoomDto request, IKeyValueStore store, IEndpoin
         queryCache.InvalidateTag("rooms");
         return Results.Created($"/api/rooms/{id}", new RoomDto(
             id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
-            request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments));
+            request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments,
+            NormalizeRoomCondition(request.Condition)));
     }
     catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
     {
@@ -612,9 +626,7 @@ app.MapGet("/api/rooms/{id}", async (string id, IKeyValueStore store) =>
     if (room is null)
         return Results.NotFound();
 
-    return Results.Ok(new RoomDto(
-        id, room.Name ?? "", room.Capacity ?? 0, room.FloorNumber, room.HouseNumber,
-        room.Priority, room.SecondaryPriority, room.HasBeds, room.NeighboringRooms, room.Comments));
+    return Results.Ok(ToRoomDto(id, room));
 });
 
 app.MapGet("/api/rooms", async (IKeyValueStore store, IEndpointQueryCache queryCache, string? name) =>
@@ -677,7 +689,8 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore 
         SecondaryPriority = request.SecondaryPriority,
         HasBeds = request.HasBeds,
         NeighboringRooms = normalizedNeighbors,
-        Comments = request.Comments
+        Comments = request.Comments,
+        Condition = NormalizeRoomCondition(request.Condition)
     };
 
     await store.UpdateAsync("rooms", id, storage);
@@ -687,7 +700,8 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore 
     queryCache.InvalidateTag("rooms");
     return Results.Ok(new RoomDto(
         id, request.Name, request.Capacity, request.FloorNumber, request.HouseNumber,
-        request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments));
+        request.Priority, request.SecondaryPriority, request.HasBeds, normalizedNeighbors, request.Comments,
+        NormalizeRoomCondition(request.Condition)));
 });
 
 app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
@@ -2713,7 +2727,14 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.PreAuthMethod,
     s.SettlementDate,
     s.DeletedAt,
-    s.TariffTotalPrice);
+    s.TariffTotalPrice,
+    s.Source,
+    s.ExternalReference,
+    s.GroupCode,
+    s.RoomFixed,
+    s.ContinuedFromId,
+    s.ContinuedToId,
+    s.GroupName);
 
 async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
 {
@@ -2832,7 +2853,7 @@ bool IsPendingDeparture(BookingStorageModel booking, DateOnly today)
     return booking.DepartureDate.Value == today;
 }
 
-app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, bool? includeDeleted, DateOnly? from, DateOnly? to, string? clientId) =>
+app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, bool? includeDeleted, DateOnly? from, DateOnly? to, string? clientId, string? groupCode) =>
 {
     var showDeleted = includeDeleted == true;
     if (from.HasValue && to.HasValue && to.Value < from.Value)
@@ -2842,17 +2863,20 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache que
 
     var hasRange = from.HasValue && to.HasValue;
     var guestId = string.IsNullOrWhiteSpace(clientId) ? null : clientId.Trim();
+    var group = string.IsNullOrWhiteSpace(groupCode) ? null : groupCode.Trim();
     var key = hasRange
-        ? $"bookings:list:from:{from:yyyy-MM-dd}:to:{to:yyyy-MM-dd}:deleted:{showDeleted}:client:{guestId}"
+        ? $"bookings:list:from:{from:yyyy-MM-dd}:to:{to:yyyy-MM-dd}:deleted:{showDeleted}:client:{guestId}:group:{group}"
         : guestId is not null
-            ? $"bookings:list:client:{guestId}:deleted:{showDeleted}"
-            : year.HasValue
-                ? $"bookings:list:year:{year.Value}:deleted:{showDeleted}"
-                : $"bookings:list:all:deleted:{showDeleted}";
+            ? $"bookings:list:client:{guestId}:deleted:{showDeleted}:group:{group}"
+            : group is not null
+                ? $"bookings:list:group:{group}:deleted:{showDeleted}"
+                : year.HasValue
+                    ? $"bookings:list:year:{year.Value}:deleted:{showDeleted}"
+                    : $"bookings:list:all:deleted:{showDeleted}";
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
-        var prefix = !hasRange && guestId is null && year.HasValue ? $"{year}_" : null;
+        var prefix = !hasRange && guestId is null && group is null && year.HasValue ? $"{year}_" : null;
         var earliestArrivalYear = hasRange ? from!.Value.Year - 1 : (int?)null;
         var latestArrivalYear = hasRange ? to!.Value.Year : (int?)null;
         var computed = new List<BookingDto>();
@@ -2869,6 +2893,7 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache que
             var b = await store.GetAsync<BookingStorageModel>("bookings", kvp.Value);
             if (b is null || (!showDeleted && b.DeletedAt.HasValue)) continue;
             if (guestId is not null && !string.Equals(b.ClientId, guestId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (group is not null && !string.Equals(b.GroupCode, group, StringComparison.OrdinalIgnoreCase)) continue;
             if (hasRange && !StayOverlapsRange(b, from!.Value, to!.Value)) continue;
             computed.Add(ToBookingDto(kvp.Value, b));
         }
@@ -3044,7 +3069,7 @@ static bool StayOverlapsRange(BookingStorageModel booking, DateOnly from, DateOn
     return arrival.Value <= to && departure >= from;
 }
 
-app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, IAccountChart accountChart) =>
+app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, IFinancialPostingService ledger, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var validationError = ValidateBookingRequest(request, request.Year);
     if (validationError is not null)
@@ -3069,7 +3094,14 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
         PrepaidReference = request.PrepaidReference,
         ExpectedGuestCount = request.ExpectedGuestCount,
         PreAuthReference = request.PreAuthReference,
-        PreAuthMethod = request.PreAuthMethod
+        PreAuthMethod = request.PreAuthMethod,
+        Source = BlankToNull(request.Source),
+        ExternalReference = BlankToNull(request.ExternalReference),
+        GroupCode = BlankToNull(request.GroupCode),
+        GroupName = BlankToNull(request.GroupName),
+        RoomFixed = request.RoomFixed,
+        ContinuedFromId = BlankToNull(request.ContinuedFromId),
+        ContinuedToId = BlankToNull(request.ContinuedToId)
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     var id = await store.CreateAsync("bookings", key, storage);
@@ -3086,10 +3118,17 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
 
     var when = DateTime.UtcNow;
     var chart = await accountChart.CurrentAsync();
+    var tax = await CurrentTaxAsync(configurationStore);
     if (stayTotal > 0)
-        await ledger.PostBalancedAsync(when, "booking_stay_charge", "Stay charge on booking creation", stayTotal, chart.GuestLedger, "asset", chart.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+        await ledger.PostGuestChargeAsync(when, "booking_stay_charge", "Stay charge on booking creation", stayTotal, tax.Stay, tax.Inclusive, chart.GuestLedger, "asset", chart.RoomRevenue, "revenue", chart.OutputTax, bookingId: id, sourceType: "booking", sourceId: id);
     if (extraTotal > 0)
-        await ledger.PostBalancedAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", bookingId: id, sourceType: "booking", sourceId: id);
+        await ledger.PostGuestChargeAsync(when, "booking_extra_charge", "Extras on booking creation", extraTotal, tax.Product ?? tax.Stay, tax.Inclusive, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", chart.OutputTax, bookingId: id, sourceType: "booking", sourceId: id);
+    var stayNights = storage.ArrivalDate.HasValue && storage.DepartureDate.HasValue
+        ? storage.DepartureDate.Value.DayNumber - storage.ArrivalDate.Value.DayNumber
+        : 0;
+    var cityTax = StayTax.CityTax(stayNights, storage.ActualGuestCount ?? storage.ExpectedGuestCount ?? 1, tax.CityBasis, tax.CityAmount);
+    if (cityTax > 0)
+        await ledger.PostBalancedAsync(when, "booking_city_tax", "City tax", cityTax, chart.GuestLedger, "asset", chart.CityTax, "liability", bookingId: id, sourceType: "booking", sourceId: id);
 
     var prepaid = Convert.ToDecimal(request.PrepaidAmount ?? 0);
     if (prepaid > 0)
@@ -3126,6 +3165,13 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         ExpectedGuestCount = request.ExpectedGuestCount,
         PreAuthReference = request.PreAuthReference,
         PreAuthMethod = request.PreAuthMethod,
+        Source = BlankToNull(request.Source),
+        ExternalReference = BlankToNull(request.ExternalReference),
+        GroupCode = BlankToNull(request.GroupCode),
+        GroupName = BlankToNull(request.GroupName),
+        RoomFixed = request.RoomFixed,
+        ContinuedFromId = b.ContinuedFromId,
+        ContinuedToId = b.ContinuedToId,
         DeletedAt = b.DeletedAt
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
@@ -3161,6 +3207,315 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
     queryCache.InvalidateTag("bookings");
     return Results.Ok(ToBookingDto(id, storage));
 }).WithName("UpdateBooking");
+
+app.MapGet("/api/stay-groups", async (IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var result = await queryCache.GetOrCreateAsync("stay-groups:list", new[] { "bookings" }, async () =>
+    {
+        var named = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (_, id) in await store.GetIndexAsync("stay_groups"))
+        {
+            var group = await store.GetAsync<StayGroupStorageModel>("stay_groups", id);
+            if (group is null || string.IsNullOrWhiteSpace(group.Name))
+                continue;
+            named[id] = group.Name.Trim();
+        }
+
+        var stats = new Dictionary<string, (DateOnly? First, DateOnly? Last, int Count)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (_, id) in await store.GetIndexAsync("bookings"))
+        {
+            var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+            if (booking is null || booking.DeletedAt.HasValue || string.IsNullOrWhiteSpace(booking.GroupCode))
+                continue;
+            var code = booking.GroupCode.Trim();
+            stats.TryGetValue(code, out var current);
+            var first = current.First;
+            var last = current.Last;
+            if (booking.ArrivalDate.HasValue && (first is null || booking.ArrivalDate.Value < first))
+                first = booking.ArrivalDate;
+            if (booking.DepartureDate.HasValue && (last is null || booking.DepartureDate.Value > last))
+                last = booking.DepartureDate;
+            stats[code] = (first, last, current.Count + 1);
+        }
+
+        var rows = new List<StayGroupDto>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (id, name) in named)
+        {
+            stats.TryGetValue(id, out var span);
+            rows.Add(new StayGroupDto(id, name, span.First, span.Last, span.Count));
+            seen.Add(id);
+        }
+
+        foreach (var (code, span) in stats)
+        {
+            if (!seen.Add(code))
+                continue;
+            rows.Add(new StayGroupDto(code, code, span.First, span.Last, span.Count));
+        }
+
+        return rows
+            .OrderByDescending(row => row.FirstArrival ?? DateOnly.MinValue)
+            .ThenBy(row => row.Name)
+            .ToList();
+    });
+    return Results.Ok(result);
+}).WithName("ListStayGroups");
+
+app.MapPost("/api/stay-groups", async (StayGroupRequest request, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    var name = request.Name?.Trim();
+    if (string.IsNullOrWhiteSpace(name))
+        return Results.BadRequest(new { error = "A group needs a name." });
+    if (name.Length > 80)
+        return Results.BadRequest(new { error = "The group name is too long." });
+
+    var id = await store.CreateAsync("stay_groups", name, new StayGroupStorageModel { Name = name }, indexByDocumentId: true);
+    queryCache.InvalidateTag("bookings");
+    return Results.Created($"/api/stay-groups/{id}", new StayGroupDto(id, name, null, null, 0));
+}).WithName("CreateStayGroup");
+
+app.MapPost("/api/bookings/groups/{code}/confirm", async (string code, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+{
+    if (string.IsNullOrWhiteSpace(code))
+        return Results.BadRequest(new { error = "Group code is required" });
+
+    var index = await store.GetIndexAsync("bookings");
+    var members = new List<(string Id, BookingStorageModel Booking)>();
+    foreach (var (_, id) in index)
+    {
+        var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
+        if (booking is null || booking.DeletedAt.HasValue || !SameGroup(booking.GroupCode, code) || ClosedBooking(booking.Status))
+            continue;
+        members.Add((id, booking));
+    }
+
+    if (members.Count == 0)
+        return Results.NotFound(new { error = "No bookings in this group" });
+
+    if (members.Any(member => string.IsNullOrWhiteSpace(member.Booking.RoomId)))
+        return Results.Conflict(new { error = "Every room in the group must be assigned before the group is confirmed." });
+
+    foreach (var (id, booking) in members)
+    {
+        if (string.IsNullOrWhiteSpace(booking.Status) || booking.Status.Equals("Incoming", StringComparison.OrdinalIgnoreCase))
+        {
+            booking.Status = "Confirmed";
+            await store.UpdateAsync("bookings", id, booking);
+        }
+    }
+
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(new { confirmed = members.Count });
+});
+
+app.MapPost("/api/bookings/{year:int}/{id}/move", async (
+    int year,
+    string id,
+    BookingMoveRequest request,
+    IKeyValueStore store,
+    IEndpointQueryCache queryCache,
+    IFinancialPostingService ledger,
+    ILedgerRepository ledgerReader,
+    IAccountChart accountChart,
+    ISystemConfigurationStore configurationStore) =>
+{
+    var origin = await store.GetAsync<BookingStorageModel>("bookings", id);
+    if (origin is null || origin.Year != year)
+        return Results.NotFound();
+    if (origin.ArrivalDate is null || origin.DepartureDate is null || string.IsNullOrWhiteSpace(origin.RoomId))
+        return Results.BadRequest(new { error = "The stay needs a room, an arrival, and a departure before it can move." });
+    if (!string.IsNullOrWhiteSpace(origin.ContinuedToId))
+        return Results.Conflict(new { error = "This stay has already moved." });
+    if (origin.ActualDepartureDate.HasValue || ClosedBooking(origin.Status) || string.Equals(origin.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase) || string.Equals(origin.Status, "Maintenance", StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "This stay cannot move." });
+    if (string.IsNullOrWhiteSpace(request.RoomId))
+        return Results.BadRequest(new { error = "Choose the room the guest moves to." });
+    if (string.Equals(request.RoomId, origin.RoomId, StringComparison.OrdinalIgnoreCase))
+        return Results.BadRequest(new { error = "Choose a different room." });
+
+    var from = request.FromDate;
+    if (from <= origin.ArrivalDate.Value || from >= origin.DepartureDate.Value)
+        return Results.BadRequest(new { error = "The move night has to leave at least one night in each room." });
+
+    var destination = await store.GetAsync<RoomStorageModel>("rooms", request.RoomId);
+    if (destination is null)
+        return Results.BadRequest(new { error = "The room was not found." });
+    if (await RoomTakenAsync(store, request.RoomId, from, origin.DepartureDate.Value, id))
+        return Results.Conflict(new { error = "That room is not free for the nights after the move." });
+
+    var allNights = origin.DepartureDate.Value.DayNumber - origin.ArrivalDate.Value.DayNumber;
+    var keptNights = from.DayNumber - origin.ArrivalDate.Value.DayNumber;
+    var movedNights = allNights - keptNights;
+    var price = Convert.ToDecimal(origin.TariffTotalPrice ?? 0);
+    var keptPrice = StayTax.Portion(price, keptNights, allNights);
+    var movedPrice = price - keptPrice;
+    var oldRoom = await store.GetAsync<RoomStorageModel>("rooms", origin.RoomId);
+    var oldRoomName = string.IsNullOrWhiteSpace(oldRoom?.Name) ? origin.RoomId : oldRoom.Name;
+    var newRoomName = string.IsNullOrWhiteSpace(destination.Name) ? request.RoomId : destination.Name;
+    var reason = string.IsNullOrWhiteSpace(request.Reason) ? "Relocate" : request.Reason.Trim();
+    var extraNote = string.IsNullOrWhiteSpace(request.Note) ? string.Empty : " " + request.Note.Trim();
+    var movingNow = origin.ActualArrivalDate.HasValue && !origin.ActualDepartureDate.HasValue && from <= DateOnly.FromDateTime(DateTime.UtcNow);
+
+    var prepaid = Convert.ToDecimal(origin.PrepaidAmount ?? 0);
+    var keepPrepaid = Math.Min(prepaid, Math.Max(keptPrice, 0));
+    var carryPrepaid = prepaid - keepPrepaid;
+
+    var continued = new BookingStorageModel
+    {
+        Year = from.Year,
+        ClientId = origin.ClientId,
+        RoomId = request.RoomId,
+        ArrivalDate = from,
+        DepartureDate = origin.DepartureDate,
+        Status = movingNow ? "CheckedIn" : "Confirmed",
+        ActualArrivalDate = movingNow ? from : null,
+        ActualGuestCount = movingNow ? origin.ActualGuestCount : null,
+        ExpectedGuestCount = origin.ExpectedGuestCount,
+        TariffId = origin.TariffId,
+        TariffTotalPrice = (double)movedPrice,
+        Source = origin.Source,
+        ExternalReference = origin.ExternalReference,
+        GroupCode = origin.GroupCode,
+        GroupName = origin.GroupName,
+        RoomFixed = origin.RoomFixed,
+        ContinuedFromId = id,
+        PrepaidAmount = (double)carryPrepaid,
+        Notes = $"Continued from {oldRoomName} on {from:yyyy-MM-dd}. {reason}.{extraNote}".Trim()
+    };
+    var newId = await store.CreateAsync("bookings", $"{from.Year}_{Guid.NewGuid():N}", continued);
+
+    var oldNote = string.IsNullOrWhiteSpace(origin.Notes) ? string.Empty : origin.Notes.Trim() + " ";
+    origin.Notes = $"{oldNote}Moved to {newRoomName} on {from:yyyy-MM-dd}. The stay continues. {reason}.{extraNote}".Trim();
+    origin.DepartureDate = from;
+    origin.TariffTotalPrice = (double)keptPrice;
+    origin.ContinuedToId = newId;
+    origin.PrepaidAmount = (double)keepPrepaid;
+    if (movingNow)
+    {
+        origin.Status = "CheckedOut";
+        origin.ActualDepartureDate = from;
+    }
+    await store.UpdateAsync("bookings", id, origin);
+    await CopyStayGuestsAsync(store, id, newId, from.Year);
+
+    var chart = await accountChart.CurrentAsync();
+    var tax = await CurrentTaxAsync(configurationStore);
+    var when = DateTime.UtcNow;
+    var posted = await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue);
+    if (movedPrice > 0)
+    {
+        var stayLines = posted.Where(line => string.Equals(line.EntryType, "booking_stay_charge", StringComparison.OrdinalIgnoreCase)).ToList();
+        var postedTax = stayLines.Where(line => line.AccountCode == chart.OutputTax).Sum(line => line.Credit - line.Debit);
+        var postedGross = stayLines.Where(line => line.AccountCode == chart.GuestLedger).Sum(line => line.Debit - line.Credit);
+        if (postedGross > 0)
+        {
+            var taxPart = postedGross == 0 ? 0 : StayTax.Round(postedTax * movedPrice / postedGross);
+            if (taxPart < 0) taxPart = 0;
+            if (taxPart > movedPrice) taxPart = movedPrice;
+            var netPart = movedPrice - taxPart;
+            var moveText = $"Guest moved from {oldRoomName} to {newRoomName}. Payment carried forward.";
+            if (taxPart == 0)
+                await ledger.PostBalancedAsync(when, "booking_stay_charge", moveText, movedPrice, chart.RoomRevenue, "revenue", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
+            else if (netPart == 0)
+                await ledger.PostBalancedAsync(when, "booking_stay_charge", moveText, taxPart, chart.OutputTax, "liability", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
+            else
+                await ledger.RelieveGuestChargeAsync(when, "booking_stay_charge", moveText, netPart, taxPart / netPart * 100m, false, chart.GuestLedger, "asset", chart.RoomRevenue, "revenue", chart.OutputTax, bookingId: id, sourceType: "booking", sourceId: id);
+        }
+
+        await ledger.PostGuestChargeAsync(when, "booking_stay_charge", $"Continued from {oldRoomName}. Payment carried forward.", movedPrice, tax.Stay, tax.Inclusive, chart.GuestLedger, "asset", chart.RoomRevenue, "revenue", chart.OutputTax, bookingId: newId, sourceType: "booking", sourceId: newId);
+    }
+
+    var cityLines = posted.Where(line => string.Equals(line.EntryType, "booking_city_tax", StringComparison.OrdinalIgnoreCase)).ToList();
+    var cityGross = cityLines.Where(line => line.AccountCode == chart.CityTax).Sum(line => line.Credit - line.Debit);
+    if (cityGross > 0 && movedNights > 0)
+    {
+        var cityMoved = cityGross - StayTax.Portion(cityGross, keptNights, allNights);
+        if (cityMoved > 0)
+        {
+            await ledger.PostBalancedAsync(when, "booking_city_tax", $"City tax moved to {newRoomName}", cityMoved, chart.CityTax, "liability", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
+            await ledger.PostBalancedAsync(when, "booking_city_tax", $"City tax continued from {oldRoomName}", cityMoved, chart.GuestLedger, "asset", chart.CityTax, "liability", bookingId: newId, sourceType: "booking", sourceId: newId);
+        }
+    }
+
+    if (carryPrepaid > 0)
+    {
+        var deposits = (await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue))
+            .Where(line => line.AccountCode == chart.GuestDeposits)
+            .Sum(line => line.Credit - line.Debit);
+        var depositCarry = Math.Min(carryPrepaid, Math.Max(deposits, 0));
+        if (depositCarry > 0)
+            await ledger.PostTransferAsync(when, "booking_prepaid", $"Deposit carried from {oldRoomName} to {newRoomName}", depositCarry, chart.GuestDeposits, "liability", id, newId, "booking", newId);
+    }
+
+    if (movingNow)
+    {
+        var held = (await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue))
+            .Where(line => line.AccountCode == chart.GuestDeposits)
+            .Sum(line => line.Credit - line.Debit);
+        if (held > 0)
+            await ledger.PostBalancedAsync(when, "booking_deposit_application", "Deposit applied on move", held, chart.GuestDeposits, "liability", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking", sourceId: id);
+    }
+
+    var due = (await ledgerReader.GetEntriesForBookingAsync(id, DateTime.MinValue, DateTime.MaxValue))
+        .Where(line => line.AccountCode == chart.GuestLedger)
+        .Sum(line => line.Debit - line.Credit);
+    if (due < 0)
+        await ledger.PostTransferAsync(when, "booking_payment", $"Payment carried from {oldRoomName} to {newRoomName}", -due, chart.GuestLedger, "asset", id, newId, "booking", newId);
+
+    queryCache.InvalidateTag("bookings");
+    return Results.Ok(ToBookingDto(newId, continued));
+}).WithName("MoveBooking");
+
+static async Task<bool> RoomTakenAsync(IKeyValueStore store, string roomId, DateOnly from, DateOnly to, string exceptId)
+{
+    var index = await store.GetIndexAsync("bookings");
+    foreach (var (_, bookingId) in index)
+    {
+        if (string.Equals(bookingId, exceptId, StringComparison.OrdinalIgnoreCase))
+            continue;
+        var booking = await store.GetAsync<BookingStorageModel>("bookings", bookingId);
+        if (booking is null || booking.DeletedAt.HasValue || !string.Equals(booking.RoomId, roomId, StringComparison.OrdinalIgnoreCase))
+            continue;
+        if (ClosedBooking(booking.Status) || string.Equals(booking.Status, "NoShow", StringComparison.OrdinalIgnoreCase))
+            continue;
+        var arrival = booking.ArrivalDate ?? booking.ActualArrivalDate;
+        var departure = booking.DepartureDate ?? booking.ActualDepartureDate;
+        if (arrival is null || departure is null)
+            continue;
+        if (arrival.Value < to && departure.Value > from)
+            return true;
+    }
+
+    return false;
+}
+
+static async Task CopyStayGuestsAsync(IKeyValueStore store, string fromId, string toId, int year)
+{
+    var index = await store.GetIndexAsync("booking_guests");
+    foreach (var (_, guestId) in index)
+    {
+        var guest = await store.GetAsync<BookingGuestStorageModel>("booking_guests", guestId);
+        if (guest is null || !string.Equals(guest.BookingId, fromId, StringComparison.OrdinalIgnoreCase))
+            continue;
+        await store.CreateAsync("booking_guests", $"{year}_{Guid.NewGuid():N}", new BookingGuestStorageModel
+        {
+            Year = year,
+            BookingId = toId,
+            ClientId = guest.ClientId,
+            GuestNumber = guest.GuestNumber
+        });
+    }
+}
+
+static bool SameGroup(string? stored, string code) =>
+    !string.IsNullOrWhiteSpace(stored) && stored.Equals(code, StringComparison.OrdinalIgnoreCase);
+
+static bool ClosedBooking(string? status) =>
+    status is not null && (
+        status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+        || status.Equals("Void", StringComparison.OrdinalIgnoreCase)
+        || status.Equals("Deleted", StringComparison.OrdinalIgnoreCase));
 
 app.MapDelete("/api/bookings/{year:int}/{id}", async (int year, string id, IKeyValueStore store, IEndpointQueryCache queryCache, ILedgerRepository ledger) =>
 {
@@ -3318,7 +3673,7 @@ app.MapGet("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKe
     return Results.Ok(ToBookingCostDto(id, c));
 }).WithName("GetBookingCost");
 
-app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
+app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
@@ -3326,11 +3681,14 @@ app.MapPost("/api/booking-costs", async (BookingCostDto request, IKeyValueStore 
     var id = await store.CreateAsync("booking_costs", key, storage);
     var sold = Convert.ToDecimal(request.Amount ?? 0);
     if (sold > 0)
-        await PostExtraCostDeltaAsync(ledger, await accountChart.CurrentAsync(), request.BookingId, sold, request.Description ?? "Extra cost", id);
+    {
+        var tax = await CurrentTaxAsync(configurationStore);
+        await PostExtraCostDeltaAsync(ledger, await accountChart.CurrentAsync(), tax, request.BookingId, sold, request.Description ?? "Extra cost", id, tax.Product ?? tax.Stay);
+    }
     return Results.Created($"/api/booking-costs/{request.Year}/{id}", ToBookingCostDto(id, storage));
 }).WithName("CreateBookingCost");
 
-app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
+app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, BookingCostDto request, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year || c.DeletedAt.HasValue) return Results.NotFound();
@@ -3340,24 +3698,27 @@ app.MapPut("/api/booking-costs/{year:int}/{id}", async (int year, string id, Boo
     await store.UpdateAsync("booking_costs", id, storage);
     var description = request.Description ?? c.Description ?? "Extra cost";
     var chart = await accountChart.CurrentAsync();
+    var tax = await CurrentTaxAsync(configurationStore);
+    var rate = tax.Product ?? tax.Stay;
     if (string.Equals(c.BookingId, request.BookingId, StringComparison.OrdinalIgnoreCase))
-        await PostExtraCostDeltaAsync(ledger, chart, request.BookingId, newAmount - oldAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, chart, tax, request.BookingId, newAmount - oldAmount, description, id, rate);
     else
     {
-        await PostExtraCostDeltaAsync(ledger, chart, c.BookingId, -oldAmount, description, id);
-        await PostExtraCostDeltaAsync(ledger, chart, request.BookingId, newAmount, description, id);
+        await PostExtraCostDeltaAsync(ledger, chart, tax, c.BookingId, -oldAmount, description, id, rate);
+        await PostExtraCostDeltaAsync(ledger, chart, tax, request.BookingId, newAmount, description, id, rate);
     }
     return Results.Ok(ToBookingCostDto(id, storage));
 }).WithName("UpdateBookingCost");
 
-app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IFinancialPostingService posting, IAccountChart accountChart) =>
+app.MapDelete("/api/booking-costs/{year:int}/{id}", async (int year, string id, IKeyValueStore store, ILedgerRepository ledger, IFinancialPostingService posting, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var c = await store.GetAsync<BookingCostStorageModel>("booking_costs", id);
     if (c is null || c.Year != year) return Results.NotFound();
     if (c.DeletedAt.HasValue)
         return Results.NoContent();
 
-    await PostExtraCostDeltaAsync(posting, await accountChart.CurrentAsync(), c.BookingId, -Convert.ToDecimal(c.Amount ?? 0), c.Description ?? "Extra cost removed", id);
+    var removedTax = await CurrentTaxAsync(configurationStore);
+    await PostExtraCostDeltaAsync(posting, await accountChart.CurrentAsync(), removedTax, c.BookingId, -Convert.ToDecimal(c.Amount ?? 0), c.Description ?? "Extra cost removed", id, removedTax.Product ?? removedTax.Stay);
     var cited = await ledger.AnyMatchingAsync(line =>
         string.Equals(line.SourceType, "booking-cost", StringComparison.OrdinalIgnoreCase)
         && string.Equals(line.SourceId, id, StringComparison.OrdinalIgnoreCase));
@@ -3450,15 +3811,37 @@ static async Task AdjustArticleQuantityAsync(IKeyValueStore store, string invent
     await store.UpdateAsync("inventory", inventoryId, row);
 }
 
-static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, AccountChart chart, string? bookingId, decimal delta, string description, string sourceId)
+static async Task<TaxPolicy> CurrentTaxAsync(ISystemConfigurationStore store)
+{
+    var config = await store.GetAsync();
+    return TaxPolicy.From(config?.Settings);
+}
+
+static async Task<decimal?> ExtraRateAsync(IKeyValueStore store, TaxPolicy tax, string? extraCostId)
+{
+    if (string.IsNullOrWhiteSpace(extraCostId))
+        return tax.Product ?? tax.Stay;
+    var extra = await store.GetAsync<ExtraCostStorageModel>("extra_costs", extraCostId);
+    return tax.RateFor(extra?.Category, extra?.TaxPercentage);
+}
+
+static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, AccountChart chart, TaxPolicy tax, string? bookingId, decimal delta, string description, string sourceId, decimal? rate)
 {
     if (string.IsNullOrWhiteSpace(bookingId) || delta == 0)
         return;
     var when = DateTime.UtcNow;
     if (delta > 0)
-        await ledger.PostBalancedAsync(when, "booking_extra_charge", description, delta, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+    {
+        await ledger.PostGuestChargeAsync(when, "booking_extra_charge", description, delta, rate, tax.Inclusive, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", chart.OutputTax, bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+        return;
+    }
+
+    var amount = decimal.Abs(delta);
+    var taxed = await ledger.SourceHasOutputTaxAsync(bookingId, sourceId, chart.OutputTax);
+    if (taxed)
+        await ledger.RelieveGuestChargeAsync(when, "booking_extra_reversal", description, amount, rate, tax.Inclusive, chart.GuestLedger, "asset", chart.OtherIncome, "revenue", chart.OutputTax, bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
     else
-        await ledger.PostBalancedAsync(when, "booking_extra_reversal", description, decimal.Abs(delta), chart.OtherIncome, "revenue", chart.GuestLedger, "asset", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
+        await ledger.PostBalancedAsync(when, "booking_extra_reversal", description, amount, chart.OtherIncome, "revenue", chart.GuestLedger, "asset", bookingId: bookingId, sourceType: "booking-cost", sourceId: sourceId);
 }
 
 // --- Layer 4: BookingGuests (ospiti{year}) ---
@@ -3702,6 +4085,9 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
     string entryType;
     string debit;
     string credit;
+    var saleTax = await CurrentTaxAsync(configurationStore);
+    var saleRate = await ExtraRateAsync(store, saleTax, request.ExtraCostId);
+    var (guestPaid, _, _) = StayTax.Split(amount, saleRate, saleTax.Inclusive);
 
     if (onStay)
     {
@@ -3715,7 +4101,7 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
 
         var cost = new BookingCostStorageModel { Year = year, BookingId = bookingId, Amount = (double)amount, Description = description };
         bookingCostId = await store.CreateAsync("booking_costs", $"{year}_{Guid.NewGuid():N}", cost);
-        await PostExtraCostDeltaAsync(ledger, chart, bookingId, amount, description, bookingCostId);
+        await PostExtraCostDeltaAsync(ledger, chart, saleTax, bookingId, amount, description, bookingCostId, saleRate);
     }
     else
     {
@@ -3729,7 +4115,8 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
         credit = chart.OtherIncome;
         registerId = register.Id;
         currency = string.IsNullOrWhiteSpace(request.Currency) ? await PosDefaultCurrencyAsync(configurationStore) : request.Currency.Trim();
-        running = (double)(await PosRegisterTapeAsync(store, registerId) + amount);
+        running = (double)(await PosRegisterTapeAsync(store, registerId) + guestPaid);
+        amount = guestPaid;
     }
 
     var sale = new PosSaleStorageModel
@@ -3757,7 +4144,7 @@ app.MapPost("/api/pos-sales", async (PosSaleDto request, IKeyValueStore store, I
     var id = await store.CreateAsync("pos_sales", $"{year}_{Guid.NewGuid():N}", sale);
     if (!onStay)
     {
-        await ledger.PostBalancedAsync(when, entryType, description, amount, debit, "asset", credit, "revenue", cashRegisterId: registerId, payerName: request.Person ?? description, sourceType: "pos-sale", sourceId: id);
+        await ledger.PostGuestChargeAsync(when, entryType, description, request.Amount is null ? amount : Convert.ToDecimal(request.Amount.Value), saleRate, saleTax.Inclusive, debit, "asset", credit, "revenue", chart.OutputTax, cashRegisterId: registerId, payerName: request.Person ?? description, sourceType: "pos-sale", sourceId: id);
     }
 
     if (commitWarehouse)
@@ -3773,7 +4160,7 @@ app.MapDelete("/api/pos-sales/{year:int}/{id}", (int year, string id) =>
     return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 }).WithName("DeletePosSale");
 
-app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
+app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var original = await store.GetAsync<PosSaleStorageModel>("pos_sales", id);
     if (original is null || original.Year != year) return Results.NotFound();
@@ -3827,7 +4214,11 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
         {
             var outstanding = Convert.ToDecimal(cost.Amount ?? 0);
             if (outstanding != 0)
-                await PostExtraCostDeltaAsync(ledger, chart, original.BookingId, -outstanding, description, original.BookingCostId!);
+            {
+                var reverseTax = await CurrentTaxAsync(configurationStore);
+                var reverseRate = await ExtraRateAsync(store, reverseTax, original.ExtraCostId);
+                await PostExtraCostDeltaAsync(ledger, chart, reverseTax, original.BookingId, -outstanding, description, original.BookingCostId!, reverseRate);
+            }
             cost.DeletedAt = DateTime.UtcNow;
             await store.UpdateAsync("booking_costs", original.BookingCostId!, cost);
         }
@@ -3838,7 +4229,12 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
     }
     else
     {
-        await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, chart.OtherIncome, "revenue", chart.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
+        var saleDay = original.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
+        var flipped = await ledger.FlipSourceOnDateAsync(saleDay, id, "pos_cash_reversal", description, original.CashRegisterId, original.Person ?? description, "pos-sale", reversalId);
+        if (!flipped && saleDay.Date != DateTime.UtcNow.Date)
+            flipped = await ledger.FlipSourceOnDateAsync(DateTime.UtcNow, id, "pos_cash_reversal", description, original.CashRegisterId, original.Person ?? description, "pos-sale", reversalId);
+        if (!flipped)
+            await ledger.PostBalancedAsync(DateTime.UtcNow, "pos_cash_reversal", description, amount, chart.OtherIncome, "revenue", chart.Cash, "asset", cashRegisterId: original.CashRegisterId, payerName: original.Person ?? description, sourceType: "pos-sale", sourceId: reversalId);
     }
 
     if (!string.IsNullOrWhiteSpace(original.ArticleId) && (original.Units ?? 0) > 0)
@@ -4430,6 +4826,148 @@ app.MapGet("/api/ledger/lines", async (DateOnly from, DateOnly to, string? booki
 app.MapGet("/api/ledger/accounts", async (IAccountChart accountChart) =>
     Results.Ok((await accountChart.CurrentAsync()).Accounts)).WithName("ListChartOfAccounts");
 
+app.MapGet("/api/night-audits", async (int year, int month, IKeyValueStore store) =>
+{
+    if (month is < 1 or > 12)
+        return Results.BadRequest(new { error = "Month is required" });
+
+    var index = await store.GetIndexAsync("night_audits");
+    var prefix = $"{year:0000}-{month:00}-";
+    var rows = new List<NightAuditDto>();
+    foreach (var (name, id) in index)
+    {
+        if (!name.StartsWith(prefix, StringComparison.Ordinal))
+            continue;
+        var stored = await store.GetAsync<NightAuditStorageModel>("night_audits", id);
+        if (stored is not null)
+            rows.Add(ToNightAuditDto(stored));
+    }
+
+    return Results.Ok(rows.OrderByDescending(row => row.BusinessDate).ToList());
+});
+
+app.MapGet("/api/night-audits/day", async (DateOnly date, IKeyValueStore store, ILedgerRepository ledger) =>
+{
+    var stored = await FindNightAuditAsync(store, date);
+    if (stored is not null)
+        return Results.Ok(ToNightAuditDto(stored));
+
+    var live = await LiveNightAuditAsync(date, store, ledger);
+    return Results.Ok(live);
+});
+
+app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest request, HttpContext httpContext, IKeyValueStore store, ILedgerRepository ledger, IAccountChart accountChart) =>
+{
+    if (date > DateOnly.FromDateTime(DateTime.UtcNow))
+        return Results.BadRequest(new { error = "A future day cannot be signed" });
+    if (!request.CashAgrees || !request.BalancesReviewed || !request.RoomsSeen)
+        return Results.BadRequest(new { error = "Cash, balances, and the rooms have to be marked as seen" });
+
+    var name = RequestActor.KnownName(httpContext);
+    if (string.IsNullOrWhiteSpace(name))
+        return Results.BadRequest(new { error = "A desk name is required before the day can be signed" });
+    if (await FindNightAuditAsync(store, date) is not null)
+        return Results.Conflict(new { error = "This day is already signed" });
+
+    var live = await LiveNightAuditAsync(date, store, ledger);
+    var signedAt = DateTime.UtcNow;
+    var stored = new NightAuditStorageModel
+    {
+        BusinessDate = date,
+        SignedAt = signedAt,
+        SignedBy = name,
+        CashAgrees = true,
+        BalancesReviewed = true,
+        RoomsSeen = true,
+        Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+        CashTaken = live.CashTaken,
+        RoomRevenue = live.RoomRevenue,
+        OtherIncome = live.OtherIncome,
+        StillDue = live.StillDue,
+        Occupancy = live.Occupancy,
+        Sold = live.Sold
+    };
+
+    try
+    {
+        await store.CreateAsync("night_audits", date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), stored);
+    }
+    catch (InvalidOperationException)
+    {
+        return Results.Conflict(new { error = "This day is already signed" });
+    }
+
+    var chart = await accountChart.CurrentAsync();
+    await ledger.AppendEntryAsync(date.ToDateTime(TimeOnly.MinValue), new LedgerEntry
+    {
+        Timestamp = signedAt,
+        EntryType = "night_audit",
+        AccountCode = chart.Cash,
+        AccountGroup = "asset",
+        Debit = 0,
+        Credit = 0,
+        Amount = 0,
+        SourceType = "night-audit",
+        SourceId = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        CreatedBy = name,
+        Notes = $"Night audit {date:yyyy-MM-dd} signed by {name}. Seen and accepted. Open balances stay open.",
+        Status = "posted"
+    });
+
+    return Results.Ok(ToNightAuditDto(stored));
+});
+
+static NightAuditDto ToNightAuditDto(NightAuditStorageModel stored) => new(
+    stored.BusinessDate,
+    true,
+    stored.SignedAt,
+    stored.SignedBy,
+    stored.CashAgrees,
+    stored.BalancesReviewed,
+    stored.RoomsSeen,
+    stored.Note,
+    stored.CashTaken,
+    stored.RoomRevenue,
+    stored.OtherIncome,
+    stored.StillDue,
+    stored.Occupancy,
+    stored.Sold);
+
+static async Task<NightAuditStorageModel?> FindNightAuditAsync(IKeyValueStore store, DateOnly date)
+{
+    var index = await store.GetIndexAsync("night_audits");
+    var key = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    if (!index.TryGetValue(key, out var id))
+        return null;
+    return await store.GetAsync<NightAuditStorageModel>("night_audits", id);
+}
+
+static async Task<NightAuditDto> LiveNightAuditAsync(DateOnly date, IKeyValueStore store, ILedgerRepository ledger)
+{
+    var flash = await DeskReportBuilder.BuildAsync("flash", date, store, ledger);
+    return new NightAuditDto(
+        date,
+        false,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        SheetValue(flash, "reports.total.taken"),
+        SheetValue(flash, "reports.col.revenue"),
+        SheetValue(flash, "reports.col.other"),
+        SheetValue(flash, "reports.total.due"),
+        SheetValue(flash, "reports.col.occupancy"),
+        SheetValue(flash, "reports.col.sold"));
+}
+
+static string SheetValue(PaperReportDto? report, string label)
+{
+    var row = report?.Sections.FirstOrDefault()?.Rows.FirstOrDefault(item => item.Cells.Count > 0 && item.Cells[0] == label);
+    return row is null || row.Cells.Count < 2 ? "" : row.Cells[1];
+}
+
 // --- Document Rendering ---
 
 app.MapGet("/api/documents/render/{type}/{number:int}",
@@ -4465,6 +5003,41 @@ app.MapGet("/api/documents/render/{type}/{number:int}",
 
         return Results.File(bytes, contentType, filename);
     }).WithName("RenderDocument");
+
+app.MapPost("/api/documents/open/{type}/{number:int}",
+    async (string type, int number, string bookingId, int year, IKeyValueStore store, IDocumentRenderService renderer) =>
+    {
+        var sanitized = SanitizeContractType(type);
+        var key = $"{sanitized}_{number}";
+        var templateIdx = await store.GetIndexAsync("contract_templates");
+        if (!templateIdx.TryGetValue(key, out var templateGuid)) return Results.NotFound();
+        var template = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", templateGuid);
+        if (template is null) return Results.NotFound();
+
+        var context = await renderer.BuildContextAsync(bookingId, year, type);
+        if (context is null) return Results.NotFound();
+
+        var html = renderer.RenderHtml(template.Content ?? string.Empty, context);
+        var (content, _, filename) = renderer.ApplyFormat(html, context, DocumentFormat.Eml);
+        var safe = new string((filename ?? "message.eml").Where(ch => char.IsLetterOrDigit(ch) || ch is '.' or '-' or '_').ToArray());
+        if (string.IsNullOrWhiteSpace(safe))
+            safe = "message.eml";
+
+        var directory = Path.Combine(Path.GetTempPath(), "hoteldruid-mail");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, safe);
+        await File.WriteAllTextAsync(path, content);
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return Results.Ok(new { opened = true });
+    }).WithName("OpenDocument");
 
 app.Run();
 

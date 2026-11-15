@@ -76,6 +76,27 @@
     <tr class="due"><td class="label">Total due</td><td class="value">{{Invoice.TotalDue}} {{Invoice.Currency}}</td></tr>
   </table>
 
+  <p style="font-size:9pt;">{{Tax.Notice}}</p>
+  <table>
+    <thead><tr><th>Tax</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Tax</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Taxes -->
+      <tr>
+        <td>{{Tax.Label}}</td>
+        <td style="text-align:right;">{{Tax.Rate}}</td>
+        <td style="text-align:right;">{{Tax.Tax}}</td>
+      </tr>
+<!-- ENDFOREACH:Taxes -->
+<!-- FOREACH:TaxLines -->
+      <tr>
+        <td>{{TaxLine.Label}}</td>
+        <td></td>
+        <td style="text-align:right;">{{TaxLine.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:TaxLines -->
+    </tbody>
+  </table>
+
   <div class="qr">
     <img src="{{Booking.QrCode}}" alt="Booking QR code">
     <div class="caption">{{Booking.Reference}}</div>

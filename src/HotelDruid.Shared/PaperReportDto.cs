@@ -16,6 +16,6 @@ public record PaperSectionDto(
     IReadOnlyList<PaperRowDto> Rows,
     IReadOnlyList<PaperTotalDto> Totals);
 
-public record PaperRowDto(IReadOnlyList<string> Cells);
+public record PaperRowDto(IReadOnlyList<string> Cells, IReadOnlyList<int>? Spans = null);
 
 public record PaperTotalDto(string LabelKey, string Value, string Kind);

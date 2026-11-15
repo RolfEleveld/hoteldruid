@@ -23,6 +23,7 @@ public sealed class DocumentTemplateSeeder : IHostedService
     [
         "booking-confirmation",
         "invoice",
+        "rechnung",
         "receipt",
         "welcome-letter",
         "email-confirmation"

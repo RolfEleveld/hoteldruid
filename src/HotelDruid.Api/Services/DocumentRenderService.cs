@@ -69,7 +69,6 @@ public sealed class DocumentRenderService : IDocumentRenderService
         var chartConfig = await _configStore.GetAsync();
         var chart = AccountChart.ResolveOrUsali(chartConfig?.AccountingStandard, chartConfig?.AccountCodes);
         var totals = BookingLedgerTotals.From(ledgerLines, chart);
-        var costs = ChargeRows(ledgerLines, chart);
         var payments = MovementRows(ledgerLines);
 
         // 5. Load additional guests
@@ -92,6 +91,7 @@ public sealed class DocumentRenderService : IDocumentRenderService
         var config = await _configStore.GetAsync() ?? new SystemConfiguration();
         var settings = config.Settings ?? new Dictionary<string, string>();
         var currency = config.DefaultCurrency ?? settings.GetValueOrDefault("Currency", "EUR");
+        var presented = PresentCharges(ledgerLines, chart, TaxPolicy.From(settings));
 
         // 7. Compute nights
         int nights = 0;
@@ -151,6 +151,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
             InvoiceTotalDue = totals.TotalDue.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceTotalAmount = totals.ChargesTotal.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceCurrency = currency,
+            TaxNotice = presented.Notice,
+            TaxNoticeDe = presented.NoticeDe,
 
             // Meta
             DocumentToday = DateTime.UtcNow.ToString("yyyy-MM-dd"),
@@ -158,32 +160,169 @@ public sealed class DocumentRenderService : IDocumentRenderService
 
             // Lists
             Guests = guests,
-            Costs = costs,
-            Payments = payments
+            Costs = presented.Costs,
+            Payments = payments,
+            Taxes = presented.Recap,
+            TaxLines = presented.Lines
         };
     }
 
-    private static List<CostContextRow> ChargeRows(IEnumerable<LedgerEntry> lines, AccountChart chart)
+    private readonly record struct ChargePresentation(
+        List<CostContextRow> Costs,
+        List<TaxLineContextRow> Lines,
+        List<TaxContextRow> Recap,
+        string Notice,
+        string NoticeDe);
+
+    private static ChargePresentation PresentCharges(IEnumerable<LedgerEntry> lines, AccountChart chart, TaxPolicy tax)
     {
-        var rows = new List<CostContextRow>();
+        var costs = new List<CostContextRow>();
+        var taxLines = new List<TaxLineContextRow>();
+        var buckets = new Dictionary<(string Label, string Rate), (decimal Net, decimal Tax, decimal Gross)>();
+
         foreach (var group in lines.GroupBy(JournalKey))
         {
-            var revenue = group.Where(line => line.AccountCode == chart.RoomRevenue || line.AccountCode == chart.OtherIncome).ToList();
-            if (revenue.Count == 0)
+            var room = SumAccount(group, chart.RoomRevenue);
+            var other = SumAccount(group, chart.OtherIncome);
+            var postedTax = SumAccount(group, chart.OutputTax);
+            var city = SumAccount(group, chart.CityTax);
+            if (room == 0 && other == 0 && postedTax == 0 && city == 0)
                 continue;
-            var amount = revenue.Sum(line => line.Credit - line.Debit);
-            if (amount == 0)
-                continue;
-            var described = revenue.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line.Notes)) ?? revenue[0];
-            rows.Add(new CostContextRow
+
+            var described = group.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line.Notes)) ?? group.First();
+            var description = described.Notes ?? string.Empty;
+            var showNet = !tax.Inclusive && postedTax != 0;
+            if (room != 0 || (postedTax != 0 && other == 0 && city == 0))
             {
-                Description = described.Notes ?? string.Empty,
-                Amount = amount.ToString("F2", CultureInfo.InvariantCulture),
-                TariffId = string.Empty
-            });
+                var gross = room + (other == 0 ? postedTax : 0m);
+                costs.Add(Cost(description, showNet ? room : gross));
+                AddRecap(buckets, "Stay / Übernachtung", tax.Stay, room, other == 0 ? postedTax : 0m, tax.Inclusive);
+            }
+
+            if (other != 0)
+            {
+                var gross = other + (room == 0 ? postedTax : 0m);
+                costs.Add(Cost(description, showNet ? other : gross));
+                AddRecap(buckets, "Other / Übrige", tax.Product ?? tax.Stay, other, room == 0 ? postedTax : 0m, tax.Inclusive);
+            }
+
+            if (city != 0)
+            {
+                costs.Add(Cost(string.IsNullOrWhiteSpace(description) ? "City tax / Ortstaxe" : description, city));
+                AddCity(buckets, city);
+            }
+
+            if (showNet && postedTax != 0)
+            {
+                var rate = CloseRate(room + other, postedTax, tax.Stay);
+                taxLines.Add(new TaxLineContextRow
+                {
+                    Label = $"VAT {rate} / MwSt. {rate}",
+                    Amount = Money(postedTax)
+                });
+            }
         }
-        return rows;
+
+        var recap = tax.Inclusive
+            ? buckets.Select(pair => new TaxContextRow
+            {
+                Label = pair.Key.Label,
+                Rate = pair.Key.Rate,
+                Net = Money(pair.Value.Net),
+                Tax = Money(pair.Value.Tax),
+                Gross = Money(pair.Value.Gross)
+            }).ToList()
+            : [];
+
+        var hasTax = recap.Any(row => row.Tax != "0.00") || taxLines.Count > 0;
+        var notice = hasTax && tax.Inclusive
+            ? "Prices include tax at the rates below. The tax is not added again."
+            : taxLines.Count > 0
+                ? "Tax is added at the rates below."
+                : string.Empty;
+        var noticeDe = hasTax && tax.Inclusive
+            ? "Die Preise enthalten die Steuer zu den Sätzen unten. Die Steuer wird nicht noch einmal hinzugerechnet."
+            : taxLines.Count > 0
+                ? "Die Steuer wird zu den Preisen hinzugerechnet."
+                : string.Empty;
+        return new ChargePresentation(costs, taxLines, recap, notice, noticeDe);
     }
+
+    private static void AddRecap(
+        Dictionary<(string Label, string Rate), (decimal Net, decimal Tax, decimal Gross)> buckets,
+        string label,
+        decimal? rate,
+        decimal netOrGross,
+        decimal postedTax,
+        bool inclusive)
+    {
+        if (netOrGross == 0 && postedTax == 0)
+            return;
+        decimal net;
+        decimal tax;
+        decimal gross;
+        string shown;
+        if (postedTax != 0)
+        {
+            net = netOrGross;
+            tax = postedTax;
+            gross = net + tax;
+            shown = CloseRate(net, tax, rate);
+        }
+        else if (inclusive && rate is > 0)
+        {
+            gross = netOrGross;
+            var split = StayTax.Split(gross, rate, true);
+            net = split.Net;
+            tax = split.Tax;
+            shown = RateText(rate.Value);
+        }
+        else
+        {
+            gross = netOrGross;
+            net = netOrGross;
+            tax = 0m;
+            shown = "—";
+        }
+
+        var key = (label, shown);
+        buckets.TryGetValue(key, out var current);
+        buckets[key] = (current.Net + net, current.Tax + tax, current.Gross + gross);
+    }
+
+    private static void AddCity(Dictionary<(string Label, string Rate), (decimal Net, decimal Tax, decimal Gross)> buckets, decimal amount)
+    {
+        var key = ("City tax / Ortstaxe", "—");
+        buckets.TryGetValue(key, out var current);
+        buckets[key] = (current.Net + amount, current.Tax, current.Gross + amount);
+    }
+
+    private static string CloseRate(decimal net, decimal tax, decimal? expected)
+    {
+        if (net == 0)
+            return "—";
+        var computed = StayTax.Round(tax / net * 100m);
+        if (expected is > 0 && Math.Abs(computed - expected.Value) < 0.06m)
+            return RateText(expected.Value);
+        return RateText(computed);
+    }
+
+    private static string RateText(decimal rate)
+        => rate.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+
+    private static CostContextRow Cost(string description, decimal amount)
+        => new()
+        {
+            Description = description,
+            Amount = Money(amount),
+            TariffId = string.Empty
+        };
+
+    private static string Money(decimal amount)
+        => amount.ToString("F2", CultureInfo.InvariantCulture);
+
+    private static decimal SumAccount(IEnumerable<LedgerEntry> lines, string account)
+        => lines.Where(line => line.AccountCode == account).Sum(line => line.Credit - line.Debit);
 
     private static List<PaymentContextRow> MovementRows(IEnumerable<LedgerEntry> lines)
     {
@@ -236,6 +375,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
                 "Guests" => ExpandList(body, ctx.Guests, ExpandGuestTokens),
                 "Costs" => ExpandList(body, ctx.Costs, ExpandCostTokens),
                 "Payments" => ExpandList(body, ctx.Payments, ExpandPaymentTokens),
+                "Taxes" => ExpandList(body, ctx.Taxes, ExpandTaxTokens),
+                "TaxLines" => ExpandList(body, ctx.TaxLines, ExpandTaxLineTokens),
                 _ => string.Empty
             };
         });
@@ -319,6 +460,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
             // Financial
             .Replace("{{Invoice.TotalAmount}}", Encode(ctx.InvoiceTotalAmount))
             .Replace("{{Invoice.Currency}}", Encode(ctx.InvoiceCurrency))
+            .Replace("{{Tax.Notice}}", Encode(ctx.TaxNotice))
+            .Replace("{{Tax.NoticeDe}}", Encode(ctx.TaxNoticeDe))
             // Meta
             .Replace("{{Document.Today}}", Encode(ctx.DocumentToday))
             .Replace("{{Document.TemplateType}}", Encode(ctx.DocumentTemplateType));
@@ -350,6 +493,19 @@ public sealed class DocumentRenderService : IDocumentRenderService
             .Replace("{{Cost.Description}}", Encode(c.Description))
             .Replace("{{Cost.Amount}}", Encode(c.Amount))
             .Replace("{{Cost.TariffId}}", Encode(c.TariffId));
+
+    private static string ExpandTaxTokens(string body, TaxContextRow row) =>
+        body
+            .Replace("{{Tax.Label}}", Encode(row.Label))
+            .Replace("{{Tax.Rate}}", Encode(row.Rate))
+            .Replace("{{Tax.Net}}", Encode(row.Net))
+            .Replace("{{Tax.Tax}}", Encode(row.Tax))
+            .Replace("{{Tax.Gross}}", Encode(row.Gross));
+
+    private static string ExpandTaxLineTokens(string body, TaxLineContextRow row) =>
+        body
+            .Replace("{{TaxLine.Label}}", Encode(row.Label))
+            .Replace("{{TaxLine.Amount}}", Encode(row.Amount));
 
     private static string ExpandPaymentTokens(string body, PaymentContextRow p) =>
         body
@@ -408,6 +564,8 @@ public sealed class DocumentRenderService : IDocumentRenderService
         sb.AppendLine($"From: {ctx.HotelName} <{fromAddress}>");
         if (!string.IsNullOrWhiteSpace(toAddress))
             sb.AppendLine($"To: {ctx.ClientFullName} <{toAddress}>");
+        if (ctx.HotelEmail.Length > 0)
+            sb.AppendLine($"Reply-To: {ctx.HotelName} <{fromAddress}>");
         sb.AppendLine($"Subject: {subject}");
         sb.AppendLine($"Content-Type: multipart/alternative; boundary=\"{boundary}\"");
         sb.AppendLine();

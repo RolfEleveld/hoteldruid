@@ -107,6 +107,12 @@
         <td class="right">{{Cost.Amount}}</td>
       </tr>
 <!-- ENDFOREACH:Costs -->
+<!-- FOREACH:TaxLines -->
+      <tr>
+        <td>{{TaxLine.Label}}</td>
+        <td class="right">{{TaxLine.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:TaxLines -->
       <tr class="total-row">
         <td>Total Charges</td>
         <td class="right">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td>
@@ -143,6 +149,30 @@
     <tr><td class="label">Refunds</td><td class="right">{{Invoice.RefundsTotal}} {{Invoice.Currency}}</td></tr>
     <tr><td class="label">Deposits held</td><td class="right">{{Invoice.DepositsHeld}} {{Invoice.Currency}}</td></tr>
     <tr class="balance-row"><td>Total due</td><td class="right">{{Invoice.TotalDue}} {{Invoice.Currency}}</td></tr>
+  </table>
+
+  <p style="font-size:9pt;color:#333;">{{Tax.Notice}}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Tax</th>
+        <th class="right">Rate</th>
+        <th class="right">Net</th>
+        <th class="right">Tax</th>
+        <th class="right">Gross</th>
+      </tr>
+    </thead>
+    <tbody>
+<!-- FOREACH:Taxes -->
+      <tr>
+        <td>{{Tax.Label}}</td>
+        <td class="right">{{Tax.Rate}}</td>
+        <td class="right">{{Tax.Net}}</td>
+        <td class="right">{{Tax.Tax}}</td>
+        <td class="right">{{Tax.Gross}}</td>
+      </tr>
+<!-- ENDFOREACH:Taxes -->
+    </tbody>
   </table>
 
   <div class="qr">

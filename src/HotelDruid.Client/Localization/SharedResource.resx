@@ -1050,4 +1050,110 @@
   <data name="reports.move.expense" xml:space="preserve"><value>Expense</value></data>
   <data name="reports.account.rooms" xml:space="preserve"><value>Rooms</value></data>
   <data name="reports.account.other" xml:space="preserve"><value>Other income</value></data>
+  <data name="reports.roomBoard.title" xml:space="preserve"><value>Room board</value></data>
+  <data name="reports.roomBoard.blurb" xml:space="preserve"><value>Each room across the month, with the guest and a color for occupied, available, dirty, blocked, and maintenance.</value></data>
+  <data name="reports.roomBoard.section" xml:space="preserve"><value>Rooms this month</value></data>
+  <data name="reports.band.available" xml:space="preserve"><value>Available</value></data>
+  <data name="reports.band.dirty" xml:space="preserve"><value>Dirty</value></data>
+  <data name="reports.band.blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="reports.band.maintenance" xml:space="preserve"><value>Maintenance</value></data>
+  <data name="reports.band.occupied" xml:space="preserve"><value>Occupied</value></data>
+  <data name="rooms.conditionLabel" xml:space="preserve"><value>Condition</value></data>
+  <data name="rooms.condition.clean" xml:space="preserve"><value>Clean</value></data>
+  <data name="rooms.condition.dirty" xml:space="preserve"><value>Dirty</value></data>
+  <data name="rooms.condition.blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="rooms.condition.maintenance" xml:space="preserve"><value>Maintenance</value></data>
+  <data name="rooms.conditionHelp" xml:space="preserve"><value>Occupied and available come from the stays. Use this for the room itself.</value></data>
+  <data name="bookings.source" xml:space="preserve"><value>Source</value></data>
+  <data name="bookings.externalReference" xml:space="preserve"><value>External reference</value></data>
+  <data name="bookings.groupCode" xml:space="preserve"><value>Group</value></data>
+  <data name="bookings.newGroup" xml:space="preserve"><value>New group</value></data>
+  <data name="bookings.groupHelp" xml:space="preserve"><value>A group is one party. Rooms in it can arrive on different days. Pick the party that is already in the hotel, or start a new one. The same name later is a different party.</value></data>
+  <data name="bookings.groupNamePlaceholder" xml:space="preserve"><value>Party name</value></data>
+  <data name="bookings.groupNameRequired" xml:space="preserve"><value>Type the name of the party.</value></data>
+  <data name="bookings.groupCreateFailed" xml:space="preserve"><value>The group could not be started.</value></data>
+  <data name="bookings.groupRemove" xml:space="preserve"><value>Remove</value></data>
+  <data name="bookings.groupWhen" xml:space="preserve"><value>{0} – {1} · {2} rooms</value></data>
+  <data name="bookings.assignRoom" xml:space="preserve"><value>Assign a new room</value></data>
+  <data name="bookings.roomStaying" xml:space="preserve"><value>This guest is in this room. Assign a new room to move them from a later night.</value></data>
+  <data name="bookings.roomStayingShort" xml:space="preserve"><value>This guest is in this room.</value></data>
+  <data name="bookings.roomFixed" xml:space="preserve"><value>Room fixed on request</value></data>
+  <data name="bookingFinance.emailInvoice" xml:space="preserve"><value>Email invoice</value></data>
+  <data name="bookingFinance.emailReceipt" xml:space="preserve"><value>Email receipt</value></data>
+  <data name="bookingFinance.emailConfirmation" xml:space="preserve"><value>Email confirmation</value></data>
+  <data name="Nav.Received" xml:space="preserve"><value>Received</value></data>
+  <data name="Dashboard.Incoming.Title" xml:space="preserve"><value>Received</value></data>
+  <data name="Dashboard.Incoming.Subtitle" xml:space="preserve"><value>Reservations waiting to be accepted.</value></data>
+  <data name="Dashboard.Incoming.Count" xml:space="preserve"><value>{0} waiting</value></data>
+  <data name="Dashboard.Incoming.Empty" xml:space="preserve"><value>Nothing is waiting.</value></data>
+  <data name="Dashboard.Incoming.Button" xml:space="preserve"><value>Open received</value></data>
+  <data name="Dashboard.Incoming.UnknownSource" xml:space="preserve"><value>No source</value></data>
+  <data name="Dashboard.Widget.VisibleCount.Incoming" xml:space="preserve"><value>Received to show</value></data>
+  <data name="received.title" xml:space="preserve"><value>Received reservations</value></data>
+  <data name="received.subtitle" xml:space="preserve"><value>Assign a room, then confirm the whole group. A group is accepted only when every room has one.</value></data>
+  <data name="received.empty" xml:space="preserve"><value>No reservations are waiting.</value></data>
+  <data name="received.noRoom" xml:space="preserve"><value>No room</value></data>
+  <data name="received.roomAssigned" xml:space="preserve"><value>Assigned</value></data>
+  <data name="received.open" xml:space="preserve"><value>Open</value></data>
+  <data name="received.confirmGroup" xml:space="preserve"><value>Confirm group</value></data>
+  <data name="received.confirmed" xml:space="preserve"><value>Group {0} is confirmed.</value></data>
+  <data name="bookings.groupRoomsTitle" xml:space="preserve"><value>Other rooms in this group</value></data>
+  <data name="bookings.noGroupRooms" xml:space="preserve"><value>No other rooms share this group.</value></data>
+  <data name="reports.total.added" xml:space="preserve"><value>Tax added on top</value></data>
+  <data name="Nav.NightAudit" xml:space="preserve"><value>Night audit</value></data>
+  <data name="Nav.Taxes" xml:space="preserve"><value>Tax rates</value></data>
+  <data name="nightAudit.title" xml:space="preserve"><value>Night audit</value></data>
+  <data name="nightAudit.previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="nightAudit.next" xml:space="preserve"><value>Next</value></data>
+  <data name="nightAudit.open" xml:space="preserve"><value>Not signed</value></data>
+  <data name="nightAudit.none" xml:space="preserve"><value>No day is signed in this month.</value></data>
+  <data name="nightAudit.signTitle" xml:space="preserve"><value>Sign off</value></data>
+  <data name="nightAudit.sold" xml:space="preserve"><value>Rooms sold</value></data>
+  <data name="nightAudit.occupancy" xml:space="preserve"><value>Occupancy</value></data>
+  <data name="nightAudit.revenue" xml:space="preserve"><value>Room revenue</value></data>
+  <data name="nightAudit.other" xml:space="preserve"><value>Other income</value></data>
+  <data name="nightAudit.taken" xml:space="preserve"><value>Cash taken</value></data>
+  <data name="nightAudit.due" xml:space="preserve"><value>Still due</value></data>
+  <data name="nightAudit.meaning" xml:space="preserve"><value>Signing means this day was seen and the figures were accepted. Open balances stay open.</value></data>
+  <data name="nightAudit.signed" xml:space="preserve"><value>Signed by {0} at {1}.</value></data>
+  <data name="nightAudit.cashSeen" xml:space="preserve"><value>Counted cash agrees with the cash posted</value></data>
+  <data name="nightAudit.balancesSeen" xml:space="preserve"><value>Balances and deposits reviewed</value></data>
+  <data name="nightAudit.roomsSeen" xml:space="preserve"><value>Room status seen</value></data>
+  <data name="nightAudit.sign" xml:space="preserve"><value>Sign and stamp</value></data>
+  <data name="nightAudit.done" xml:space="preserve"><value>{0} is signed.</value></data>
+  <data name="nightAudit.reports" xml:space="preserve"><value>Reports for this day</value></data>
+  <data name="taxes.title" xml:space="preserve"><value>Tax rates</value></data>
+  <data name="taxes.help" xml:space="preserve"><value>The hotel works tax-inclusive unless you choose to add tax on top. Stay, food, service, and product each have their own rate. City tax is separate from room revenue. The tax sheet uses the stay rate.</value></data>
+  <data name="taxes.pricing" xml:space="preserve"><value>Prices</value></data>
+  <data name="taxes.inclusive" xml:space="preserve"><value>Tax included in the price</value></data>
+  <data name="taxes.exclusive" xml:space="preserve"><value>Tax added on top</value></data>
+  <data name="taxes.stay" xml:space="preserve"><value>Stay %</value></data>
+  <data name="taxes.food" xml:space="preserve"><value>Food %</value></data>
+  <data name="taxes.service" xml:space="preserve"><value>Service %</value></data>
+  <data name="taxes.product" xml:space="preserve"><value>Product %</value></data>
+  <data name="taxes.cityBasis" xml:space="preserve"><value>City tax</value></data>
+  <data name="taxes.cityNone" xml:space="preserve"><value>None</value></data>
+  <data name="taxes.cityRoom" xml:space="preserve"><value>Per room per night</value></data>
+  <data name="taxes.cityPerson" xml:space="preserve"><value>Per person per night</value></data>
+  <data name="taxes.cityAmount" xml:space="preserve"><value>City tax amount</value></data>
+  <data name="taxes.save" xml:space="preserve"><value>Save rates</value></data>
+  <data name="taxes.saved" xml:space="preserve"><value>Rates saved.</value></data>
+  <data name="reports.account.city" xml:space="preserve"><value>City tax</value></data>
+  <data name="bookingFinance.printRechnung" xml:space="preserve"><value>Rechnung</value></data>
+  <data name="bookingFinance.emailRechnung" xml:space="preserve"><value>Email Rechnung</value></data>
+  <data name="bookings.moveTitle" xml:space="preserve"><value>Move</value></data>
+  <data name="bookings.move" xml:space="preserve"><value>Move</value></data>
+  <data name="bookings.moveHelp" xml:space="preserve"><value>The guest keeps this room until the night you choose. That night can be tomorrow. A new booking continues the stay, and money already paid covers this room first.</value></data>
+  <data name="bookings.moveFrom" xml:space="preserve"><value>From night</value></data>
+  <data name="bookings.moveRoom" xml:space="preserve"><value>New room</value></data>
+  <data name="bookings.moveChooseRoom" xml:space="preserve"><value>Choose a room</value></data>
+  <data name="bookings.moveReason" xml:space="preserve"><value>Reason</value></data>
+  <data name="bookings.moveMaintenance" xml:space="preserve"><value>Room needs maintenance</value></data>
+  <data name="bookings.moveRelocate" xml:space="preserve"><value>Relocate the guest</value></data>
+  <data name="bookings.moveNote" xml:space="preserve"><value>Note</value></data>
+  <data name="bookings.moveConfirm" xml:space="preserve"><value>Confirm move</value></data>
+  <data name="bookings.moveMissing" xml:space="preserve"><value>Choose the night and the room.</value></data>
+  <data name="bookings.continuedTitle" xml:space="preserve"><value>Continued stay</value></data>
+  <data name="bookings.continuedFrom" xml:space="preserve"><value>Continued from the previous room</value></data>
+  <data name="bookings.continuedTo" xml:space="preserve"><value>Continues in the next room</value></data>
 </root>

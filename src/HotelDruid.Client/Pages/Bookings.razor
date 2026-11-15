@@ -116,6 +116,47 @@
                                 <div class="form-text">@L["bookingFinance.totalDueHint", "Stay price plus extras, minus prepaid amount and recorded payments."]</div>
                             </div>
                              <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="form.Notes" /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.source", "Source"]</label><input class="form-control" @bind="form.Source" placeholder="desk, phone, email, homepage, Booking.com" /></div>
+                             <div class="col-6"><label class="form-label">@L["bookings.externalReference", "External reference"]</label><input class="form-control" @bind="form.ExternalReference" /></div>
+                             <div class="col-6">
+                                 <label class="form-label">@L["bookings.groupCode", "Group"]</label>
+                                 @if (!string.IsNullOrWhiteSpace(form.GroupCode))
+                                 {
+                                     <div class="border rounded p-2 bg-light-subtle mb-2">
+                                         <div class="d-flex justify-content-between align-items-center gap-2">
+                                             <div>
+                                                 <div class="fw-semibold">@(string.IsNullOrWhiteSpace(form.GroupName) ? form.GroupCode : form.GroupName)</div>
+                                                 <div class="small text-muted">@GroupWhen(FindGroup(form.GroupCode))</div>
+                                             </div>
+                                             <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearGroup">@L["bookings.groupRemove", "Remove"]</button>
+                                         </div>
+                                     </div>
+                                 }
+                                 <div class="input-group">
+                                     <input class="form-control" value="@groupSearch" placeholder="@L["bookings.groupNamePlaceholder", "Party name"]" @oninput="OnGroupSearch" />
+                                     <button type="button" class="btn btn-outline-secondary" disabled="@groupBusy" @onclick="CreateGroupAsync">@L["bookings.newGroup", "New group"]</button>
+                                 </div>
+                                 @if (GroupMatches.Count > 0)
+                                 {
+                                     <div class="list-group mt-1">
+                                         @foreach (var party in GroupMatches)
+                                         {
+                                             <button type="button" class="list-group-item list-group-item-action" @onclick="() => PickGroup(party)">@DescribeGroup(party)</button>
+                                         }
+                                     </div>
+                                 }
+                                 @if (!string.IsNullOrWhiteSpace(groupError))
+                                 {
+                                     <div class="form-text text-danger">@groupError</div>
+                                 }
+                                 <div class="form-text">@L["bookings.groupHelp", "A group is one party. Rooms in it can arrive on different days. Pick the party that is already in the hotel, or start a new one. The same name later is a different party."]</div>
+                             </div>
+                             <div class="col-6 d-flex align-items-end">
+                                 <div class="form-check mb-2">
+                                     <input class="form-check-input" type="checkbox" id="roomFixed" @bind="form.RoomFixed" />
+                                     <label class="form-check-label" for="roomFixed">@L["bookings.roomFixed", "Room fixed on request"]</label>
+                                 </div>
+                             </div>
 
                              @if (form.ActualDepartureDate.HasValue)
                              {
@@ -132,6 +173,35 @@
                              }
 
                             <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.roomSearchLabel", "Find room"] *</h6></div>
+                            @if (GuestIsInHouse)
+                            {
+                                <div class="col-12">
+                                    <div class="input-group">
+                                        <input class="form-control" value="@GetRoomDisplayName(form.RoomId)" disabled />
+                                        @if (CanMoveSelected)
+                                        {
+                                            <button type="button" class="btn btn-outline-primary" @onclick="OpenMove">@L["bookings.assignRoom", "Assign a new room"]</button>
+                                        }
+                                    </div>
+                                    <div class="form-text">@(CanMoveSelected ? L["bookings.roomStaying", "This guest is in this room. Assign a new room to move them from a later night."] : L["bookings.roomStayingShort", "This guest is in this room."])</div>
+                                </div>
+                                @if (moveOpen)
+                                {
+                                    <div class="col-12">
+                                        <BookingMoveFields Rooms="MoveRoomChoices"
+                                                           @bind-From="moveFrom"
+                                                           @bind-RoomId="moveRoomId"
+                                                           @bind-Reason="moveReason"
+                                                           @bind-Note="moveNote"
+                                                           Error="moveError"
+                                                           Busy="moveBusy"
+                                                           Confirm="ConfirmMoveAsync"
+                                                           Cancel="CloseMove" />
+                                    </div>
+                                }
+                            }
+                            else
+                            {
                             <div class="col-12"><input class="form-control" value="@roomSearch" placeholder="@L["bookings.roomSearchPlaceholder", "Type room name or ID"]" @oninput="OnRoomSearchChanged" /></div>
                             @if (roomMatches.Count > 0)
                             {
@@ -164,6 +234,7 @@
                             @if (selectedRoom is null && !string.IsNullOrWhiteSpace(roomSearch))
                             {
                                 <div class="col-12 text-muted small">@L["bookings.noRoomMatch", "No room matches this search."]</div>
+                            }
                             }
 
                             <div class="col-12 mt-2"><h6 class="text-muted mb-1">@L["bookings.tariffLabel", "Tariff"]</h6></div>
@@ -294,6 +365,8 @@
                             @if (selected is not null && !isNew && !string.IsNullOrWhiteSpace(selected.Id))
                             {
                                 <a class="btn btn-outline-secondary flex-grow-1" href="@GetInvoiceUrl(selected)" target="_blank">@L["bookingFinance.printInvoice", "Invoice"]</a>
+                                <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick="() => DownloadInvoiceMail(selected)">@L["bookingFinance.emailInvoice", "Email invoice"]</button>
+                                <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl(selected, "rechnung")" target="_blank">@L["bookingFinance.printRechnung", "Rechnung"]</a>
                             }
                             @if (CanMarkArrivedSelected)
                             {
@@ -346,12 +419,36 @@
                             </dd>
                             <dt>@L["bookings.room", "Room"]</dt>
                             <dd>
-                                @if (!string.IsNullOrWhiteSpace(selected.RoomId))
+                                @if (GuestIsInHouse)
+                                {
+                                    <div class="input-group">
+                                        <input class="form-control form-control-sm" value="@GetRoomDisplayName(selected.RoomId)" disabled />
+                                        @if (CanMoveSelected)
+                                        {
+                                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="OpenMove">@L["bookings.assignRoom", "Assign a new room"]</button>
+                                        }
+                                    </div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(selected.RoomId))
                                 {
                                     <a href="/rooms?selectedId=@selected.RoomId">@GetRoomDisplayName(selected.RoomId)</a>
                                 }
                                 else { <text>-</text> }
                             </dd>
+                        </dl>
+                        @if (moveOpen && !editing)
+                        {
+                            <BookingMoveFields Rooms="MoveRoomChoices"
+                                               @bind-From="moveFrom"
+                                               @bind-RoomId="moveRoomId"
+                                               @bind-Reason="moveReason"
+                                               @bind-Note="moveNote"
+                                               Error="moveError"
+                                               Busy="moveBusy"
+                                               Confirm="ConfirmMoveAsync"
+                                               Cancel="CloseMove" />
+                        }
+                        <dl class="booking-detail-grid">
                             <dt>@L["bookings.status", "Status"]</dt><dd>@selected.Status</dd>
                             <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt>
                             <dd><a href="@GetCalendarUrl(selected.ArrivalDate)">@FormatDate(selected.ArrivalDate)</a></dd>
@@ -393,6 +490,23 @@
                                 <dd>@L["bookings.removedFromListValue", "Hidden. The ledger still cites this booking."]</dd>
                             }
                         </dl>
+
+                        @if (!string.IsNullOrWhiteSpace(selected.ContinuedFromId) || !string.IsNullOrWhiteSpace(selected.ContinuedToId))
+                        {
+                            <section class="booking-section mt-3">
+                                <h4 class="booking-section-title">@L["bookings.continuedTitle", "Continued stay"]</h4>
+                                <div class="list-group">
+                                    @if (!string.IsNullOrWhiteSpace(selected.ContinuedFromId))
+                                    {
+                                        <a class="list-group-item list-group-item-action" href="@BookingReference.Href(selected.ContinuedFromId)">@L["bookings.continuedFrom", "Continued from the previous room"]</a>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(selected.ContinuedToId))
+                                    {
+                                        <a class="list-group-item list-group-item-action" href="@BookingReference.Href(selected.ContinuedToId)">@L["bookings.continuedTo", "Continues in the next room"]</a>
+                                    }
+                                </div>
+                            </section>
+                        }
 
                         <section class="booking-section booking-section-guest mt-3">
                             <h4 class="booking-section-title">@L["bookings.guestDetailsTitle", "Guest Details"]</h4>
@@ -444,6 +558,34 @@
                                 </div>
                             }
                         </section>
+
+                        @if (!string.IsNullOrWhiteSpace(selected.GroupCode))
+                        {
+                            <section class="booking-section booking-section-history mt-3">
+                                <h4 class="booking-section-title">@L["bookings.groupRoomsTitle", "Other rooms in this group"]</h4>
+                                <div class="small text-muted mb-2">@GroupHeading(selected)</div>
+                                @if (isGroupLoading)
+                                {
+                                    <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                                }
+                                else if (selectedGroupBookings is null || selectedGroupBookings.Count == 0)
+                                {
+                                    <div class="alert alert-info mb-0">@L["bookings.noGroupRooms", "No other rooms share this group."]</div>
+                                }
+                                else
+                                {
+                                    <div class="list-group">
+                                        @foreach (var member in selectedGroupBookings)
+                                        {
+                                            <a class="list-group-item list-group-item-action" href="@GetBookingUrl(member)">
+                                                <div class="fw-semibold">@DescribeBooking(member)</div>
+                                                <div class="small text-muted">@GetClientDisplayName(member.ClientId) · @member.Status</div>
+                                            </a>
+                                        }
+                                    </div>
+                                }
+                            </section>
+                        }
                     }
                     else if (selected is null)
                     {
@@ -491,6 +633,19 @@
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
     private List<BookingDto>? selectedGuestBookings;
+    private List<BookingDto>? selectedGroupBookings;
+    private List<StayGroupDto> knownGroups = new();
+    private string groupSearch = "";
+    private string? groupError;
+    private bool groupBusy;
+    private bool moveOpen;
+    private bool moveBusy;
+    private DateOnly? moveFrom;
+    private string? moveRoomId;
+    private string moveReason = "Relocate";
+    private string? moveNote;
+    private string? moveError;
+    private bool isGroupLoading;
     private ClientRecord? selectedClient;
     private RoomRecord? selectedRoom;
     private bool creatingNewClient;
@@ -567,6 +722,7 @@
         }
 
         await clientsTask;
+        _ = LoadStayGroupsAsync();
         await InvokeAsync(StateHasChanged);
         await RevealSelectedBookingAsync();
     }
@@ -820,11 +976,16 @@
     {
         selected = r;
         editing = false;
+        moveOpen = false;
+        _ = LoadSelectedGuestHistoryAsync();
+        _ = LoadSelectedGroupAsync();
     }
 
     private async Task EditSelected()
     {
         await LoadSelectedGuestHistoryAsync();
+        await LoadSelectedGroupAsync();
+        moveOpen = false;
         if (selected is null) return;
         form = new()
         {
@@ -835,6 +996,11 @@
             ArrivalDate = selected.ArrivalDate,
             DepartureDate = selected.DepartureDate,
             Notes = selected.Notes,
+            Source = selected.Source,
+            ExternalReference = selected.ExternalReference,
+            GroupCode = selected.GroupCode,
+            GroupName = selected.GroupName,
+            RoomFixed = selected.RoomFixed,
             ActualArrivalDate = selected.ActualArrivalDate,
             ActualDepartureDate = selected.ActualDepartureDate,
             ActualGuestCount = selected.ActualGuestCount,
@@ -844,7 +1010,8 @@
             PrepaidReference = selected.PrepaidReference,
             PreAuthReference = selected.PreAuthReference,
             PreAuthMethod = selected.PreAuthMethod,
-            TariffId = selected.TariffId
+            TariffId = selected.TariffId,
+            TariffTotalPrice = selected.TariffTotalPrice
         };
         isNew = false;
         editing = true;
@@ -853,6 +1020,116 @@
         InitializeRoomSelectionForCurrentForm();
         await RefreshTariffPreviewAsync();
         await RefreshFinanceSummaryAsync();
+    }
+
+    private void OnGroupSearch(ChangeEventArgs e)
+    {
+        groupSearch = e.Value?.ToString() ?? "";
+        groupError = null;
+    }
+
+    private void PickGroup(StayGroupDto party)
+    {
+        form.GroupCode = party.Id;
+        form.GroupName = string.IsNullOrWhiteSpace(party.Name) ? party.Id : party.Name;
+        groupSearch = "";
+        groupError = null;
+    }
+
+    private void ClearGroup()
+    {
+        form.GroupCode = null;
+        form.GroupName = null;
+        groupSearch = "";
+        groupError = null;
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        var name = groupSearch.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            groupError = L["bookings.groupNameRequired", "Type the name of the party."];
+            return;
+        }
+
+        try
+        {
+            groupBusy = true;
+            groupError = null;
+            var created = await BookingApi.CreateStayGroupAsync(name);
+            if (string.IsNullOrWhiteSpace(created?.Id))
+            {
+                groupError = L["bookings.groupCreateFailed", "The group could not be started."];
+                return;
+            }
+
+            form.GroupCode = created.Id;
+            form.GroupName = string.IsNullOrWhiteSpace(created.Name) ? name : created.Name;
+            groupSearch = "";
+            await LoadStayGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            groupError = ex.Message;
+        }
+        finally
+        {
+            groupBusy = false;
+        }
+    }
+
+    private async Task LoadStayGroupsAsync()
+    {
+        knownGroups = await BookingApi.ListStayGroupsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private StayGroupDto? FindGroup(string? id) =>
+        string.IsNullOrWhiteSpace(id)
+            ? null
+            : knownGroups.FirstOrDefault(group => string.Equals(group.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    private List<StayGroupDto> GroupMatches
+    {
+        get
+        {
+            var term = groupSearch.Trim();
+            if (term.Length == 0)
+                return new();
+            return knownGroups
+                .Where(group => !string.Equals(group.Id, form.GroupCode, StringComparison.OrdinalIgnoreCase)
+                    && (group.Name ?? "").Contains(term, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(group => group.FirstArrival ?? DateOnly.MinValue)
+                .Take(8)
+                .ToList();
+        }
+    }
+
+    private string GroupWhen(StayGroupDto? group)
+    {
+        if (group?.FirstArrival is null)
+            return "";
+        var from = group.FirstArrival.Value.ToString("yyyy-MM-dd");
+        var to = group.LastDeparture?.ToString("yyyy-MM-dd") ?? from;
+        return L["bookings.groupWhen", from, to, group.RoomCount];
+    }
+
+    private string DescribeGroup(StayGroupDto group)
+    {
+        var name = string.IsNullOrWhiteSpace(group.Name) ? group.Id ?? "" : group.Name;
+        var when = GroupWhen(group);
+        return string.IsNullOrWhiteSpace(when) ? name : $"{name} · {when}";
+    }
+
+    private string GroupHeading(BookingDto booking)
+    {
+        var group = FindGroup(booking.GroupCode);
+        var name = !string.IsNullOrWhiteSpace(booking.GroupName)
+            ? booking.GroupName
+            : !string.IsNullOrWhiteSpace(group?.Name) ? group!.Name! : booking.GroupCode ?? "";
+        var when = GroupWhen(group);
+        return string.IsNullOrWhiteSpace(when) ? name : $"{name} · {when}";
     }
 
     private async Task Save()
@@ -870,7 +1147,11 @@
         {
             form.RoomId = selectedRoom.Id;
         }
-        if (string.IsNullOrWhiteSpace(form.RoomId)) { errorMsg = L["bookings.roomRequired", "Room is required."]; return; }
+        if (string.IsNullOrWhiteSpace(form.RoomId) && !string.Equals(form.Status, "Incoming", StringComparison.OrdinalIgnoreCase))
+        {
+            errorMsg = L["bookings.roomRequired", "Room is required."];
+            return;
+        }
         if (!form.ArrivalDate.HasValue) { errorMsg = L["bookings.arrivalRequired", "Arrival Date is required."]; return; }
         if (!form.DepartureDate.HasValue) { errorMsg = L["bookings.departureRequired", "Departure Date is required."]; return; }
         if (form.DepartureDate.Value <= form.ArrivalDate.Value) { errorMsg = L["bookings.departureAfterArrival", "Departure Date must be after Arrival Date."]; return; }
@@ -908,7 +1189,16 @@
             form.TariffId,
             form.PreAuthReference,
             form.PreAuthMethod,
-            form.SettlementDate);
+            form.SettlementDate,
+            null,
+            form.TariffTotalPrice,
+            form.Source,
+            form.ExternalReference,
+            form.GroupCode,
+            form.RoomFixed,
+            null,
+            null,
+            form.GroupName);
         try
         {
             if (isNew) await BookingApi.CreateAsync(dto);
@@ -1045,6 +1335,120 @@
         finally
         {
             isGuestHistoryLoading = false;
+        }
+    }
+
+    private bool CanMoveSelected =>
+        selected is not null
+        && !isNew
+        && !string.IsNullOrWhiteSpace(selected.Id)
+        && !string.IsNullOrWhiteSpace(selected.RoomId)
+        && string.IsNullOrWhiteSpace(selected.ContinuedToId)
+        && !selected.ActualDepartureDate.HasValue
+        && selected.ArrivalDate.HasValue
+        && selected.DepartureDate.HasValue
+        && selected.DepartureDate.Value.DayNumber - selected.ArrivalDate.Value.DayNumber >= 2
+        && !IsNonBlockingBookingStatus(selected.Status)
+        && !string.Equals(selected.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(selected.Status, "Maintenance", StringComparison.OrdinalIgnoreCase);
+
+    private IEnumerable<RoomRecord> MoveRoomChoices =>
+        knownRooms.Where(room => !string.Equals(room.Id, selected?.RoomId, StringComparison.OrdinalIgnoreCase));
+
+    private bool GuestIsInHouse =>
+        selected is not null
+        && !isNew
+        && !selected.ActualDepartureDate.HasValue
+        && !string.Equals(selected.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase)
+        && (selected.ActualArrivalDate.HasValue
+            || string.Equals(selected.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase));
+
+    private void CloseMove() => moveOpen = false;
+
+    private void OpenMove()
+    {
+        moveError = null;
+        moveNote = null;
+        moveReason = "Relocate";
+        moveRoomId = null;
+        moveOpen = true;
+        if (selected?.ArrivalDate is null || selected.DepartureDate is null)
+            return;
+        var earliest = selected.ArrivalDate.Value.AddDays(1);
+        var latest = selected.DepartureDate.Value.AddDays(-1);
+        var tomorrow = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+        moveFrom = tomorrow < earliest ? earliest : tomorrow > latest ? latest : tomorrow;
+    }
+
+    private async Task ConfirmMoveAsync(BookingMoveRequest request)
+    {
+        if (moveBusy)
+            return;
+        if (selected?.Id is null || request.FromDate == default || string.IsNullOrWhiteSpace(request.RoomId))
+        {
+            moveError = L["bookings.moveMissing", "Choose the night and the room."];
+            return;
+        }
+
+        moveBusy = true;
+        moveError = null;
+        try
+        {
+            var moved = await BookingApi.MoveAsync(selected.Year, selected.Id, request);
+            moveOpen = false;
+            if (!string.IsNullOrWhiteSpace(moved?.Id))
+                Navigation.NavigateTo(BookingReference.Href(moved.Id));
+            else
+                await LoadAll();
+        }
+        catch (Exception ex)
+        {
+            var continued = await ContinuedStayAfterMoveAsync();
+            if (!string.IsNullOrWhiteSpace(continued))
+            {
+                moveOpen = false;
+                Navigation.NavigateTo(BookingReference.Href(continued));
+                return;
+            }
+
+            moveError = ex.Message;
+        }
+        finally
+        {
+            moveBusy = false;
+        }
+    }
+
+    private async Task<string?> ContinuedStayAfterMoveAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(selected?.ContinuedToId))
+            return selected.ContinuedToId;
+        if (selected?.Id is null)
+            return null;
+
+        var current = await BookingApi.GetAsync(selected.Year, selected.Id);
+        return string.IsNullOrWhiteSpace(current?.ContinuedToId) ? null : current.ContinuedToId;
+    }
+
+    private async Task LoadSelectedGroupAsync()
+    {
+        selectedGroupBookings = null;
+        if (selected is null || string.IsNullOrWhiteSpace(selected.GroupCode))
+            return;
+
+        try
+        {
+            isGroupLoading = true;
+            var members = await BookingApi.ListAsync(groupCode: selected.GroupCode);
+            selectedGroupBookings = members
+                .Where(booking => !string.Equals(booking.Id, selected.Id, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(booking => booking.ArrivalDate ?? DateOnly.MinValue)
+                .ThenBy(booking => booking.Id)
+                .ToList();
+        }
+        finally
+        {
+            isGroupLoading = false;
         }
     }
 
@@ -1414,8 +1818,20 @@
     private static string GetFinanceUrl(BookingDto booking)
         => $"/booking-finance?selectedId={Uri.EscapeDataString(booking.Id!)}&year={booking.Year}";
 
-    private string GetInvoiceUrl(BookingDto booking)
-        => string.IsNullOrWhiteSpace(booking.Id) ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, "invoice");
+    private string GetInvoiceUrl(BookingDto booking, string format = "print")
+        => GetDocumentUrl(booking, "invoice", format);
+
+    private string GetDocumentUrl(BookingDto booking, string type, string format = "print")
+        => string.IsNullOrWhiteSpace(booking.Id) ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, type, format);
+
+    private async Task DownloadInvoiceMail(BookingDto booking)
+    {
+        if (string.IsNullOrWhiteSpace(booking.Id))
+            return;
+        if (await FinanceApi.TryOpenDocumentAsync(booking.Year, booking.Id, "invoice"))
+            return;
+        await JS.InvokeVoidAsync("hotelDruidFiles.download", GetInvoiceUrl(booking, "eml"), $"invoice-{booking.Id}.eml");
+    }
 
     private string FormatMoney(decimal? amount)
         => $"{amount.GetValueOrDefault():0.00} {financeSummary?.Currency ?? "EUR"}";
@@ -1708,6 +2124,11 @@
          public DateTime? SettlementDate { get; set; }
          public string? TariffId { get; set; }
          public double? TariffTotalPrice { get; set; }
+         public string? Source { get; set; }
+         public string? ExternalReference { get; set; }
+         public string? GroupCode { get; set; }
+         public string? GroupName { get; set; }
+         public bool RoomFixed { get; set; }
     }
 
     private class ClientFormModel

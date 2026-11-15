@@ -164,6 +164,7 @@ code {
     border: 1px solid #d9d9d9;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     color: #1a1a1a;
+    overflow-x: auto;
 }
 
 .paper-head { margin-bottom: 1.25rem; border-bottom: 2px solid #1a1a1a; padding-bottom: 0.75rem; }
@@ -176,6 +177,12 @@ code {
 .paper-empty { color: #666; font-style: italic; }
 .paper-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .paper-table th, .paper-table td { border-bottom: 1px solid #ccc; padding: 0.35rem 0.4rem; text-align: left; vertical-align: top; }
+.paper-table td.paper-band { min-width: 1.4rem; font-size: 0.75rem; text-align: center; vertical-align: middle; }
+.paper-band-occupied { background: #d9ead3; }
+.paper-band-available { background: #ffffff; }
+.paper-band-dirty { background: #fff2cc; }
+.paper-band-blocked { background: #f4cccc; }
+.paper-band-maintenance { background: #cfe2f3; }
 .paper-table th { border-bottom: 1px solid #1a1a1a; font-weight: 600; }
 .paper-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .paper-check { width: 2.2rem; text-align: center; }

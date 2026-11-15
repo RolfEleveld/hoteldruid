@@ -9,6 +9,7 @@
 @inject IRoomApiService RoomApi
 @inject IDeskUserService DeskUser
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["bookingFinance.title", "Booking Finance"]</PageTitle>
@@ -161,7 +162,12 @@
                         <div class="btn-group w-100" role="group">
                             <button class="btn btn-primary flex-grow-1" @onclick="SaveTransaction" disabled="@isSaving">@L["bookingFinance.record", "Record"]</button>
                             <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl("invoice")" target="_blank">@L["bookingFinance.printInvoice", "Invoice"]</a>
+                            <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick='() => DownloadMail("invoice")'>@L["bookingFinance.emailInvoice", "Email invoice"]</button>
+                            <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl("rechnung")" target="_blank">@L["bookingFinance.printRechnung", "Rechnung"]</a>
+                            <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick='() => DownloadMail("rechnung")'>@L["bookingFinance.emailRechnung", "Email Rechnung"]</button>
                             <a class="btn btn-outline-secondary flex-grow-1" href="@GetDocumentUrl("receipt")" target="_blank">@L["bookingFinance.printReceipt", "Receipt"]</a>
+                            <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick='() => DownloadMail("receipt")'>@L["bookingFinance.emailReceipt", "Email receipt"]</button>
+                            <button type="button" class="btn btn-outline-secondary flex-grow-1" @onclick='() => DownloadMail("booking-confirmation")'>@L["bookingFinance.emailConfirmation", "Email confirmation"]</button>
                             <button class="btn btn-outline-primary flex-grow-1" @onclick="PrepareDeposit">@L["bookingFinance.deposit", "Deposit"]</button>
                         </div>
                     </div>
@@ -404,8 +410,17 @@
         errorMsg = string.Empty;
     }
 
-    private string GetDocumentUrl(string documentType)
-        => booking?.Id is null ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, documentType);
+    private string GetDocumentUrl(string documentType, string format = "print")
+        => booking?.Id is null ? "#" : FinanceApi.GetDocumentUrl(booking.Year, booking.Id, documentType, format);
+
+    private async Task DownloadMail(string documentType)
+    {
+        if (booking?.Id is null)
+            return;
+        if (await FinanceApi.TryOpenDocumentAsync(booking.Year, booking.Id, documentType))
+            return;
+        await JS.InvokeVoidAsync("hotelDruidFiles.download", GetDocumentUrl(documentType, "eml"), $"{documentType}-{booking.Id}.eml");
+    }
 
     private void SelectTransaction(BookingTransactionDto transaction) => selectedTransaction = transaction;
 

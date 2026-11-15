@@ -12,6 +12,7 @@ public interface IBookingFinanceApiService
     Task<List<LedgerLineDto>> ListLedgerLinesAsync(DateOnly from, DateOnly to, string? bookingId = null, bool unassigned = false);
     Task<List<ChartAccountDto>> ListChartOfAccountsAsync();
     string GetDocumentUrl(int year, string bookingId, string documentType, string format = "print");
+    Task<bool> TryOpenDocumentAsync(int year, string bookingId, string documentType);
 }
 
 public class BookingFinanceApiService : IBookingFinanceApiService
@@ -70,5 +71,20 @@ public class BookingFinanceApiService : IBookingFinanceApiService
         var id = Uri.EscapeDataString(bookingId);
         var requestedFormat = Uri.EscapeDataString(format);
         return $"/api/documents/render/{type}/1?bookingId={id}&year={year}&format={requestedFormat}";
+    }
+
+    public async Task<bool> TryOpenDocumentAsync(int year, string bookingId, string documentType)
+    {
+        try
+        {
+            var type = Uri.EscapeDataString(documentType);
+            var id = Uri.EscapeDataString(bookingId);
+            var response = await _httpClient.PostAsync($"/api/documents/open/{type}/1?bookingId={id}&year={year}", null);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

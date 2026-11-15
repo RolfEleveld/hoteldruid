@@ -68,3 +68,23 @@ window.hotelDruidCulture = {
         }
     }
 };
+
+window.hotelDruidFiles = {
+    download: async function (url, filename) {
+        const response = await fetch(url, { credentials: "same-origin" });
+        if (!response.ok) {
+            return false;
+        }
+
+        const blob = await response.blob();
+        const link = document.createElement("a");
+        const objectUrl = URL.createObjectURL(blob);
+        link.href = objectUrl;
+        link.download = filename || "message.eml";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
+        return true;
+    }
+};

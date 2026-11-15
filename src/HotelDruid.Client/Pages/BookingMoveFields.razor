@@ -1,0 +1,94 @@
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@inject IStringLocalizer<SharedResource> L
+
+<div class="border rounded p-2 mt-2 bg-light-subtle">
+    <p class="small text-muted">@L["bookings.moveHelp", "The guest keeps this room until the night you choose. That night can be tomorrow. A new booking continues the stay, and money already paid covers this room first."]</p>
+    <div class="mb-2">
+        <label class="form-label">@L["bookings.moveFrom", "From night"]</label>
+        <input class="form-control" type="date" value="@FromText" @onchange="OnFrom" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">@L["bookings.moveRoom", "New room"]</label>
+        <select class="form-select" value="@roomId" @onchange="OnRoom">
+            <option value="">@L["bookings.moveChooseRoom", "Choose a room"]</option>
+            @foreach (var room in Rooms)
+            {
+                <option value="@room.Id">@room.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-2">
+        <label class="form-label">@L["bookings.moveReason", "Reason"]</label>
+        <select class="form-select" value="@reason" @onchange="OnReason">
+            <option value="Maintenance">@L["bookings.moveMaintenance", "Room needs maintenance"]</option>
+            <option value="Relocate">@L["bookings.moveRelocate", "Relocate the guest"]</option>
+        </select>
+    </div>
+    <div class="mb-2">
+        <label class="form-label">@L["bookings.moveNote", "Note"]</label>
+        <textarea class="form-control" rows="2" value="@note" @oninput="OnNote"></textarea>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Error))
+    {
+        <div class="alert alert-warning py-2">@Error</div>
+    }
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary btn-sm" disabled="@(Busy || from is null || string.IsNullOrWhiteSpace(roomId))" @onclick="ConfirmClick">@L["bookings.moveConfirm", "Confirm move"]</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">@L["common.cancel", "Cancel"]</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public DateOnly? From { get; set; }
+    [Parameter] public EventCallback<DateOnly?> FromChanged { get; set; }
+    [Parameter] public string? RoomId { get; set; }
+    [Parameter] public EventCallback<string?> RoomIdChanged { get; set; }
+    [Parameter] public string Reason { get; set; } = "Relocate";
+    [Parameter] public EventCallback<string> ReasonChanged { get; set; }
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public EventCallback<string?> NoteChanged { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public IEnumerable<HotelDruid.Client.Services.RoomDto> Rooms { get; set; } = Array.Empty<HotelDruid.Client.Services.RoomDto>();
+    [Parameter] public EventCallback<BookingMoveRequest> Confirm { get; set; }
+    [Parameter] public EventCallback Cancel { get; set; }
+
+    private DateOnly? from;
+    private string? roomId;
+    private string reason = "Relocate";
+    private string? note;
+    private bool primed;
+
+    private string FromText => from?.ToString("yyyy-MM-dd") ?? "";
+
+    protected override void OnParametersSet()
+    {
+        if (primed)
+            return;
+        from = From;
+        roomId = RoomId;
+        reason = string.IsNullOrWhiteSpace(Reason) ? "Relocate" : Reason;
+        note = Note;
+        primed = true;
+    }
+
+    private void OnFrom(ChangeEventArgs e)
+    {
+        var text = e.Value?.ToString();
+        from = DateOnly.TryParse(text, out var date) ? date : null;
+    }
+
+    private void OnRoom(ChangeEventArgs e) => roomId = e.Value?.ToString();
+
+    private void OnReason(ChangeEventArgs e) => reason = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? "Relocate" : e.Value!.ToString()!;
+
+    private void OnNote(ChangeEventArgs e) => note = e.Value?.ToString();
+
+    private Task ConfirmClick()
+    {
+        if (Busy || from is null || string.IsNullOrWhiteSpace(roomId))
+            return Task.CompletedTask;
+        return Confirm.InvokeAsync(new BookingMoveRequest(from.Value, roomId, reason, note));
+    }
+}

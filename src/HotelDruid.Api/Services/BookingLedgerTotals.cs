@@ -32,11 +32,7 @@ public readonly record struct BookingLedgerTotals(
         {
             if (string.Equals(line.EntryType, ChartAdoptionLog.EntryType, StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (line.AccountCode == chart.RoomRevenue)
-                stay += line.Credit - line.Debit;
-            else if (line.AccountCode == chart.OtherIncome)
-                extra += line.Credit - line.Debit;
-            else if (line.AccountCode == chart.GuestDeposits)
+            if (line.AccountCode == chart.GuestDeposits)
                 deposits += line.Credit - line.Debit;
             else if (line.AccountCode == chart.GuestLedger)
             {
@@ -48,9 +44,30 @@ public readonly record struct BookingLedgerTotals(
             }
         }
 
+        foreach (var group in lines.Where(line => !string.Equals(line.EntryType, ChartAdoptionLog.EntryType, StringComparison.OrdinalIgnoreCase)).GroupBy(JournalKey))
+        {
+            var room = Sum(group, chart.RoomRevenue);
+            var other = Sum(group, chart.OtherIncome);
+            var tax = Sum(group, chart.OutputTax);
+            var city = Sum(group, chart.CityTax);
+            if (room != 0)
+                stay += room + (other == 0 ? tax : 0m);
+            if (other != 0)
+                extra += other + tax;
+            else if (room == 0)
+                extra += tax;
+            extra += city;
+        }
+
         return new BookingLedgerTotals(stay, extra, stay + extra, payments, refunds, deposits, due);
     }
 
     private static bool Is(LedgerEntry line, string entryType)
         => string.Equals(line.EntryType, entryType, StringComparison.OrdinalIgnoreCase);
+
+    private static decimal Sum(IEnumerable<LedgerEntry> lines, string account)
+        => lines.Where(line => line.AccountCode == account).Sum(line => line.Credit - line.Debit);
+
+    private static string JournalKey(LedgerEntry line)
+        => string.IsNullOrWhiteSpace(line.JournalId) ? line.Id ?? string.Empty : line.JournalId;
 }
