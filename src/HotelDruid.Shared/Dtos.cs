@@ -247,8 +247,6 @@ public record MessageDto(string? Id, string? MessageType, string? Status, string
 
 public record ContractTemplateDto(string? Id, string? Type, int Number, string? Content);
 
-public record ExternalIntegrationDto(string? Id, string? IntegrationName, string? IdType, int? LocalId, string? RemoteId1, string? RemoteId2, int? Year, DateTime? CreatedAt);
-
 public record NightAuditDto(
     DateOnly BusinessDate,
     bool Signed,
@@ -267,6 +265,4 @@ public record NightAuditDto(
     List<string>? GuestFileGaps = null);
 
 public record NightAuditSignRequest(bool CashAgrees, bool BalancesReviewed, bool RoomsSeen, string? Note);
-
-public record SessionDto(string? SessionId, int? UserId, string? IpAddress, string? ConnectionType, DateTime? LastAccess);
 

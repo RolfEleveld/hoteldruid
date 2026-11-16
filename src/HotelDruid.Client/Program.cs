@@ -27,12 +27,6 @@ builder.Services.AddScoped<HotelDruid.Client.Services.ITariffApiService, HotelDr
 builder.Services.AddScoped<HotelDruid.Client.Services.ITariffAssignmentApiService, HotelDruid.Client.Services.TariffAssignmentApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.ITariffSeasonApiService, HotelDruid.Client.Services.TariffSeasonApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IInventoryApiService, HotelDruid.Client.Services.InventoryApiService>();
-// Reference data services
-builder.Services.AddScoped<HotelDruid.Client.Services.INationApiService, HotelDruid.Client.Services.NationApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IRegionApiService, HotelDruid.Client.Services.RegionApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.ICityApiService, HotelDruid.Client.Services.CityApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IIdentityDocumentTypeApiService, HotelDruid.Client.Services.IdentityDocumentTypeApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IFamilyRelationshipApiService, HotelDruid.Client.Services.FamilyRelationshipApiService>();
 // Layer 1: Configuration entity services
 builder.Services.AddScoped<HotelDruid.Client.Services.ICashRegisterApiService, HotelDruid.Client.Services.CashRegisterApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IUserGroupApiService, HotelDruid.Client.Services.UserGroupApiService>();
@@ -41,7 +35,6 @@ builder.Services.AddScoped<HotelDruid.Client.Services.ISettingApiService, HotelD
 
 // Layer 2: Guest and User management services
 builder.Services.AddScoped<HotelDruid.Client.Services.IClientApiService, HotelDruid.Client.Services.ClientApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IClientDataApiService, HotelDruid.Client.Services.ClientDataApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IUserPrivilegeApiService, HotelDruid.Client.Services.UserPrivilegeApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IUserRelationApiService, HotelDruid.Client.Services.UserRelationApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IGroupMembershipApiService, HotelDruid.Client.Services.GroupMembershipApiService>();
@@ -60,8 +53,6 @@ builder.Services.AddScoped<HotelDruid.Client.Services.IMoneyHistoryApiService, H
 builder.Services.AddScoped<HotelDruid.Client.Services.IPosSaleApiService, HotelDruid.Client.Services.PosSaleApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IMessageApiService, HotelDruid.Client.Services.MessageApiService>();
 builder.Services.AddScoped<HotelDruid.Client.Services.IContractTemplateApiService, HotelDruid.Client.Services.ContractTemplateApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.IExternalIntegrationApiService, HotelDruid.Client.Services.ExternalIntegrationApiService>();
-builder.Services.AddScoped<HotelDruid.Client.Services.ISessionApiService, HotelDruid.Client.Services.SessionApiService>();
 
 var host = builder.Build();
 var cultureService = host.Services.GetRequiredService<IClientCultureService>();

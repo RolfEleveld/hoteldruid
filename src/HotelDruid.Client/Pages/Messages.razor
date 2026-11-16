@@ -6,43 +6,43 @@
 
 @inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@L["messages.title", "Messages"]</PageTitle>
+<PageTitle>@L["messages.title"]</PageTitle>
 
 <div class="container-fluid">
     <div class="row mb-3">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["dispatch.title", "Batch messages"]</h5>
+                    <h5 class="card-title">@L["dispatch.title"]</h5>
                     @if (dispatch is null)
                     {
-                        <div>@L["common.loading", "Loading..."]</div>
+                        <div>@L["common.loading"]</div>
                     }
                     else if (dispatch.Count == 0)
                     {
-                        <div class="text-muted">@L["dispatch.empty", "Nothing is waiting to be relayed."]</div>
+                        <div class="text-muted">@L["dispatch.empty"]</div>
                     }
                     else
                     {
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>@L["dispatch.channel", "Channel"]</th>
-                                    <th>@L["dispatch.to", "To"]</th>
-                                    <th>@L["dispatch.subject", "Subject"]</th>
-                                    <th>@L["dispatch.due", "Due"]</th>
-                                    <th>@L["dispatch.status", "Status"]</th>
+                                    <th>@L["dispatch.channel"]</th>
+                                    <th>@L["dispatch.to"]</th>
+                                    <th>@L["dispatch.subject"]</th>
+                                    <th>@L["dispatch.due"]</th>
+                                    <th>@L["dispatch.status"]</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var row in dispatch)
                                 {
                                     <tr>
-                                        <td>@row.Channel</td>
+                                        <td>@Phrase("dispatch.channel", row.Channel)</td>
                                         <td>@row.To</td>
                                         <td>@row.Subject</td>
-                                        <td>@row.DeliverBy?.ToLocalTime().ToString("g")</td>
-                                        <td>@row.Status</td>
+                                        <td>@(row.DeliverBy?.ToLocalTime().ToString("g") ?? "—")</td>
+                                        <td>@Phrase("dispatch.status", row.Status)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -56,15 +56,15 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["messages.title", "Messages"]</h5>
-                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> New Message</button>
+                    <h5 class="card-title">@L["messages.list"]</h5>
+                    <button class="btn btn-success btn-sm w-100 mb-2" @onclick="AddNew"><span class="bi bi-plus"></span> @L["messages.new"]</button>
                     @if (items == null)
                     {
-                        <div>@L["common.loading", "Loading..."]</div>
+                        <div>@L["common.loading"]</div>
                     }
                     else if (items.Count == 0)
                     {
-                        <div class="alert alert-info">@L["messages.emptyList", "No messages yet."]</div>
+                        <div class="alert alert-info">@L["messages.emptyList"]</div>
                     }
                     else
                     {
@@ -84,30 +84,30 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["messages.title", "Messages"]</h5>
+                    <h5 class="card-title">@L["messages.compose"]</h5>
                     <div class="mb-3">
-                        <label class="form-label">Sender</label>
+                        <label class="form-label">@L["messages.sender"]</label>
                         <input class="form-control" @bind="editSender" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Body</label>
+                        <label class="form-label">@L["messages.body"]</label>
                         <textarea class="form-control" @bind="editBody"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Message Type</label>
+                        <label class="form-label">@L["messages.type"]</label>
                         <input class="form-control" @bind="editType" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Recipients (user IDs)</label>
+                        <label class="form-label">@L["messages.recipients"]</label>
                         <input class="form-control" @bind="editRecipients" />
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" @onclick="Save">Send</button>
+                        <button class="btn btn-primary" @onclick="Save">@L["messages.send"]</button>
                         @if (selected != null)
                         {
-                            <button class="btn btn-warning" @onclick="MarkRead">Mark Read</button>
-                            <button class="btn btn-secondary" @onclick="Archive">Archive</button>
-                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete", "Delete"]</button>
+                            <button class="btn btn-warning" @onclick="MarkRead">@L["messages.markRead"]</button>
+                            <button class="btn btn-secondary" @onclick="Archive">@L["messages.archive"]</button>
+                            <button class="btn btn-danger" @onclick="Delete">@L["common.delete"]</button>
                         }
                     </div>
                 </div>
@@ -117,20 +117,20 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">@L["messages.title", "Messages"]</h5>
+                    <h5 class="card-title">@L["common.details"]</h5>
                     @if (selected != null)
                     {
                         <dl class="row">
-                            <dt class="col-4">ID</dt><dd class="col-8">@selected.Id</dd>
-                            <dt class="col-4">Status</dt><dd class="col-8">@selected.Status</dd>
-                            <dt class="col-4">Type</dt><dd class="col-8">@selected.MessageType</dd>
-                            <dt class="col-4">Sent</dt><dd class="col-8">@selected.CreatedAt</dd>
-                            <dt class="col-4">Seen</dt><dd class="col-8">@selected.SeenAt</dd>
+                            <dt class="col-4">@L["messages.id"]</dt><dd class="col-8">@selected.Id</dd>
+                            <dt class="col-4">@L["messages.status"]</dt><dd class="col-8">@Phrase("messages.status", selected.Status)</dd>
+                            <dt class="col-4">@L["messages.type"]</dt><dd class="col-8">@Phrase("messages.type", selected.MessageType)</dd>
+                            <dt class="col-4">@L["messages.sent"]</dt><dd class="col-8">@(string.IsNullOrWhiteSpace(selected.CreatedAt) ? "—" : selected.CreatedAt)</dd>
+                            <dt class="col-4">@L["messages.seen"]</dt><dd class="col-8">@(string.IsNullOrWhiteSpace(selected.SeenAt) ? "—" : selected.SeenAt)</dd>
                         </dl>
                     }
                     else
                     {
-                        <div class="text-muted">Select a message to view details</div>
+                        <div class="text-muted">@L["messages.selectPrompt"]</div>
                     }
                 </div>
             </div>
@@ -209,6 +209,14 @@
         await MessageApi.DeleteMessageAsync(selected.Id!);
         selected = null;
         await Load();
+    }
+
+    private string Phrase(string group, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "—";
+        var text = L[$"{group}.{value.Trim().ToLowerInvariant()}"];
+        return text.ResourceNotFound ? value : text.Value;
     }
 }
 

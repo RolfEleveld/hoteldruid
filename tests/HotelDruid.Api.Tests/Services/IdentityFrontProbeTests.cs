@@ -46,6 +46,7 @@ public class IdentityFrontProbeTests
         Assert.Equal("HotelDruid", status.Realm);
         Assert.Equal("http://keycloak:8080/realms/HotelDruid", status.Issuer);
         Assert.Equal("https://auth.example.com/admin/HotelDruid/console", status.AdminConsoleUrl);
+        Assert.Equal("https://auth.example.com/realms/HotelDruid/account", status.AccountUrl);
         Assert.Equal(1, handler.Calls);
     }
 

@@ -18,7 +18,8 @@ public sealed record IdentityFrontStatus(
     string? Provider,
     string? Issuer,
     string? Realm,
-    string? AdminConsoleUrl);
+    string? AdminConsoleUrl,
+    string? AccountUrl);
 
 public sealed class IdentityFrontProbe : IIdentityFrontProbe
 {
@@ -41,26 +42,27 @@ public sealed class IdentityFrontProbe : IIdentityFrontProbe
         var reportedProvider = string.IsNullOrWhiteSpace(provider) ? null : provider;
 
         if (!configured)
-            return new IdentityFrontStatus(false, false, false, reportedProvider, issuer?.ToString(), null, admin?.ToString());
+            return new IdentityFrontStatus(false, false, false, reportedProvider, issuer?.ToString(), null, admin?.ToString(), null);
 
         var realm = RealmFromIssuer(issuer!);
+        var account = AccountUrl(admin, realm);
         try
         {
             var discovery = new Uri(issuer!.ToString().TrimEnd('/') + "/.well-known/openid-configuration");
             using var response = await _http.GetAsync(discovery, cancellationToken);
             if (!response.IsSuccessStatusCode)
-                return new IdentityFrontStatus(true, false, false, "keycloak", issuer!.ToString(), realm, admin?.ToString());
+                return new IdentityFrontStatus(true, false, false, "keycloak", issuer!.ToString(), realm, admin?.ToString(), account);
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
             var reachable = document.RootElement.TryGetProperty("issuer", out var issuerElement)
                 && issuerElement.ValueKind == JsonValueKind.String
                 && !string.IsNullOrWhiteSpace(issuerElement.GetString());
-            return new IdentityFrontStatus(true, reachable, reachable, "keycloak", issuer!.ToString(), realm, admin?.ToString());
+            return new IdentityFrontStatus(true, reachable, reachable, "keycloak", issuer!.ToString(), realm, admin?.ToString(), account);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
-            return new IdentityFrontStatus(true, false, false, "keycloak", issuer!.ToString(), realm, admin?.ToString());
+            return new IdentityFrontStatus(true, false, false, "keycloak", issuer!.ToString(), realm, admin?.ToString(), account);
         }
     }
 
@@ -73,6 +75,24 @@ public sealed class IdentityFrontProbe : IIdentityFrontProbe
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             return null;
         return uri;
+    }
+
+    /// <summary>
+    /// The account page a browser can open. Derived from the admin console address,
+    /// which is the public host. The issuer the API probes may be a private network name.
+    /// </summary>
+    private static string? AccountUrl(Uri? admin, string? realm)
+    {
+        if (admin is null || string.IsNullOrWhiteSpace(realm))
+            return null;
+
+        var builder = new UriBuilder(admin)
+        {
+            Path = $"/realms/{Uri.EscapeDataString(realm)}/account",
+            Query = string.Empty,
+            Fragment = string.Empty
+        };
+        return builder.Uri.ToString().TrimEnd('/');
     }
 
     private static string? RealmFromIssuer(Uri issuer)

@@ -2195,22 +2195,6 @@
       Navigation.NavigateTo(route);
     }
 
-    private void GoToClientWishes(string? clientId)
-    {
-      openMenuWidgetId = null;
-      openReservationMenuId = null;
-      openStayMenuId = null;
-      openArrivalMenuId = null;
-      openDepartureMenuId = null;
-      if (string.IsNullOrWhiteSpace(clientId))
-      {
-        Navigation.NavigateTo("/client-data");
-        return;
-      }
-
-      Navigation.NavigateTo($"/client-data?clientId={Uri.EscapeDataString(clientId)}&new=true&type=GuestWish");
-    }
-
     private void GoToRoomManagement(string roomId)
     {
       openRoomMenuId = null;

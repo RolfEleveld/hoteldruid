@@ -134,67 +134,6 @@ public record TariffAssignmentDto(string? Id = null, string? TariffId = null, st
 
 public record TariffSeasonDto(string? Id, string? TariffId, string? Name, DateOnly StartDate, DateOnly EndDate, string AdjustmentType, double Value, DateTime? CreatedAt);
 
-public class NationStorageModel
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Code2 { get; set; }
-    public string? Code3 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public class RegionStorageModel
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Code2 { get; set; }
-    public string? Code3 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public class CityStorageModel
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Code2 { get; set; }
-    public string? Code3 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public class IdentityDocumentTypeStorageModel
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Code2 { get; set; }
-    public string? Code3 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public class FamilyRelationshipStorageModel
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Code2 { get; set; }
-    public string? Code3 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public record NationDto(string? Id, string? Name, string? Code, string? Code2, string? Code3, DateTime? CreatedAt);
-public record RegionDto(string? Id, string? Name, string? Code, string? Code2, string? Code3, DateTime? CreatedAt);
-public record CityDto(string? Id, string? Name, string? Code, string? Code2, string? Code3, DateTime? CreatedAt);
-public record IdentityDocumentTypeDto(string? Id, string? Name, string? Code, string? Code2, string? Code3, DateTime? CreatedAt);
-public record FamilyRelationshipDto(string? Id, string? Name, string? Code, string? Code2, string? Code3, DateTime? CreatedAt);
-
 // --- Layer 1: Configuration entities ---
 
 public class CashRegisterStorageModel
@@ -294,24 +233,6 @@ public class ClientStorageModel
     public int? CreatedBy { get; set; }
 }
 
-public class ClientDataStorageModel
-{
-    public string? ClientId { get; set; }
-    public int? Number { get; set; }
-    public string? Type { get; set; }
-    public string? Text1 { get; set; }
-    public string? Text2 { get; set; }
-    public string? Text3 { get; set; }
-    public string? Text4 { get; set; }
-    public string? Text5 { get; set; }
-    public string? Text6 { get; set; }
-    public string? Text7 { get; set; }
-    public string? Text8 { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
 public class UserPrivilegeStorageModel
 {
     public int? UserId { get; set; }
@@ -360,8 +281,6 @@ public class GroupMembershipStorageModel
 }
 
 public record ClientFullDto(string? Id, string? LastName, string? FirstName, string? Nickname, string? Gender, string? Title, string? Language, DateTime? DateOfBirth, string? BirthCity, string? BirthRegion, string? BirthNation, string? DocumentNumber, DateTime? DocumentExpiry, string? DocumentType, string? DocumentCity, string? DocumentRegion, string? DocumentNation, string? Nationality, string? Nation, string? Region, string? City, string? Street, string? StreetNumber, string? PostalCode, string? Phone, string? Phone2, string? Phone3, string? Email, string? Email2, string? Email3, string? TaxCode, string? VatNumber, string? Notes, int? MaxOrderNumber, string? CompanionIds, string? DocumentsSent, DateTime? CreatedAt, string? HostCreated, int? CreatedBy, List<string>? Phones = null, List<string>? Emails = null, string? SecondNationality = null);
-
-public record ClientDataDto(string? Id, string? ClientId, int? Number, string? Type, string? Text1, string? Text2, string? Text3, string? Text4, string? Text5, string? Text6, string? Text7, string? Text8, DateTime? CreatedAt, string? HostCreated, int? CreatedBy);
 
 public record UserPrivilegeDto(string? Id, int? UserId, int? Year, string? AllowedRules, string? AllowedTariffs, string? AllowedExtraCosts, string? AllowedContracts, string? AllowedCashRegisters, string? PaymentCashRegister, string? BookingInsertPriv, string? BookingModifyPriv, string? PersonalSettingsPriv, string? ClientInsertPriv, string? ClientPrefix, string? CostInsertPriv, string? ViewTablePriv, string? TariffInsertPriv, string? RuleInsertPriv, string? MessagePriv, string? InventoryPriv);
 
@@ -673,28 +592,5 @@ public class ContractTemplateStorageModel
     public int Number { get; set; }
     public string? Type { get; set; }
     public string? Content { get; set; }
-}
-
-public class ExternalIntegrationStorageModel
-{
-    public int? LocalId { get; set; }
-    public string? RemoteId1 { get; set; }
-    public string? RemoteId2 { get; set; }
-    public string? IdType { get; set; }
-    public string? IntegrationName { get; set; }
-    public int? Year { get; set; }
-    public DateTime? CreatedAt { get; set; }
-    public string? HostCreated { get; set; }
-    public int? CreatedBy { get; set; }
-}
-
-public class SessionStorageModel
-{
-    public string? ClientToken { get; set; }
-    public int? UserId { get; set; }
-    public string? IpAddress { get; set; }
-    public string? ConnectionType { get; set; }
-    public string? UserAgent { get; set; }
-    public DateTime? LastAccess { get; set; }
 }
 

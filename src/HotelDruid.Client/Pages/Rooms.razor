@@ -10,6 +10,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject TariffServices.ITariffApiService TariffApi
 @inject TariffServices.ITariffAssignmentApiService TariffAssignmentApi
+@inject TariffServices.IBookingApiService BookingApi
 @implements IAsyncDisposable
 
 <PageTitle>@L["rooms.title", "Top Rooms"]</PageTitle>
@@ -50,7 +51,11 @@
                                     class="list-group-item list-group-item-action @(selectedRoom?.Id == room.Id ? "active" : "")"
                                     @onclick="() => SelectRoom(room)">
                                     <div class="d-flex justify-content-between">
-                                        <span>@room.Name @if (ShowsHouseHeadings() && !string.IsNullOrWhiteSpace(room.HouseNumber)) { <small class="text-muted ms-1">@room.HouseNumber</small> }</span>
+                                        <span>
+                                            @room.Name
+                                            @if (ShowsHouseHeadings() && !string.IsNullOrWhiteSpace(room.HouseNumber)) { <small class="text-muted ms-1">@room.HouseNumber</small> }
+                                            @if (IsClosedForMaintenance(room.Condition) || MaintenanceTonight(room.Id, room.Name) is not null) { <span class="badge text-bg-warning ms-1">@L["rooms.condition.maintenance", "Maintenance"]</span> }
+                                        </span>
                                         <small class="text-muted">@L["rooms.capacityPeople", room.Capacity]</small>
                                     </div>
                                 </button>
@@ -244,6 +249,51 @@
                                     }
                                 </div>
                             }
+
+                            @if (editModel.Id is not null)
+                            {
+                                var stay = OccupyingBooking();
+                                var closure = MaintenanceTonight(editModel.Id, editModel.Name);
+                                var closed = IsClosedForMaintenance(editModel.Condition);
+                                @if (stay is not null)
+                                {
+                                    <div class="room-stay mt-4">
+                                        <div class="text-muted small mb-1">@L["rooms.occupiedNow", "In this room"]</div>
+                                        <a class="list-group-item list-group-item-action" href="@TariffServices.BookingReference.Href(stay.Id)">
+                                            <div class="fw-semibold">@StayLabel(stay)</div>
+                                            <div class="small text-muted">@StayNights(stay)</div>
+                                        </a>
+                                    </div>
+                                }
+                                else if (closure is null && !CanRemoveRoom())
+                                {
+                                    <p class="text-muted small mt-4 mb-0">@L["rooms.cannotRemove", "This room still has a booking, so it cannot be removed."]</p>
+                                }
+
+                                @if (closure is not null)
+                                {
+                                    <div class="room-stay mt-3">
+                                        <div class="text-muted small mb-1">@L["rooms.closedForMaintenance", "Closed for maintenance"]</div>
+                                        <a class="list-group-item list-group-item-action" href="@TariffServices.BookingReference.Href(closure.Id)">
+                                            <div class="fw-semibold">@StayLabel(closure)</div>
+                                            <div class="small text-muted">@StayNights(closure)</div>
+                                        </a>
+                                    </div>
+                                }
+                                else if (closed)
+                                {
+                                    <div class="alert alert-warning mt-3 mb-0">@L["rooms.closedForMaintenance", "Closed for maintenance"]</div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm mt-2" @onclick="ReopenRoom" disabled="@isSaving">
+                                        @L["rooms.reopenRoom", "Reopen the room"]
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-sm mt-3" @onclick="CloseForMaintenance" disabled="@isSaving">
+                                        @L["rooms.closeForMaintenance", "Close for maintenance"]
+                                    </button>
+                                }
+                            }
                         </form>
                     </div>
 
@@ -257,9 +307,12 @@
                                 <button type="button" class="btn btn-info flex-grow-1" @onclick="DuplicateRoom">
                                     <span class="bi bi-files"></span> @L["rooms.duplicate", "Duplicate"]
                                 </button>
-                                <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteRoom">
-                                    <span class="bi bi-trash"></span> @L["common.delete", "Delete"]
-                                </button>
+                                @if (CanRemoveRoom())
+                                {
+                                    <button type="button" class="btn btn-danger flex-grow-1" @onclick="DeleteRoom">
+                                        <span class="bi bi-trash"></span> @L["common.delete", "Delete"]
+                                    </button>
+                                }
                             }
                         </div>
                     </div>
@@ -469,6 +522,7 @@
     public string? SelectedId { get; set; }
 
     private List<RoomDto>? rooms;
+    private List<BookingDto> bookings = new();
     private RoomDto? selectedRoom;
     private RoomEditModel? editModel;
     private bool isSaving = false;
@@ -524,6 +578,7 @@
     {
         statusMessage = L["common.noChanges", "No changes"];
         await LoadRooms();
+        await LoadBookings();
         await LoadAllTariffs();
         ApplySelectedRoomFromQuery();
         initAutoSaveTimer();
@@ -562,6 +617,121 @@
         {
             lastError = string.Format(L["rooms.loadFailed", "Failed to load rooms: {0}"], ex.Message);
         }
+    }
+
+    private async Task LoadBookings()
+    {
+        bookings = await BookingApi.ListAsync(includeDeleted: true) ?? new List<BookingDto>();
+    }
+
+    private static bool IsClosedForMaintenance(string? condition)
+        => string.Equals(condition?.Trim(), "maintenance", StringComparison.OrdinalIgnoreCase);
+
+    private bool RoomHasBooking(BookingDto booking)
+        => RoomMatches(booking, editModel?.Id, editModel?.Name);
+
+    private static bool RoomMatches(BookingDto booking, string? roomId, string? roomName)
+        => (!string.IsNullOrWhiteSpace(roomId) && string.Equals(booking.RoomId, roomId, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(roomName) && string.Equals(booking.RoomId, roomName, StringComparison.OrdinalIgnoreCase));
+
+    private bool StillUsesRoom(BookingDto booking)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return RoomHasBooking(booking) && (booking.DepartureDate is null || booking.DepartureDate.Value >= today);
+    }
+
+    private bool CanRemoveRoom()
+        => editModel?.Id is not null && !bookings.Any(StillUsesRoom);
+
+    private BookingDto? OccupyingBooking()
+        => CoveringTonight(editModel?.Id, editModel?.Name, maintenance: false);
+
+    private BookingDto? MaintenanceTonight(string? roomId, string? roomName)
+        => CoveringTonight(roomId, roomName, maintenance: true);
+
+    private BookingDto? CoveringTonight(string? roomId, string? roomName, bool maintenance)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return bookings
+            .Where(booking => RoomMatches(booking, roomId, roomName) && CoversTonight(booking, today) && (maintenance ? IsMaintenanceStay(booking) : IsGuestStay(booking)))
+            .OrderByDescending(booking => string.Equals(booking.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))
+            .ThenBy(booking => booking.ArrivalDate ?? DateOnly.MaxValue)
+            .FirstOrDefault();
+    }
+
+    private static bool CoversTonight(BookingDto booking, DateOnly today)
+        => booking.ArrivalDate is not null
+            && booking.DepartureDate is not null
+            && booking.ArrivalDate.Value <= today
+            && booking.DepartureDate.Value > today
+            && (booking.ActualDepartureDate is null || booking.ActualDepartureDate.Value > today);
+
+    private static bool IsGuestStay(BookingDto booking)
+        => IsOpenStay(booking) && !IsMaintenanceStay(booking);
+
+    private static bool IsMaintenanceStay(BookingDto booking)
+        => IsOpenStay(booking) && string.Equals(booking.Status?.Trim(), "Maintenance", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsOpenStay(BookingDto booking)
+    {
+        if (booking.DeletedAt is not null)
+        {
+            return false;
+        }
+
+        var status = booking.Status?.Trim();
+        return status is not null
+            && !status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)
+            && !status.Equals("Void", StringComparison.OrdinalIgnoreCase)
+            && !status.Equals("Deleted", StringComparison.OrdinalIgnoreCase)
+            && !status.Equals("NoShow", StringComparison.OrdinalIgnoreCase)
+            && !status.Equals("CheckedOut", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string StayLabel(BookingDto booking)
+    {
+        var label = TariffServices.BookingReference.Label(booking.ArrivalDate, editModel?.Name);
+        return string.IsNullOrWhiteSpace(label) ? L["clients.reservationEntry", "Reservation entry"] : label;
+    }
+
+    private string StayNights(BookingDto booking)
+    {
+        if (booking.ArrivalDate is null || booking.DepartureDate is null)
+        {
+            return string.Empty;
+        }
+
+        var nights = booking.DepartureDate.Value.DayNumber - booking.ArrivalDate.Value.DayNumber;
+        if (nights <= 0)
+        {
+            return string.Empty;
+        }
+
+        return nights == 1
+            ? L["clients.reservationDay", nights]
+            : L["clients.reservationNights", nights];
+    }
+
+    private async Task CloseForMaintenance()
+    {
+        if (editModel?.Id is null)
+        {
+            return;
+        }
+
+        editModel.Condition = "maintenance";
+        await SaveRoom();
+    }
+
+    private async Task ReopenRoom()
+    {
+        if (editModel?.Id is null)
+        {
+            return;
+        }
+
+        editModel.Condition = null;
+        await SaveRoom();
     }
 
     private void ApplySelectedRoomFromQuery()

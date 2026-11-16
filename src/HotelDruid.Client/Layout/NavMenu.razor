@@ -9,207 +9,122 @@
     <div class="nav-scrollable" @onclick="HandleNavigate">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                @L["Nav.Home", "Home"]
-            </NavLink>
+            <div class="nav-section">@L["Nav.Section.Desk"]</div>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="profile">
-                @L["Nav.Profile", "Profile"]
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                @L["Nav.Home"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="rooms">
-                @L["Nav.Rooms", "Rooms"]
+                @L["Nav.Rooms"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="calendar">
-                @L["Nav.Calendar", "Calendar"]
+                @L["Nav.Calendar"]
             </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="assets">
-                @L["Nav.Assets", "Assets"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="warehouses">
-                @L["Nav.Warehouses", "Warehouses"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="inventory">
-                @L["Nav.Inventory", "Inventory"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">@L["Nav.Section.GuestManagement", "Guest Management"]</div>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="clients">
-                @L["Nav.Clients", "Clients"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="client-data">
-                @L["Nav.ClientData", "Client Data"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">@L["Nav.Section.ReferenceData", "Reference Data"]</div>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="nations">
-                @L["Nav.Nations", "Nations"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="regions">
-                @L["Nav.Regions", "Regions"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="cities">
-                @L["Nav.Cities", "Cities"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="identity-document-types">
-                @L["Nav.IdentityDocumentTypes", "ID Document Types"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="family-relationships">
-                @L["Nav.FamilyRelationships", "Family Relationships"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">@L["Nav.Section.Configuration", "Configuration"]</div>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="cash-registers">
-                @L["Nav.CashRegisters", "Cash Registers"]
-            </NavLink>
-        </div>
-        @if (identityIsFront)
-        {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="user-groups">
-                    @L["Nav.UserGroups", "User Groups"]
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="users">
-                    @L["Nav.Users", "Users"]
-                </NavLink>
-            </div>
-        }
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="settings">
-                @L["Nav.Settings", "Settings"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="setup">
-                @L["Nav.Setup", "Setup"]
-            </NavLink>
-        </div>
-        @if (identityIsFront)
-        {
-            <div class="nav-item px-3 mt-2">
-                <div class="text-muted small px-1" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">@L["Nav.Section.UserManagement", "User Management"]</div>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="identity">
-                    @L["Nav.Identity", "Identity"]
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="user-privileges">
-                    @L["Nav.UserPrivileges", "User Privileges"]
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="user-relations">
-                    @L["Nav.UserPreferences", "User Preferences"]
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="group-memberships">
-                    @L["Nav.GroupMemberships", "Group Memberships"]
-                </NavLink>
-            </div>
-        }
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-weight:600;letter-spacing:.05em">@L["Nav.Section.YearOperations", "YEAR OPERATIONS"]</div>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="tariffs">
-                @L["Nav.Tariffs", "Tariffs"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="extra-costs">
-                @L["Nav.ExtraCosts", "Extra Costs"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="assignment-rules">
-                @L["Nav.AssignmentRules", "Assignment Rules"]
-            </NavLink>
-        </div>
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-weight:600;letter-spacing:.05em">@L["Nav.Section.BookingsFinance", "BOOKINGS &amp; FINANCE"]</div>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="bookings">
-                @L["Nav.Bookings", "Bookings"]
+                @L["Nav.Bookings"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="received">
-                @L["Nav.Received", "Received"]
+                @L["Nav.Received"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="booking-costs">
-                @L["Nav.BookingCosts", "Booking Costs"]
+            <NavLink class="nav-link" href="night-audit">
+                @L["Nav.NightAudit"]
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <div class="nav-section">@L["Nav.Section.Guests"]</div>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="clients">
+                @L["Nav.Clients"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="booking-guests">
-                @L["Nav.BookingGuests", "Booking Guests"]
+                @L["Nav.BookingGuests"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="cancelled-bookings">
-                @L["Nav.CancelledBookings", "Cancelled Bookings"]
+                @L["Nav.CancelledBookings"]
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <div class="nav-section">@L["Nav.Section.Rates"]</div>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tariffs">
+                @L["Nav.Tariffs"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="extra-costs">
+                @L["Nav.ExtraCosts"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="assignment-rules">
+                @L["Nav.AssignmentRules"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="booking-costs">
+                @L["Nav.BookingCosts"]
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <div class="nav-section">@L["Nav.Section.Cash"]</div>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="point-of-sale">
+                @L["Nav.PointOfSale"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cash-registers">
+                @L["Nav.CashRegisters"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="expenses">
-                @L["Nav.Expenses", "Expenses"]
+                @L["Nav.Expenses"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="money-history">
-                @L["Nav.MoneyHistory", "Money History"]
+                @L["Nav.MoneyHistory"]
             </NavLink>
         </div>
+
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="point-of-sale">
-                @L["Nav.PointOfSale", "Point of Sale"]
-            </NavLink>
+            <div class="nav-section">@L["Nav.Section.Accounts"]</div>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="ledger">
-                @L["Nav.Ledger", "General Ledger"]
+                @L["Nav.Ledger"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="chart-of-accounts">
-                @L["Nav.ChartOfAccounts", "Chart of Accounts"]
+                @L["Nav.ChartOfAccounts"]
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="taxes">
+                @L["Nav.Taxes"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -217,39 +132,94 @@
                 @L["Nav.Reports"]
             </NavLink>
         </div>
+
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="night-audit">
-                @L["Nav.NightAudit", "Night audit"]
+            <div class="nav-section">@L["Nav.Section.Property"]</div>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="assets">
+                @L["Nav.Assets"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="taxes">
-                @L["Nav.Taxes", "Tax rates"]
+            <NavLink class="nav-link" href="warehouses">
+                @L["Nav.Warehouses"]
             </NavLink>
         </div>
-        <div class="nav-item px-3 mt-2">
-            <div class="text-muted small px-1" style="font-weight:600;letter-spacing:.05em">@L["Nav.Section.Communication", "COMMUNICATION"]</div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="inventory">
+                @L["Nav.Inventory"]
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <div class="nav-section">@L["Nav.Section.Messages"]</div>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="messages">
-                @L["Nav.Messages", "Messages"]
+                @L["Nav.Messages"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="contract-templates">
-                @L["Nav.ContractTemplates", "Contract Templates"]
+                @L["Nav.ContractTemplates"]
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <div class="nav-section">@L["Nav.Section.Setup"]</div>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="setup">
+                @L["Nav.Setup"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="external-integrations">
-                @L["Nav.ExternalIntegrations", "External Integrations"]
+            <NavLink class="nav-link" href="settings">
+                @L["Nav.Settings"]
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="sessions">
-                @L["Nav.Sessions", "Sessions"]
+            <NavLink class="nav-link" href="profile">
+                @L["Nav.Profile"]
             </NavLink>
         </div>
+        @if (identityIsFront)
+        {
+            <div class="nav-item px-3">
+                <div class="nav-section">@L["Nav.Section.UserManagement"]</div>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="users">
+                    @L["Nav.Users"]
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="user-groups">
+                    @L["Nav.UserGroups"]
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="identity">
+                    @L["Nav.Identity"]
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="user-privileges">
+                    @L["Nav.UserPrivileges"]
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="user-relations">
+                    @L["Nav.UserPreferences"]
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="group-memberships">
+                    @L["Nav.GroupMemberships"]
+                </NavLink>
+            </div>
+        }
     </nav>
     </div>
 </div>

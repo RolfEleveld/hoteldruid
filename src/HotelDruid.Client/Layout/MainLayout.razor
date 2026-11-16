@@ -15,7 +15,7 @@
                 <span class="hamburger-icon" aria-hidden="true"></span>
             </button>
             <a class="hotel-brand" href="/">@hotelName</a>
-            <span class="app-header-space" aria-hidden="true"></span>
+            <a class="desk-name" href="@NameHref" title="@NameTitle">@HeaderName()</a>
         </div>
     </header>
 
@@ -32,7 +32,6 @@
             </article>
             <footer class="global-footer px-4 d-flex flex-wrap gap-3 align-items-center">
                 <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
-                <a href="/profile">@FooterName()</a>
             </footer>
         </main>
     </div>
@@ -42,6 +41,8 @@
     private StatusDto? status;
     private string hotelName = "Welcome to HotelDruid";
     private bool isNavOpen;
+    private bool identityIsFront;
+    private string? accountUrl;
 
     protected override void OnInitialized()
     {
@@ -74,6 +75,18 @@
         {
             // Keep default hotel name when configuration is unavailable.
         }
+
+        try
+        {
+            var front = await Http.GetFromJsonAsync<IdentityFrontDto>("/api/system/identity-front");
+            identityIsFront = front?.IsFront == true;
+            accountUrl = string.IsNullOrWhiteSpace(front?.AccountUrl) ? null : front!.AccountUrl;
+        }
+        catch
+        {
+            identityIsFront = false;
+            accountUrl = null;
+        }
     }
 
     private void ToggleNav()
@@ -97,14 +110,18 @@
         DeskUser.Changed -= OnDeskUserChanged;
     }
 
-    private string FooterName()
-    {
-        if (DeskUser.FromIdentity)
-            return L["DeskUser.SignedIn", DeskUser.Name ?? ""];
-        if (string.IsNullOrWhiteSpace(DeskUser.Name))
-            return L["profile.setName"];
-        return L["profile.using", DeskUser.Name];
-    }
+    private string HeaderName()
+        => string.IsNullOrWhiteSpace(DeskUser.Name) ? L["profile.setName"] : DeskUser.Name!;
+
+    private string NameHref
+        => identityIsFront && accountUrl is not null ? accountUrl : "/profile";
+
+    private string NameTitle
+        => identityIsFront && accountUrl is not null
+            ? L["profile.signInOut", "Sign out or sign in"]
+            : string.IsNullOrWhiteSpace(DeskUser.Name)
+                ? L["profile.setName"]
+                : L["profile.workingAs", DeskUser.Name];
 
     private string GetBuildLabel()
     {
@@ -130,5 +147,11 @@
     private sealed class SystemConfigurationDto
     {
         public Dictionary<string, string>? Settings { get; set; }
+    }
+
+    private sealed class IdentityFrontDto
+    {
+        public bool IsFront { get; set; }
+        public string? AccountUrl { get; set; }
     }
 }

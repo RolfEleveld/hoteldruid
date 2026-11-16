@@ -35,7 +35,6 @@ public class Layer2ApiTests : IAsyncLifetime
         public string? Nationality { get; set; }
         public DateTime? CreatedAt { get; set; }
     }
-    private class ClientDataDto { public string? Id { get; set; } public string? ClientId { get; set; } public int? Number { get; set; } public string? Type { get; set; } public string? Text1 { get; set; } }
     private class UserPrivilegeDto { public string? Id { get; set; } public int? UserId { get; set; } public int? Year { get; set; } public string? AllowedRules { get; set; } public string? BookingInsertPriv { get; set; } }
     private class UserRelationDto { public string? Id { get; set; } public int? UserId { get; set; } public int? NationId { get; set; } public int? RegionId { get; set; } public int? CityId { get; set; } }
     private class GroupMembershipDto { public string? Id { get; set; } public int? UserId { get; set; } public int? GroupId { get; set; } }
@@ -244,56 +243,6 @@ public class Layer2ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
         var get = await _client.GetAsync($"/api/clients/{created.Id}");
         Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
-    }
-
-    // ========== ClientData ==========
-
-    [Fact]
-    public async Task ClientData_Create_ReturnsCreated()
-    {
-        var r = await _client.PostAsync("/api/client-data", Json(new { ClientId = "client1", Number = 1, Type = "telefono", Text1 = "0123456789" }));
-        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
-        var dto = await ReadAs<ClientDataDto>(r);
-        Assert.NotNull(dto?.Id);
-        Assert.Equal("client1", dto.ClientId);
-    }
-
-    [Fact]
-    public async Task ClientData_Create_ClientIdRequired_ReturnsBadRequest()
-    {
-        var r = await _client.PostAsync("/api/client-data", Json(new { ClientId = "", Number = 1, Type = "nota" }));
-        Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
-    }
-
-    [Fact]
-    public async Task ClientData_GetByClientId_ReturnsList()
-    {
-        await _client.PostAsync("/api/client-data", Json(new { ClientId = "clientXYZ", Number = 1, Type = "email", Text1 = "a@b.com" }));
-        await _client.PostAsync("/api/client-data", Json(new { ClientId = "clientXYZ", Number = 2, Type = "nota", Text1 = "Some note" }));
-        var r = await _client.GetAsync("/api/client-data?clientId=clientXYZ");
-        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
-        var list = await ReadAs<List<ClientDataDto>>(r);
-        Assert.Equal(2, list?.Count);
-    }
-
-    [Fact]
-    public async Task ClientData_Update_ChangesText()
-    {
-        var create = await _client.PostAsync("/api/client-data", Json(new { ClientId = "clientUpd", Number = 1, Type = "nota", Text1 = "old" }));
-        var created = await ReadAs<ClientDataDto>(create);
-        var r = await _client.PutAsync($"/api/client-data/{created!.Id}", Json(new { ClientId = "clientUpd", Number = 1, Type = "nota", Text1 = "new" }));
-        Assert.Equal(HttpStatusCode.OK, r.StatusCode);
-        var dto = await ReadAs<ClientDataDto>(r);
-        Assert.Equal("new", dto?.Text1);
-    }
-
-    [Fact]
-    public async Task ClientData_Delete_ReturnsNoContent()
-    {
-        var create = await _client.PostAsync("/api/client-data", Json(new { ClientId = "clientDel", Number = 1, Type = "nota" }));
-        var created = await ReadAs<ClientDataDto>(create);
-        var r = await _client.DeleteAsync($"/api/client-data/{created!.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
     }
 
     // ========== UserPrivileges ==========

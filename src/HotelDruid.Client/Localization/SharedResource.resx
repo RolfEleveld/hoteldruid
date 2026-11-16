@@ -194,6 +194,8 @@
   <data name="profile.signedIn" xml:space="preserve"><value>The sign-in name is used on ledger entries. This page does not replace it.</value></data>
   <data name="profile.setName" xml:space="preserve"><value>Set your name</value></data>
   <data name="profile.using" xml:space="preserve"><value>Your name: {0}</value></data>
+  <data name="profile.workingAs" xml:space="preserve"><value>Working as {0}</value></data>
+  <data name="profile.signInOut" xml:space="preserve"><value>Sign out or sign in</value></data>
   <data name="profile.invalid" xml:space="preserve"><value>That name cannot be stored. Use letters, digits, spaces, apostrophes, dots, or hyphens.</value></data>
   <data name="ledger.recordedBy" xml:space="preserve"><value>Recorded by</value></data>
   <data name="Nav.Toggle" xml:space="preserve"><value>Navigation menu</value></data>
@@ -202,12 +204,6 @@
   <data name="Nav.Warehouses" xml:space="preserve"><value>Warehouses</value></data>
   <data name="Nav.Inventory" xml:space="preserve"><value>Inventory</value></data>
   <data name="Nav.Clients" xml:space="preserve"><value>Clients</value></data>
-  <data name="Nav.ClientData" xml:space="preserve"><value>Client Data</value></data>
-  <data name="Nav.Nations" xml:space="preserve"><value>Nations</value></data>
-  <data name="Nav.Regions" xml:space="preserve"><value>Regions</value></data>
-  <data name="Nav.Cities" xml:space="preserve"><value>Cities</value></data>
-  <data name="Nav.IdentityDocumentTypes" xml:space="preserve"><value>ID Document Types</value></data>
-  <data name="Nav.FamilyRelationships" xml:space="preserve"><value>Family Relationships</value></data>
   <data name="Nav.CashRegisters" xml:space="preserve"><value>Cash Registers</value></data>
   <data name="Nav.UserGroups" xml:space="preserve"><value>User Groups</value></data>
   <data name="Nav.Users" xml:space="preserve"><value>Users</value></data>
@@ -305,15 +301,15 @@
   <data name="Performance.Action.PremiumHigh" xml:space="preserve"><value>Rooms for {0} guests were only {1} full, against {2} for two-guest rooms, while charging {3} against {4}. The premium is ahead of demand. Ease it, or include something a family needs, such as the baby cot.</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Messages</value></data>
   <data name="Nav.ContractTemplates" xml:space="preserve"><value>Contract Templates</value></data>
-  <data name="Nav.ExternalIntegrations" xml:space="preserve"><value>External Integrations</value></data>
-  <data name="Nav.Sessions" xml:space="preserve"><value>Sessions</value></data>
-  <data name="Nav.Section.GuestManagement" xml:space="preserve"><value>Guest Management</value></data>
-  <data name="Nav.Section.ReferenceData" xml:space="preserve"><value>Reference Data</value></data>
-  <data name="Nav.Section.Configuration" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Nav.Section.Desk" xml:space="preserve"><value>Desk</value></data>
+  <data name="Nav.Section.Guests" xml:space="preserve"><value>Guests</value></data>
+  <data name="Nav.Section.Rates" xml:space="preserve"><value>Rates</value></data>
+  <data name="Nav.Section.Cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="Nav.Section.Accounts" xml:space="preserve"><value>Accounts</value></data>
+  <data name="Nav.Section.Property" xml:space="preserve"><value>Property</value></data>
+  <data name="Nav.Section.Messages" xml:space="preserve"><value>Messages</value></data>
+  <data name="Nav.Section.Setup" xml:space="preserve"><value>Setup</value></data>
   <data name="Nav.Section.UserManagement" xml:space="preserve"><value>User Management</value></data>
-  <data name="Nav.Section.YearOperations" xml:space="preserve"><value>YEAR OPERATIONS</value></data>
-  <data name="Nav.Section.BookingsFinance" xml:space="preserve"><value>BOOKINGS &amp; FINANCE</value></data>
-  <data name="Nav.Section.Communication" xml:space="preserve"><value>COMMUNICATION</value></data>
   <data name="Setup.PageTitle" xml:space="preserve"><value>Setup</value></data>
   <data name="Setup.Header" xml:space="preserve"><value>System Setup</value></data>
   <data name="Setup.DescriptionPrefix" xml:space="preserve"><value>Configure baseline assumptions for this installation. This page can be re-opened at any time using</value></data>
@@ -785,7 +781,7 @@
   <data name="identity.issuer" xml:space="preserve"><value>Issuer the API probes</value></data>
   <data name="identity.admin" xml:space="preserve"><value>Open identity admin</value></data>
   <data name="identity.adminMissing" xml:space="preserve"><value>The browser address of the Keycloak admin console is not configured.</value></data>
-  <data name="identity.localUsers" xml:space="preserve"><value>Users, groups, privileges, and sessions in this application are the imported staff register. They name the person on a cash row. They are not the login directory while Keycloak is the front.</value></data>
+  <data name="identity.localUsers" xml:space="preserve"><value>Users, groups, and privileges in this application are the imported staff register. They name the person on a cash row. They are not the login directory while Keycloak is the front.</value></data>
   <data name="common.add" xml:space="preserve"><value>Add</value></data>
   <data name="common.apply" xml:space="preserve"><value>Apply</value></data>
   <data name="common.edit" xml:space="preserve"><value>Edit</value></data>
@@ -804,9 +800,6 @@
   <data name="cancelledBookings.title" xml:space="preserve"><value>Cancelled Bookings</value></data>
   <data name="cashRegisters.title" xml:space="preserve"><value>Cash Registers</value></data>
   <data name="cashRegisters.emptyList" xml:space="preserve"><value>No cash registers defined.</value></data>
-  <data name="cities.title" xml:space="preserve"><value>Cities</value></data>
-  <data name="cities.emptyList" xml:space="preserve"><value>No cities defined.</value></data>
-  <data name="clientData.title" xml:space="preserve"><value>Client Data</value></data>
   <data name="contractTemplates.title" xml:space="preserve"><value>Contract Templates</value></data>
   <data name="contractTemplates.emptyList" xml:space="preserve"><value>No contract templates yet.</value></data>
   <data name="Dashboard.Reservations.UnknownRoom" xml:space="preserve"><value>Unknown room</value></data>
@@ -823,8 +816,6 @@
   <data name="export.statusCompleted" xml:space="preserve"><value>Export completed successfully</value></data>
   <data name="export.statusFailed" xml:space="preserve"><value>Export failed. Please try again.</value></data>
   <data name="export.statusInProgress" xml:space="preserve"><value>Export in progress...</value></data>
-  <data name="externalIntegrations.title" xml:space="preserve"><value>External Integrations</value></data>
-  <data name="externalIntegrations.emptyList" xml:space="preserve"><value>No external integrations yet.</value></data>
   <data name="extraCosts.title" xml:space="preserve"><value>Extra Costs</value></data>
   <data name="extraCosts.baseValueLabel" xml:space="preserve"><value>Base Value</value></data>
   <data name="extraCosts.categoryLabel" xml:space="preserve"><value>Category</value></data>
@@ -836,14 +827,7 @@
   <data name="extraCosts.numberLimitLabel" xml:space="preserve"><value>Number Limit</value></data>
   <data name="extraCosts.percentageValueLabel" xml:space="preserve"><value>Percentage Value</value></data>
   <data name="extraCosts.taxPercentageLabel" xml:space="preserve"><value>Tax %</value></data>
-  <data name="familyRelationships.title" xml:space="preserve"><value>Family Relationships</value></data>
-  <data name="familyRelationships.emptyList" xml:space="preserve"><value>No relationship types defined.</value></data>
   <data name="groupMemberships.title" xml:space="preserve"><value>Group Memberships</value></data>
-  <data name="home.title" xml:space="preserve"><value>Home</value></data>
-  <data name="home.heading" xml:space="preserve"><value>Hello, world!</value></data>
-  <data name="home.message" xml:space="preserve"><value>Welcome to your new app.</value></data>
-  <data name="identityDocumentTypes.title" xml:space="preserve"><value>Identity Document Types</value></data>
-  <data name="identityDocumentTypes.emptyList" xml:space="preserve"><value>No document types defined.</value></data>
   <data name="import.title" xml:space="preserve"><value>Import Room Configuration</value></data>
   <data name="import.description" xml:space="preserve"><value>Upload a ZIP file containing room data to import</value></data>
   <data name="import.dragDrop" xml:space="preserve"><value>Drag and drop your ZIP file here</value></data>
@@ -865,18 +849,47 @@
   <data name="language.switcher" xml:space="preserve"><value>Language</value></data>
   <data name="messages.title" xml:space="preserve"><value>Messages</value></data>
   <data name="messages.emptyList" xml:space="preserve"><value>No messages yet.</value></data>
+  <data name="messages.list" xml:space="preserve"><value>Desk notes</value></data>
+  <data name="messages.compose" xml:space="preserve"><value>Write</value></data>
+  <data name="messages.new" xml:space="preserve"><value>New message</value></data>
+  <data name="messages.sender" xml:space="preserve"><value>From</value></data>
+  <data name="messages.body" xml:space="preserve"><value>Message</value></data>
+  <data name="messages.type" xml:space="preserve"><value>Type</value></data>
+  <data name="messages.recipients" xml:space="preserve"><value>Recipients</value></data>
+  <data name="messages.send" xml:space="preserve"><value>Send</value></data>
+  <data name="messages.markRead" xml:space="preserve"><value>Mark read</value></data>
+  <data name="messages.archive" xml:space="preserve"><value>Archive</value></data>
+  <data name="messages.selectPrompt" xml:space="preserve"><value>Select a message to see it.</value></data>
+  <data name="messages.id" xml:space="preserve"><value>ID</value></data>
+  <data name="messages.status" xml:space="preserve"><value>Status</value></data>
+  <data name="messages.sent" xml:space="preserve"><value>Sent</value></data>
+  <data name="messages.seen" xml:space="preserve"><value>Seen</value></data>
+  <data name="messages.status.unread" xml:space="preserve"><value>Unread</value></data>
+  <data name="messages.status.read" xml:space="preserve"><value>Read</value></data>
+  <data name="messages.status.archived" xml:space="preserve"><value>Archived</value></data>
+  <data name="messages.type.internal" xml:space="preserve"><value>Internal</value></data>
+  <data name="dispatch.title" xml:space="preserve"><value>Batch messages</value></data>
+  <data name="dispatch.empty" xml:space="preserve"><value>Nothing is waiting to be relayed.</value></data>
+  <data name="dispatch.channel" xml:space="preserve"><value>Channel</value></data>
+  <data name="dispatch.to" xml:space="preserve"><value>To</value></data>
+  <data name="dispatch.subject" xml:space="preserve"><value>Subject</value></data>
+  <data name="dispatch.due" xml:space="preserve"><value>Due</value></data>
+  <data name="dispatch.status" xml:space="preserve"><value>Status</value></data>
+  <data name="dispatch.channel.email" xml:space="preserve"><value>Email</value></data>
+  <data name="dispatch.channel.whatsapp" xml:space="preserve"><value>WhatsApp</value></data>
+  <data name="dispatch.channel.sms" xml:space="preserve"><value>SMS</value></data>
+  <data name="dispatch.channel.post" xml:space="preserve"><value>Post</value></data>
+  <data name="dispatch.status.review" xml:space="preserve"><value>To review</value></data>
+  <data name="dispatch.status.ready" xml:space="preserve"><value>Ready to send</value></data>
+  <data name="dispatch.status.relayed" xml:space="preserve"><value>Relayed</value></data>
+  <data name="dispatch.status.confirmed" xml:space="preserve"><value>Confirmed</value></data>
   <data name="moneyHistory.title" xml:space="preserve"><value>Money History</value></data>
-  <data name="nations.title" xml:space="preserve"><value>Nations</value></data>
-  <data name="nations.emptyList" xml:space="preserve"><value>No nations defined.</value></data>
   <data name="periods.title" xml:space="preserve"><value>Periods</value></data>
-  <data name="regions.title" xml:space="preserve"><value>Regions</value></data>
-  <data name="regions.emptyList" xml:space="preserve"><value>No regions defined.</value></data>
   <data name="rooms.room" xml:space="preserve"><value>Room</value></data>
   <data name="rooms.capacity" xml:space="preserve"><value>Capacity</value></data>
   <data name="rooms.description" xml:space="preserve"><value>View and manage your hotel rooms</value></data>
   <data name="rooms.floor" xml:space="preserve"><value>Floor</value></data>
   <data name="rooms.house" xml:space="preserve"><value>House</value></data>
-  <data name="sessions.title" xml:space="preserve"><value>Sessions</value></data>
   <data name="settings.title" xml:space="preserve"><value>Settings and Management</value></data>
   <data name="settings.description" xml:space="preserve"><value>Export and import room configurations</value></data>
   <data name="settings.export" xml:space="preserve"><value>Export Rooms</value></data>
@@ -1064,6 +1077,11 @@
   <data name="rooms.condition.blocked" xml:space="preserve"><value>Blocked</value></data>
   <data name="rooms.condition.maintenance" xml:space="preserve"><value>Maintenance</value></data>
   <data name="rooms.conditionHelp" xml:space="preserve"><value>Occupied and available come from the stays. Use this for the room itself.</value></data>
+  <data name="rooms.occupiedNow" xml:space="preserve"><value>In this room</value></data>
+  <data name="rooms.closedForMaintenance" xml:space="preserve"><value>Closed for maintenance</value></data>
+  <data name="rooms.closeForMaintenance" xml:space="preserve"><value>Close for maintenance</value></data>
+  <data name="rooms.reopenRoom" xml:space="preserve"><value>Reopen the room</value></data>
+  <data name="rooms.cannotRemove" xml:space="preserve"><value>This room still has a booking, so it cannot be removed.</value></data>
   <data name="bookings.source" xml:space="preserve"><value>Source</value></data>
   <data name="bookings.externalReference" xml:space="preserve"><value>External reference</value></data>
   <data name="bookings.groupCode" xml:space="preserve"><value>Group</value></data>

@@ -250,7 +250,7 @@ HotelDruid treats Keycloak as the sign-in front only when both of these are true
 1. The API process has `Identity:Provider=keycloak` (compose variable `IDENTITY_PROVIDER`).
 2. The API can read `{Identity:Issuer}/.well-known/openid-configuration` (compose variable `IDENTITY_ISSUER`).
 
-`GET /api/system/identity-front` returns `configured`, `reachable`, `isFront`, `realm`, `issuer`, and `adminConsoleUrl`. The Blazor menu adds **Identity** only when `isFront` is true. That page states the realm and opens `IDENTITY_ADMIN_CONSOLE_URL` in the browser. User and role changes stay in the Keycloak admin console. The hotel API does not call the Keycloak admin API and does not keep the admin password.
+`GET /api/system/identity-front` returns `configured`, `reachable`, `isFront`, `realm`, `issuer`, `adminConsoleUrl`, and `accountUrl`. `accountUrl` is the browser account page on the same host as the admin console, at `/realms/{realm}/account`. The desk header opens that page when this front is active, so a person can sign out and sign in. It is absent when the admin console address is not set. The Blazor menu adds **Identity** only when `isFront` is true. That page states the realm and opens `IDENTITY_ADMIN_CONSOLE_URL` in the browser. User and role changes stay in the Keycloak admin console. The hotel API does not call the Keycloak admin API and does not keep the admin password.
 
 The probe only detects the front. It does not sign a desk user in. Requiring a token is still the reverse proxy's job (section 10).
 
