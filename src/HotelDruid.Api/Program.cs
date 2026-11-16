@@ -89,6 +89,12 @@ if (!string.IsNullOrEmpty(certThumbprint))
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddLogging();
+var hotelLogDirectory = Environment.GetEnvironmentVariable("HOTELDRUID_LOGDIR");
+if (!string.IsNullOrWhiteSpace(hotelLogDirectory))
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddProvider(new HotelDruid.Api.Services.DailyFileLoggerProvider(hotelLogDirectory));
+}
 
 // Configure JSON serialization for API responses
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -166,6 +172,7 @@ builder.Services.AddSingleton<CacheWarmupState>();
 builder.Services.AddSingleton<ICacheWarmupState>(sp => sp.GetRequiredService<CacheWarmupState>());
 builder.Services.AddHostedService<CacheWarmupHostedService>();
 builder.Services.AddSingleton<IDocumentRenderService, DocumentRenderService>();
+builder.Services.AddSingleton<DispatchService>();
 builder.Services.AddHostedService<DocumentTemplateSeeder>();
 builder.Services.AddHttpClient<IIdentityFrontProbe, IdentityFrontProbe>((sp, client) =>
 {
@@ -1997,7 +2004,7 @@ ClientFullDto ToClientFullDto(string id, ClientStorageModel s)
         s.Email ?? emails.ElementAtOrDefault(0), s.Email2 ?? emails.ElementAtOrDefault(1), s.Email3 ?? emails.ElementAtOrDefault(2),
         s.TaxCode, s.VatNumber, s.Notes, s.MaxOrderNumber, s.CompanionIds, s.DocumentsSent,
         s.CreatedAt, s.HostCreated, s.CreatedBy,
-        phones, emails);
+        phones, emails, s.SecondNationality);
 }
 
 static List<string> GetCanonicalContactList(IEnumerable<string?>? values, params string?[] legacyValues)
@@ -2039,7 +2046,8 @@ app.MapPost("/api/clients", async (ClientFullDto request, IKeyValueStore store) 
         Email = request.Email ?? emails.ElementAtOrDefault(0), Email2 = request.Email2 ?? emails.ElementAtOrDefault(1), Email3 = request.Email3 ?? emails.ElementAtOrDefault(2),
         TaxCode = request.TaxCode, VatNumber = request.VatNumber, Notes = request.Notes,
         MaxOrderNumber = request.MaxOrderNumber, CompanionIds = request.CompanionIds,
-        DocumentsSent = request.DocumentsSent, CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
+        DocumentsSent = request.DocumentsSent, SecondNationality = request.SecondNationality,
+        CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
         HostCreated = request.HostCreated, CreatedBy = request.CreatedBy
     };
     var key = $"{request.LastName}_{DateTime.UtcNow.Ticks}";
@@ -2167,6 +2175,7 @@ app.MapPut("/api/clients/{id}", async (string id, ClientFullDto request, IKeyVal
         TaxCode = request.TaxCode, VatNumber = request.VatNumber, Notes = request.Notes,
         MaxOrderNumber = request.MaxOrderNumber, CompanionIds = request.CompanionIds,
         DocumentsSent = request.DocumentsSent,
+        SecondNationality = request.SecondNationality,
         CreatedAt = request.CreatedAt ?? existing.CreatedAt ?? DateTime.UtcNow,
         HostCreated = request.HostCreated ?? existing.HostCreated,
         CreatedBy = request.CreatedBy ?? existing.CreatedBy
@@ -2734,7 +2743,12 @@ BookingDto ToBookingDto(string id, BookingStorageModel s) => new(
     s.RoomFixed,
     s.ContinuedFromId,
     s.ContinuedToId,
-    s.GroupName);
+    s.GroupName,
+    s.EntryTime,
+    s.PrintedInvoiceNumber,
+    s.IssuedInvoiceNumber,
+    s.GuestFileStatus,
+    s.GuestFileReceipt);
 
 async Task ResolveAndApplyTariffAsync(BookingStorageModel storage, ITariffResolutionService resolver)
 {
@@ -3101,7 +3115,8 @@ app.MapPost("/api/bookings", async (BookingDto request, IKeyValueStore store, IE
         GroupName = BlankToNull(request.GroupName),
         RoomFixed = request.RoomFixed,
         ContinuedFromId = BlankToNull(request.ContinuedFromId),
-        ContinuedToId = BlankToNull(request.ContinuedToId)
+        ContinuedToId = BlankToNull(request.ContinuedToId),
+        EntryTime = request.EntryTime
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     var id = await store.CreateAsync("bookings", key, storage);
@@ -3172,7 +3187,12 @@ app.MapPut("/api/bookings/{year:int}/{id}", async (int year, string id, BookingD
         RoomFixed = request.RoomFixed,
         ContinuedFromId = b.ContinuedFromId,
         ContinuedToId = b.ContinuedToId,
-        DeletedAt = b.DeletedAt
+        DeletedAt = b.DeletedAt,
+        EntryTime = request.EntryTime ?? b.EntryTime,
+        PrintedInvoiceNumber = b.PrintedInvoiceNumber,
+        IssuedInvoiceNumber = b.IssuedInvoiceNumber,
+        GuestFileStatus = request.GuestFileStatus ?? b.GuestFileStatus,
+        GuestFileReceipt = request.GuestFileReceipt ?? b.GuestFileReceipt
     };
     await ResolveAndApplyTariffAsync(storage, resolver);
     await store.UpdateAsync("bookings", id, storage);
@@ -3846,7 +3866,7 @@ static async Task PostExtraCostDeltaAsync(IFinancialPostingService ledger, Accou
 
 // --- Layer 4: BookingGuests (ospiti{year}) ---
 
-BookingGuestDto ToBookingGuestDto(string id, BookingGuestStorageModel s) => new(id, s.Year, s.BookingId, s.ClientId, s.GuestNumber);
+BookingGuestDto ToBookingGuestDto(string id, BookingGuestStorageModel s) => new(id, s.Year, s.BookingId, s.ClientId, s.GuestNumber, s.CoveredByLead, s.CardState);
 
 app.MapGet("/api/booking-guests", async (IKeyValueStore store, int? year) =>
 {
@@ -3874,7 +3894,7 @@ app.MapPost("/api/booking-guests", async (BookingGuestDto request, IKeyValueStor
 {
     var guid = Guid.NewGuid().ToString("N");
     var key = $"{request.Year}_{guid}";
-    var storage = new BookingGuestStorageModel { Year = request.Year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber };
+    var storage = new BookingGuestStorageModel { Year = request.Year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber, CoveredByLead = request.CoveredByLead, CardState = request.CardState };
     var id = await store.CreateAsync("booking_guests", key, storage);
     return Results.Created($"/api/booking-guests/{request.Year}/{id}", ToBookingGuestDto(id, storage));
 }).WithName("CreateBookingGuest");
@@ -3883,7 +3903,7 @@ app.MapPut("/api/booking-guests/{year:int}/{id}", async (int year, string id, Bo
 {
     var g = await store.GetAsync<BookingGuestStorageModel>("booking_guests", id);
     if (g is null || g.Year != year) return Results.NotFound();
-    var storage = new BookingGuestStorageModel { Year = year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber };
+    var storage = new BookingGuestStorageModel { Year = year, BookingId = request.BookingId, ClientId = request.ClientId, GuestNumber = request.GuestNumber, CoveredByLead = request.CoveredByLead, CardState = request.CardState };
     await store.UpdateAsync("booking_guests", id, storage);
     return Results.Ok(ToBookingGuestDto(id, storage));
 }).WithName("UpdateBookingGuest");
@@ -4792,7 +4812,8 @@ static LedgerLineDto ToLedgerLineDto(LedgerEntry entry) => new(
     entry.Notes,
     entry.SourceType,
     entry.SourceId,
-    entry.CreatedBy);
+    entry.CreatedBy,
+    entry.PrintedInvoiceNumber);
 
 app.MapGet("/api/reports/performance", async (IKeyValueStore store, ILedgerRepository ledger) =>
     Results.Ok(await PerformanceReportBuilder.BuildAsync(store, ledger)))
@@ -4846,17 +4867,17 @@ app.MapGet("/api/night-audits", async (int year, int month, IKeyValueStore store
     return Results.Ok(rows.OrderByDescending(row => row.BusinessDate).ToList());
 });
 
-app.MapGet("/api/night-audits/day", async (DateOnly date, IKeyValueStore store, ILedgerRepository ledger) =>
+app.MapGet("/api/night-audits/day", async (DateOnly date, IKeyValueStore store, ILedgerRepository ledger, ISystemConfigurationStore config) =>
 {
     var stored = await FindNightAuditAsync(store, date);
     if (stored is not null)
         return Results.Ok(ToNightAuditDto(stored));
 
-    var live = await LiveNightAuditAsync(date, store, ledger);
+    var live = await LiveNightAuditAsync(date, store, ledger, config);
     return Results.Ok(live);
 });
 
-app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest request, HttpContext httpContext, IKeyValueStore store, ILedgerRepository ledger, IAccountChart accountChart) =>
+app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest request, HttpContext httpContext, IKeyValueStore store, ILedgerRepository ledger, IAccountChart accountChart, ISystemConfigurationStore config) =>
 {
     if (date > DateOnly.FromDateTime(DateTime.UtcNow))
         return Results.BadRequest(new { error = "A future day cannot be signed" });
@@ -4869,7 +4890,7 @@ app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest
     if (await FindNightAuditAsync(store, date) is not null)
         return Results.Conflict(new { error = "This day is already signed" });
 
-    var live = await LiveNightAuditAsync(date, store, ledger);
+    var live = await LiveNightAuditAsync(date, store, ledger, config);
     var signedAt = DateTime.UtcNow;
     var stored = new NightAuditStorageModel
     {
@@ -4885,7 +4906,8 @@ app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest
         OtherIncome = live.OtherIncome,
         StillDue = live.StillDue,
         Occupancy = live.Occupancy,
-        Sold = live.Sold
+        Sold = live.Sold,
+        GuestFileGaps = live.GuestFileGaps
     };
 
     try
@@ -4931,7 +4953,8 @@ static NightAuditDto ToNightAuditDto(NightAuditStorageModel stored) => new(
     stored.OtherIncome,
     stored.StillDue,
     stored.Occupancy,
-    stored.Sold);
+    stored.Sold,
+    stored.GuestFileGaps);
 
 static async Task<NightAuditStorageModel?> FindNightAuditAsync(IKeyValueStore store, DateOnly date)
 {
@@ -4942,9 +4965,10 @@ static async Task<NightAuditStorageModel?> FindNightAuditAsync(IKeyValueStore st
     return await store.GetAsync<NightAuditStorageModel>("night_audits", id);
 }
 
-static async Task<NightAuditDto> LiveNightAuditAsync(DateOnly date, IKeyValueStore store, ILedgerRepository ledger)
+static async Task<NightAuditDto> LiveNightAuditAsync(DateOnly date, IKeyValueStore store, ILedgerRepository ledger, ISystemConfigurationStore config)
 {
     var flash = await DeskReportBuilder.BuildAsync("flash", date, store, ledger);
+    var guestFile = await GuestFileAudit.CollectAsync(date, store, config);
     return new NightAuditDto(
         date,
         false,
@@ -4959,7 +4983,8 @@ static async Task<NightAuditDto> LiveNightAuditAsync(DateOnly date, IKeyValueSto
         SheetValue(flash, "reports.col.other"),
         SheetValue(flash, "reports.total.due"),
         SheetValue(flash, "reports.col.occupancy"),
-        SheetValue(flash, "reports.col.sold"));
+        SheetValue(flash, "reports.col.sold"),
+        guestFile.Gaps.ToList());
 }
 
 static string SheetValue(PaperReportDto? report, string label)
@@ -4967,6 +4992,88 @@ static string SheetValue(PaperReportDto? report, string label)
     var row = report?.Sections.FirstOrDefault()?.Rows.FirstOrDefault(item => item.Cells.Count > 0 && item.Cells[0] == label);
     return row is null || row.Cells.Count < 2 ? "" : row.Cells[1];
 }
+
+app.MapGet("/api/guest-files", async (DateOnly date, IKeyValueStore store, ISystemConfigurationStore config) =>
+    Results.Ok(await GuestFileAudit.CollectAsync(date, store, config))).WithName("GuestFileReport");
+
+app.MapGet("/api/dispatch", async (string? status, string? channel, string? direction, DispatchService dispatch) =>
+    Results.Ok(await dispatch.ListAsync(status, channel, direction))).WithName("ListDispatch");
+
+app.MapPost("/api/dispatch", async (DispatchMessageDto request, DispatchService dispatch) =>
+{
+    var topic = string.Equals(request.Direction, "in", StringComparison.OrdinalIgnoreCase)
+        ? DispatchTopics.IncomingReceived
+        : DispatchTopics.OutgoingReady;
+    var stored = new DispatchMessageStorage
+    {
+        Direction = request.Direction,
+        Channel = request.Channel,
+        To = request.To,
+        From = request.From,
+        RequestedAt = request.RequestedAt ?? DateTime.UtcNow,
+        DeliverBy = request.DeliverBy,
+        Subject = request.Subject,
+        Body = request.Body,
+        Attachments = string.Equals(request.Channel, "email", StringComparison.OrdinalIgnoreCase) ? null : request.Attachments,
+        BookingId = request.BookingId,
+        Year = request.Year,
+        InvoiceNumber = request.InvoiceNumber,
+        Kind = request.Kind,
+        Eml = request.Eml,
+        Status = request.Status
+    };
+    var created = await dispatch.EnqueueAsync(stored, topic);
+    return Results.Created($"/api/dispatch/{created.Id}", created);
+}).WithName("CreateDispatch");
+
+app.MapPost("/api/dispatch/from-document", async (DispatchDocumentRequest request, IKeyValueStore store, IDocumentRenderService renderer, DispatchService dispatch) =>
+{
+    var sanitized = SanitizeContractType(request.DocumentType);
+    var key = $"{sanitized}_{request.TemplateNumber}";
+    var templateIdx = await store.GetIndexAsync("contract_templates");
+    if (!templateIdx.TryGetValue(key, out var templateGuid)) return Results.NotFound();
+    var template = await store.GetAsync<ContractTemplateStorageModel>("contract_templates", templateGuid);
+    if (template is null) return Results.NotFound();
+    var context = await renderer.BuildContextAsync(request.BookingId, request.Year, request.DocumentType);
+    if (context is null) return Results.NotFound();
+    var html = renderer.RenderHtml(template.Content ?? string.Empty, context);
+    var (eml, _, _) = renderer.ApplyFormat(html, context, DocumentFormat.Eml);
+    var queued = await dispatch.EnqueueDocumentAsync(context, html, eml, request.DocumentType);
+    return Results.Created($"/api/dispatch/{queued.Id}", queued);
+}).WithName("QueueDocument");
+
+app.MapPost("/api/dispatch/{id}/relayed", async (string id, DispatchRelayRequest request, DispatchService dispatch) =>
+{
+    var updated = await dispatch.RelayAsync(id, request.RelayedAt);
+    return updated is null ? Results.NotFound() : Results.Ok(updated);
+}).WithName("RelayDispatch");
+
+app.MapPost("/api/dispatch/{id}/accept", async (string id, DispatchService dispatch) =>
+{
+    var (message, error) = await dispatch.AcceptAsync(id);
+    if (message is null) return Results.NotFound();
+    if (error == "waiting") return Results.BadRequest(new { error = "The message needs a name, dates, and a room before it can become a booking." });
+    return Results.Ok(message);
+}).WithName("AcceptDispatch");
+
+app.MapPost("/api/dispatch/process", async (DispatchService dispatch) =>
+    Results.Ok(new { processed = await dispatch.ProcessReadyAsync() })).WithName("ProcessDispatch");
+
+app.MapGet("/api/dispatch/events", async (long? after, DispatchService dispatch) =>
+    Results.Ok(await dispatch.EventsAsync(after ?? 0))).WithName("DispatchEvents");
+
+app.MapGet("/api/role-confirmations", async (IKeyValueStore store) =>
+{
+    var index = await store.GetIndexAsync("role_confirmations");
+    var rows = new List<RoleConfirmation>();
+    foreach (var entry in index)
+    {
+        var row = await store.GetAsync<RoleConfirmation>("role_confirmations", entry.Value);
+        if (row is not null)
+            rows.Add(row);
+    }
+    return Results.Ok(rows.OrderBy(row => row.UserId).ToList());
+}).WithName("ListRoleConfirmations");
 
 // --- Document Rendering ---
 

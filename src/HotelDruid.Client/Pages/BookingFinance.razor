@@ -417,9 +417,8 @@
     {
         if (booking?.Id is null)
             return;
-        if (await FinanceApi.TryOpenDocumentAsync(booking.Year, booking.Id, documentType))
-            return;
-        await JS.InvokeVoidAsync("hotelDruidFiles.download", GetDocumentUrl(documentType, "eml"), $"{documentType}-{booking.Id}.eml");
+        var queued = await FinanceApi.QueueDocumentAsync(booking.Year, booking.Id, documentType);
+        errorMsg = queued ? L["dispatch.queued", "The document is on the ready-to-send list."] : L["dispatch.queueFailed", "The document could not be queued."];
     }
 
     private void SelectTransaction(BookingTransactionDto transaction) => selectedTransaction = transaction;

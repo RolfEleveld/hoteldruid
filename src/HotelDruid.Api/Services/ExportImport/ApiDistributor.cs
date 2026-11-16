@@ -45,6 +45,7 @@ public class ApiDistributor : IApiDistributor
         var errors = new List<ImportError>();
         var totalImported = 0;
         var phpTables = new List<PhpTable>();
+        List<RoleConfirmation>? roles = null;
         _ids.Clear();
 
         foreach (var (sourceTableName, tableData) in data.OrderBy(pair => ImportRank(_canonicalMapper.NormalizeTableName(string.IsNullOrWhiteSpace(pair.Value.TableName) ? pair.Key : pair.Value.TableName))))
@@ -179,12 +180,14 @@ public class ApiDistributor : IApiDistributor
             foreach (var (name, result) in phpResult.ByTable)
                 results[name] = result;
             errors.AddRange(phpResult.Errors);
+            roles = phpResult.Roles;
         }
 
         return new DistributionResult(
             TotalImported: totalImported,
             ByTable: results,
-            Errors: errors
+            Errors: errors,
+            Roles: roles
         );
     }
 

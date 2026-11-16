@@ -65,6 +65,9 @@ public class LedgerEntry
 
     /// <summary>Free-form notes or additional context.</summary>
     public string? Notes { get; set; }
+
+    /// <summary>Invoice number printed in the previous hotel. A print made here does not reuse it.</summary>
+    public string? PrintedInvoiceNumber { get; set; }
 }
 
 /// <summary>

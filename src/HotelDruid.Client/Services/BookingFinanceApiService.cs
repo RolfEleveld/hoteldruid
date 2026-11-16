@@ -13,6 +13,7 @@ public interface IBookingFinanceApiService
     Task<List<ChartAccountDto>> ListChartOfAccountsAsync();
     string GetDocumentUrl(int year, string bookingId, string documentType, string format = "print");
     Task<bool> TryOpenDocumentAsync(int year, string bookingId, string documentType);
+    Task<bool> QueueDocumentAsync(int year, string bookingId, string documentType);
 }
 
 public class BookingFinanceApiService : IBookingFinanceApiService
@@ -80,6 +81,25 @@ public class BookingFinanceApiService : IBookingFinanceApiService
             var type = Uri.EscapeDataString(documentType);
             var id = Uri.EscapeDataString(bookingId);
             var response = await _httpClient.PostAsync($"/api/documents/open/{type}/1?bookingId={id}&year={year}", null);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> QueueDocumentAsync(int year, string bookingId, string documentType)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/dispatch/from-document", new
+            {
+                bookingId,
+                year,
+                documentType,
+                templateNumber = 1
+            });
             return response.IsSuccessStatusCode;
         }
         catch

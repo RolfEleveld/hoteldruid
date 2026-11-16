@@ -146,6 +146,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.nationalityLabel", "Nationality"]</label><input type="text" class="form-control" @bind="editModel.Nationality" @bind:event="oninput" /></div>
+                                    <div class="col-md-4"><label class="form-label">@L["clients.secondNationalityLabel", "Second nationality"]</label><input type="text" class="form-control" @bind="editModel.SecondNationality" @bind:event="oninput" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.dateOfBirthLabel", "Date of Birth"]</label><input type="date" class="form-control" @bind="editModel.DateOfBirth" /></div>
                                     <div class="col-md-4"><label class="form-label">@L["clients.birthNationLabel", "Birth Nation"]</label><input type="text" class="form-control" @bind="editModel.BirthNation" @bind:event="oninput" /></div>
                                     <div class="col-md-6"><label class="form-label">@L["clients.birthRegionLabel", "Birth Region"]</label><input type="text" class="form-control" @bind="editModel.BirthRegion" @bind:event="oninput" /></div>
@@ -1544,6 +1545,7 @@
         public int? MaxOrderNumber { get; set; }
         public string? CompanionIds { get; set; }
         public string? DocumentsSent { get; set; }
+        public string? SecondNationality { get; set; }
         public DateTime? CreatedAt { get; set; }
         public string? HostCreated { get; set; }
         public int? CreatedBy { get; set; }
@@ -1557,7 +1559,8 @@
             TaxCode, VatNumber, Notes, MaxOrderNumber, CompanionIds, DocumentsSent,
             CreatedAt, HostCreated, CreatedBy,
             Phones: new List<string>(Phones.Where(phone => !string.IsNullOrWhiteSpace(phone)).Select(phone => phone!.Trim())),
-            Emails: new List<string>(Emails.Where(email => !string.IsNullOrWhiteSpace(email)).Select(email => email!.Trim())));
+            Emails: new List<string>(Emails.Where(email => !string.IsNullOrWhiteSpace(email)).Select(email => email!.Trim())),
+            SecondNationality: SecondNationality);
 
         public ClientEditModel CloneForDuplicate() => new()
         {
@@ -1597,7 +1600,8 @@
             Notes = Notes,
             MaxOrderNumber = MaxOrderNumber,
             CompanionIds = CompanionIds,
-            DocumentsSent = DocumentsSent
+            DocumentsSent = DocumentsSent,
+            SecondNationality = SecondNationality
         };
 
         public static ClientEditModel FromDto(ClientDto dto) => new()
@@ -1648,6 +1652,7 @@
             MaxOrderNumber = dto.MaxOrderNumber,
             CompanionIds = dto.CompanionIds,
             DocumentsSent = dto.DocumentsSent,
+            SecondNationality = dto.SecondNationality,
             CreatedAt = dto.CreatedAt,
             HostCreated = dto.HostCreated,
             CreatedBy = dto.CreatedBy

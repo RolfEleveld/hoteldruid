@@ -288,6 +288,7 @@ public class ClientStorageModel
     public int? MaxOrderNumber { get; set; }
     public string? CompanionIds { get; set; }
     public string? DocumentsSent { get; set; }
+    public string? SecondNationality { get; set; }
     public DateTime? CreatedAt { get; set; }
     public string? HostCreated { get; set; }
     public int? CreatedBy { get; set; }
@@ -358,7 +359,7 @@ public class GroupMembershipStorageModel
     public int? CreatedBy { get; set; }
 }
 
-public record ClientFullDto(string? Id, string? LastName, string? FirstName, string? Nickname, string? Gender, string? Title, string? Language, DateTime? DateOfBirth, string? BirthCity, string? BirthRegion, string? BirthNation, string? DocumentNumber, DateTime? DocumentExpiry, string? DocumentType, string? DocumentCity, string? DocumentRegion, string? DocumentNation, string? Nationality, string? Nation, string? Region, string? City, string? Street, string? StreetNumber, string? PostalCode, string? Phone, string? Phone2, string? Phone3, string? Email, string? Email2, string? Email3, string? TaxCode, string? VatNumber, string? Notes, int? MaxOrderNumber, string? CompanionIds, string? DocumentsSent, DateTime? CreatedAt, string? HostCreated, int? CreatedBy, List<string>? Phones = null, List<string>? Emails = null);
+public record ClientFullDto(string? Id, string? LastName, string? FirstName, string? Nickname, string? Gender, string? Title, string? Language, DateTime? DateOfBirth, string? BirthCity, string? BirthRegion, string? BirthNation, string? DocumentNumber, DateTime? DocumentExpiry, string? DocumentType, string? DocumentCity, string? DocumentRegion, string? DocumentNation, string? Nationality, string? Nation, string? Region, string? City, string? Street, string? StreetNumber, string? PostalCode, string? Phone, string? Phone2, string? Phone3, string? Email, string? Email2, string? Email3, string? TaxCode, string? VatNumber, string? Notes, int? MaxOrderNumber, string? CompanionIds, string? DocumentsSent, DateTime? CreatedAt, string? HostCreated, int? CreatedBy, List<string>? Phones = null, List<string>? Emails = null, string? SecondNationality = null);
 
 public record ClientDataDto(string? Id, string? ClientId, int? Number, string? Type, string? Text1, string? Text2, string? Text3, string? Text4, string? Text5, string? Text6, string? Text7, string? Text8, DateTime? CreatedAt, string? HostCreated, int? CreatedBy);
 
@@ -509,6 +510,13 @@ public class BookingStorageModel
     public DateTime? SettlementDate { get; set; }
     /// <summary>Set when the working lists hide this booking because the ledger still cites it.</summary>
     public DateTime? DeletedAt { get; set; }
+    public DateTime? EntryTime { get; set; }
+    /// <summary>Invoice number printed in the previous hotel.</summary>
+    public string? PrintedInvoiceNumber { get; set; }
+    /// <summary>Invoice number issued by a print made here.</summary>
+    public string? IssuedInvoiceNumber { get; set; }
+    public string? GuestFileStatus { get; set; }
+    public string? GuestFileReceipt { get; set; }
 }
 
 public class StayGroupStorageModel
@@ -531,6 +539,7 @@ public class NightAuditStorageModel
     public string? StillDue { get; set; }
     public string? Occupancy { get; set; }
     public string? Sold { get; set; }
+    public List<string>? GuestFileGaps { get; set; }
 }
 
 public class BookingCostStorageModel
@@ -550,6 +559,9 @@ public class BookingGuestStorageModel
     public string? BookingId { get; set; }
     public string? ClientId { get; set; }
     public int? GuestNumber { get; set; }
+    public bool CoveredByLead { get; set; }
+    /// <summary>printed, checked, or filed. The card itself stays on paper.</summary>
+    public string? CardState { get; set; }
 }
 
 public class CancelledBookingStorageModel

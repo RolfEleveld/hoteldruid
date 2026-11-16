@@ -72,8 +72,25 @@ Each group carries one realm role. Put a person in the group, or assign the role
 | `clerk` | Reservations, guests, arrivals, stays, the cashier, and reports |
 | `room-service` | Room status, who is staying, and who is leaving |
 | `reports` | Reports only |
+| `messages` | The batch inbox, the outbox, and the message cursor. Used by the service client in section 5a, not by a person at the desk |
 
 A person in more than one group keeps every matching area. `reports` is the smallest grant. Without Keycloak in front of the hotel, HotelDruid does not apply these roles: the desk is open, and the user-management menus stay hidden.
+
+## 5a. Service account for the message APIs
+
+The same realm file creates a second client, `HotelDruid-messages`, and a fifth role, `messages`. This client has no browser sign-in. Service accounts are on, and the standard login flow is off. An integration tool asks Keycloak for a token with `grant_type=client_credentials`, then calls the hotel.
+
+Every access token from this client carries `hoteldruid_roles` of `messages`. That role is the batch inbox, the outbox, and the message cursor: read what is ready, post an incoming message, write the time a message was relayed, and read the cursor. It may also call structured inbox processing. The hotel still runs that processing only when deploy or an administrator has turned automation on. The role does not open the desk.
+
+Keycloak creates the client secret when the realm is imported. Copy it from the client's **Credentials** tab. It is not in the realm file and it is not stored by the hotel. The group `messages` exists so a person can be given the same role while testing. A PHP import never proposes this role for a member of staff.
+
+```bash
+curl -X POST http://localhost:8081/realms/HotelDruid/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=HotelDruid-messages" \
+  -d "client_secret=<CLIENT_SECRET>" \
+  -d "grant_type=client_credentials"
+```
 
 ## 6. Create Users
 

@@ -1385,7 +1385,7 @@ Keycloak is a deployment choice, not a compile-time dependency. `IdentityFrontPr
 
 The result is a front only when `Identity:Provider` is `keycloak` and the API receives an OpenID discovery document from `Identity:Issuer`. The browser address of the admin console is `Identity:AdminConsoleUrl` and is not used for the probe. Compose maps these from `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL`. See [docs/keycloak-setup.md](docs/keycloak-setup.md) and [docs/deployment-runbook.md](docs/deployment-runbook.md).
 
-The realm to import is [deploy/keycloak/hoteldruid-realm.json](deploy/keycloak/hoteldruid-realm.json). It creates the realm `HotelDruid`, the client `HotelDruid-api`, and four groups. Each group carries one realm role. The client mapper writes those roles into the token claim `hoteldruid_roles`.
+The realm to import is [deploy/keycloak/hoteldruid-realm.json](deploy/keycloak/hoteldruid-realm.json). It creates the realm `HotelDruid`, the client `HotelDruid-api`, the service client `HotelDruid-messages`, and five groups. Each group carries one realm role. The desk client's mapper writes a person's roles into the token claim `hoteldruid_roles`. The messages client is a service account with no browser sign-in. Every access token it issues carries `hoteldruid_roles` of `messages`, so an integration tool can call the batch inbox, the outbox, and the message cursor without a person signing in. Keycloak generates that client's secret at import. The hotel does not store it.
 
 Sign-in is one directory, and that directory is Keycloak. The hotel does not create login users, does not assign groups, and does not call the Keycloak admin API. The Identity page only opens the Keycloak admin console in the browser. Who may use that console is a Keycloak administrator, which is not the hotel role `administrator`.
 
@@ -1410,6 +1410,7 @@ flowchart LR
 | --- | --- | --- |
 | Who may sign in | Keycloak account | A Keycloak administrator, in the Keycloak console |
 | `administrator`, `clerk`, `room-service`, `reports` | Keycloak group and realm role, then the claim `hoteldruid_roles` | The same console. The hotel only reads the claim |
+| `messages` | Service client `HotelDruid-messages`. The token claim is fixed to that role | The same console, as a client secret. Not a desk login |
 | Name on a cash or ledger line | HotelDruid staff register: Users, groups, privileges | The hotel pages, from the imported PHP register |
 | What the desk shows | Not stored. Derived from `hoteldruid_roles` once a token arrives | Nobody edits this list inside the hotel |
 
@@ -1421,6 +1422,7 @@ The staff register is the old list of people who worked the desk. It is not a se
 | `clerk` | Reservations, guests, arrivals, stays, the cashier, and reports |
 | `room-service` | Room status, who is staying, and who is leaving |
 | `reports` | Reports only |
+| `messages` | The batch inbox, the outbox, and the message cursor. Not a person at the desk |
 
 A person is placed in a group, or given the role directly. More than one role keeps every matching area. The hotel does not narrow the desk from this claim until a signed-in token reaches it. Until then the desk stays open.
 
@@ -1449,6 +1451,12 @@ Users, user groups, privileges, group memberships, and user preferences are the 
 `Shared/NavMenu.razor` was an unused English-only menu and has been removed. `/home` was the unused Blazor template page and has been removed. The desk home is `/`.
 
 Resource keys used by the screens exist in English, Italian, and Spanish. A number of one-off buttons on the older maintenance pages are still literal English (`Add User`, `Change Password`, `Settle & Close Folio`, `Remove from Archive`, `Mark Read`, and similar). Load and Edit on those pages use the shared resource keys.
+
+## 24. Backup and logs
+
+The desk backup is a scheduled call to `POST /api/export/create`, then a download of that zip. The task is `HotelDruid Backup`. It runs as the Windows user who configured it, and only while that user is signed in, so the destination can be a OneDrive folder or a network share. The service account writes the working zip under `C:\ProgramData\HotelDruid\exports` and does not need rights to the destination. How to set the folder, the time, and the retention, and which log files to prune, is [docs/admin/backup-and-logs.md](docs/admin/backup-and-logs.md).
+
+Application logs are one file per calendar day, `api-yyyyMMdd.log`, in the directory named by `HOTELDRUID_LOGDIR`. The process console before that logger starts is `api-startup.log`. Each export attempt appends one line to `backup.log`.
 
 ## References
 

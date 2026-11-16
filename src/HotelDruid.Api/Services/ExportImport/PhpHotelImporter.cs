@@ -16,6 +16,7 @@ public sealed class PhpHotelImporter
     private readonly ILogger _logger;
     private readonly AccountChart _chart;
     private readonly Maps _maps = new();
+    private readonly List<RoleConfirmation> _roles = new();
 
     public PhpHotelImporter(IKeyValueStore store, IFinancialPostingService? ledger, ILogger logger, AccountChart? chart = null)
     {
@@ -80,7 +81,7 @@ public sealed class PhpHotelImporter
             }
         }
 
-        return new DistributionResult(total, results, errors);
+        return new DistributionResult(total, results, errors, _roles.Count == 0 ? null : _roles);
     }
 
     private async Task<int> ImportRegistersAsync(CanonicalData data)
@@ -185,6 +186,7 @@ public sealed class PhpHotelImporter
     private async Task<int> ImportPrivilegesAsync(CanonicalData data)
     {
         var count = 0;
+        var pending = new List<RoleConfirmation>();
         foreach (var row in data.Rows)
         {
             var userId = PhpExportJson.Whole(row, "idutente", "user_id");
@@ -202,9 +204,14 @@ public sealed class PhpHotelImporter
                 AllowedExtraCosts = PhpExportJson.Text(row, "costi_agg_consentiti"),
                 AllowedContracts = PhpExportJson.Text(row, "contratti_consentiti")
             };
-            await SaveAsync("user_privileges", $"{userId}_{year}", storage);
+            var role = PrivilegeRoles.Propose(storage, out var reason);
+            pending.Add(new RoleConfirmation(userId, year.Value, role, reason));
             count++;
         }
+        var latest = PrivilegeRoles.Latest(pending);
+        foreach (var confirmation in latest)
+            await SaveAsync("role_confirmations", $"user_{confirmation.UserId}", confirmation);
+        _roles.AddRange(latest);
         return count;
     }
 
@@ -252,9 +259,12 @@ public sealed class PhpHotelImporter
                 PrepaidMethod = PhpExportJson.Text(row, "payment_method", "metodo_pagamento"),
                 TariffId = PhpExportJson.Text(row, "tariffa"),
                 TariffTotalPrice = total,
-                DeletedAt = cancelled ? DateTime.UtcNow : null
+                DeletedAt = cancelled ? DateTime.UtcNow : null,
+                PrintedInvoiceNumber = PhpExportJson.Text(row, "invoice_number", "numero_fattura", "num_fattura", "fattura", "invoice_no")
             };
             var id = await SaveAsync("bookings", $"{year}_{phpId}", storage);
+            if (!string.IsNullOrWhiteSpace(storage.PrintedInvoiceNumber))
+                _maps.Invoices[id] = storage.PrintedInvoiceNumber;
             _maps.Bookings[$"{year}:{phpId}"] = id;
             if (cancelled)
             {
@@ -273,7 +283,7 @@ public sealed class PhpHotelImporter
             }
             else if (_ledger is not null && total > 0)
             {
-                await _ledger.PostBalancedAsync(arrival.ToDateTime(new TimeOnly(12, 0)), "booking_stay_charge", "Stay charge imported from PHP", (decimal)total, _chart.GuestLedger, "asset", _chart.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"));
+                await _ledger.PostBalancedAsync(arrival.ToDateTime(new TimeOnly(12, 0)), "booking_stay_charge", "Stay charge imported from PHP", (decimal)total, _chart.GuestLedger, "asset", _chart.RoomRevenue, "revenue", bookingId: id, sourceType: "booking", sourceId: id, createdBy: PhpExportJson.Text(row, "created_by", "utente_inserimento"), printedInvoiceNumber: storage.PrintedInvoiceNumber);
             }
             count++;
         }
@@ -355,24 +365,25 @@ public sealed class PhpHotelImporter
             _maps.RegisterCopies.Add(new RegisterCopy(year, Math.Abs(amount), method, when, PhpExportJson.Number(row, "running_cash_total", "saldo_cassa")));
             if (_ledger is not null)
             {
+                _maps.Invoices.TryGetValue(bookingId, out var invoiceNumber);
                 var magnitude = (decimal)Math.Abs(amount);
                 var refund = amount < 0 || notes.Contains("Rimborso", StringComparison.OrdinalIgnoreCase);
                 var deposit = !refund && notes.Contains("Caparra", StringComparison.OrdinalIgnoreCase);
                 if (refund && notes.Contains("Caparra", StringComparison.OrdinalIgnoreCase) || refund && notes.Contains("cancellazione", StringComparison.OrdinalIgnoreCase))
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestDeposits, "liability", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestDeposits, "liability", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy, printedInvoiceNumber: invoiceNumber);
                 }
                 else if (refund)
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestLedger, "asset", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_refund", notes, magnitude, _chart.GuestLedger, "asset", _chart.Cash, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy, printedInvoiceNumber: invoiceNumber);
                 }
                 else if (deposit)
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_deposit", notes, magnitude, _chart.Cash, "asset", _chart.GuestDeposits, "liability", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_deposit", notes, magnitude, _chart.Cash, "asset", _chart.GuestDeposits, "liability", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy, printedInvoiceNumber: invoiceNumber);
                 }
                 else
                 {
-                    await _ledger.PostBalancedAsync(when, "booking_payment", string.IsNullOrWhiteSpace(notes) ? "Booking payment" : notes, magnitude, _chart.Cash, "asset", _chart.GuestLedger, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy);
+                    await _ledger.PostBalancedAsync(when, "booking_payment", string.IsNullOrWhiteSpace(notes) ? "Booking payment" : notes, magnitude, _chart.Cash, "asset", _chart.GuestLedger, "asset", bookingId: bookingId, cashRegisterId: registerId, sourceType: "booking-payment", sourceId: PhpExportJson.Text(row, "payment_id", "idsoldi"), createdBy: createdBy, printedInvoiceNumber: invoiceNumber);
                 }
             }
             count++;
@@ -514,6 +525,7 @@ public sealed class PhpHotelImporter
         public Dictionary<string, string> RegistersByName { get; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, string> RegistersByPhpId { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, string> Bookings { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, string> Invoices { get; } = new(StringComparer.Ordinal);
         public List<RegisterCopy> RegisterCopies { get; } = new();
         public string? MainRegisterId { get; set; }
     }

@@ -70,7 +70,12 @@ public record BookingDto(
     bool RoomFixed = false,
     string? ContinuedFromId = null,
     string? ContinuedToId = null,
-    string? GroupName = null
+    string? GroupName = null,
+    DateTime? EntryTime = null,
+    string? PrintedInvoiceNumber = null,
+    string? IssuedInvoiceNumber = null,
+    string? GuestFileStatus = null,
+    string? GuestFileReceipt = null
 );
 
 public record BookingMoveRequest(DateOnly FromDate, string RoomId, string? Reason, string? Note);
@@ -93,7 +98,9 @@ public record BookingGuestDto(
     int Year = 0,
     string? BookingId = null,
     string? ClientId = null,
-    int? GuestNumber = null
+    int? GuestNumber = null,
+    bool CoveredByLead = false,
+    string? CardState = null
 );
 
 public record CancelledBookingDto(
@@ -183,7 +190,8 @@ public record LedgerLineDto(
     string? Description,
     string? SourceType,
     string? SourceId,
-    string? CreatedBy = null
+    string? CreatedBy = null,
+    string? PrintedInvoiceNumber = null
 );
 
 /// <summary>Read-only financial position for one booking.</summary>
@@ -255,7 +263,8 @@ public record NightAuditDto(
     string? OtherIncome,
     string? StillDue,
     string? Occupancy,
-    string? Sold);
+    string? Sold,
+    List<string>? GuestFileGaps = null);
 
 public record NightAuditSignRequest(bool CashAgrees, bool BalancesReviewed, bool RoomsSeen, string? Note);
 

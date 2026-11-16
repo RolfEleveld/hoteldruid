@@ -6,33 +6,45 @@
   HotelDruid.cmd is the program a person opens. It checks that the desk answers,
   starts it when it is down, and then opens the browser.
 
-  Install registers one startup task running as the machine account. The hotel
+  Install registers one startup task running as Local Service. The hotel
   files live in ProgramData, so every person who signs in on this computer shares
   that hotel. Uninstall writes the data export into the current user's Temp folder
   and leaves uninstall.json there. The next install reports that folder.
 
+  -BackupFolder schedules a nightly export. The task calls the export API and
+  writes the zip into that folder. Run the same command again to change the time.
+
 .EXAMPLE
   .\HotelDruid.cmd
-  .\HotelDruid.cmd Install
+  .\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups"
+  .\HotelDruid.cmd Backup -BackupAt 03:30
   .\HotelDruid.cmd Uninstall
   .\HotelDruid.cmd Status
 #>
 param(
-    [ValidateSet('Start', 'Install', 'Uninstall', 'Status', 'SelfTest')]
+    [ValidateSet('Start', 'Install', 'Uninstall', 'Status', 'SelfTest', 'Backup')]
     [string]$Action = 'Start',
     [switch]$NoBrowser,
     [int]$HttpPort = 5000,
-    [int]$HttpsPort = 5001
+    [int]$HttpsPort = 5001,
+    [string]$BackupFolder = '',
+    [string]$BackupAt = '02:00',
+    [int]$BackupIntervalDays = 1,
+    [int]$BackupKeepDays = 30
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $TaskName = 'HotelDruid'
+$BackupTaskName = 'HotelDruid Backup'
 $MachineRoot = Join-Path $env:ProgramData 'HotelDruid'
 $MachineApp = Join-Path $MachineRoot 'app'
 $MachineData = Join-Path $MachineRoot 'data'
 $MachineLogs = Join-Path $MachineRoot 'logs'
+$MachineExports = Join-Path $MachineRoot 'exports'
+$MachineImports = Join-Path $MachineRoot 'imports'
+$BackupMetaPath = Join-Path $MachineRoot 'backup.json'
 $MetaPath = Join-Path $MachineRoot 'install-meta.json'
 $UninstallKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid'
 $CertFriendlyName = 'HotelDruid LocalMachine Localhost'
@@ -51,6 +63,10 @@ function Enter-Admin {
     if ($pwsh) { $hostExe = $pwsh.Source }
     $quoted = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Action $Action"
     if ($NoBrowser) { $quoted += ' -NoBrowser' }
+    if ($BackupFolder) { $quoted += " -BackupFolder `"$BackupFolder`"" }
+    if ($BackupAt) { $quoted += " -BackupAt `"$BackupAt`"" }
+    if ($BackupIntervalDays -ne 1) { $quoted += " -BackupIntervalDays $BackupIntervalDays" }
+    if ($BackupKeepDays -ne 30) { $quoted += " -BackupKeepDays $BackupKeepDays" }
     Write-Host 'Administrator approval is required.' -ForegroundColor Yellow
     $elevated = Start-Process -FilePath $hostExe -ArgumentList $quoted -Verb RunAs -Wait -PassThru
     if ($elevated) { exit $elevated.ExitCode }
@@ -250,20 +266,27 @@ function New-ServiceCommand {
         [string]$Thumbprint,
         [string]$CertLocation,
         [int]$LocalHttpPort,
-        [int]$LocalHttpsPort
+        [int]$LocalHttpsPort,
+        [string]$ExportDir,
+        [string]$ImportDir
     )
     $cmdPath = Join-Path $AppDir 'run-service.cmd'
     $content = @"
 @echo off
 setlocal
 set "HOTELDRUID_DATAROOT=$DataDir"
+set "HOTELDRUID_LOGDIR=$LogDir"
+set "Storage__ExportDirectory=$ExportDir"
+set "Storage__ImportDirectory=$ImportDir"
 set "ASPNETCORE_ENVIRONMENT=Production"
 set "ASPNETCORE_Kestrel__Certificates__Default__Store=My"
 set "ASPNETCORE_Kestrel__Certificates__Default__Location=$CertLocation"
 set "ASPNETCORE_Kestrel__Certificates__Default__Thumbprint=$Thumbprint"
 cd /d "$AppDir"
 if not exist "$LogDir" mkdir "$LogDir"
-"$DotnetExe" HotelDruid.Api.dll --urls "http://localhost:$LocalHttpPort;https://localhost:$LocalHttpsPort" 1>> "$LogDir\api.log" 2>&1
+if not exist "$ExportDir" mkdir "$ExportDir"
+if not exist "$ImportDir" mkdir "$ImportDir"
+"$DotnetExe" HotelDruid.Api.dll --urls "http://localhost:$LocalHttpPort;https://localhost:$LocalHttpsPort" 1>> "$LogDir\api-startup.log" 2>&1
 "@
     Set-Content -Path $cmdPath -Value $content -Encoding ASCII
     return $cmdPath
@@ -694,7 +717,7 @@ function Invoke-Start {
         Ensure-Dir $logDir
         $thumbprint = Get-OrCreateUserCert
         Write-Host "Starting HotelDruid from $appDir" -ForegroundColor Cyan
-        $cmdPath = New-ServiceCommand -AppDir $appDir -DataDir $dataDir -LogDir $logDir -DotnetExe $dotnet -Thumbprint $thumbprint -CertLocation 'CurrentUser' -LocalHttpPort $config.HttpPort -LocalHttpsPort $config.HttpsPort
+        $cmdPath = New-ServiceCommand -AppDir $appDir -DataDir $dataDir -LogDir $logDir -DotnetExe $dotnet -Thumbprint $thumbprint -CertLocation 'CurrentUser' -LocalHttpPort $config.HttpPort -LocalHttpsPort $config.HttpsPort -ExportDir (Join-Path $appDir 'exports') -ImportDir (Join-Path $appDir 'imports')
         Start-Process -FilePath $cmdPath -WorkingDirectory $appDir -WindowStyle Hidden | Out-Null
     }
 
@@ -776,6 +799,66 @@ function Ensure-AspNetRuntime {
     return $dotnet
 }
 
+function Get-BackupWhen {
+    $parsed = [datetime]::MinValue
+    if (-not [datetime]::TryParseExact($BackupAt, 'HH:mm', [cultureinfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsed)) {
+        throw "Backup time must be HH:mm. Received '$BackupAt'."
+    }
+    if ($BackupIntervalDays -lt 1 -or $BackupIntervalDays -gt 30) {
+        throw 'Backup interval must be from 1 to 30 days.'
+    }
+    if ($BackupKeepDays -lt 1) {
+        throw 'Backup retention must be at least one day.'
+    }
+    return $parsed
+}
+
+function Register-BackupTask([string]$Folder, [string]$ScriptPath) {
+    $when = Get-BackupWhen
+    if (-not (Test-Path $ScriptPath)) {
+        throw "Backup script was not found at $ScriptPath."
+    }
+    Ensure-Dir $Folder
+    $powershell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+    $argument = "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`" -Destination `"$Folder`" -KeepDays $BackupKeepDays"
+    $action = New-ScheduledTaskAction -Execute $powershell -Argument $argument
+    $trigger = New-ScheduledTaskTrigger -Daily -At $when -DaysInterval $BackupIntervalDays
+    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+    Register-ScheduledTask -TaskName $BackupTaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force -Description 'Downloads a HotelDruid export into the backup folder.' | Out-Null
+    [ordered]@{
+        folder = $Folder
+        at = $BackupAt
+        intervalDays = $BackupIntervalDays
+        keepDays = $BackupKeepDays
+        script = $ScriptPath
+        user = "$env:USERDOMAIN\$env:USERNAME"
+    } | ConvertTo-Json | Set-Content -Path $BackupMetaPath -Encoding UTF8
+    Write-Host "Nightly export is scheduled at $BackupAt every $BackupIntervalDays day(s)." -ForegroundColor Green
+    Write-Host "Backup folder: $Folder"
+    Write-Host 'The task runs when this user is signed in, so a OneDrive or network folder is reachable.'
+}
+
+function Invoke-Backup {
+    $scriptPath = Join-Path $MachineApp 'Backup-HotelDruid.ps1'
+    if (-not (Test-Path $scriptPath)) { $scriptPath = Join-Path $PSScriptRoot 'Backup-HotelDruid.ps1' }
+    $folder = $BackupFolder
+    $keep = $BackupKeepDays
+    if ($folder) {
+        Register-BackupTask -Folder $folder -ScriptPath $scriptPath
+    }
+    elseif (Test-Path $BackupMetaPath) {
+        $saved = Get-Content -Path $BackupMetaPath -Raw | ConvertFrom-Json
+        $folder = [string]$saved.folder
+        if ($saved.PSObject.Properties.Name -contains 'keepDays') { $keep = [int]$saved.keepDays }
+    }
+    else {
+        throw 'Pass -BackupFolder the first time. Example: HotelDruid.cmd Install -BackupFolder C:\HotelBackups'
+    }
+    & $scriptPath -Destination $folder -KeepDays $keep
+    if ($LASTEXITCODE -ne 0) { throw 'The export did not complete. See logs\backup.log.' }
+}
+
 function Invoke-Install {
     $source = $PSScriptRoot
     $sourceIsApp = $false
@@ -794,6 +877,8 @@ function Invoke-Install {
     Ensure-Dir $MachineLogs
     Protect-ServiceFolder -Path $MachineData -Rights 'Modify'
     Protect-ServiceFolder -Path $MachineLogs -Rights 'Modify'
+    Protect-ServiceFolder -Path $MachineExports -Rights 'Modify'
+    Protect-ServiceFolder -Path $MachineImports -Rights 'Modify'
 
     if (-not $sourceIsApp) {
         Stop-HotelDruidAt -AppDir $MachineApp
@@ -804,7 +889,7 @@ function Invoke-Install {
         Protect-AppDirectory $MachineApp
     }
 
-    $cmdPath = New-ServiceCommand -AppDir $MachineApp -DataDir $MachineData -LogDir $MachineLogs -DotnetExe $dotnet -Thumbprint $cert.Thumbprint -CertLocation 'LocalMachine' -LocalHttpPort $HttpPort -LocalHttpsPort $HttpsPort
+    $cmdPath = New-ServiceCommand -AppDir $MachineApp -DataDir $MachineData -LogDir $MachineLogs -DotnetExe $dotnet -Thumbprint $cert.Thumbprint -CertLocation 'LocalMachine' -LocalHttpPort $HttpPort -LocalHttpsPort $HttpsPort -ExportDir $MachineExports -ImportDir $MachineImports
     $version = Get-PackageVersion $MachineApp
     $meta = [ordered]@{
         mode = 'machine'
@@ -831,6 +916,10 @@ function Invoke-Install {
     $meta | ConvertTo-Json -Depth 5 | Set-Content -Path $MetaPath -Encoding UTF8
 
     Register-DeskTask -CommandPath $cmdPath
+    if ($BackupFolder) {
+        $backupScript = Join-Path $MachineApp 'Backup-HotelDruid.ps1'
+        Register-BackupTask -Folder $BackupFolder -ScriptPath $backupScript
+    }
     Register-UninstallEntry -AppDir $MachineApp -Version $version
 
     $startMenu = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\HotelDruid'
@@ -887,6 +976,7 @@ function Invoke-Uninstall {
     Write-Host 'Removing the HotelDruid service...' -ForegroundColor Cyan
     Stop-HotelDruidAt -AppDir $MachineApp
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $BackupTaskName -Confirm:$false -ErrorAction SilentlyContinue
 
     Remove-MachineCert -Thumbprint $thumb -CreatedByHotelDruid $created
 
@@ -954,6 +1044,7 @@ try {
         'Status' { Show-Status }
         'Install' { Enter-Admin; Invoke-Install }
         'Uninstall' { Enter-Admin; Invoke-Uninstall }
+        'Backup' { Enter-Admin; Invoke-Backup }
         default {
             $startCode = Invoke-Start
             if ($startCode -ne 0) {

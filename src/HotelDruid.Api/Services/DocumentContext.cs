@@ -27,6 +27,9 @@ public sealed class DocumentContext
     public string BookingReference { get; init; } = string.Empty;
     /// <summary>Data URL of a QR code carrying the internal booking id, year, arrival, and room.</summary>
     public string BookingQrCode { get; init; } = string.Empty;
+    public string InvoiceNumber { get; init; } = string.Empty;
+    public string InvoiceQrCode { get; init; } = string.Empty;
+    public string PaymentQrCode { get; init; } = string.Empty;
 
     // --- Primary client (booking holder) ---
     public string ClientLastName { get; init; } = string.Empty;

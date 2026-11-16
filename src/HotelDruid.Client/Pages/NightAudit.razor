@@ -67,6 +67,18 @@
                             <dt class="col-6">@L["nightAudit.taken"]</dt><dd class="col-6">@current.CashTaken</dd>
                             <dt class="col-6">@L["nightAudit.due"]</dt><dd class="col-6">@current.StillDue</dd>
                         </dl>
+                        @if (current.GuestFileGaps is { Count: > 0 })
+                        {
+                            <div class="alert alert-warning">
+                                <div class="fw-semibold">@L["nightAudit.guestFile", "Guest file"]</div>
+                                <ul class="mb-0">
+                                    @foreach (var gap in current.GuestFileGaps)
+                                    {
+                                        <li>@gap</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                         <p class="small text-muted">@L["nightAudit.meaning"]</p>
                         @if (current.Signed)
                         {

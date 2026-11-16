@@ -347,8 +347,18 @@
                                             <div class="col-6"><label class="form-label">@L["bookings.clientEmail", "Email"]</label><input class="form-control" @bind="clientForm.Email" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientNation", "Nation"]</label><input class="form-control" @bind="clientForm.Nation" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientCity", "City"]</label><input class="form-control" @bind="clientForm.City" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.genderLabel", "Gender"]</label><input class="form-control" @bind="clientForm.Gender" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.dateOfBirthLabel", "Date of Birth"]</label><input type="date" class="form-control" @bind="clientForm.DateOfBirth" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.birthCityLabel", "Birth City"]</label><input class="form-control" @bind="clientForm.BirthCity" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.birthNationLabel", "Birth Nation"]</label><input class="form-control" @bind="clientForm.BirthNation" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.nationalityLabel", "Nationality"]</label><input class="form-control" @bind="clientForm.Nationality" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.secondNationalityLabel", "Second nationality"]</label><input class="form-control" @bind="clientForm.SecondNationality" /></div>
+                                            <div class="col-8"><label class="form-label">@L["clients.streetLabel", "Street"]</label><input class="form-control" @bind="clientForm.Street" /></div>
+                                            <div class="col-4"><label class="form-label">@L["clients.postalCodeLabel", "Postal Code"]</label><input class="form-control" @bind="clientForm.PostalCode" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientDocumentType", "Document Type"]</label><input class="form-control" @bind="clientForm.DocumentType" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientDocumentNumber", "Document Number"]</label><input class="form-control" @bind="clientForm.DocumentNumber" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.documentExpiryLabel", "Document Expiry"]</label><input type="date" class="form-control" @bind="clientForm.DocumentExpiry" /></div>
+                                            <div class="col-6"><label class="form-label">@L["clients.documentCityLabel", "Document City"]</label><input class="form-control" @bind="clientForm.DocumentCity" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientTaxCode", "Tax Code"]</label><input class="form-control" @bind="clientForm.TaxCode" /></div>
                                             <div class="col-6"><label class="form-label">@L["bookings.clientVatNumber", "VAT Number"]</label><input class="form-control" @bind="clientForm.VatNumber" /></div>
                                             <div class="col-12"><label class="form-label">@L["bookings.notes", "Notes"]</label><input class="form-control" @bind="clientForm.Notes" /></div>
@@ -1665,25 +1675,26 @@
                     clientForm.LastName,
                     clientForm.FirstName,
                     clientForm.Nickname,
-                    null,
+                    clientForm.Gender,
                     null,
                     clientForm.Language,
+                    clientForm.DateOfBirth,
+                    clientForm.BirthCity,
                     null,
-                    null,
-                    null,
-                    null,
+                    clientForm.BirthNation,
                     clientForm.DocumentNumber,
-                    null,
+                    clientForm.DocumentExpiry,
                     clientForm.DocumentType,
+                    clientForm.DocumentCity,
                     null,
                     null,
-                    null,
-                    null,
+                    clientForm.Nationality,
                     clientForm.Nation,
                     null,
                     clientForm.City,
+                    clientForm.Street,
                     null,
-                    null,
+                    clientForm.PostalCode,
                     clientForm.Phone,
                     null,
                     null,
@@ -1692,7 +1703,16 @@
                     null,
                     clientForm.TaxCode,
                     clientForm.VatNumber,
-                    clientForm.Notes));
+                    clientForm.Notes,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    clientForm.SecondNationality));
 
                 if (string.IsNullOrWhiteSpace(createdClientId))
                 {
@@ -1828,9 +1848,8 @@
     {
         if (string.IsNullOrWhiteSpace(booking.Id))
             return;
-        if (await FinanceApi.TryOpenDocumentAsync(booking.Year, booking.Id, "invoice"))
-            return;
-        await JS.InvokeVoidAsync("hotelDruidFiles.download", GetInvoiceUrl(booking, "eml"), $"invoice-{booking.Id}.eml");
+        var queued = await FinanceApi.QueueDocumentAsync(booking.Year, booking.Id, "invoice");
+        errorMsg = queued ? L["dispatch.queued", "The invoice is on the ready-to-send list."] : L["dispatch.queueFailed", "The invoice could not be queued."];
     }
 
     private string FormatMoney(decimal? amount)
@@ -2141,8 +2160,18 @@
         public string? Email { get; set; }
         public string? Nation { get; set; }
         public string? City { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? BirthCity { get; set; }
+        public string? BirthNation { get; set; }
+        public string? Nationality { get; set; }
+        public string? SecondNationality { get; set; }
+        public string? Street { get; set; }
+        public string? PostalCode { get; set; }
         public string? DocumentType { get; set; }
         public string? DocumentNumber { get; set; }
+        public DateTime? DocumentExpiry { get; set; }
+        public string? DocumentCity { get; set; }
         public string? TaxCode { get; set; }
         public string? VatNumber { get; set; }
         public string? Notes { get; set; }

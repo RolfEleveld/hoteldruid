@@ -99,6 +99,9 @@ public sealed class DocumentRenderService : IDocumentRenderService
             nights = (booking.DepartureDate.Value.ToDateTime(TimeOnly.MinValue)
                       - booking.ArrivalDate.Value.ToDateTime(TimeOnly.MinValue)).Days;
 
+        var invoiceNumber = await InvoiceSeries.EnsureIssuedAsync(_store, _configStore, bookingId, booking, templateType);
+        var due = totals.TotalDue.ToString("F2", CultureInfo.InvariantCulture);
+
         return new DocumentContext
         {
             // Hotel
@@ -120,6 +123,9 @@ public sealed class DocumentRenderService : IDocumentRenderService
             BookingNotes = booking.Notes ?? string.Empty,
             BookingReference = BuildBookingReference(booking.ArrivalDate, room?.Name),
             BookingQrCode = BuildBookingQrCode(bookingId, year, booking.ArrivalDate, room?.Name),
+            InvoiceNumber = invoiceNumber,
+            InvoiceQrCode = BuildQr($"hoteldruid:invoice|{invoiceNumber}|{bookingId}|{year}"),
+            PaymentQrCode = BuildQr($"hoteldruid:pay|{invoiceNumber}|{due}|{currency}|{bookingId}"),
 
             // Client
             ClientLastName = client?.LastName ?? string.Empty,
@@ -425,6 +431,9 @@ public sealed class DocumentRenderService : IDocumentRenderService
             // Booking
             .Replace("{{Booking.Reference}}", Encode(ctx.BookingReference))
             .Replace("{{Booking.QrCode}}", ctx.BookingQrCode)
+            .Replace("{{Invoice.Number}}", Encode(ctx.InvoiceNumber))
+            .Replace("{{Invoice.QrCode}}", ctx.InvoiceQrCode)
+            .Replace("{{Payment.QrCode}}", ctx.PaymentQrCode)
             .Replace("{{Booking.Id}}", Encode(ctx.BookingId))
             .Replace("{{Booking.Year}}", ctx.BookingYear.ToString())
             .Replace("{{Booking.ArrivalDate}}", Encode(ctx.BookingArrivalDate))
@@ -532,6 +541,14 @@ public sealed class DocumentRenderService : IDocumentRenderService
             year.ToString(CultureInfo.InvariantCulture),
             arrival?.ToString("yyyy-MM-dd") ?? string.Empty,
             roomName?.Trim() ?? string.Empty);
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
+        var png = new PngByteQRCode(data).GetGraphic(4);
+        return "data:image/png;base64," + Convert.ToBase64String(png);
+    }
+
+    private static string BuildQr(string payload)
+    {
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
         var png = new PngByteQRCode(data).GetGraphic(4);

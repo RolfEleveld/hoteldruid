@@ -29,6 +29,12 @@
         "description": "Reports only. No changes to the hotel.",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "messages",
+        "description": "The batch inbox and outbox. Query ready messages, post incoming messages, write the relay time, read the cursor, and run structured inbox processing when the hotel has automation on.",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -36,7 +42,8 @@
     { "name": "administrator", "realmRoles": ["administrator"] },
     { "name": "clerk", "realmRoles": ["clerk"] },
     { "name": "room-service", "realmRoles": ["room-service"] },
-    { "name": "reports", "realmRoles": ["reports"] }
+    { "name": "reports", "realmRoles": ["reports"] },
+    { "name": "messages", "realmRoles": ["messages"] }
   ],
   "clients": [
     {
@@ -67,6 +74,36 @@
             "access.token.claim": "true",
             "id.token.claim": "true",
             "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "HotelDruid-messages",
+      "name": "HotelDruid messages",
+      "description": "Service account for the batch inbox, the outbox, and the message cursor. No browser sign-in.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "hoteldruid-messages-role",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "hoteldruid_roles",
+            "claim.value": "messages",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
           }
         }
       ]

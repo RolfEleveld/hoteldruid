@@ -178,6 +178,7 @@ public interface IApiDistributor
 public record DistributionResult(
     int TotalImported,
     Dictionary<string, TableImportResult> ByTable,
-    List<ImportError> Errors
+    List<ImportError> Errors,
+    List<RoleConfirmation>? Roles = null
 );
 

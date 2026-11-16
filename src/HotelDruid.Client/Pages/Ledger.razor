@@ -80,6 +80,10 @@
                                     else
                                     {
                                         <a href="@BookingReference.Href(line.BookingId)">@BookingLabel(line.BookingId)</a>
+                                        @if (!string.IsNullOrWhiteSpace(line.PrintedInvoiceNumber))
+                                        {
+                                            <div class="small text-muted">@line.PrintedInvoiceNumber</div>
+                                        }
                                     }
                                 </td>
                                 <td>@(line.PayerName ?? line.Description)</td>

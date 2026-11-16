@@ -27,6 +27,14 @@ The window ends with `HotelDruid is installed and running at https://localhost:5
 
 Employees open the desktop icon, or a bookmark to `https://localhost:5001/`. If the desk is already running, the icon only opens the browser. A new data folder asks for the system setup once, then for the name that this browser writes on ledger lines.
 
+A nightly copy of the hotel is the same install command with a folder:
+
+```powershell
+.\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups" -BackupAt 02:00
+```
+
+The scheduled task calls the export API and writes the zip there. Changing the time or the folder is the same command again. The log files and the retention are described in [Backup and logs](admin/backup-and-logs.md).
+
 ### Load a demo hotel
 
 `Load-DemoHotel.ps1` fills the desk with Hotel Belvedere so someone can click through arrivals, stays, departures, and history. From an administrator PowerShell in the unzipped folder, after Install:

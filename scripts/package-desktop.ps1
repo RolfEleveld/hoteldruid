@@ -63,7 +63,7 @@ $scenarioOut = Join-Path $apiOut 'scenario'
 if ($LASTEXITCODE -ne 0) { throw "Scenario publish failed (exit $LASTEXITCODE)." }
 
 $desktop = Join-Path $PSScriptRoot 'desktop'
-foreach ($name in @('HotelDruid.cmd', 'HotelDruid.ps1', 'install.ps1', 'Load-DemoHotel.ps1')) {
+foreach ($name in @('HotelDruid.cmd', 'HotelDruid.ps1', 'install.ps1', 'Load-DemoHotel.ps1', 'Backup-HotelDruid.ps1')) {
     Copy-Item -Path (Join-Path $desktop $name) -Destination (Join-Path $apiOut $name) -Force
 }
 Copy-Item -Path (Join-Path $root 'docs\deployment.md') -Destination (Join-Path $apiOut 'DEPLOYMENT.md') -Force

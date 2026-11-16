@@ -57,7 +57,8 @@ namespace HotelDruid.Client.Services
         string? HostCreated = null,
         int? CreatedBy = null,
         List<string>? Phones = null,
-        List<string>? Emails = null
+        List<string>? Emails = null,
+        string? SecondNationality = null
     );
 
     public class ClientApiService : IClientApiService

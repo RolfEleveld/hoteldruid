@@ -20,7 +20,9 @@ namespace HotelDruid.Client.Services
         int Year = 0,
         string? BookingId = null,
         string? ClientId = null,
-        int? GuestNumber = null
+        int? GuestNumber = null,
+        bool CoveredByLead = false,
+        string? CardState = null
     );
 
     public class BookingGuestApiService : IBookingGuestApiService

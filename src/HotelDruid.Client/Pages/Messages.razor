@@ -1,5 +1,6 @@
 @page "/messages"
 @using HotelDruid.Client.Services
+@using HotelDruid.Shared
 @inject IMessageApiService MessageApi
 @inject HttpClient Http
 
@@ -8,6 +9,49 @@
 <PageTitle>@L["messages.title", "Messages"]</PageTitle>
 
 <div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@L["dispatch.title", "Batch messages"]</h5>
+                    @if (dispatch is null)
+                    {
+                        <div>@L["common.loading", "Loading..."]</div>
+                    }
+                    else if (dispatch.Count == 0)
+                    {
+                        <div class="text-muted">@L["dispatch.empty", "Nothing is waiting to be relayed."]</div>
+                    }
+                    else
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>@L["dispatch.channel", "Channel"]</th>
+                                    <th>@L["dispatch.to", "To"]</th>
+                                    <th>@L["dispatch.subject", "Subject"]</th>
+                                    <th>@L["dispatch.due", "Due"]</th>
+                                    <th>@L["dispatch.status", "Status"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in dispatch)
+                                {
+                                    <tr>
+                                        <td>@row.Channel</td>
+                                        <td>@row.To</td>
+                                        <td>@row.Subject</td>
+                                        <td>@row.DeliverBy?.ToLocalTime().ToString("g")</td>
+                                        <td>@row.Status</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-3">
             <div class="card">
@@ -96,6 +140,7 @@
 
 @code {
     private List<MessageApiDto>? items;
+    private List<DispatchMessageDto>? dispatch;
     private MessageApiDto? selected;
     private string editSender = string.Empty;
     private string editBody = string.Empty;
@@ -107,6 +152,14 @@
     private async Task Load()
     {
         items = await MessageApi.GetMessagesAsync();
+        try
+        {
+            dispatch = await Http.GetFromJsonAsync<List<DispatchMessageDto>>("/api/dispatch") ?? new();
+        }
+        catch
+        {
+            dispatch = new();
+        }
         StateHasChanged();
     }
 

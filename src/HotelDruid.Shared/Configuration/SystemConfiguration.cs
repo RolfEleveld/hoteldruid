@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HotelDruid.Shared;
 
 namespace HotelDruid.Shared.Configuration
 {
@@ -12,6 +13,10 @@ namespace HotelDruid.Shared.Configuration
         public int? DefaultYear { get; set; }
         public string? AccountingStandard { get; set; }
         public Dictionary<string, string>? AccountCodes { get; set; }
+        public string? RegistrationStandard { get; set; }
+        public RegistrationProfile? RegistrationCustom { get; set; }
+        public bool MessageAutomation { get; set; }
+        public Dictionary<string, int>? InvoiceSequence { get; set; }
         public List<string>? AdminEmails { get; set; }
         public Dictionary<string, string>? Settings { get; set; }
         // Add more configuration fields as needed
