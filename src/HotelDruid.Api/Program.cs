@@ -10,6 +10,7 @@ using HotelDruid.Api.Services.ExportImport;
 using HotelDruid.Api.Models;
 using HotelDruid.Shared;
 using HotelDruid.Shared.Configuration;
+using HotelDruid.Mcp;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
@@ -173,6 +174,7 @@ builder.Services.AddSingleton<ICacheWarmupState>(sp => sp.GetRequiredService<Cac
 builder.Services.AddHostedService<CacheWarmupHostedService>();
 builder.Services.AddSingleton<IDocumentRenderService, DocumentRenderService>();
 builder.Services.AddSingleton<DispatchService>();
+HotelMcpHost.Add(builder.Services, builder.Configuration);
 builder.Services.AddHostedService<DocumentTemplateSeeder>();
 builder.Services.AddHttpClient<IIdentityFrontProbe, IdentityFrontProbe>((sp, client) =>
 {
@@ -4634,6 +4636,8 @@ app.MapPost("/api/documents/open/{type}/{number:int}",
 
         return Results.Ok(new { opened = true });
     }).WithName("OpenDocument");
+
+app.MapMcp("/mcp");
 
 app.Run();
 

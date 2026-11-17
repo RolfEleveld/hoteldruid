@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "hoteldruid": {
+      "url": "https://localhost:5001/mcp"
+    }
+  }
+}
