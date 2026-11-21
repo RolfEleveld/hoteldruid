@@ -618,6 +618,12 @@
   <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Dettagli ospite</value></data>
   <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Altre prenotazioni</value></data>
   <data name="bookings.noGuestHistory" xml:space="preserve"><value>Nessun'altra prenotazione trovata per questo ospite.</value></data>
+  <data name="bookings.paymentsTitle" xml:space="preserve"><value>Pagamenti</value></data>
+  <data name="bookings.noPayments" xml:space="preserve"><value>Nessun pagamento registrato su questo soggiorno.</value></data>
+  <data name="bookings.moneyPaid" xml:space="preserve"><value>Pagato</value></data>
+  <data name="bookings.moneyPrepaid" xml:space="preserve"><value>Prepagato</value></data>
+  <data name="bookings.moneyDeposit" xml:space="preserve"><value>Deposito</value></data>
+  <data name="bookings.moneyRefund" xml:space="preserve"><value>Rimborsato</value></data>
   <data name="bookings.title" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.header" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.searchLabel" xml:space="preserve"><value>Filtra prenotazioni</value></data>
@@ -793,6 +799,8 @@
   <data name="cashRegisters.title" xml:space="preserve"><value>Casse</value></data>
   <data name="cashRegisters.emptyList" xml:space="preserve"><value>Nessuna cassa definita.</value></data>
   <data name="contractTemplates.title" xml:space="preserve"><value>Template contratto</value></data>
+  <data name="contractTemplates.fields" xml:space="preserve"><value>Campi valore</value></data>
+  <data name="contractTemplates.fieldsHelp" xml:space="preserve"><value>Il testo della lettera è vostro. Inserite un campo dove deve comparire un valore dell'hotel.</value></data>
   <data name="contractTemplates.emptyList" xml:space="preserve"><value>Nessun template di contratto.</value></data>
   <data name="Dashboard.Reservations.UnknownRoom" xml:space="preserve"><value>Camera sconosciuta</value></data>
   <data name="expenses.title" xml:space="preserve"><value>Spese</value></data>

@@ -618,6 +618,12 @@
   <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Detalles del huésped</value></data>
   <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Otras reservas</value></data>
   <data name="bookings.noGuestHistory" xml:space="preserve"><value>No se encontraron otras reservas para este huésped.</value></data>
+  <data name="bookings.paymentsTitle" xml:space="preserve"><value>Pagos</value></data>
+  <data name="bookings.noPayments" xml:space="preserve"><value>No hay pagos registrados en esta estancia.</value></data>
+  <data name="bookings.moneyPaid" xml:space="preserve"><value>Pagado</value></data>
+  <data name="bookings.moneyPrepaid" xml:space="preserve"><value>Prepago</value></data>
+  <data name="bookings.moneyDeposit" xml:space="preserve"><value>Depósito</value></data>
+  <data name="bookings.moneyRefund" xml:space="preserve"><value>Reembolsado</value></data>
   <data name="bookings.title" xml:space="preserve"><value>Reservas</value></data>
   <data name="bookings.header" xml:space="preserve"><value>Reservas</value></data>
   <data name="bookings.searchLabel" xml:space="preserve"><value>Filtrar reservas</value></data>
@@ -793,6 +799,8 @@
   <data name="cashRegisters.title" xml:space="preserve"><value>Cajas registradoras</value></data>
   <data name="cashRegisters.emptyList" xml:space="preserve"><value>No hay cajas definidas.</value></data>
   <data name="contractTemplates.title" xml:space="preserve"><value>Plantillas de contrato</value></data>
+  <data name="contractTemplates.fields" xml:space="preserve"><value>Campos de valor</value></data>
+  <data name="contractTemplates.fieldsHelp" xml:space="preserve"><value>El texto de la carta es suyo. Coloque un campo donde deba aparecer un valor del hotel.</value></data>
   <data name="contractTemplates.emptyList" xml:space="preserve"><value>Aún no hay plantillas de contrato.</value></data>
   <data name="Dashboard.Reservations.UnknownRoom" xml:space="preserve"><value>Habitación desconocida</value></data>
   <data name="expenses.title" xml:space="preserve"><value>Gastos</value></data>

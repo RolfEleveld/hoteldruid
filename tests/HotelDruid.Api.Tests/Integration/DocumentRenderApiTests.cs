@@ -221,7 +221,7 @@ public class DocumentRenderApiTests : IAsyncLifetime
         var r = await _client.GetAsync($"/api/documents/render/render-test-ledger-totals/1?bookingId={bookingId}&year=2026&format=html");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var body = await r.Content.ReadAsStringAsync();
-        Assert.Contains("100.00|70.00|40.00|30.00", body);
+        Assert.Contains("100.00|30.00|40.00|30.00", body);
     }
 
     [Fact]

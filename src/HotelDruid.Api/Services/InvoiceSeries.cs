@@ -41,6 +41,6 @@ public static class InvoiceSeries
     public static bool IsInvoice(string? templateType)
     {
         var type = templateType?.Trim().ToLowerInvariant();
-        return type is "invoice" or "rechnung";
+        return type is "invoice" or "rechnung" or "fattura" or "factura";
     }
 }

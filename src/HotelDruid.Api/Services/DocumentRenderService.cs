@@ -100,7 +100,9 @@ public sealed class DocumentRenderService : IDocumentRenderService
                       - booking.ArrivalDate.Value.ToDateTime(TimeOnly.MinValue)).Days;
 
         var invoiceNumber = await InvoiceSeries.EnsureIssuedAsync(_store, _configStore, bookingId, booking, templateType);
-        var due = totals.TotalDue.ToString("F2", CultureInfo.InvariantCulture);
+        // The guest ledger still carries the full charges while a deposit sits on the deposit account.
+        // The bill states what the guest still has to pay. Checkout applies the deposit and clears it, so it is not subtracted twice.
+        var due = (totals.TotalDue - totals.DepositsHeld).ToString("F2", CultureInfo.InvariantCulture);
 
         return new DocumentContext
         {
@@ -154,7 +156,7 @@ public sealed class DocumentRenderService : IDocumentRenderService
             InvoicePaymentsTotal = totals.PaymentsTotal.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceRefundsTotal = totals.RefundsTotal.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceDepositsHeld = totals.DepositsHeld.ToString("F2", CultureInfo.InvariantCulture),
-            InvoiceTotalDue = totals.TotalDue.ToString("F2", CultureInfo.InvariantCulture),
+            InvoiceTotalDue = due,
             InvoiceTotalAmount = totals.ChargesTotal.ToString("F2", CultureInfo.InvariantCulture),
             InvoiceCurrency = currency,
             TaxNotice = presented.Notice,

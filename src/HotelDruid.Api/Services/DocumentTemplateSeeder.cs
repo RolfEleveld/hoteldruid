@@ -24,9 +24,17 @@ public sealed class DocumentTemplateSeeder : IHostedService
         "booking-confirmation",
         "invoice",
         "rechnung",
+        "fattura",
+        "factura",
         "receipt",
+        "quittung",
+        "ricevuta",
+        "recibo",
         "welcome-letter",
-        "email-confirmation"
+        "email-confirmation",
+        "email-de",
+        "email-it",
+        "email-es"
     ];
 
     private readonly IKeyValueStore _store;

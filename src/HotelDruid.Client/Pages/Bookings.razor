@@ -280,6 +280,15 @@
                                         </div>
                                     }
                                 }
+                                else if (!string.IsNullOrWhiteSpace(form.TariffId))
+                                {
+                                    <div class="border rounded p-2 bg-light-subtle">
+                                        <button type="button" class="btn btn-link p-0 text-start" @onclick="() => GoToTariff(form.TariffId)">
+                                            <div class="fw-semibold">@GetTariffDisplayName(form.TariffId)</div>
+                                            <small class="text-muted">@StoredStayNights() @L["bookings.nightsLabel", "night(s)"] · @((form.TariffTotalPrice ?? 0).ToString("0.00"))</small>
+                                        </button>
+                                    </div>
+                                }
                                 else if (!string.IsNullOrWhiteSpace(form.RoomId)
                                     && form.ArrivalDate.HasValue
                                     && form.DepartureDate.HasValue
@@ -545,6 +554,31 @@
                         </section>
 
                         <section class="booking-section booking-section-history mt-3">
+                            <h4 class="booking-section-title"><a href="@GetFinanceUrl(selected)">@L["bookings.paymentsTitle", "Payments"]</a></h4>
+                            @if (isPaymentsLoading)
+                            {
+                                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                                <span class="ms-2">@L["common.loading", "Loading..."]</span>
+                            }
+                            else if (selectedPayments is null || selectedPayments.Count == 0)
+                            {
+                                <div class="alert alert-info mb-0">@L["bookings.noPayments", "No payments recorded on this stay."]</div>
+                            }
+                            else
+                            {
+                                <div class="list-group">
+                                    @foreach (var payment in selectedPayments)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="fw-semibold">@DescribePayment(payment)</div>
+                                            <div class="small text-muted">@payment.Timestamp.ToLocalTime().ToString("yyyy-MM-dd")</div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </section>
+
+                        <section class="booking-section booking-section-history mt-3">
                             <h4 class="booking-section-title">@L["bookings.guestHistoryTitle", "Other Bookings"]</h4>
                             @if (isGuestHistoryLoading)
                             {
@@ -640,6 +674,8 @@
     private bool previewTariffLoading;
     private int tariffPreviewGeneration;
     private BookingFinanceSummaryDto? financeSummary;
+    private List<BookingTransactionDto>? selectedPayments;
+    private bool isPaymentsLoading;
     private List<ClientRecord> clientMatches = new();
     private List<RoomRecord> roomMatches = new();
     private List<BookingDto>? selectedGuestBookings;
@@ -970,6 +1006,7 @@
         editing = true;
         selected = null;
         financeSummary = null;
+        selectedPayments = null;
         errorMsg = "";
         ResetClientSelection();
         InitializeRoomSelectionForCurrentForm();
@@ -1770,7 +1807,7 @@
         // Do not re-resolve on existing confirmed bookings unless the user changed room/dates
         if (!isNew && !string.IsNullOrWhiteSpace(form.TariffId) && (form.TariffTotalPrice ?? 0) > 0)
         {
-            previewTariffLoading = false;
+            CancelTariffPreview();
             StateHasChanged();
             return;
         }
@@ -1818,15 +1855,56 @@
         }
     }
 
+    private int StoredStayNights()
+    {
+        if (!form.ArrivalDate.HasValue || !form.DepartureDate.HasValue || form.DepartureDate.Value <= form.ArrivalDate.Value)
+            return 0;
+        return form.DepartureDate.Value.DayNumber - form.ArrivalDate.Value.DayNumber;
+    }
+
     private async Task RefreshFinanceSummaryAsync()
     {
+        selectedPayments = null;
         if (selected?.Id is null || isNew)
         {
             financeSummary = null;
             return;
         }
 
-        financeSummary = await FinanceApi.GetSummaryAsync(selected.Year, selected.Id);
+        try
+        {
+            isPaymentsLoading = true;
+            financeSummary = await FinanceApi.GetSummaryAsync(selected.Year, selected.Id);
+            var rows = await FinanceApi.ListTransactionsAsync(selected.Year, selected.Id);
+            selectedPayments = rows
+                .Where(IsMoneyMovement)
+                .OrderByDescending(row => row.Timestamp)
+                .ThenByDescending(row => row.Sequence)
+                .ToList();
+        }
+        finally
+        {
+            isPaymentsLoading = false;
+        }
+    }
+
+    private static bool IsMoneyMovement(BookingTransactionDto row)
+    {
+        var type = row.Type ?? "";
+        return type.Contains("payment", StringComparison.OrdinalIgnoreCase)
+            || type.Contains("prepaid", StringComparison.OrdinalIgnoreCase)
+            || type.Contains("deposit", StringComparison.OrdinalIgnoreCase)
+            || type.Contains("refund", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string DescribePayment(BookingTransactionDto row)
+    {
+        var type = row.Type ?? "";
+        var label = type.Contains("refund", StringComparison.OrdinalIgnoreCase) ? L["bookings.moneyRefund"]
+            : type.Contains("deposit", StringComparison.OrdinalIgnoreCase) ? L["bookings.moneyDeposit"]
+            : type.Contains("prepaid", StringComparison.OrdinalIgnoreCase) ? L["bookings.moneyPrepaid"]
+            : L["bookings.moneyPaid"];
+        return $"{label} {FormatMoney(row.Amount)}";
     }
 
     private void OpenFinance()

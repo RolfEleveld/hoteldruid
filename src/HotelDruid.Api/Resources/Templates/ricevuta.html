@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ricevuta – {{Booking.Reference}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #222; margin: 0; padding: 0; }
+  .page { max-width: 480px; margin: 0 auto; padding: 32px 40px; }
+  .hotel-name { font-size: 16pt; font-weight: bold; color: #7b3f00; text-align: center; }
+  .hotel-sub { font-size: 9pt; color: #555; text-align: center; margin-bottom: 24px; }
+  h1 { font-size: 14pt; color: #7b3f00; text-align: center; border-top: 2px solid #7b3f00; border-bottom: 2px solid #7b3f00; padding: 8px 0; margin: 16px 0; }
+  .meta { font-size: 9pt; color: #888; text-align: center; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  td { padding: 5px 8px; font-size: 10pt; border-bottom: 1px dotted #ccc; }
+  td.label { color: #555; width: 45%; }
+  td.value { font-weight: bold; }
+  .separator { border-top: 2px solid #7b3f00; margin: 12px 0; }
+  .payment-table th { background: #7b3f00; color: #fff; padding: 5px 8px; font-size: 10pt; }
+  .payment-table td { border-bottom: 1px solid #eee; }
+  .payment-table tr:nth-child(even) td { background: #fdf6f0; }
+  .register td.label { color: #555; }
+  .register .due td { font-weight: bold; border-top: 2px solid #7b3f00; }
+  .qr { text-align: center; margin-top: 16px; }
+  .qr img { width: 96px; height: 96px; }
+  .qr .caption { font-size: 8pt; color: #888; }
+  .footer { margin-top: 32px; font-size: 9pt; color: #888; text-align: center; }
+  @media print {
+    .page { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hotel-name">{{Hotel.Name}}</div>
+  <div class="hotel-sub">
+    {{Hotel.Address}}, {{Hotel.City}}<br>
+    {{Hotel.Phone}} &bull; {{Hotel.Email}} &bull; P. IVA: {{Hotel.VatNumber}}
+  </div>
+
+  <h1>Ricevuta</h1>
+  <div class="meta">Data: {{Document.Today}} &nbsp;|&nbsp; Prenotazione: <strong>{{Booking.Reference}}</strong></div>
+
+  <table>
+    <tr><td class="label">Ospite</td><td class="value">{{Client.FullName}}</td></tr>
+    <tr><td class="label">Camera</td><td class="value">{{Room.Name}}</td></tr>
+    <tr><td class="label">Soggiorno</td><td class="value">{{Booking.ArrivalDate}} – {{Booking.DepartureDate}}</td></tr>
+    <tr><td class="label">Notti</td><td class="value">{{Booking.Nights}}</td></tr>
+    <tr><td class="label">Addebiti</td><td class="value">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td></tr>
+  </table>
+
+  <div class="separator"></div>
+
+  <strong>Pagamenti</strong>
+  <table class="payment-table" style="margin-top:8px;">
+    <thead><tr><th>Data</th><th>Modo</th><th>Descrizione</th><th style="text-align:right;">Importo</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Payments -->
+      <tr>
+        <td>{{Payment.Date}}</td>
+        <td>{{Payment.Method}}</td>
+        <td>{{Payment.Description}}</td>
+        <td style="text-align:right;">{{Payment.Amount}} {{Invoice.Currency}}</td>
+      </tr>
+<!-- ENDFOREACH:Payments -->
+    </tbody>
+  </table>
+
+  <table class="register">
+    <tr><td class="label">Addebiti</td><td class="value">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td></tr>
+    <tr><td class="label">Pagamenti</td><td class="value">{{Invoice.PaymentsTotal}} {{Invoice.Currency}}</td></tr>
+    <tr><td class="label">Rimborsi</td><td class="value">{{Invoice.RefundsTotal}} {{Invoice.Currency}}</td></tr>
+    <tr><td class="label">Acconto</td><td class="value">{{Invoice.DepositsHeld}} {{Invoice.Currency}}</td></tr>
+    <tr class="due"><td class="label">Da pagare</td><td class="value">{{Invoice.TotalDue}} {{Invoice.Currency}}</td></tr>
+  </table>
+
+  <p style="font-size:9pt;">I prezzi comprendono l'imposta alle aliquote sotto. L'imposta non viene aggiunta di nuovo.</p>
+  <table>
+    <thead><tr><th>Imposta</th><th style="text-align:right;">Aliquota</th><th style="text-align:right;">Steuer</th></tr></thead>
+    <tbody>
+<!-- FOREACH:Taxes -->
+      <tr>
+        <td>{{Tax.Label}}</td>
+        <td style="text-align:right;">{{Tax.Rate}}</td>
+        <td style="text-align:right;">{{Tax.Tax}}</td>
+      </tr>
+<!-- ENDFOREACH:Taxes -->
+<!-- FOREACH:TaxLines -->
+      <tr>
+        <td>{{TaxLine.Label}}</td>
+        <td></td>
+        <td style="text-align:right;">{{TaxLine.Amount}}</td>
+      </tr>
+<!-- ENDFOREACH:TaxLines -->
+    </tbody>
+  </table>
+
+  <div class="qr">
+    <img src="{{Booking.QrCode}}" alt="Prenotazione">
+    <div class="caption">{{Booking.Reference}}</div>
+  </div>
+
+  <div class="footer">
+    Grazie per il soggiorno al {{Hotel.Name}}.<br>
+    {{Hotel.Address}}, {{Hotel.City}} &bull; {{Hotel.Phone}}
+  </div>
+
+</div>
+</body>
+</html>

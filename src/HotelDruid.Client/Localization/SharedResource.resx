@@ -664,6 +664,12 @@
   <data name="bookings.guestDetailsTitle" xml:space="preserve"><value>Guest Details</value></data>
   <data name="bookings.guestHistoryTitle" xml:space="preserve"><value>Other Bookings</value></data>
   <data name="bookings.noGuestHistory" xml:space="preserve"><value>No other bookings found for this guest.</value></data>
+  <data name="bookings.paymentsTitle" xml:space="preserve"><value>Payments</value></data>
+  <data name="bookings.noPayments" xml:space="preserve"><value>No payments recorded on this stay.</value></data>
+  <data name="bookings.moneyPaid" xml:space="preserve"><value>Paid</value></data>
+  <data name="bookings.moneyPrepaid" xml:space="preserve"><value>Prepaid</value></data>
+  <data name="bookings.moneyDeposit" xml:space="preserve"><value>Deposit</value></data>
+  <data name="bookings.moneyRefund" xml:space="preserve"><value>Refunded</value></data>
   <data name="bookings.actualDepartureDate" xml:space="preserve"><value>Actual Checkout Date</value></data>
   <data name="bookings.actualDepartureDateOptional" xml:space="preserve"><value>Actual Checkout Date (optional)</value></data>
   <data name="bookings.actualArrivalRequiredWithDeparture" xml:space="preserve"><value>Actual Arrival Date is required when Actual Checkout Date is set.</value></data>
@@ -801,6 +807,8 @@
   <data name="cashRegisters.title" xml:space="preserve"><value>Cash Registers</value></data>
   <data name="cashRegisters.emptyList" xml:space="preserve"><value>No cash registers defined.</value></data>
   <data name="contractTemplates.title" xml:space="preserve"><value>Contract Templates</value></data>
+  <data name="contractTemplates.fields" xml:space="preserve"><value>Value fields</value></data>
+  <data name="contractTemplates.fieldsHelp" xml:space="preserve"><value>The wording of the letter is yours. Place a field where a value from the hotel should appear.</value></data>
   <data name="contractTemplates.emptyList" xml:space="preserve"><value>No contract templates yet.</value></data>
   <data name="Dashboard.Reservations.UnknownRoom" xml:space="preserve"><value>Unknown room</value></data>
   <data name="expenses.title" xml:space="preserve"><value>Expenses</value></data>

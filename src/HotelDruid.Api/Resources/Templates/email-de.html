@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Buchungsbestätigung – {{Booking.Reference}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+  .wrapper { background: #f5f5f5; padding: 24px 0; }
+  .container { background: #ffffff; max-width: 600px; margin: 0 auto; border-radius: 4px; overflow: hidden; border: 1px solid #ddd; }
+  .header-bar { background: #3a6ea5; color: #fff; padding: 24px 32px; }
+  .header-bar h1 { margin: 0 0 4px; font-size: 18pt; }
+  .header-bar p { margin: 0; font-size: 10pt; opacity: 0.85; }
+  .body { padding: 28px 32px; }
+  .section-title { font-size: 10pt; font-weight: bold; color: #3a6ea5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e0e8f4; padding-bottom: 4px; margin: 20px 0 10px; }
+  table.details { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  table.details td { padding: 5px 8px; font-size: 10pt; border-bottom: 1px solid #f0f0f0; }
+  table.details td:first-child { color: #666; width: 42%; }
+  table.details td:last-child { font-weight: bold; }
+  table.costs { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  table.costs th { background: #e8eff8; color: #3a6ea5; padding: 5px 8px; text-align: left; }
+  table.costs td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; }
+  table.costs td.right { text-align: right; }
+  table.costs tr.total td { font-weight: bold; border-top: 2px solid #3a6ea5; background: #f0f4fb; }
+  .cta { background: #3a6ea5; color: #fff; text-align: center; padding: 14px 24px; border-radius: 4px; margin: 24px 0; font-size: 11pt; }
+  .footer-bar { background: #f0f4fb; padding: 16px 32px; font-size: 9pt; color: #888; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+<div class="container">
+
+  <div class="header-bar">
+    <h1>Buchung bestätigt</h1>
+    <p>{{Hotel.Name}} &bull; Buchung: {{Booking.Reference}}</p>
+  </div>
+
+  <div class="body">
+    <p>Guten Tag {{Client.FullName}},</p>
+    <p>vielen Dank für Ihre Reservierung im <strong>{{Hotel.Name}}</strong>.
+       Ihre Buchung ist bestätigt. Die Angaben stehen unten.</p>
+
+    <div class="section-title">Ihr Aufenthalt</div>
+    <table class="details">
+      <tr><td>Zimmer</td><td>{{Room.Name}}</td></tr>
+      <tr><td>Anreise</td><td>{{Booking.ArrivalDate}}</td></tr>
+      <tr><td>Abreise</td><td>{{Booking.DepartureDate}}</td></tr>
+      <tr><td>Nächte</td><td>{{Booking.Nights}}</td></tr>
+      <tr><td>Status</td><td>{{Booking.Status}}</td></tr>
+    </table>
+
+    <div class="section-title">Leistungen</div>
+    <table class="costs">
+      <thead><tr><th>Leistung</th><th class="right">Betrag ({{Invoice.Currency}})</th></tr></thead>
+      <tbody>
+<!-- FOREACH:Costs -->
+        <tr>
+          <td>{{Cost.Description}}</td>
+          <td class="right">{{Cost.Amount}}</td>
+        </tr>
+<!-- ENDFOREACH:Costs -->
+        <tr class="total">
+          <td>Summe</td>
+          <td class="right">{{Invoice.TotalAmount}} {{Invoice.Currency}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">Weitere Gäste</div>
+    <table class="details">
+<!-- FOREACH:Guests -->
+      <tr>
+        <td>Gast {{Guest.GuestNumber}}</td>
+        <td>{{Guest.FullName}}</td>
+      </tr>
+<!-- ENDFOREACH:Guests -->
+    </table>
+
+    <div class="cta">
+      Fragen? Rufen Sie uns an unter {{Hotel.Phone}} oder schreiben Sie an {{Hotel.Email}}
+    </div>
+
+    <p style="font-size:9pt;color:#aaa;">Diese Nachricht wurde erstellt am {{Document.Today}}. Buchung: {{Booking.Reference}}.</p>
+  </div>
+
+  <div class="footer-bar">
+    {{Hotel.Name}} &bull; {{Hotel.Address}}, {{Hotel.City}} &bull; USt-IdNr.: {{Hotel.VatNumber}}
+  </div>
+
+</div>
+</div>
+</body>
+</html>
