@@ -890,7 +890,7 @@ public static class ScenarioWriter
             }
         }
 
-        var asOf = new DateOnly(2026, 11, 14);
+        var asOf = DateOnly.FromDateTime(DateTime.Today);
         foreach (var stay in stays.Where(s => s.Arrival < asOf && s.Nights > 1 && rng.NextDouble() < 0.025))
         {
             for (var i = 1; i < stay.Nights; i++)

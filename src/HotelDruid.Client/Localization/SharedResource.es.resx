@@ -1201,4 +1201,7 @@
   <data name="bookings.continuedTitle" xml:space="preserve"><value>Estancia continuada</value></data>
   <data name="bookings.continuedFrom" xml:space="preserve"><value>Continúa desde la habitación anterior</value></data>
   <data name="bookings.continuedTo" xml:space="preserve"><value>Continúa en la habitación siguiente</value></data>
+  <data name="setup.registration" xml:space="preserve"><value>Registro de huéspedes</value></data>
+  <data name="setup.registrationHelp" xml:space="preserve"><value>Elige cuántos huéspedes con nombre debe tener una habitación y qué datos comprueba la auditoría de noche.</value></data>
+  <data name="setup.messageAutomation" xml:space="preserve"><value>Procesar automáticamente los mensajes estructurados de la bandeja de entrada</value></data>
 </root>

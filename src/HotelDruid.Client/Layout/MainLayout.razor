@@ -130,7 +130,7 @@
             : status!.VersionLabel!;
 
         var buildNumber = string.IsNullOrWhiteSpace(status?.BuildNumber)
-            ? "local"
+            ? "4.10.1.local"
             : status!.BuildNumber!;
 
         return $"{versionLabel} (build {buildNumber})";

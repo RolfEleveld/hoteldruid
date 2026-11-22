@@ -122,29 +122,16 @@ function Test-MachineInstalled {
     return Test-Path $MetaPath
 }
 
-function Invoke-Curl {
-    param([string[]]$ArgumentList)
-    $hasPreference = Test-Path variable:PSNativeCommandUseErrorActionPreference
-    $preference = $false
-    if ($hasPreference) {
-        $preference = $PSNativeCommandUseErrorActionPreference
-        $PSNativeCommandUseErrorActionPreference = $false
-    }
-    try {
-        return (& curl.exe @ArgumentList 2>$null)
-    }
-    finally {
-        if ($hasPreference) { $PSNativeCommandUseErrorActionPreference = $preference }
-    }
-}
-
 function Get-HealthCode([string]$HealthUrl) {
-    if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
-        throw 'curl.exe was not found. It is part of Windows and is required to check the desk.'
-    }
-    $code = Invoke-Curl -ArgumentList @('-k', '-s', '-S', '-m', '4', '-o', 'NUL', '-w', '%{http_code}', $HealthUrl)
-    if (-not $code) { return '000' }
-    return ([string]$code).Trim()
+    $curl = Join-Path $env:SystemRoot 'System32\curl.exe'
+    if (-not (Test-Path $curl)) { return '000' }
+    $out = Join-Path $env:TEMP 'hoteldruid-health-code.txt'
+    $err = Join-Path $env:TEMP 'hoteldruid-health-err.txt'
+    $process = Start-Process -FilePath $curl -ArgumentList @('-k', '-s', '-m', '4', '-o', 'NUL', '-w', '%{http_code}', $HealthUrl) -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $out -RedirectStandardError $err
+    if (-not (Test-Path $out)) { return '000' }
+    $code = ([string](Get-Content -Path $out -Raw -ErrorAction SilentlyContinue)).Trim()
+    if (-not $code -or $process.ExitCode -ne 0) { return '000' }
+    return $code
 }
 
 function Get-UninstallMarkers {
@@ -937,25 +924,27 @@ function Invoke-Install {
         New-DeskShortcut -ShortcutPath (Join-Path $publicDesktop 'HotelDruid.lnk') -TargetPath $launcher -Arguments '' -IconIndex 220
     }
 
-    $already = Get-HealthCode "https://localhost:$HttpsPort/health"
+    $deskUrl = "https://localhost:$HttpsPort/"
+    $already = Get-HealthCode "${deskUrl}health"
     if ($already -eq '200') {
-        Write-Host "HotelDruid is installed for this computer. A desk is already answering at https://localhost:$HttpsPort/ so the new service was not started." -ForegroundColor Green
+        Write-Host "HotelDruid is installed for this computer. A desk is already answering at $deskUrl so the new service was not started." -ForegroundColor Green
         Write-Host 'The startup task will take the port after that process stops, and at the next boot.'
+        Open-Desk $deskUrl
     }
     else {
         Start-ScheduledTask -TaskName $TaskName
-        if (Wait-Desk -HealthUrl "https://localhost:$HttpsPort/health" -Seconds 45) {
-            Write-Host "HotelDruid is installed and running at https://localhost:$HttpsPort/" -ForegroundColor Green
+        if (Wait-Desk -HealthUrl "${deskUrl}health" -Seconds 45) {
+            Write-Host "HotelDruid is installed and running at $deskUrl" -ForegroundColor Green
+            Open-Desk $deskUrl
         }
         else {
-            Write-Host 'HotelDruid is installed. The desk did not answer yet.' -ForegroundColor Yellow
+            Write-Host 'HotelDruid is installed. The desk did not answer yet, so the welcome page was not opened.' -ForegroundColor Yellow
             $taskInfo = Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction SilentlyContinue
             if ($taskInfo) { Write-Host "Startup task result: $($taskInfo.LastTaskResult)" }
             Write-Host "Log: $(Join-Path $MachineLogs 'api.log')"
         }
     }
     Write-Host "Hotel data: $MachineData"
-    Write-Host 'Open HotelDruid from the desktop or the Start menu.'
 }
 
 function Invoke-Uninstall {

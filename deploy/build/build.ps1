@@ -34,6 +34,25 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $root      = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+
+function Get-PipelineVersionArguments {
+    $number = [string]$env:HOTELDRUID_BUILD_NUMBER
+    if ([string]::IsNullOrWhiteSpace($number)) { return @() }
+    if ($number -notmatch '^\d+$') { throw "HOTELDRUID_BUILD_NUMBER must be a whole number. It was '$number'." }
+    [xml]$xml = Get-Content -Path (Join-Path $root 'Directory.Build.props')
+    $base = [string]$xml.Project.PropertyGroup.Version
+    if ([string]::IsNullOrWhiteSpace($base)) { throw 'Directory.Build.props has no Version.' }
+    $arguments = @(
+        "-p:InformationalVersion=$base.$number",
+        '-p:IncludeSourceRevisionInInformationalVersion=false'
+    )
+    if ([int64]$number -le 65535) {
+        $arguments += "-p:FileVersion=$base.$number"
+    }
+    return $arguments
+}
+
+$versionArguments = Get-PipelineVersionArguments
 $clientOut = Join-Path $root 'artifacts\client'
 $apiOut    = Join-Path $root 'artifacts\api'
 $sbomOut   = Join-Path $root 'artifacts\sbom'
@@ -155,7 +174,7 @@ try {
 Write-Host "`n[2/6] Publishing Blazor client..." -ForegroundColor Cyan
 Push-Location $root
 try {
-    dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo
+    dotnet publish src/HotelDruid.Client -c $Configuration -o $clientOut --no-restore --nologo @versionArguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish client failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 
@@ -164,7 +183,7 @@ Write-Host "`n[3/6] Publishing API..." -ForegroundColor Cyan
 Stop-LockingApiHost
 Push-Location $root
 try {
-    dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo
+    dotnet publish src/HotelDruid.Api -c $Configuration -o $apiOut --no-restore --nologo @versionArguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish API failed (exit $LASTEXITCODE)" }
 } finally { Pop-Location }
 

@@ -209,6 +209,7 @@ try {
 
     Write-Step 'Installing HotelDruid for this computer'
     & (Join-Path $stage 'HotelDruid.ps1') -Action Install
+    if ($LASTEXITCODE -ne 0) { throw "HotelDruid install stopped ($LASTEXITCODE). See C:\ProgramData\HotelDruid\logs\api-startup.log" }
     Write-Step 'HotelDruid is installed.'
     Read-Host 'Press Enter to close'
     exit 0

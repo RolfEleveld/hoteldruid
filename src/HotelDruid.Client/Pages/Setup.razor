@@ -80,19 +80,19 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">@L["setup.registration", "Guest registration"]</label>
+                        <label class="form-label">@L["setup.registration"]</label>
                         <select class="form-select" @bind="model.RegistrationStandard">
                             @foreach (var standard in GuestRegistration.Standards)
                             {
                                 <option value="@standard.Id">@standard.Name</option>
                             }
                         </select>
-                        <div class="form-text">@L["setup.registrationHelp", "This chooses how many named guests a room must have, and which fields the night audit checks."]</div>
+                        <div class="form-text">@L["setup.registrationHelp"]</div>
                     </div>
 
                     <div class="mb-3 form-check">
                         <input class="form-check-input" type="checkbox" id="messageAutomation" @bind="model.MessageAutomation" />
-                        <label class="form-check-label" for="messageAutomation">@L["setup.messageAutomation", "Process structured inbox messages automatically"]</label>
+                        <label class="form-check-label" for="messageAutomation">@L["setup.messageAutomation"]</label>
                     </div>
 
                     <div class="mb-3">

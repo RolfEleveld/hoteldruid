@@ -1209,4 +1209,7 @@
   <data name="bookings.continuedTitle" xml:space="preserve"><value>Continued stay</value></data>
   <data name="bookings.continuedFrom" xml:space="preserve"><value>Continued from the previous room</value></data>
   <data name="bookings.continuedTo" xml:space="preserve"><value>Continues in the next room</value></data>
+  <data name="setup.registration" xml:space="preserve"><value>Guest registration</value></data>
+  <data name="setup.registrationHelp" xml:space="preserve"><value>This chooses how many named guests a room must have, and which fields the night audit checks.</value></data>
+  <data name="setup.messageAutomation" xml:space="preserve"><value>Process structured inbox messages automatically</value></data>
 </root>

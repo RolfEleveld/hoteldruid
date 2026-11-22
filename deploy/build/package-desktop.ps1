@@ -20,6 +20,18 @@ $play = Join-Path $root 'artifacts\play'
 $clientOut = Join-Path $play 'client'
 $apiOut = Join-Path $play 'api'
 $props = @('-p:DebugType=none', '-p:DebugSymbols=false')
+$pipelineBuild = [string]$env:HOTELDRUID_BUILD_NUMBER
+if (-not [string]::IsNullOrWhiteSpace($pipelineBuild)) {
+    if ($pipelineBuild -notmatch '^\d+$') { throw "HOTELDRUID_BUILD_NUMBER must be a whole number. It was '$pipelineBuild'." }
+    [xml]$versionXml = Get-Content -Path (Join-Path $root 'Directory.Build.props')
+    $baseVersion = [string]$versionXml.Project.PropertyGroup.Version
+    if ([string]::IsNullOrWhiteSpace($baseVersion)) { throw 'Directory.Build.props has no Version.' }
+    $props += "-p:InformationalVersion=$baseVersion.$pipelineBuild"
+    $props += '-p:IncludeSourceRevisionInInformationalVersion=false'
+    if ([int64]$pipelineBuild -le 65535) {
+        $props += "-p:FileVersion=$baseVersion.$pipelineBuild"
+    }
+}
 
 function Ensure-Dir([string]$Path) {
     if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }

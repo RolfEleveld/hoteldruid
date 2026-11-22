@@ -329,7 +329,7 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 
 // --- Mock API endpoints for early Blazor development ---
 
-static string HotelDruidVersion()
+static string HotelDruidInformational()
 {
     var informational = Assembly.GetExecutingAssembly()
         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -340,14 +340,29 @@ static string HotelDruidVersion()
     return plus >= 0 ? informational[..plus] : informational;
 }
 
+static string HotelDruidVersion()
+{
+    var parts = HotelDruidInformational().Split('.');
+    return parts.Length >= 3 ? string.Join('.', parts[..3]) : HotelDruidInformational();
+}
+
+static string HotelDruidBuildNumber()
+{
+    var informational = HotelDruidInformational();
+    if (informational.Split('.').Length >= 4)
+        return informational;
+
+    var build = Environment.GetEnvironmentVariable("HOTELDRUID_BUILD_NUMBER")
+        ?? Environment.GetEnvironmentVariable("GITHUB_RUN_NUMBER")
+        ?? Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER")
+        ?? Environment.GetEnvironmentVariable("CI_PIPELINE_IID");
+    if (string.IsNullOrWhiteSpace(build))
+        build = "local";
+    return $"{HotelDruidVersion()}.{build.Trim()}";
+}
+
 app.MapGet("/api/status", (HttpContext httpContext) =>
 {
-    var buildNumber = Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER")
-        ?? Environment.GetEnvironmentVariable("GITHUB_RUN_NUMBER")
-        ?? Environment.GetEnvironmentVariable("CI_PIPELINE_IID")
-        ?? Environment.GetEnvironmentVariable("HOTELDRUID_BUILD_NUMBER")
-        ?? "local";
-
     return Results.Ok(new
     {
         ActiveYear = DateTime.UtcNow.Year.ToString(),
@@ -355,7 +370,7 @@ app.MapGet("/api/status", (HttpContext httpContext) =>
         Authenticated = RequestActor.IsAuthenticated(httpContext),
         Version = $"HotelDruid {HotelDruidVersion()}",
         VersionLabel = $"HotelDruid {HotelDruidVersion()}. Blazor",
-        BuildNumber = buildNumber
+        BuildNumber = HotelDruidBuildNumber()
     });
 });
 

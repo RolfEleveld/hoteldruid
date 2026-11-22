@@ -108,6 +108,7 @@ jobs:
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           docker build -f deploy/container/Dockerfile \
+            --build-arg HOTELDRUID_BUILD_NUMBER="${{ github.run_number }}" \
             -t "$image:sha-${GITHUB_SHA}" \
             -t hoteldruid:local .
           docker save hoteldruid:local -o hoteldruid-container.tar

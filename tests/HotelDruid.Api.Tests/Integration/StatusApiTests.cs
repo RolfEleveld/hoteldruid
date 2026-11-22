@@ -59,7 +59,28 @@ public class StatusApiTests : IAsyncLifetime
         var status = await _client.GetFromJsonAsync<StatusDto>("/api/status");
 
         Assert.NotNull(status);
-        Assert.Equal("local", status!.BuildNumber);
+        Assert.Equal("4.10.1.local", status!.BuildNumber);
+    }
+
+    [Fact]
+    public async Task Status_AppendsPipelineBuildNumber_WhenTheRunNumberIsSet()
+    {
+        Environment.SetEnvironmentVariable("HOTELDRUID_BUILD_NUMBER", "128");
+        Environment.SetEnvironmentVariable("GITHUB_RUN_NUMBER", null);
+        Environment.SetEnvironmentVariable("BUILD_BUILDNUMBER", null);
+        Environment.SetEnvironmentVariable("CI_PIPELINE_IID", null);
+        try
+        {
+            var status = await _client.GetFromJsonAsync<StatusDto>("/api/status");
+
+            Assert.NotNull(status);
+            Assert.Equal("HotelDruid 4.10.1", status!.Version);
+            Assert.Equal("4.10.1.128", status.BuildNumber);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("HOTELDRUID_BUILD_NUMBER", null);
+        }
     }
 
     private sealed class StatusDto

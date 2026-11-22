@@ -1,23 +1,45 @@
 # Stage 1: Build Blazor WASM client
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS client-build
 WORKDIR /src
+COPY Directory.Build.props ./
 COPY src/HotelDruid.Shared/ src/HotelDruid.Shared/
 COPY src/HotelDruid.Client/ src/HotelDruid.Client/
 COPY deploy/build/docker/link-assets.py /tmp/link-assets.py
+ARG HOTELDRUID_BUILD_NUMBER=
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 \
  && rm -rf /var/lib/apt/lists/*
-RUN dotnet publish src/HotelDruid.Client/HotelDruid.Client.csproj \
-    -c Release -o /artifacts/client \
+RUN set -eu; \
+    version_args=""; \
+    if [ -n "${HOTELDRUID_BUILD_NUMBER}" ]; then \
+      base=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' Directory.Build.props | head -n 1); \
+      version_args="-p:InformationalVersion=${base}.${HOTELDRUID_BUILD_NUMBER} -p:IncludeSourceRevisionInInformationalVersion=false"; \
+      if [ "${HOTELDRUID_BUILD_NUMBER}" -le 65535 ]; then \
+        version_args="${version_args} -p:FileVersion=${base}.${HOTELDRUID_BUILD_NUMBER}"; \
+      fi; \
+    fi; \
+    dotnet publish src/HotelDruid.Client/HotelDruid.Client.csproj \
+      -c Release -o /artifacts/client $version_args \
  && python3 /tmp/link-assets.py /artifacts/client
 
 # Stage 2: Build API
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
 WORKDIR /src
+COPY Directory.Build.props ./
 COPY src/HotelDruid.Shared/ src/HotelDruid.Shared/
 COPY src/HotelDruid.Api/ src/HotelDruid.Api/
-RUN dotnet publish src/HotelDruid.Api/HotelDruid.Api.csproj \
-    -c Release -o /artifacts/api
+ARG HOTELDRUID_BUILD_NUMBER=
+RUN set -eu; \
+    version_args=""; \
+    if [ -n "${HOTELDRUID_BUILD_NUMBER}" ]; then \
+      base=$(sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p' Directory.Build.props | head -n 1); \
+      version_args="-p:InformationalVersion=${base}.${HOTELDRUID_BUILD_NUMBER} -p:IncludeSourceRevisionInInformationalVersion=false"; \
+      if [ "${HOTELDRUID_BUILD_NUMBER}" -le 65535 ]; then \
+        version_args="${version_args} -p:FileVersion=${base}.${HOTELDRUID_BUILD_NUMBER}"; \
+      fi; \
+    fi; \
+    dotnet publish src/HotelDruid.Api/HotelDruid.Api.csproj \
+      -c Release -o /artifacts/api $version_args
 
 # Stage 3: Runtime. Alpine is the small image that can still run a health check.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
