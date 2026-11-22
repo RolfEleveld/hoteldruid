@@ -10,6 +10,14 @@ Everything used to put HotelDruid on a computer is in this folder.
 
 A desk computer does not need this folder. The install command is in the root [README](../README.md). That install opens `https://localhost:5001/` on the same computer.
 
+Windows leaves PowerShell script files disabled. The install command is downloaded text, so that setting does not block the command itself, and the installer starts the hotel script with a bypass for that run. If the window says `HotelDruid.ps1` cannot be loaded because running scripts is disabled, run this in the same window and then run the install command again:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force
+```
+
+That change lasts only for the open window.
+
 ## Other computers on the same network
 
 This is the step after a single computer using localhost. A few other computers can open the desk by the desk computer's own name. There is no domain and no central certificate service.

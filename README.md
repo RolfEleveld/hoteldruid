@@ -32,6 +32,14 @@ iex (irm https://github.com/RolfEleveld/hoteldruid/releases/download/blazor-late
 
 Approve the administrator prompt. The command downloads one zip, installs the ASP.NET Core 10 runtime when it is missing, copies the hotel to `C:\ProgramData\HotelDruid`, and starts it at every boot. The desktop icon opens the desk.
 
+Windows leaves PowerShell script files disabled. The install command is downloaded text, so that setting does not block the command itself, and the installer starts the hotel script with a bypass for that run. If the window says `HotelDruid.ps1` cannot be loaded because running scripts is disabled, run this in the same window and then run the install command again:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force
+```
+
+That change lasts only for the open window.
+
 The install creates a certificate for `localhost`. The private key stays in the machine certificate store. The public certificate is added to the machine's trusted root store. The desk address is `https://localhost:5001/`.
 
 A computer with no network unzips `HotelDruid-desktop.zip` and runs `HotelDruid.cmd`.
