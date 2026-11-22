@@ -1,9 +1,8 @@
-# HotelDruid winget manifest. This is a zip checked by hash.
-# It does not need an Authenticode certificate and it does not need a signed installer.
-# Fill InstallerUrl and InstallerSha256 from the blazor-latest asset HotelDruid-desktop.zip
-# before submitting the manifest to the Windows Package Manager community repository.
-# Winget portable puts HotelDruid.cmd on the path. An administrator still runs
-# HotelDruid.cmd Install once so the hotel starts with the computer.
+# HotelDruid winget manifest. The GitHub build fills InstallerUrl and InstallerSha256
+# from HotelDruid-desktop.zip and uploads this file on the blazor-latest release.
+# Submit that copy to the Windows Package Manager community repository.
+# Until it is accepted there, the one-step install is the install.ps1 command on that release.
+# This manifest does not need an Authenticode certificate. Winget checks the zip hash.
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
 
 PackageIdentifier: HotelDruid.HotelDruid

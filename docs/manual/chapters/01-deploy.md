@@ -4,10 +4,15 @@ A new computer gets one program and one data folder. Employees open the desktop 
 
 ## Windows desk
 
-1. Unzip `HotelDruid-desktop.zip`. `HotelDruid.cmd` sits next to `HotelDruid.Api.dll`.
-2. In an administrator PowerShell, in that folder: `.\HotelDruid.cmd Install`
-3. Install adds the ASP.NET Core 10 runtime when it is missing, copies the program to `C:\ProgramData\HotelDruid\app`, keeps the hotel in `data` and the log in `logs`, and starts it at every boot.
-4. Open the desktop icon. The first page is [House settings](03-house.md).
+On the desk computer, in PowerShell, run the install command from the HotelDruid release. The repository name is filled in on that release:
+
+```powershell
+iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+```
+
+Approve the administrator prompt. That downloads `HotelDruid-desktop.zip`, installs the ASP.NET Core 10 runtime when it is missing, copies the program to `C:\ProgramData\HotelDruid\app`, keeps the hotel in `data` and the log in `logs`, and starts it at every boot. Open the desktop icon. The first page is [House settings](03-house.md).
+
+The same zip can be copied onto a computer that has no internet. Unzip it and run `HotelDruid.cmd`.
 
 The address is `https://localhost:5001/`.
 

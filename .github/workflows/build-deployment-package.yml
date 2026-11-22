@@ -50,38 +50,43 @@ jobs:
           path: deployment-package/sbom/
           retention-days: 14
 
-      - name: Build release archive
-        if: github.event_name != 'pull_request'
-        run: |
-          Compress-Archive -Path ./deployment-package/* -DestinationPath ./hoteldruid-deployment-package.zip -Force
-        shell: pwsh
-
-      - name: Publish latest blazor release asset
+      - name: Publish the desk install
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'blazor-latest'
-          $title = 'Blazor Latest Deployment Package'
+          $title = 'HotelDruid desk'
+          $installUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/blazor-latest/install.ps1"
           $notes = @"
-          Automated deployment package from commit $env:GITHUB_SHA
+          Install the desk on this computer:
 
-          Desk install, from the release asset:
-          iex (irm https://github.com/$env:GITHUB_REPOSITORY/releases/download/blazor-latest/install.ps1)
+          ```powershell
+          iex (irm $installUrl)
+          ```
 
-          Or download HotelDruid-desktop.zip, unzip it, and run HotelDruid.cmd Install.
+          Approve the administrator prompt. The command downloads HotelDruid-desktop.zip, installs the runtime when it is missing, and starts the desk at every boot.
+
+          HotelDruid.HotelDruid.yaml is the winget manifest for this zip, with its hash filled in. Submit that file to the Windows Package Manager community repository to enable ``winget install HotelDruid.HotelDruid``.
           "@
           Copy-Item ./artifacts/HotelDruid-package.zip ./HotelDruid-desktop.zip -Force
-          $installer = Get-Content ./scripts/desktop/install.ps1 -Raw
-          $installer = $installer.Replace('__GITHUB_REPOSITORY__', $env:GITHUB_REPOSITORY)
+          $hash = (Get-FileHash ./HotelDruid-desktop.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $installer = (Get-Content ./scripts/desktop/install.ps1 -Raw).Replace('__GITHUB_REPOSITORY__', $env:GITHUB_REPOSITORY)
           [System.IO.File]::WriteAllText((Join-Path (Get-Location) 'install.ps1'), $installer)
+          $manifest = (Get-Content ./deploy/winget/HotelDruid.HotelDruid.yaml -Raw).Replace('__GITHUB_REPOSITORY__', $env:GITHUB_REPOSITORY).Replace('0000000000000000000000000000000000000000000000000000000000000000', $hash)
+          [System.IO.File]::WriteAllText((Join-Path (Get-Location) 'HotelDruid.HotelDruid.yaml'), $manifest)
+          $assets = @(
+            './HotelDruid-desktop.zip',
+            './install.ps1',
+            './HotelDruid.HotelDruid.yaml',
+            './deployment-package/sbom/HotelDruid.Api.sbom.cdx.json',
+            './deployment-package/sbom/HotelDruid.Client.sbom.cdx.json'
+          )
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag ./hoteldruid-deployment-package.zip ./HotelDruid-desktop.zip ./install.ps1 --clobber
-            gh release upload $tag ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json --clobber
-            gh release upload $tag ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --clobber
+            gh release upload $tag @assets --clobber
             gh release edit $tag --title $title --notes $notes --target $env:GITHUB_SHA
           } else {
-            gh release create $tag ./hoteldruid-deployment-package.zip ./HotelDruid-desktop.zip ./install.ps1 ./deployment-package/sbom/HotelDruid.Api.sbom.cdx.json ./deployment-package/sbom/HotelDruid.Client.sbom.cdx.json --title $title --notes $notes --target $env:GITHUB_SHA
+            gh release create $tag @assets --title $title --notes $notes --target $env:GITHUB_SHA
           }
         shell: pwsh

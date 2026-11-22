@@ -2,6 +2,22 @@
 
 HotelDruid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
 
+## Install a desk computer
+
+On the computer that will run the hotel, open PowerShell and run the command published on the `blazor-latest` release. It has this shape, with the GitHub owner filled in:
+
+```powershell
+iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+```
+
+Approve the administrator prompt. The command downloads `HotelDruid-desktop.zip`, installs the ASP.NET Core 10 runtime when it is missing, copies the hotel to `C:\ProgramData\HotelDruid`, starts it at every boot, and puts HotelDruid on the desktop.
+
+A computer with no network uses the same zip: unzip it and run `HotelDruid.cmd`.
+
+The steps, the nightly backup, and removal are in [Deploy](docs/manual/chapters/01-deploy.md). A public address, a certificate, and sign-in are in the [deployment runbook](docs/deployment-runbook.md).
+
+The same GitHub build attaches `HotelDruid.HotelDruid.yaml`, the winget manifest for that zip with its hash filled in. `winget install HotelDruid.HotelDruid` works after that file is accepted into the Windows Package Manager community repository. The source of the manifest is [deploy/winget/HotelDruid.HotelDruid.yaml](deploy/winget/HotelDruid.HotelDruid.yaml).
+
 ## Recent Updates (May 2026)
 
 The latest implementation adds a staged configuration and assumption workflow to improve first-run usability and reduce manual maintenance.
@@ -57,9 +73,8 @@ The latest implementation adds a staged configuration and assumption workflow to
 
 ## Play with a hotel
 
-The hotel manual, including a fresh install and the demo used for training, is in [docs/manual](docs/manual/README.md). Build it with `./scripts/manual.ps1`.
+The hotel manual, including a fresh install and the demo used for training, is in [docs/manual](docs/manual/README.md). The desk install is [above](#install-a-desk-computer). Build the picture guide with `./scripts/manual.ps1`.
 
-- Windows: unzip `artifacts/HotelDruid-desktop.zip` and run `HotelDruid.cmd Install`. `scripts/package-desktop.ps1` builds that zip.
 - Docker, from this repository: `docker compose up --build`, then open `http://localhost:8080/`.
 
 ## Build, Deploy, Test
@@ -116,23 +131,13 @@ You can download the package from either:
 1. Releases (`blazor-latest`) on the repository home page
 2. The Artifacts section in the matching GitHub Actions run
 
-**How to deploy:**
-1. Download the latest package from the `blazor-latest` Release, or from a `blazor` workflow run artifact.
+**Desk computer:** see [Install a desk computer](#install-a-desk-computer) and [Deploy](docs/manual/chapters/01-deploy.md).
+
+**How to deploy a development copy:**
+1. Download the build artifact from the matching GitHub Actions run, or build with `./scripts/build.ps1`.
 2. Unzip the package.
-3. Run the included `deploy.ps1` script (see usage below).
-4. For more details, see the rest of this README and the `scripts/README.md`.
-
-**Desk computer:**
-
-The release also carries `HotelDruid-desktop.zip` and `install.ps1`. On the front-desk computer, an administrator runs:
-
-```powershell
-iex (irm https://github.com/<owner>/<repo>/releases/download/blazor-latest/install.ps1)
-```
-
-That installs one hotel for the whole computer, starts it with Windows, and puts HotelDruid on the desktop. Opening HotelDruid checks the desk and launches the browser. `HotelDruid.cmd Uninstall` writes the export into the current user's Temp folder before it removes the hotel. The next install reports that folder.
-
-The package stays the framework-dependent build, so the computer needs the ASP.NET Core 10 runtime. A winget manifest that checks the zip hash, without a code-signing certificate, is in `deploy/winget/HotelDruid.HotelDruid.yaml`. Winget portable does not register the startup task; an administrator still runs `HotelDruid.cmd Install` once.
+3. Run the included `deploy.ps1` script.
+4. Parameters are in `scripts/README.md`.
 
 The deployment package includes:
 - Build outputs produced under `artifacts/` (including `HotelDruid-package.zip`)

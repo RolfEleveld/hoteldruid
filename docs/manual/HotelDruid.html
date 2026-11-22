@@ -24,7 +24,10 @@ pre{background:#f6f6f6;padding:8px;overflow:auto}
 <h1 id="deploy">Deploy</h1>
 <p>A new computer gets one program and one data folder. Employees open the desktop icon, or a bookmark.</p>
 <h2 id="deploy-windows-desk">Windows desk</h2>
-<ol><li>Unzip <code>HotelDruid-desktop.zip</code>. <code>HotelDruid.cmd</code> sits next to <code>HotelDruid.Api.dll</code>.</li><li>In an administrator PowerShell, in that folder: <code>.\HotelDruid.cmd Install</code></li><li>Install adds the ASP.NET Core 10 runtime when it is missing, copies the program to <code>C:\ProgramData\HotelDruid\app</code>, keeps the hotel in <code>data</code> and the log in <code>logs</code>, and starts it at every boot.</li><li>Open the desktop icon. The first page is <a href="#house">House settings</a>.</li></ol>
+<p>On the desk computer, in PowerShell, run the install command from the HotelDruid release. The repository name is filled in on that release:</p>
+<pre><code>iex (irm https://github.com/&lt;owner&gt;/hotelDruid/releases/download/blazor-latest/install.ps1)</code></pre>
+<p>Approve the administrator prompt. That downloads <code>HotelDruid-desktop.zip</code>, installs the ASP.NET Core 10 runtime when it is missing, copies the program to <code>C:\ProgramData\HotelDruid\app</code>, keeps the hotel in <code>data</code> and the log in <code>logs</code>, and starts it at every boot. Open the desktop icon. The first page is <a href="#house">House settings</a>.</p>
+<p>The same zip can be copied onto a computer that has no internet. Unzip it and run <code>HotelDruid.cmd</code>.</p>
 <p>The address is <code>https://localhost:5001/</code>.</p>
 <h2 id="deploy-nightly-copy">Nightly copy</h2>
 <pre><code>.\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups" -BackupAt 02:00</code></pre>

@@ -66,7 +66,16 @@ $desktop = Join-Path $PSScriptRoot 'desktop'
 foreach ($name in @('HotelDruid.cmd', 'HotelDruid.ps1', 'install.ps1', 'Load-DemoHotel.ps1', 'Backup-HotelDruid.ps1')) {
     Copy-Item -Path (Join-Path $desktop $name) -Destination (Join-Path $apiOut $name) -Force
 }
-Copy-Item -Path (Join-Path $root 'docs\deployment.md') -Destination (Join-Path $apiOut 'DEPLOYMENT.md') -Force
+@'
+HotelDruid desk package.
+
+Run HotelDruid.cmd in this folder.
+Approve the administrator prompt. The desk is installed for this computer and starts at every boot.
+
+The same install from the published release, without copying this folder first:
+
+  iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+'@ | Set-Content -Path (Join-Path $apiOut 'INSTALL.txt') -Encoding utf8
 
 $package = Join-Path $root 'artifacts\HotelDruid-desktop.zip'
 if (Test-Path $package) { Remove-Item -Force $package }
