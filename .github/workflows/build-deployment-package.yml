@@ -93,6 +93,8 @@ jobs:
           } else {
             gh release create $tag @assets --title $title --notes $notes --target $env:GITHUB_SHA
           }
+          git tag -f $tag $env:GITHUB_SHA
+          git push origin "refs/tags/$tag" --force
         shell: pwsh
 
   container:
