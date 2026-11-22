@@ -32,12 +32,15 @@ function Test-PackageRoot([string]$Path) {
     return (Test-Path (Join-Path $Path 'HotelDruid.Api.dll')) -and (Test-Path (Join-Path $Path 'HotelDruid.ps1'))
 }
 
+function Invoke-HotelInstall([string]$ScriptPath) {
+    $hostExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $proc = Start-Process -FilePath $hostExe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`" -Action Install" -Wait -PassThru
+    if ($proc.ExitCode -ne 0) { throw "Install failed ($($proc.ExitCode))." }
+}
+
 $source = $PSScriptRoot
 if (Test-PackageRoot $source) {
-    & (Join-Path $source 'HotelDruid.ps1') -Action Install
-    $code = 0
-    if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $code = [int]$global:LASTEXITCODE }
-    if ($code -ne 0) { exit $code }
+    Invoke-HotelInstall (Join-Path $source 'HotelDruid.ps1')
     return
 }
 
@@ -61,10 +64,7 @@ if (-not (Test-PackageRoot $app)) {
 }
 
 try {
-    & (Join-Path $app 'HotelDruid.ps1') -Action Install
-    $code = 0
-    if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $code = [int]$global:LASTEXITCODE }
-    if ($code -ne 0) { throw "Install failed ($code)." }
+    Invoke-HotelInstall (Join-Path $app 'HotelDruid.ps1')
 }
 finally {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $stage
