@@ -57,7 +57,7 @@ The latest implementation adds a staged configuration and assumption workflow to
 
 ## Play with a hotel
 
-The user package and the two ways to run it are in [docs/deployment.md](docs/deployment.md).
+The hotel manual, including a fresh install and the demo used for training, is in [docs/manual](docs/manual/README.md). Build it with `./scripts/manual.ps1`.
 
 - Windows: unzip `artifacts/HotelDruid-desktop.zip` and run `HotelDruid.cmd Install`. `scripts/package-desktop.ps1` builds that zip.
 - Docker, from this repository: `docker compose up --build`, then open `http://localhost:8080/`.
@@ -78,6 +78,9 @@ PowerShell scripts use a convention-over-configuration workflow:
 # Run all tests
 .\scripts\test.ps1
 .\scripts\test.ps1 -Clean
+
+# Refresh the hotel manual from the running desk
+.\scripts\manual.ps1
 ```
 
 `-Clean` removes old outputs and runs a full clean/rebuild path before build or test execution.

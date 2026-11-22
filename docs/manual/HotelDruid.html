@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>HotelDruid manual</title>
+<style>
+body{font:16px/1.45 "Segoe UI",sans-serif;margin:0;color:#1c1c1c;background:#fff}
+nav{position:sticky;top:0;background:#fff;border-bottom:1px solid #ccc;padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 14px}
+nav a{color:#163a5f;text-decoration:none}
+main{max-width:880px;margin:0 auto;padding:8px 16px 48px}
+h1{margin-top:2rem;border-top:1px solid #ddd;padding-top:1rem}
+img{max-width:100%;height:auto;border:1px solid #ddd}
+table{border-collapse:collapse;width:100%;margin:12px 0}
+td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top;text-align:left}
+code,pre{font-family:Consolas,monospace}
+pre{background:#f6f6f6;padding:8px;overflow:auto}
+</style>
+</head>
+<body>
+<nav>
+<a href="#deploy">Deploy</a><a href="#demo">Demo hotel</a><a href="#house">House settings</a><a href="#desk">The desk</a><a href="#guests">Guests</a><a href="#reservations">Reservations</a><a href="#arrivals">Arrivals</a><a href="#inhouse">In house</a><a href="#checkout">Check-out</a><a href="#night">Night audit</a><a href="#cash">Cash</a><a href="#rates">Rates</a><a href="#accounts">Accounts</a><a href="#property">Property</a><a href="#letters">Letters</a><a href="#people">People</a>
+</nav>
+<main>
+<h1 id="deploy">Deploy</h1>
+<p>A new computer gets one program and one data folder. Employees open the desktop icon, or a bookmark.</p>
+<h2 id="deploy-windows-desk">Windows desk</h2>
+<ol><li>Unzip <code>HotelDruid-desktop.zip</code>. <code>HotelDruid.cmd</code> sits next to <code>HotelDruid.Api.dll</code>.</li><li>In an administrator PowerShell, in that folder: <code>.\HotelDruid.cmd Install</code></li><li>Install adds the ASP.NET Core 10 runtime when it is missing, copies the program to <code>C:\ProgramData\HotelDruid\app</code>, keeps the hotel in <code>data</code> and the log in <code>logs</code>, and starts it at every boot.</li><li>Open the desktop icon. The first page is <a href="#house">House settings</a>.</li></ol>
+<p>The address is <code>https://localhost:5001/</code>.</p>
+<h2 id="deploy-nightly-copy">Nightly copy</h2>
+<pre><code>.\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups" -BackupAt 02:00</code></pre>
+<p>Run the same command again to change the folder or the time. <code>.\HotelDruid.cmd Backup</code> takes one copy now.</p>
+<p>The task runs as the person who set it, and only while that person is signed in, so the folder can be OneDrive. Without this, the only copy is the data folder on that computer.</p>
+<p>Logs are <code>C:\ProgramData\HotelDruid\logs\api-yyyyMMdd.log</code>. Copies and daily logs older than 30 days are removed. <code>api-startup.log</code> is the start-up console and is kept.</p>
+<h2 id="deploy-remove">Remove</h2>
+<p><code>.\HotelDruid.cmd Uninstall</code> writes an export into the current user's Temp folder, then removes the program, the task, and the icon.</p>
+<h2 id="deploy-container">Container</h2>
+<p>From the folder that contains <code>docker-compose.yml</code>: <code>docker compose up --build</code>. Open <code>http://localhost:8080/</code>. The hotel is the volume <code>HotelDruid_data</code>. <code>docker compose down -v</code> deletes that volume.</p>
+<p>A public address, a certificate, and sign-in are a separate step. See the <a href="../../deployment-runbook.md">deployment runbook</a> and <a href="../../keycloak-setup.md">Keycloak</a>.</p>
+<p>Next: <a href="#demo">Demo hotel</a>.</p>
+<h1 id="demo">Demo hotel</h1>
+<p>Use this to train the team. Do not load it over a hotel that is already in use unless the export path has been kept.</p>
+<ol><li>Install the desk. See <a href="#deploy">Deploy</a>.</li><li>In an administrator PowerShell, in the unzipped folder:</li></ol>
+<pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File .\Load-DemoHotel.ps1</code></pre>
+<ol><li>The current hotel is exported first. The last line of the window is that path, under the current user's Temp folder.</li><li>Reload the browser. The open page still shows the previous hotel until it is reloaded.</li></ol>
+<p>The demo is Hotel Belvedere: 20 rooms, about two thirds occupied, history from five years ago through six months ahead. The same seed writes the same pattern. Stays that already left are checked out. Stays that began before today and are still open are in house. Today and later stay confirmed.</p>
+<p>Practice <a href="#reservations">Reservations</a>, <a href="#arrivals">Arrivals</a>, <a href="#inhouse">In house</a>, and <a href="#checkout">Check-out</a> on those stays. A stay you check in or pay on this copy is changed. Load the demo again only if the export from step 3 is still the hotel you want to keep.</p>
+<p>Next: <a href="#house">House settings</a>.</p>
+<h1 id="house">House settings</h1>
+<p>Do this once, before the first real guest. Open <strong>Setup</strong>.</p>
+<p><img src="images/setup.png" alt="Setup"/></p>
+<table><tr><th>Setting</th><th>Where</th><th>If it is left wrong</th></tr><tr><td>Hotel name</td><td>Setup</td><td>Letters and the desk title use another name.</td></tr><tr><td>Currency</td><td>Setup</td><td>Every amount is in the wrong currency.</td></tr><tr><td>Chart of accounts</td><td>Setup</td><td>Ledger numbers will not match the accountant. Do not change the chart after money has been posted.</td></tr><tr><td>Guest registration</td><td>Setup</td><td><a href="#night">Night audit</a> checks the fields that standard requires. The printed card is the letter in <a href="#letters">Letters</a>.</td></tr><tr><td>Inbox automation</td><td>Setup</td><td>On: a structured message can become a booking. Off: it waits on <a href="#reservations">Received</a>.</td></tr><tr><td>Tariffs and assignment rules</td><td><a href="#rates">Rates</a></td><td>A room with no rule has no price. An arrival then has no tariff.</td></tr><tr><td>Tax rates</td><td><a href="#accounts">Accounts</a></td><td>Inclusive prices already contain the tax. The bill shows the recap and does not add the tax again.</td></tr><tr><td>Letters</td><td><a href="#letters">Letters</a></td><td>The desk language does not change the letter. The wording in the file is what prints.</td></tr><tr><td>Clerk name</td><td><a href="#people">People</a></td><td>Ledger lines have no name.</td></tr><tr><td>Backup folder</td><td><a href="#deploy">Deploy</a></td><td>There is no nightly copy.</td></tr><tr><td>Cash register</td><td><a href="#cash">Cash</a></td><td>Takings are not tied to a drawer.</td></tr></table>
+<p>The data folder shown on Setup is read-only here. <code>HOTELDRUID_DATAROOT</code> chooses it before the program starts.</p>
+<p>The screen language is <strong>Settings</strong>, not Setup. It changes menus. It does not choose the invoice.</p>
+<p><img src="images/settings.png" alt="Settings"/></p>
+<p>Next: <a href="#desk">The desk</a>.</p>
+<h1 id="desk">The desk</h1>
+<p>Home is the day's work. Set the clerk name first. See <a href="#people">People</a>.</p>
+<p><img src="images/home.png" alt="Home"/></p>
+<table><tr><th>Box</th><th>Use it for</th></tr><tr><td>Reservations</td><td>Stays not yet arrived. Open one, or start a <a href="#reservations">reservation</a>.</td></tr><tr><td>Arrivals</td><td>Due and not checked in. <strong>Arrived</strong> opens <a href="#arrivals">Arrivals</a>. It does not check the guest in.</td></tr><tr><td>Stays</td><td>In house. Purchases and room changes are <a href="#inhouse">In house</a>.</td></tr><tr><td>Departures</td><td>Due to leave. <a href="#checkout">Check-out</a>.</td></tr><tr><td>Received</td><td>Partner and channel bookings waiting to be accepted.</td></tr></table>
+<p>The menu on the left is the same work, grouped. Each page in this manual is one of those entries.</p>
+<p>Next: <a href="#guests">Guests</a>.</p>
+<h1 id="guests">Guests</h1>
+<p>A stay needs a surname. The other fields are what the registration standard and the invoice ask for.</p>
+<h2 id="guests-clients">Clients</h2>
+<ol><li><strong>Clients</strong> → new, or search and open.</li><li>Record the name, the address, and the document fields the <a href="#house">house standard</a> requires.</li><li>Save.</li></ol>
+<p><img src="images/clients.png" alt="Clients"/></p>
+<p>The guest record is the person. It is not the stay. The same person can return.</p>
+<h2 id="guests-other-people-in-the-room">Other people in the room</h2>
+<ol><li><strong>Booking Guests</strong>.</li><li>Attach each other occupant to the booking.</li><li>A card is printed per person on <a href="#arrivals">arrival</a>. Night audit counts the names the standard requires.</li></ol>
+<p><img src="images/booking-guests.png" alt="Booking guests"/></p>
+<h2 id="guests-cancelled">Cancelled</h2>
+<p><strong>Cancelled Bookings</strong> is the list of stays that were cancelled. Open one to read it. It is not a new reservation.</p>
+<p><img src="images/cancelled.png" alt="Cancelled bookings"/></p>
+<p>Next: <a href="#reservations">Reservations</a>.</p>
+<h1 id="reservations">Reservations</h1>
+<h2 id="reservations-new-stay">New stay</h2>
+<ol><li><strong>Bookings</strong> → <strong>New</strong>.</li><li>Fill the room, the arrival, the departure, the number of persons, and the guest surname.</li><li>Save.</li></ol>
+<p><img src="images/bookings.png" alt="Bookings"/></p>
+<p>The price comes from the tariff for that room, those dates, and that number of people. See <a href="#rates">Rates</a>. If no tariff applies, do not leave the stay without a price. An arrival with no tariff is a failed reservation.</p>
+<p>The right-hand panel is the stay. Payments under the guest are a list: what was paid, and the date. The heading opens the money page.</p>
+<h2 id="reservations-calendar">Calendar</h2>
+<p><strong>Calendar</strong> shows who is in which room. Use it to pick a free room before you save.</p>
+<p><img src="images/calendar.png" alt="Calendar"/></p>
+<h2 id="reservations-rooms">Rooms</h2>
+<p><strong>Rooms</strong> is the house: name, beds, floor. A room that is missing here cannot be sold.</p>
+<p><img src="images/rooms.png" alt="Rooms"/></p>
+<h2 id="reservations-received">Received</h2>
+<p><strong>Received</strong> holds bookings that arrived from a channel or a message and are not accepted yet. Accept the ones the house will honour. With inbox automation off, this is where those messages wait. See <a href="#house">House settings</a>.</p>
+<p><img src="images/received.png" alt="Received"/></p>
+<h2 id="reservations-money-on-the-stay">Money on the stay</h2>
+<p>Open the stay, then the amount, or <strong>Payments</strong>.</p>
+<p><img src="images/finance.png" alt="Booking money"/></p>
+<p>Record a deposit or a payment with the amount, what it applies to, and who recorded it. A deposit is held until <a href="#checkout">check-out</a>. It is not the same as a payment against the stay. The bill's amount due already subtracts a deposit still held.</p>
+<p>Taking money at the door, with a payment code, is <a href="#arrivals">Arrivals</a>.</p>
+<p>Next: <a href="#arrivals">Arrivals</a>.</p>
+<h1 id="arrivals">Arrivals</h1>
+<p><strong>Arrived</strong> on the desk, or on the booking, opens this page. The guest is not in house until <strong>Mark arrived</strong>.</p>
+<p><img src="images/arrival.png" alt="Arrival"/></p>
+<p>Left: this stay only. <strong>Back</strong> returns to the previous page. Middle: the work. Right: the same stay detail as the booking.</p>
+<h2 id="arrivals-registration-card">Registration card</h2>
+<ol><li>Open the letter for the language the house uses. The buttons are the copies under <a href="#letters">Letters</a>.</li><li>The card is already filled with the guest and the stay.</li><li>Print it. The guest signs it. File the paper.</li><li>Do not scan the identity document into the hotel. Check the card against the document, then type any missing field on the <a href="#guests">guest</a>.</li></ol>
+<p>Which fields are required is the registration standard in <a href="#house">House settings</a>. <a href="#night">Night audit</a> lists the gaps.</p>
+<h2 id="arrivals-payment">Payment</h2>
+<ol><li>The amount starts as what is still due after any deposit.</li><li>Choose cash, card, or transfer.</li><li>Card and transfer need the code from the slip or the transfer. Type it. A terminal, when one is connected later, supplies the same code.</li><li>Set the time if it is not now.</li><li><strong>Record payment</strong>. The code is stored on the ledger line so it can be matched to a terminal log.</li></ol>
+<p>Cash does not need a code. A card payment is not cash in the drawer.</p>
+<h2 id="arrivals-room-actually-taken">Room actually taken</h2>
+<ol><li>Change the number of guests or the room when the party is not the one that was booked.</li><li>The tariff for that room and that number must exist. See <a href="#rates">Rates</a>.</li><li>If you leave the room as booked, the price already on the stay is kept.</li><li><strong>Mark arrived</strong>.</li></ol>
+<p>A guest already in house can still print a card and record a payment here. The room change for someone already in house is <a href="#inhouse">In house</a>.</p>
+<p>Next: <a href="#inhouse">In house</a>.</p>
+<h1 id="inhouse">In house</h1>
+<p>These are stays in the Stays box on <a href="#desk">the desk</a>.</p>
+<h2 id="inhouse-change-the-room">Change the room</h2>
+<p>On the booking, move the guest from the date they change room. The tariff follows the room they take. A move is not a new reservation.</p>
+<h2 id="inhouse-extras-on-the-stay">Extras on the stay</h2>
+<p><strong>Booking Costs</strong> posts an extra on one stay, such as a cot or a late dinner charged to the room.</p>
+<p><img src="images/booking-costs.png" alt="Booking costs"/></p>
+<p>The kinds of extra, and the dates they apply, are <a href="#rates">Rates</a>.</p>
+<h2 id="inhouse-counter-sales">Counter sales</h2>
+<ol><li><strong>Point of Sale</strong>.</li><li>Choose the in-house stay, or a walk-up guest.</li><li>Sell. Cash or card.</li><li>A sale on a stay is charged to that guest and appears on the bill at <a href="#checkout">check-out</a>.</li></ol>
+<p><img src="images/point-of-sale.png" alt="Point of sale"/></p>
+<p>Name the drawer when you take money. See <a href="#cash">Cash</a>.</p>
+<p>Next: <a href="#checkout">Check-out</a>.</p>
+<h1 id="checkout">Check-out</h1>
+<ol><li>Open the stay from Departures on <a href="#desk">the desk</a>, or from <strong>Bookings</strong>.</li><li>Take any amount still due. Use the payment on <a href="#arrivals">Arrivals</a> or the money page in <a href="#reservations">Reservations</a>. Put the slip code on a card or a transfer.</li><li>Check out.</li></ol>
+<p>A deposit still held is applied to the stay at check-out. After that, the bill no longer shows it as money waiting. It has paid the stay.</p>
+<ol><li>Print the invoice in the house language. See <a href="#letters">Letters</a>.</li><li>Print the receipt for what was paid.</li></ol>
+<p>The invoice total due is what the guest still has to pay. It is not the room price repeated next to the deposit.</p>
+<p>Next: <a href="#night">Night audit</a>.</p>
+<h1 id="night">Night audit</h1>
+<p>Open <strong>Night audit</strong> after the departures are done.</p>
+<p><img src="images/night-audit.png" alt="Night audit"/></p>
+<p>The page lists what the day still misses: a registration field the <a href="#house">standard</a> requires, an open departure, a stay with no tariff.</p>
+<p>Read the list. Fix the rows you can. Stamp the day when the list is accepted.</p>
+<p>The stamp means the day was seen. It does not mean the guest paid. Do not stamp a day the house is still selling.</p>
+<p>Next: <a href="#cash">Cash</a>.</p>
+<h1 id="cash">Cash</h1>
+<h2 id="cash-drawers">Drawers</h2>
+<p><strong>Cash Registers</strong> is each drawer or terminal the desk uses. Open the one that is taking money before the shift. A payment recorded against a stay should name that drawer when the house keeps more than one.</p>
+<p><img src="images/cash-registers.png" alt="Cash registers"/></p>
+<h2 id="cash-paid-out">Paid out</h2>
+<p><strong>Expenses</strong> is money leaving the house: a supplier, a petty-cash purchase. Record the amount, what it was, and whether it counts toward the day.</p>
+<p><img src="images/expenses.png" alt="Expenses"/></p>
+<h2 id="cash-what-moved">What moved</h2>
+<p><strong>Money History</strong> is the list of payments, sales, and paid-outs. Use it to match a payment code from <a href="#arrivals">Arrivals</a> to a terminal slip.</p>
+<p><img src="images/money-history.png" alt="Money history"/></p>
+<p>A card payment is not cash counted in the drawer. The code on the ledger line is how the two are reconciled.</p>
+<p>Next: <a href="#rates">Rates</a>.</p>
+<h1 id="rates">Rates</h1>
+<p>A price is a tariff plus the dates it applies, for a room and a number of guests.</p>
+<h2 id="rates-tariffs">Tariffs</h2>
+<ol><li><strong>Tariffs</strong> → add the plans the house sells.</li><li>Set the price and the dates.</li></ol>
+<p><img src="images/tariffs.png" alt="Tariffs"/></p>
+<h2 id="rates-which-room-gets-which-plan">Which room gets which plan</h2>
+<p><strong>Assignment Rules</strong> binds a tariff to rooms. A room with no rule cannot be quoted. <a href="#reservations">Reservations</a> and <a href="#arrivals">Arrivals</a> then have no price for that room.</p>
+<p><img src="images/assignment-rules.png" alt="Assignment rules"/></p>
+<h2 id="rates-extras">Extras</h2>
+<p><strong>Extra Costs</strong> is a charge that is not the room: breakfast, a cot, parking, and the dates it can be sold. Posting one onto a stay is <a href="#inhouse">In house</a>.</p>
+<p><img src="images/extra-costs.png" alt="Extra costs"/></p>
+<p>Next: <a href="#accounts">Accounts</a>.</p>
+<h1 id="accounts">Accounts</h1>
+<p>The numbers are the chart chosen in <a href="#house">House settings</a>.</p>
+<h2 id="accounts-ledger">Ledger</h2>
+<p><strong>General Ledger</strong> is every posted line. Guest charges, payments, deposits, tax, and expenses land here. A payment code from the desk is on the payment line.</p>
+<p><img src="images/ledger.png" alt="Ledger"/></p>
+<p>Do not edit history to correct a price. Post the adjustment.</p>
+<h2 id="accounts-chart">Chart</h2>
+<p><strong>Chart of Accounts</strong> shows the numbers in use. Changing a number after postings exist splits the history across two codes.</p>
+<p><img src="images/chart.png" alt="Chart of accounts"/></p>
+<h2 id="accounts-tax">Tax</h2>
+<p><strong>Tax rates</strong> holds the percentages. When the house price is inclusive, the tax is inside the price. The invoice shows a recap. It does not add the tax a second time.</p>
+<p><img src="images/taxes.png" alt="Taxes"/></p>
+<h2 id="accounts-reports">Reports</h2>
+<p><strong>Reports</strong> is the printed lists: arrivals, in house, departures, and the cashier close. Open the one the shift needs.</p>
+<p><img src="images/reports.png" alt="Reports"/></p>
+<p>Next: <a href="#property">Property</a>.</p>
+<h1 id="property">Property</h1>
+<p>Rooms that can be sold are under <a href="#reservations">Reservations</a>. This chapter is the rest of the building.</p>
+<h2 id="property-assets">Assets</h2>
+<p><strong>Assets</strong> is equipment the house tracks: a boiler, a vehicle, a large fitting.</p>
+<p><img src="images/assets.png" alt="Assets"/></p>
+<h2 id="property-stores">Stores</h2>
+<p><strong>Warehouses</strong> is where stock sits. <strong>Inventory</strong> is the items and the quantity.</p>
+<p><img src="images/warehouses.png" alt="Warehouses"/></p>
+<p><img src="images/inventory.png" alt="Inventory"/></p>
+<p>Next: <a href="#letters">Letters</a>.</p>
+<h1 id="letters">Letters</h1>
+<p><strong>Contract Templates</strong> holds the invoice, the receipt, the confirmation email, and the registration card. There is one copy for each language the house prints.</p>
+<p><img src="images/templates.png" alt="Contract templates"/></p>
+<ol><li>Open the letter.</li><li>Leave the sentences as the house wants them. The program does not translate the headings.</li><li>Place a value field where a figure or a name should appear: the guest, the dates, the room, the amount due.</li><li>Save.</li></ol>
+<p>The desk language in <a href="#house">House settings</a> does not choose which letter prints. The button the clerk presses does. Print the copy written in the hotel's language.</p>
+<p>A registration card is filled the same way and opened from <a href="#arrivals">Arrivals</a>. An invoice number is given to the invoice copies. A receipt does not take that number.</p>
+<p><strong>Messages</strong> is the inbox for those confirmations and for channel mail. Send from the stay when the guest should receive the letter. Do not use a live guest address while training on the <a href="#demo">demo</a>.</p>
+<p><img src="images/messages.png" alt="Messages"/></p>
+<p>Next: <a href="#people">People</a>.</p>
+<h1 id="people">People</h1>
+<h2 id="people-clerk-name">Clerk name</h2>
+<p>On Home, <strong>Set your name</strong>, or open <strong>Profile</strong>. That name is written on ledger lines. Each browser can keep its own name, which is enough when several people share one desk without signing in.</p>
+<p><img src="images/profile.png" alt="Profile"/></p>
+<h2 id="people-screen-language">Screen language</h2>
+<p><strong>Settings</strong> changes the menus for this browser. English, Spanish, or Italian. It does not change <a href="#letters">letters</a> and it does not change another person's browser.</p>
+<h2 id="people-when-sign-in-is-on">When sign-in is on</h2>
+<p><strong>Users</strong>, <strong>User Groups</strong>, and privileges exist when the hotel uses an identity provider. A desk with no sign-in hides that work and uses the profile name instead.</p>
+<p>Roles and the public sign-in server are <a href="../../keycloak-setup.md">Keycloak</a>. Putting the desk on a public address is the <a href="../../deployment-runbook.md">deployment runbook</a>.</p>
+<p>Back to <a href="#deploy">Deploy</a>.</p>
+</main>
+</body>
+</html>

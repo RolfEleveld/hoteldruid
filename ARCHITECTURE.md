@@ -1375,7 +1375,7 @@ Base checks live with the API tests: balanced journals and filters in `LedgerApi
 Two items were deliberately left for later:
 
 - A per-room timeline that separates revenue earned per night, maintenance and renovation, and issue-driven downtime, so room profitability and utilization can be read over time.
-- A living user manual under `docs/user-guide/`, one page per major screen, with a role index and Playwright screenshots regenerated on release. The folder layout and how tightly the manual is coupled to the code still need a decision before that work starts.
+- The hotel manual is `docs/manual`. `scripts/manual.ps1` refreshes its pictures from a running desk and writes the HTML guide and the epub.
 
 Booking classification is a separate book: [docs/booking-lifecycle-consistency.md](docs/booking-lifecycle-consistency.md). List endpoints, check-in, check-out, and no-show are in place. What remains is import classification tests, a client test that clicks those actions, and the optional checkout audit fields `CheckedOutAt` and `CheckedOutByUserId`. `ActualDepartureDate` is already stored.
 
@@ -1454,7 +1454,7 @@ Resource keys used by the screens exist in English, Italian, and Spanish. A numb
 
 ## 24. Backup and logs
 
-The desk backup is a scheduled call to `POST /api/export/create`, then a download of that zip. The task is `HotelDruid Backup`. It runs as the Windows user who configured it, and only while that user is signed in, so the destination can be a OneDrive folder or a network share. The service account writes the working zip under `C:\ProgramData\HotelDruid\exports` and does not need rights to the destination. How to set the folder, the time, and the retention, and which log files to prune, is [docs/admin/backup-and-logs.md](docs/admin/backup-and-logs.md).
+The desk backup is a scheduled call to `POST /api/export/create`, then a download of that zip. The task is `HotelDruid Backup`. It runs as the Windows user who configured it, and only while that user is signed in, so the destination can be a OneDrive folder or a network share. The service account writes the working zip under `C:\ProgramData\HotelDruid\exports` and does not need rights to the destination. How to set the folder, the time, and the retention, and which log files to prune, is the Deploy chapter of [docs/manual](docs/manual/chapters/01-deploy.md).
 
 Application logs are one file per calendar day, `api-yyyyMMdd.log`, in the directory named by `HOTELDRUID_LOGDIR`. The process console before that logger starts is `api-startup.log`. Each export attempt appends one line to `backup.log`.
 

@@ -1,0 +1,1 @@
+# One file name per line. Capture leaves these images alone so a hotel can drop in its own screens.
