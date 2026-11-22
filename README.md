@@ -27,7 +27,7 @@ This is updated work from that program. On 22 November 2026 I published version 
 On the computer that will run the hotel, in PowerShell:
 
 ```powershell
-iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+iex (irm https://github.com/RolfEleveld/hoteldruid/releases/download/blazor-latest/install.ps1)
 ```
 
 Approve the administrator prompt. The command downloads one zip, installs the ASP.NET Core 10 runtime when it is missing, copies the hotel to `C:\ProgramData\HotelDruid`, and starts it at every boot. The desktop icon opens the desk.

@@ -4,8 +4,8 @@
 
 .DESCRIPTION
   Fetched on its own, this downloads HotelDruid-desktop.zip from the
-  blazor-latest release and installs it. The release build stamps the
-  repository name over __GITHUB_REPOSITORY__.
+  blazor-latest release and installs it. The release build writes the
+  repository name into the value below.
 
   When the file already sits next to HotelDruid.Api.dll, that folder is installed
   and nothing is downloaded.
@@ -42,7 +42,7 @@ if (Test-PackageRoot $source) {
 }
 
 if ([string]::IsNullOrWhiteSpace($packageUrl)) {
-    if ([string]::IsNullOrWhiteSpace($repository) -or $repository -eq '__GITHUB_REPOSITORY__') {
+    if ($repository -notmatch '^[^/\s]+/[^/\s]+$') {
         throw "This installer does not know the GitHub repository yet. Download HotelDruid-desktop.zip, unzip it, and run HotelDruid.cmd."
     }
     $packageUrl = "https://github.com/$repository/releases/download/blazor-latest/HotelDruid-desktop.zip"

@@ -87,7 +87,7 @@ Approve the administrator prompt. The desk is installed for this computer and st
 
 The same install from the published release, without copying this folder first:
 
-  iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+  iex (irm https://github.com/RolfEleveld/hoteldruid/releases/download/blazor-latest/install.ps1)
 
 After that install, the desk is at C:\ProgramData\HotelDruid\app.
 Other computers on the network use C:\ProgramData\HotelDruid\app\desk-certificate.ps1.
