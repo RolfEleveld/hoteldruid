@@ -6,11 +6,12 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
 
 PackageIdentifier: HotelDruid.HotelDruid
-PackageVersion: 3.0.7
+PackageVersion: 4.10.1
 PackageLocale: en-US
 Publisher: HotelDruid
 PackageName: HotelDruid
-License: Proprietary
+License: GNU Affero General Public License v3.0
+LicenseUrl: https://www.gnu.org/licenses/agpl-3.0.html
 ShortDescription: Local hotel desk for one computer
 Description: Starts the HotelDruid desk on this computer and opens it in the browser. One shared hotel is stored for the machine.
 Installers:

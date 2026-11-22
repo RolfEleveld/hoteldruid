@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -189,10 +190,13 @@ public class PackageBuilder : IPackageBuilder
 
     private static string GetApplicationVersion()
     {
-        var version = System.Reflection.Assembly.GetExecutingAssembly()
-            .GetName()
-            .Version;
-        return version?.ToString() ?? "1.0.0";
+        var informational = System.Reflection.Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+        if (string.IsNullOrWhiteSpace(informational))
+            return "4.10.1";
+        var plus = informational.IndexOf('+', StringComparison.Ordinal);
+        return plus >= 0 ? informational[..plus] : informational;
     }
 
     private static string GetDotNetVersion()

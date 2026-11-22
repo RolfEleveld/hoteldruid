@@ -451,7 +451,7 @@ function Remove-MachineCert([string]$Thumbprint, [bool]$CreatedByHotelDruid) {
                 $Thumbprint,
                 $false)
             foreach ($cert in $matches) {
-                if ($storeName -eq 'My' -and $cert.FriendlyName -ne $CertFriendlyName) { continue }
+                if ($storeName -eq 'My' -and $cert.FriendlyName -ne $CertFriendlyName -and $cert.FriendlyName -ne 'HotelDruid') { continue }
                 $store.Remove($cert)
             }
         }
@@ -532,10 +532,15 @@ function Get-PackageVersion([string]$AppDir) {
     $dll = Join-Path $AppDir 'HotelDruid.Api.dll'
     if (Test-Path $dll) {
         $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll)
+        if ($info.ProductVersion) {
+            $product = [string]$info.ProductVersion
+            $plus = $product.IndexOf('+')
+            if ($plus -ge 0) { $product = $product.Substring(0, $plus) }
+            if ($product) { return $product }
+        }
         if ($info.FileVersion) { return [string]$info.FileVersion }
-        if ($info.ProductVersion) { return [string]$info.ProductVersion }
     }
-    return '3.0.7'
+    return '4.10.1'
 }
 
 function Test-ZipFile([string]$Path) {

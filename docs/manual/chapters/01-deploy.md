@@ -14,7 +14,7 @@ Approve the administrator prompt. That downloads `HotelDruid-desktop.zip`, insta
 
 The same zip can be copied onto a computer that has no internet. Unzip it and run `HotelDruid.cmd`.
 
-The address is `https://localhost:5001/`.
+The address is `https://localhost:5001/`. The install creates a certificate for `localhost`. The private key stays in the machine personal store. The public certificate is added to the machine trusted root store.
 
 ## Nightly copy
 
@@ -34,8 +34,22 @@ Logs are `C:\ProgramData\HotelDruid\logs\api-yyyyMMdd.log`. Copies and daily log
 
 ## Container
 
-From the folder that contains `docker-compose.yml`: `docker compose up --build`. Open `http://localhost:8080/`. The hotel is the volume `HotelDruid_data`. `docker compose down -v` deletes that volume.
+The hotel runs as one image. Open `http://localhost:8080/`. The hotel files are the `/data` mount. `HOTELDRUID_PORT` changes the host port. The commands for each scenario are in the container notes beside the compose files.
 
-A public address, a certificate, and sign-in are a separate step. See the [deployment runbook](../../deployment-runbook.md) and [Keycloak](../../keycloak-setup.md).
+### Plain
+
+`docker compose -f deploy/container/compose/plain.yml up --build`. `down -v` deletes the named volume.
+
+### Keycloak
+
+The same hotel image, plus the sign-in service. The steps are in the container notes.
+
+### Reverse proxy
+
+The same hotel image, behind the proxy on ports 80 and 443. The proxy needs the certificate files.
+
+### Public
+
+The proxy and Keycloak together. A certificate and the sign-in finish are in the [deployment runbook](../../deployment-runbook.md) and [Keycloak](../../keycloak-setup.md).
 
 Next: [Demo hotel](02-demo.md).

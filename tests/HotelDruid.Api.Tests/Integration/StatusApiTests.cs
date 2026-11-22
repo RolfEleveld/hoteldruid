@@ -42,8 +42,8 @@ public class StatusApiTests : IAsyncLifetime
         var status = await _client.GetFromJsonAsync<StatusDto>("/api/status");
 
         Assert.NotNull(status);
-        Assert.Equal("HotelDruid 3.0.7", status!.Version);
-        Assert.Equal("HotelDruid 3.0.7. Blazor", status.VersionLabel);
+        Assert.Equal("HotelDruid 4.10.1", status!.Version);
+        Assert.Equal("HotelDruid 4.10.1. Blazor", status.VersionLabel);
         Assert.False(string.IsNullOrWhiteSpace(status.ActiveYear));
         Assert.False(string.IsNullOrWhiteSpace(status.User));
     }

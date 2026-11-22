@@ -1235,7 +1235,7 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     "component": {
       "type": "application",
       "name": "HotelDruid",
-      "version": "1.0.0",
+      "version": "4.10.1",
       "description": "Blazor WebAssembly frontend with ASP.NET Core API backend for hotel management.",
       "components": [
         {
@@ -1262,10 +1262,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
   "components": [
     {
       "type": "application",
-      "bom-ref": "pkg:generic/hoteldruid.api@1.0.0",
+      "bom-ref": "pkg:generic/hoteldruid.api@4.10.1",
       "name": "HotelDruid.Api",
-      "version": "1.0.0",
-      "purl": "pkg:generic/hoteldruid.api@1.0.0",
+      "version": "4.10.1",
+      "purl": "pkg:generic/hoteldruid.api@4.10.1",
       "properties": [
         {
           "name": "targetFramework",
@@ -1275,10 +1275,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     },
     {
       "type": "application",
-      "bom-ref": "pkg:generic/hoteldruid.client@1.0.0",
+      "bom-ref": "pkg:generic/hoteldruid.client@4.10.1",
       "name": "HotelDruid.Client",
-      "version": "1.0.0",
-      "purl": "pkg:generic/hoteldruid.client@1.0.0",
+      "version": "4.10.1",
+      "purl": "pkg:generic/hoteldruid.client@4.10.1",
       "properties": [
         {
           "name": "targetFramework",
@@ -1288,10 +1288,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     },
     {
       "type": "library",
-      "bom-ref": "pkg:generic/hoteldruid.shared@1.0.0",
+      "bom-ref": "pkg:generic/hoteldruid.shared@4.10.1",
       "name": "HotelDruid.Shared",
-      "version": "1.0.0",
-      "purl": "pkg:generic/hoteldruid.shared@1.0.0",
+      "version": "4.10.1",
+      "purl": "pkg:generic/hoteldruid.shared@4.10.1",
       "properties": [
         {
           "name": "targetFramework",
@@ -1330,23 +1330,23 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
   ],
   "dependencies": [
     {
-      "ref": "pkg:generic/hoteldruid.api@1.0.0",
+      "ref": "pkg:generic/hoteldruid.api@4.10.1",
       "dependsOn": [
-        "pkg:generic/hoteldruid.shared@1.0.0",
+        "pkg:generic/hoteldruid.shared@4.10.1",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.2"
       ]
     },
     {
-      "ref": "pkg:generic/hoteldruid.client@1.0.0",
+      "ref": "pkg:generic/hoteldruid.client@4.10.1",
       "dependsOn": [
-        "pkg:generic/hoteldruid.shared@1.0.0",
+        "pkg:generic/hoteldruid.shared@4.10.1",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.2",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.DevServer@10.0.2",
         "pkg:nuget/Microsoft.Extensions.Localization@10.0.0"
       ]
     },
     {
-      "ref": "pkg:generic/hoteldruid.shared@1.0.0",
+      "ref": "pkg:generic/hoteldruid.shared@4.10.1",
       "dependsOn": []
     }
   ]
@@ -1375,7 +1375,7 @@ Base checks live with the API tests: balanced journals and filters in `LedgerApi
 Two items were deliberately left for later:
 
 - A per-room timeline that separates revenue earned per night, maintenance and renovation, and issue-driven downtime, so room profitability and utilization can be read over time.
-- The hotel manual is `docs/manual`. `scripts/manual.ps1` refreshes its pictures from a running desk and writes the HTML guide and the epub.
+- The hotel manual is `docs/manual`. `deploy/build/manual.ps1` refreshes its pictures from a running desk and writes the HTML guide and the epub.
 
 Booking classification is a separate book: [docs/booking-lifecycle-consistency.md](docs/booking-lifecycle-consistency.md). List endpoints, check-in, check-out, and no-show are in place. What remains is import classification tests, a client test that clicks those actions, and the optional checkout audit fields `CheckedOutAt` and `CheckedOutByUserId`. `ActualDepartureDate` is already stored.
 

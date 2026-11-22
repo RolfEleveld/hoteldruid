@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS client-build
 WORKDIR /src
 COPY src/HotelDruid.Shared/ src/HotelDruid.Shared/
 COPY src/HotelDruid.Client/ src/HotelDruid.Client/
-COPY scripts/docker/link-assets.py /tmp/link-assets.py
+COPY deploy/build/docker/link-assets.py /tmp/link-assets.py
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 \
  && rm -rf /var/lib/apt/lists/*
@@ -19,17 +19,14 @@ COPY src/HotelDruid.Api/ src/HotelDruid.Api/
 RUN dotnet publish src/HotelDruid.Api/HotelDruid.Api.csproj \
     -c Release -o /artifacts/api
 
-# Stage 3: Runtime — embed Blazor WASM into API wwwroot
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+# Stage 3: Runtime. Alpine is the small image that can still run a health check.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 WORKDIR /app
 COPY --from=api-build /artifacts/api ./
 COPY --from=client-build /artifacts/client/wwwroot ./wwwroot/
 
-# curl is the health check. /data is the only folder the hotel writes.
 USER root
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/* \
+RUN apk add --no-cache curl \
  && mkdir -p /data \
  && chown app:app /data
 USER app

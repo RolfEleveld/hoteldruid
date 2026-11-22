@@ -1,16 +1,18 @@
-# HotelDruid — Blazor WASM + .NET API
-# Run:  docker compose up --build
-# Stop: docker compose down
+# Plain container. The hotel is the /data mount. The host port is HOTELDRUID_PORT.
+# docker compose -f deploy/container/compose/plain.yml up --build
 
 services:
   api:
-    build: .
+    image: ${HOTELDRUID_IMAGE:-hoteldruid:local}
+    build:
+      context: ../../..
+      dockerfile: deploy/container/Dockerfile
     container_name: HotelDruid-api
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${HOTELDRUID_PORT:-8080}:8080"
     volumes:
-      - HotelDruid_data:/data
+      - ${HOTELDRUID_DATA:-hoteldruid_data}:/data
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       HOTELDRUID_DATAROOT: /data
@@ -25,6 +27,5 @@ services:
       start_period: 20s
 
 volumes:
-  HotelDruid_data:
-    driver: local
+  hoteldruid_data:
 

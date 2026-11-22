@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using System.Net;
@@ -328,6 +329,17 @@ app.MapGet("/health/warmup", (ICacheWarmupState warmup) => Results.Ok(new
 
 // --- Mock API endpoints for early Blazor development ---
 
+static string HotelDruidVersion()
+{
+    var informational = Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion;
+    if (string.IsNullOrWhiteSpace(informational))
+        return "4.10.1";
+    var plus = informational.IndexOf('+', StringComparison.Ordinal);
+    return plus >= 0 ? informational[..plus] : informational;
+}
+
 app.MapGet("/api/status", (HttpContext httpContext) =>
 {
     var buildNumber = Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER")
@@ -341,8 +353,8 @@ app.MapGet("/api/status", (HttpContext httpContext) =>
         ActiveYear = DateTime.UtcNow.Year.ToString(),
         User = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin",
         Authenticated = RequestActor.IsAuthenticated(httpContext),
-        Version = "HotelDruid 3.0.7",
-        VersionLabel = "HotelDruid 3.0.7. Blazor",
+        Version = $"HotelDruid {HotelDruidVersion()}",
+        VersionLabel = $"HotelDruid {HotelDruidVersion()}. Blazor",
         BuildNumber = buildNumber
     });
 });

@@ -1,149 +1,100 @@
 # HotelDruid
 
-HotelDruid is a Blazor WebAssembly frontend with an ASP.NET Core API backend.
+HotelDruid 4.10.1 is updated work from the original HotelDruid. The desk is Blazor. The hotel is an ASP.NET program. The people at the desk use a browser. The hotel itself is a set of files on that computer.
 
-## Install a desk computer
+## Description
 
-On the computer that will run the hotel, open PowerShell and run the command published on the `blazor-latest` release. It has this shape, with the GitHub owner filled in:
+The desk is a Blazor WebAssembly client. The program behind it is an ASP.NET Core API. Both are .NET. The API keeps the rooms, the stays, the guests, and the ledger in a file store. A desk install and a container run that same API. The client is served from it.
+
+## Where it came from
+
+HotelDruid was written by Marco Maria Francesco De Santis (`marco@digitaldruid.net`). The original notices run from 2001. Version 3.0.7 is still on the `main` branch, in `hoteldruid/`. His own line for it, in `hoteldruid/doc/README.italiano`, is a program for hotel rooms and for weekly and daily apartment lets. The pages are in Italian, English, and Spanish, and the program is published at [www.hoteldruid.com](http://www.hoteldruid.com). It keeps the hotel in PostgreSQL, MySQL, or SQLite.
+
+This solution is that program, updated to version 4.10.1, the first release of this line on .NET 10. The desk runs in Blazor. The hotel runs in ASP.NET, and it is stored as files.
+
+The original thanks Stan Khodjaev of icojam.com for the Marmalade, Blue Bits, and Blueberry icons, which he released into the public domain.
+
+## License
+
+Thank you, Marco Maria Francesco De Santis, for HotelDruid, and for releasing it under the GNU Affero General Public License, version 3.
+
+This is updated work from that program. On 22 November 2026 I published version 4.10.1, the first release of this line on .NET 10. The desk runs in Blazor and the hotel runs in ASP.NET. I comply with that license, and I distribute this solution with it. The terms are in [LICENSE](LICENSE), and they cover this program as they cover the original. A later version applies only when you accept it, as the original program says.
+
+## How to deploy
+
+### Desktop
+
+On the computer that will run the hotel, in PowerShell:
 
 ```powershell
 iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
 ```
 
-Approve the administrator prompt. The command downloads `HotelDruid-desktop.zip`, installs the ASP.NET Core 10 runtime when it is missing, copies the hotel to `C:\ProgramData\HotelDruid`, starts it at every boot, and puts HotelDruid on the desktop.
+Approve the administrator prompt. The command downloads one zip, installs the ASP.NET Core 10 runtime when it is missing, copies the hotel to `C:\ProgramData\HotelDruid`, and starts it at every boot. The desktop icon opens the desk.
 
-A computer with no network uses the same zip: unzip it and run `HotelDruid.cmd`.
+The install creates a certificate for `localhost`. The private key stays in the machine certificate store. The public certificate is added to the machine's trusted root store. The desk address is `https://localhost:5001/`.
 
-The steps, the nightly backup, and removal are in [Deploy](docs/manual/chapters/01-deploy.md). A public address, a certificate, and sign-in are in the [deployment runbook](docs/deployment-runbook.md).
+A computer with no network unzips `HotelDruid-desktop.zip` and runs `HotelDruid.cmd`.
 
-The same GitHub build attaches `HotelDruid.HotelDruid.yaml`, the winget manifest for that zip with its hash filled in. `winget install HotelDruid.HotelDruid` works after that file is accepted into the Windows Package Manager community repository. The source of the manifest is [deploy/winget/HotelDruid.HotelDruid.yaml](deploy/winget/HotelDruid.HotelDruid.yaml).
+Backup, removal, and the first setup are in [Deploy](docs/manual/chapters/01-deploy.md).
 
-## Recent Updates (May 2026)
+### Container
 
-The latest implementation adds a staged configuration and assumption workflow to improve first-run usability and reduce manual maintenance.
+The GitHub build publishes one hotel image, `ghcr.io/<owner>/hoteldruid:blazor`. Each scenario runs that image. The commands are in [deploy/container](deploy/container/README.md).
 
-### 1. System Configuration as First-Class Data
-
-- System configuration is stored in the same object store model as other entities.
-- API endpoints:
-  - `GET /api/system/configuration`
-  - `PUT /api/system/configuration`
-  - `DELETE /api/system/configuration`
-- Configuration is included in export/import workflows when present (`system_configuration`).
-
-### 2. Setup Detection and Admin Setup Flow
-
-- API setup state endpoint:
-  - `GET /api/system/setup/status`
-- Setup mode is triggered when:
-  - configuration is missing and caller is admin/local
-  - setup is explicitly requested (`?configure=true`)
-- Client setup page:
-  - `/setup`
-  - includes baseline values such as default currency/year and fallback settings
-
-### 3. Assumption Rule Engine and Async Self-Healing
-
-- New rule engine handles valid year gaps for selected year-scoped data.
-- Current self-healing scope:
-  - periods (availability-supporting windows)
-  - tariffs (pricing/supporting rates)
-- Behavior:
-  - first request for missing year returns an empty list
-  - async background healing clones from configured source year/current default
-  - subsequent requests receive generated data
-- Important boundary:
-  - invalid entities still return `404` (for example unknown room id)
-
-### 4. Regression Coverage Added
-
-- Unit and integration tests were added for:
-  - configuration persistence and API behavior
-  - setup-state detection
-  - export/import inclusion of system configuration
-  - async year-gap self-healing for periods and tariffs
-  - invariant `404` behavior for non-existent entities
-
-## Project Summary
-
-- Frontend: `src/HotelDruid.Client`
-- Backend: `src/HotelDruid.Api`
-- Shared contracts: `src/HotelDruid.Shared`
-- Migration tooling: `tools/HotelDruid.Migration`
-
-## Play with a hotel
-
-The hotel manual, including a fresh install and the demo used for training, is in [docs/manual](docs/manual/README.md). The desk install is [above](#install-a-desk-computer). Build the picture guide with `./scripts/manual.ps1`.
-
-- Docker, from this repository: `docker compose up --build`, then open `http://localhost:8080/`.
-
-## Build, Deploy, Test
-
-PowerShell scripts use a convention-over-configuration workflow:
+Plain, on this computer, built from the repository:
 
 ```powershell
-# Build + publish + package
-.\scripts\build.ps1
-.\scripts\build.ps1 -Clean
-
-# Deploy locally (default) or per-user install
-.\scripts\deploy.ps1
-.\scripts\deploy.ps1 -User
-
-# Run all tests
-.\scripts\test.ps1
-.\scripts\test.ps1 -Clean
-
-# Refresh the hotel manual from the running desk
-.\scripts\manual.ps1
+docker compose -f deploy/container/compose/plain.yml up --build
 ```
 
-`-Clean` removes old outputs and runs a full clean/rebuild path before build or test execution.
+Open `http://localhost:8080/`. The hotel is the `/data` mount. `HOTELDRUID_PORT` changes the host port. `HOTELDRUID_DATA` points `/data` at a folder.
 
-See `scripts/README.md` for script parameters and details.
+Keycloak adds sign-in. The reverse proxy publishes ports 80 and 443. The public stack is both of those together. A certificate and the sign-in finish are in the [deployment runbook](docs/deployment-runbook.md).
 
-## Deployment Profiles (Short Form)
+## How to get started
 
-Hosted deployment guidance is provider-neutral. Administrators choose reverse proxy,
-TLS, and identity settings through deployment profiles rather than application code.
+Build a development copy and start it:
 
-- Reverse proxy: `nginx`, `caddy`, `traefik`, or platform ingress
-- TLS: `self-signed` (private/internal), `acme`, or externally managed certs
-- Identity: `keycloak-oidc` (recommended for public deployments) or enterprise SSO
+```powershell
+./deploy/build/build.ps1
+./deploy/build/deploy.ps1
+```
 
-Recommended scenarios:
+The desk listens at `https://localhost:5001/`. The command creates a localhost certificate for the current user and trusts it. If the browser still says the address is not secure, run `./deploy/build/trust-dev-cert.ps1` once from an administrator PowerShell. That copies the public certificate into the machine's trusted root store. The first page asks for the hotel name, the currency, and the chart of accounts.
 
-1. Internal validation: self-signed + private network
-2. Public production: ACME + Keycloak OIDC
-3. Enterprise production: external cert + Keycloak OIDC
+## How to set up the demo
 
-For scenario orchestration and run-books, see:
+On an installed desk, in an administrator PowerShell, run `Load-DemoHotel.ps1` from the installed folder. It is also in [deploy/build/desktop](deploy/build/desktop/Load-DemoHotel.ps1). The current hotel is exported first. The last line of the window is that path. Reload the browser. The demo is Hotel Belvedere. The details are in [Demo hotel](docs/manual/chapters/02-demo.md).
 
-- `deploy/scenarios/README.md`
-- `docs/deployment-runbook.md`
+## Manual
 
-## Deployment Package (CI Artifacts)
+The picture guide for the desk is [docs/manual](docs/manual/README.md). Open [HotelDruid.html](docs/manual/HotelDruid.html). Refresh it with `./deploy/build/manual.ps1`.
 
-On every push or pull request targeting the `blazor` branch, a deployment package is built automatically from `./scripts/build.ps1`.
+## Source tree
 
-For easier discovery on the repository main page, push builds also publish/update a Release asset under the `blazor-latest` tag.
-You can download the package from either:
-1. Releases (`blazor-latest`) on the repository home page
-2. The Artifacts section in the matching GitHub Actions run
+| Path | What it is |
+| --- | --- |
+| [src](src/README.md) | The client, the API, and the shared contracts. |
+| [deploy](deploy/README.md) | Build scripts, the container, and the winget manifest. |
+| [docs](docs/README.md) | The hotel manual and the notes for people who host the program. |
+| [tests](tests) | API, client, and migration tests. Run them with `./deploy/build/test.ps1`. |
+| [tools/HotelDruid.Migration](tools/HotelDruid.Migration/README.md) | Import from a PHP HotelDruid export. |
 
-**Desk computer:** see [Install a desk computer](#install-a-desk-computer) and [Deploy](docs/manual/chapters/01-deploy.md).
+## CI artefacts
 
-**How to deploy a development copy:**
-1. Download the build artifact from the matching GitHub Actions run, or build with `./scripts/build.ps1`.
-2. Unzip the package.
-3. Run the included `deploy.ps1` script.
-4. Parameters are in `scripts/README.md`.
+A push or a pull request to `blazor` runs [the build](.github/workflows/build-deployment-package.yml), which calls `./deploy/build/build.ps1`.
 
-The deployment package includes:
-- Build outputs produced under `artifacts/` (including `HotelDruid-package.zip`)
-- The deployment script: `scripts/deploy.ps1`
-- This `README.md` for reference
+A push also updates the `blazor-latest` release:
 
-For advanced scenarios, see the full repository and documentation.
+- `install.ps1`, the desktop command above, with the repository name filled in
+- `HotelDruid-desktop.zip`, the package that command downloads
+- `HotelDruid.HotelDruid.yaml`, the winget manifest with the zip hash filled in
+- the two SBOM files
 
+`winget install HotelDruid.HotelDruid` works after that manifest is accepted into the Windows Package Manager community repository. The source is [deploy/winget/HotelDruid.HotelDruid.yaml](deploy/winget/HotelDruid.HotelDruid.yaml).
 
+The GitHub Actions run also keeps two artifacts for 14 days.
+
+- `hoteldruid-deployment-package-<run>` is the development copy. Start it with `deploy.ps1`. Parameters are in [deploy/build](deploy/build/README.md).
+- `hoteldruid-container-<run>` is the hotel image as a file. `docker load -i hoteldruid-container.tar` loads it. The same image is published to `ghcr.io/<owner>/hoteldruid:blazor` on a push, which is the address a host uses. The scenarios that add Keycloak or the proxy are in [deploy/container](deploy/container/README.md).

@@ -20,8 +20,8 @@
     Run this whenever you change source code. Follow with deploy.ps1 to start the app.
 
 .EXAMPLE
-  .\scripts\build.ps1              # Debug build
-  .\scripts\build.ps1 -Clean      # Clean then build
+  .\deploy\build\build.ps1              # Debug build
+  .\deploy\build\build.ps1 -Clean      # Clean then build
 #>
 
 param(
@@ -33,7 +33,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$root      = Join-Path $PSScriptRoot '..'
+$root      = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $clientOut = Join-Path $root 'artifacts\client'
 $apiOut    = Join-Path $root 'artifacts\api'
 $sbomOut   = Join-Path $root 'artifacts\sbom'
@@ -82,6 +82,12 @@ function Ensure-CycloneDxTool {
     if ($LASTEXITCODE -ne 0) { throw "dotnet tool install failed for cyclonedx (exit $LASTEXITCODE)" }
 }
 
+function Get-SolutionVersion {
+    $propsPath = Join-Path $root 'Directory.Build.props'
+    [xml]$props = Get-Content -Path $propsPath
+    return [string]$props.Project.PropertyGroup.Version
+}
+
 function New-Sbom([string]$projectPath, [string]$fileName, [string]$componentName) {
     $arguments = @(
         $projectPath
@@ -94,6 +100,7 @@ function New-Sbom([string]$projectPath, [string]$fileName, [string]$componentNam
         '--exclude-test-projects'
         '--no-serial-number'
         '--set-name', $componentName
+        '--set-version', (Get-SolutionVersion)
     )
 
     & $toolExe @arguments
@@ -249,6 +256,7 @@ if (-not (Test-Path (Join-Path $desktopDir 'HotelDruid.ps1'))) {
     throw "Desktop launcher not found at $desktopDir"
 }
 Copy-Item -Path (Join-Path $desktopDir '*') -Destination $apiOut -Force
+Copy-Item -Path (Join-Path $PSScriptRoot 'desk-certificate.ps1') -Destination $apiOut -Force
 Write-Host "  Copied the desktop launcher into the package." -ForegroundColor DarkGray
 $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 if (Test-Path $packagePath) { Remove-Item $packagePath -Force }
@@ -261,5 +269,5 @@ Write-Host "   API artifacts : $apiOut"
 Write-Host "   Client in     : $wwwroot"
 Write-Host "   SBOM artifacts: $sbomOut"
 Write-Host "`nRun the app with:"
-Write-Host "   .\scripts\deploy.ps1" -ForegroundColor Yellow
+Write-Host "   .\deploy\build\deploy.ps1" -ForegroundColor Yellow
 

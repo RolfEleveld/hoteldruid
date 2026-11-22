@@ -11,7 +11,7 @@
   Close an already open sandbox first. A running sandbox cannot gain this folder.
 
 .EXAMPLE
-  pwsh -NoProfile -File .\scripts\desktop\Start-Sandbox.ps1
+  pwsh -NoProfile -File .\deploy\build\desktop\Start-Sandbox.ps1
 #>
 param(
     [string]$AppDir = '',
@@ -36,7 +36,7 @@ if ([string]::IsNullOrWhiteSpace($AppDir)) {
         $AppDir = $here
     }
     else {
-        $AppDir = Join-Path (Join-Path (Split-Path -Parent $here) '..') 'artifacts\api'
+        $AppDir = Join-Path (Split-Path (Split-Path (Split-Path $here))) 'artifacts\api'
     }
 }
 

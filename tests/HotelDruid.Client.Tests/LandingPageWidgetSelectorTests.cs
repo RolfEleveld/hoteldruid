@@ -44,7 +44,7 @@ internal sealed class LandingPageMockHandler : HttpMessageHandler
 
         if (method == HttpMethod.Get && path.Equals("/api/status", StringComparison.OrdinalIgnoreCase))
         {
-            return JsonResponse(new { activeYear = "2026", user = "admin", version = "HotelDruid 3.0.7", versionLabel = "HotelDruid 3.0.7. Blazor", buildNumber = "local" });
+            return JsonResponse(new { activeYear = "2026", user = "admin", version = "HotelDruid 4.10.1", versionLabel = "HotelDruid 4.10.1. Blazor", buildNumber = "local" });
         }
 
         if (method == HttpMethod.Get && path.Equals("/api/clients", StringComparison.OrdinalIgnoreCase))

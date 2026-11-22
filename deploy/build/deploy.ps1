@@ -34,7 +34,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$root = Join-Path $PSScriptRoot '..'
+$root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $packagePath = Join-Path $root 'artifacts\HotelDruid-package.zip'
 $artifactsApi = Join-Path $root 'artifacts\api'
 
@@ -412,11 +412,25 @@ function New-UserShortcuts([string]$InstallDir, [string]$RunBatPath, [string]$Un
     $uninstallShortcut.Save()
 }
 
+function Get-InstalledVersion([string]$InstallDir) {
+    $dll = Join-Path $InstallDir 'HotelDruid.Api.dll'
+    if (Test-Path $dll) {
+        $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($dll)
+        if ($info.ProductVersion) {
+            $product = [string]$info.ProductVersion
+            $plus = $product.IndexOf('+')
+            if ($plus -ge 0) { $product = $product.Substring(0, $plus) }
+            if ($product) { return $product }
+        }
+    }
+    return '4.10.1'
+}
+
 function Register-UserUninstall([string]$InstallDir, [string]$UninstallPath) {
     $keyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HotelDruid_User'
     New-Item -Path $keyPath -Force | Out-Null
     Set-ItemProperty -Path $keyPath -Name 'DisplayName' -Value 'HotelDruid (User)'
-    Set-ItemProperty -Path $keyPath -Name 'DisplayVersion' -Value '1.0.0'
+    Set-ItemProperty -Path $keyPath -Name 'DisplayVersion' -Value (Get-InstalledVersion $InstallDir)
     Set-ItemProperty -Path $keyPath -Name 'Publisher' -Value 'HotelDruid'
     Set-ItemProperty -Path $keyPath -Name 'InstallLocation' -Value $InstallDir
     Set-ItemProperty -Path $keyPath -Name 'UninstallString' -Value "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$UninstallPath`""
@@ -483,7 +497,7 @@ if ($isAdmin) {
 }
 
 if (-not $trustedInLocalMachineRoot) {
-    Write-Warning "Certificate $CertThumbprint is trusted for the current user, but not in LocalMachine Root. If Chromium still shows 'Not secure', run .\\scripts\\trust-dev-cert.ps1 once from an elevated PowerShell window."
+    Write-Warning "Certificate $CertThumbprint is trusted for the current user, but not in LocalMachine Root. If Chromium still shows 'Not secure', run .\\deploy\\build\\trust-dev-cert.ps1 once from an elevated PowerShell window."
 }
 
 Push-Location $artifactsApi

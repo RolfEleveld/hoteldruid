@@ -111,7 +111,8 @@ function Rename-ItemIfNeeded {
 
 # Main execution
 Write-Host "`n=== HotelDruid Migration Script ===" -ForegroundColor Yellow
-Write-Host "Repository: $(Split-Path -Parent (Split-Path $PSScriptRoot))" -ForegroundColor Gray
+$repoRoot = Split-Path (Split-Path $PSScriptRoot)
+Write-Host "Repository: $repoRoot" -ForegroundColor Gray
 
 if ($WhatIf) {
     Write-Host "[WhatIf] Preview mode - no changes will be applied`n" -ForegroundColor Yellow
@@ -121,7 +122,7 @@ if ($WhatIf) {
 
 # Phase 1: Update file contents
 Write-Host "Phase 1: Updating file contents..." -ForegroundColor Blue
-$allFiles = @(Get-ChildItem -Path (Split-Path $PSScriptRoot) -Recurse -File -ErrorAction SilentlyContinue)
+$allFiles = @(Get-ChildItem -Path $repoRoot -Recurse -File -ErrorAction SilentlyContinue)
 Write-Host "  Scanning $($allFiles.Count) files..." -ForegroundColor Gray
 foreach ($file in $allFiles) {
     Update-FileContent -FilePath $file.FullName -Replacements $replacements
@@ -129,7 +130,7 @@ foreach ($file in $allFiles) {
 
 # Phase 2: Rename items (process deepest first to avoid path issues)
 Write-Host "`nPhase 2: Renaming files and directories..." -ForegroundColor Blue
-$allItems = @(Get-ChildItem -Path (Split-Path $PSScriptRoot) -Recurse -ErrorAction SilentlyContinue | 
+$allItems = @(Get-ChildItem -Path $repoRoot -Recurse -ErrorAction SilentlyContinue | 
     Where-Object { $_.FullName -notmatch "\.git" } |
     Sort-Object -Property { $_.FullName.Length } -Descending)
 

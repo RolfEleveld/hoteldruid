@@ -28,7 +28,7 @@ pre{background:#f6f6f6;padding:8px;overflow:auto}
 <pre><code>iex (irm https://github.com/&lt;owner&gt;/hotelDruid/releases/download/blazor-latest/install.ps1)</code></pre>
 <p>Approve the administrator prompt. That downloads <code>HotelDruid-desktop.zip</code>, installs the ASP.NET Core 10 runtime when it is missing, copies the program to <code>C:\ProgramData\HotelDruid\app</code>, keeps the hotel in <code>data</code> and the log in <code>logs</code>, and starts it at every boot. Open the desktop icon. The first page is <a href="#house">House settings</a>.</p>
 <p>The same zip can be copied onto a computer that has no internet. Unzip it and run <code>HotelDruid.cmd</code>.</p>
-<p>The address is <code>https://localhost:5001/</code>.</p>
+<p>The address is <code>https://localhost:5001/</code>. The install creates a certificate for <code>localhost</code>. The private key stays in the machine personal store. The public certificate is added to the machine trusted root store.</p>
 <h2 id="deploy-nightly-copy">Nightly copy</h2>
 <pre><code>.\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups" -BackupAt 02:00</code></pre>
 <p>Run the same command again to change the folder or the time. <code>.\HotelDruid.cmd Backup</code> takes one copy now.</p>
@@ -37,8 +37,15 @@ pre{background:#f6f6f6;padding:8px;overflow:auto}
 <h2 id="deploy-remove">Remove</h2>
 <p><code>.\HotelDruid.cmd Uninstall</code> writes an export into the current user's Temp folder, then removes the program, the task, and the icon.</p>
 <h2 id="deploy-container">Container</h2>
-<p>From the folder that contains <code>docker-compose.yml</code>: <code>docker compose up --build</code>. Open <code>http://localhost:8080/</code>. The hotel is the volume <code>HotelDruid_data</code>. <code>docker compose down -v</code> deletes that volume.</p>
-<p>A public address, a certificate, and sign-in are a separate step. See the <a href="../../deployment-runbook.md">deployment runbook</a> and <a href="../../keycloak-setup.md">Keycloak</a>.</p>
+<p>The hotel runs as one image. Open <code>http://localhost:8080/</code>. The hotel files are the <code>/data</code> mount. <code>HOTELDRUID_PORT</code> changes the host port. The commands for each scenario are in the container notes beside the compose files.</p>
+<h3 id="deploy-plain">Plain</h3>
+<p><code>docker compose -f deploy/container/compose/plain.yml up --build</code>. <code>down -v</code> deletes the named volume.</p>
+<h3 id="deploy-keycloak">Keycloak</h3>
+<p>The same hotel image, plus the sign-in service. The steps are in the container notes.</p>
+<h3 id="deploy-reverse-proxy">Reverse proxy</h3>
+<p>The same hotel image, behind the proxy on ports 80 and 443. The proxy needs the certificate files.</p>
+<h3 id="deploy-public">Public</h3>
+<p>The proxy and Keycloak together. A certificate and the sign-in finish are in the <a href="../../deployment-runbook.md">deployment runbook</a> and <a href="../../keycloak-setup.md">Keycloak</a>.</p>
 <p>Next: <a href="#demo">Demo hotel</a>.</p>
 <h1 id="demo">Demo hotel</h1>
 <p>Use this to train the team. Do not load it over a hotel that is already in use unless the export path has been kept.</p>

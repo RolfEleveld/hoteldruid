@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Node runner for the browser tests in this project.
+// npx playwright test --config tests/HotelDruid.Client.Tests/playwright.config.ts
 export default defineConfig({
-  testDir: './tests/HotelDruid.Client.Tests/Playwright',
+  testDir: './Playwright',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -22,6 +24,7 @@ export default defineConfig({
 
   webServer: {
     command: 'dotnet run --project src/HotelDruid.Api --urls https://localhost:5001',
+    cwd: '../..',
     url: 'https://localhost:5001',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

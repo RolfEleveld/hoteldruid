@@ -1,6 +1,6 @@
 # Docs
 
-The hotel manual is [docs/manual](manual/README.md). Open [HotelDruid.html](manual/HotelDruid.html) after `./scripts/manual.ps1`. The epub is `docs/manual/out/HotelDruid.epub`.
+The hotel manual is [docs/manual](manual/README.md). Open [HotelDruid.html](manual/HotelDruid.html) after `./deploy/build/manual.ps1`. The epub is `docs/manual/out/HotelDruid.epub`.
 
 These notes are for the people who build and host the program:
 

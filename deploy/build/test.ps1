@@ -18,8 +18,7 @@ param(
     [string]$SmokeBaseUrl = "https://localhost:5001"
 )
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Join-Path $scriptDir '..'
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $artifactDir = Join-Path (Join-Path $repoRoot 'artifacts') 'test-results'
 New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
@@ -63,7 +62,7 @@ foreach ($proj in $testProjects) {
 
 if ($RunSmoke) {
     Write-Host "Running smoke tests against $SmokeBaseUrl..." -ForegroundColor Cyan
-    & (Join-Path $scriptDir 'scenario-test.ps1') -BaseUrl $SmokeBaseUrl
+    & (Join-Path $PSScriptRoot 'scenario-test.ps1') -BaseUrl $SmokeBaseUrl
     if ($LASTEXITCODE -ne 0) {
         throw "Smoke tests failed (exit $LASTEXITCODE)"
     }

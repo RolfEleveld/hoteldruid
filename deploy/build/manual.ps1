@@ -9,9 +9,9 @@
   -Build writes docs/manual/out/index.html and docs/manual/out/HotelDruid.epub.
 
 .EXAMPLE
-  ./scripts/manual.ps1
-  ./scripts/manual.ps1 -Build
-  ./scripts/manual.ps1 -Capture -BaseUrl https://localhost:5001
+  ./deploy/build/manual.ps1
+  ./deploy/build/manual.ps1 -Build
+  ./deploy/build/manual.ps1 -Capture -BaseUrl https://localhost:5001
 #>
 param(
     [string]$BaseUrl = 'https://localhost:5001',
@@ -28,7 +28,7 @@ if (-not $Capture -and -not $Build) {
     $Build = $true
 }
 
-$root = Resolve-Path (Join-Path $PSScriptRoot '..')
+$root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $manual = Join-Path $root 'docs\manual'
 $chapterDir = Join-Path $manual 'chapters'
 $imageDir = Join-Path $manual 'images'

@@ -4,7 +4,7 @@ This guide covers operational setup of Keycloak as the identity provider for Hot
 
 ## Prerequisites
 
-- Keycloak container is running (via `deploy/compose/keycloak.yml`)
+- Keycloak container is running (via `deploy/container/compose/keycloak.yml`)
 - Admin credentials (from deployment environment)
 - HotelDruid API is available at a known URL
 
@@ -12,7 +12,7 @@ This guide covers operational setup of Keycloak as the identity provider for Hot
 
 1. Open `http://localhost:8081` (or your configured Keycloak URL)
 2. Click **Administration Console**
-3. Log in with admin credentials from `deploy/scenarios/public-acme-keycloak.env`
+3. Log in with admin credentials from `deploy/container/compose/public.env`
 
 ## 2. Create a Realm for HotelDruid
 
@@ -265,7 +265,7 @@ If the issuer is set but the probe fails, `isFront` stays false and the Identity
 
 The Users, Groups, Privileges, and Sessions pages remain the imported staff register. They name the person on a cash row. They are not the login directory while this front is active.
 
-An internal deployment that does not run `deploy/compose/keycloak.yml` leaves `IDENTITY_PROVIDER=none`. Nothing in the menu offers Keycloak management.
+An internal deployment that does not run `deploy/container/compose/keycloak.yml` leaves `IDENTITY_PROVIDER=none`. Nothing in the menu offers Keycloak management.
 
 ## 14. Next Steps
 

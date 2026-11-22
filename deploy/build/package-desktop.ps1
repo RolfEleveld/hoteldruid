@@ -15,7 +15,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$root = Resolve-Path (Join-Path $PSScriptRoot '..')
+$root = Resolve-Path (Join-Path $PSScriptRoot '../..')
 $play = Join-Path $root 'artifacts\play'
 $clientOut = Join-Path $play 'client'
 $apiOut = Join-Path $play 'api'
@@ -66,6 +66,7 @@ $desktop = Join-Path $PSScriptRoot 'desktop'
 foreach ($name in @('HotelDruid.cmd', 'HotelDruid.ps1', 'install.ps1', 'Load-DemoHotel.ps1', 'Backup-HotelDruid.ps1')) {
     Copy-Item -Path (Join-Path $desktop $name) -Destination (Join-Path $apiOut $name) -Force
 }
+Copy-Item -Path (Join-Path $PSScriptRoot 'desk-certificate.ps1') -Destination (Join-Path $apiOut 'desk-certificate.ps1') -Force
 @'
 HotelDruid desk package.
 
@@ -75,6 +76,9 @@ Approve the administrator prompt. The desk is installed for this computer and st
 The same install from the published release, without copying this folder first:
 
   iex (irm https://github.com/<owner>/hotelDruid/releases/download/blazor-latest/install.ps1)
+
+After that install, the desk is at C:\ProgramData\HotelDruid\app.
+Other computers on the network use C:\ProgramData\HotelDruid\app\desk-certificate.ps1.
 '@ | Set-Content -Path (Join-Path $apiOut 'INSTALL.txt') -Encoding utf8
 
 $package = Join-Path $root 'artifacts\HotelDruid-desktop.zip'
