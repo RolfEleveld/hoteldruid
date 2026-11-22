@@ -54,6 +54,9 @@ public class LedgerEntry
     /// <summary>Payment method: "cash", "card", "transfer", etc.</summary>
     public string? Method { get; set; }
 
+    /// <summary>Auth code, last digits, or transfer number. Used to match a desk entry with a terminal log.</summary>
+    public string? Reference { get; set; }
+
     /// <summary>Status: "confirmed", "pending", "cancelled", "completed".</summary>
     public string? Status { get; set; }
 

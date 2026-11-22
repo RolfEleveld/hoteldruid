@@ -2377,35 +2377,13 @@
       openArrivalMenuId = null;
       openDepartureMenuId = null;
 
-      if (string.IsNullOrWhiteSpace(booking.Id)
-          || booking.Year <= 0)
+      if (string.IsNullOrWhiteSpace(booking.Id) || booking.Year <= 0)
       {
         GoToBooking(booking.Id, booking.Year, edit: true, focus: "preauth");
         return;
       }
 
-      var today = DateOnly.FromDateTime(DateTime.UtcNow);
-      var payload = new
-      {
-        actualArrivalDate = today.ToString("yyyy-MM-dd"),
-        actualGuestCount = booking.ActualGuestCount.HasValue && booking.ActualGuestCount.Value > 0 ? booking.ActualGuestCount.Value : 1,
-        status = "CheckedIn"
-      };
-
-      var response = await Http.PostAsJsonAsync($"/api/bookings/{booking.Year}/{booking.Id}/check-in", payload);
-      if (!response.IsSuccessStatusCode)
-      {
-        GoToBooking(booking.Id, booking.Year, edit: true, focus: "preauth");
-        return;
-      }
-
-      booking.ActualArrivalDate = today.ToString("yyyy-MM-dd");
-      if (!booking.ActualGuestCount.HasValue || booking.ActualGuestCount.Value <= 0)
-      {
-        booking.ActualGuestCount = 1;
-      }
-
-      await ReloadLifecycleCollectionsAsync();
+      Navigation.NavigateTo($"/arrival/{booking.Year}/{Uri.EscapeDataString(booking.Id)}");
 
       StateHasChanged();
     }

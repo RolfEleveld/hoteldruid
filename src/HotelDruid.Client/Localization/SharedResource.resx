@@ -670,6 +670,33 @@
   <data name="bookings.moneyPrepaid" xml:space="preserve"><value>Prepaid</value></data>
   <data name="bookings.moneyDeposit" xml:space="preserve"><value>Deposit</value></data>
   <data name="bookings.moneyRefund" xml:space="preserve"><value>Refunded</value></data>
+  <data name="arrival.title" xml:space="preserve"><value>Arrival</value></data>
+  <data name="arrival.back" xml:space="preserve"><value>Back</value></data>
+  <data name="arrival.due" xml:space="preserve"><value>Amount due</value></data>
+  <data name="arrival.stay" xml:space="preserve"><value>Room taken</value></data>
+  <data name="arrival.guests" xml:space="preserve"><value>Guests</value></data>
+  <data name="arrival.room" xml:space="preserve"><value>Room</value></data>
+  <data name="arrival.tariff" xml:space="preserve"><value>Tariff</value></data>
+  <data name="arrival.noTariff" xml:space="preserve"><value>No tariff is assigned to this room for these dates.</value></data>
+  <data name="arrival.alreadyIn" xml:space="preserve"><value>This guest is already in house.</value></data>
+  <data name="arrival.documents" xml:space="preserve"><value>Registration</value></data>
+  <data name="arrival.payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="arrival.paymentHelp" xml:space="preserve"><value>Type the code from the slip or the transfer. A terminal can supply the same code later.</value></data>
+  <data name="arrival.method" xml:space="preserve"><value>Form</value></data>
+  <data name="arrival.reference" xml:space="preserve"><value>Payment code</value></data>
+  <data name="arrival.when" xml:space="preserve"><value>Taken at</value></data>
+  <data name="arrival.cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="arrival.card" xml:space="preserve"><value>Card</value></data>
+  <data name="arrival.transfer" xml:space="preserve"><value>Transfer</value></data>
+  <data name="arrival.recordPayment" xml:space="preserve"><value>Record payment</value></data>
+  <data name="arrival.markArrived" xml:space="preserve"><value>Mark arrived</value></data>
+  <data name="arrival.missing" xml:space="preserve"><value>This stay was not found.</value></data>
+  <data name="arrival.amountRequired" xml:space="preserve"><value>Enter the amount taken.</value></data>
+  <data name="arrival.referenceRequired" xml:space="preserve"><value>Enter the payment code from the slip or the transfer.</value></data>
+  <data name="arrival.paymentFailed" xml:space="preserve"><value>The payment was not recorded.</value></data>
+  <data name="arrival.paymentSaved" xml:space="preserve"><value>Payment recorded.</value></data>
+  <data name="arrival.checkInFailed" xml:space="preserve"><value>The guest was not marked arrived.</value></data>
+  <data name="arrival.arrived" xml:space="preserve"><value>Guest marked arrived.</value></data>
   <data name="bookings.actualDepartureDate" xml:space="preserve"><value>Actual Checkout Date</value></data>
   <data name="bookings.actualDepartureDateOptional" xml:space="preserve"><value>Actual Checkout Date (optional)</value></data>
   <data name="bookings.actualArrivalRequiredWithDeparture" xml:space="preserve"><value>Actual Arrival Date is required when Actual Checkout Date is set.</value></data>

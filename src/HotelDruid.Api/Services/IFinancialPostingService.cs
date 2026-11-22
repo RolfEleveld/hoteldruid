@@ -19,7 +19,7 @@ public static class HotelAccounts
 
 public interface IFinancialPostingService
 {
-    Task<LedgerEntry> PostBalancedAsync(DateTime date, string entryType, string description, decimal amount, string debitAccount, string debitGroup, string creditAccount, string creditGroup, string? bookingId = null, string? cashRegisterId = null, string? payerName = null, string? sourceType = null, string? sourceId = null, string? createdBy = null, string? appliedTo = null, string? printedInvoiceNumber = null);
+    Task<LedgerEntry> PostBalancedAsync(DateTime date, string entryType, string description, decimal amount, string debitAccount, string debitGroup, string creditAccount, string creditGroup, string? bookingId = null, string? cashRegisterId = null, string? payerName = null, string? sourceType = null, string? sourceId = null, string? createdBy = null, string? appliedTo = null, string? printedInvoiceNumber = null, string? method = null, string? reference = null);
 
     /// <summary>
     /// Charges a guest or the cash drawer. The quoted amount is what was asked.
@@ -79,7 +79,9 @@ public class FinancialPostingService : IFinancialPostingService
         string? sourceId = null,
         string? createdBy = null,
         string? appliedTo = null,
-        string? printedInvoiceNumber = null)
+        string? printedInvoiceNumber = null,
+        string? method = null,
+        string? reference = null)
     {
         if (amount == 0) throw new ArgumentException("Amount must be non-zero");
 
@@ -91,8 +93,8 @@ public class FinancialPostingService : IFinancialPostingService
         var magnitude = Math.Abs(amount);
         var applied = string.IsNullOrWhiteSpace(appliedTo) ? null : appliedTo.Trim();
 
-        var debitEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, applied, debitAccount, debitGroup, magnitude, 0, printedInvoiceNumber);
-        var creditEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, applied, creditAccount, creditGroup, 0, magnitude, printedInvoiceNumber);
+        var debitEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, applied, debitAccount, debitGroup, magnitude, 0, printedInvoiceNumber, method, reference);
+        var creditEntry = Line(journalId, when, entryType, description, bookingId, cashRegisterId, payerName, sourceType, sourceId, createdBy, applied, creditAccount, creditGroup, 0, magnitude, printedInvoiceNumber, method, reference);
 
         await _ledger.AppendEntryAsync(when, debitEntry);
         await _ledger.AppendEntryAsync(when, creditEntry);
@@ -332,7 +334,9 @@ public class FinancialPostingService : IFinancialPostingService
         string accountGroup,
         decimal debit,
         decimal credit,
-        string? printedInvoiceNumber = null) => new()
+        string? printedInvoiceNumber = null,
+        string? method = null,
+        string? reference = null) => new()
     {
         JournalId = journalId,
         Timestamp = when,
@@ -350,6 +354,8 @@ public class FinancialPostingService : IFinancialPostingService
         CreatedBy = createdBy,
         AppliedTo = appliedTo,
         Notes = description,
+        Method = string.IsNullOrWhiteSpace(method) ? null : method.Trim(),
+        Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
         Status = "posted",
         PrintedInvoiceNumber = string.IsNullOrWhiteSpace(printedInvoiceNumber) ? null : printedInvoiceNumber.Trim()
     };

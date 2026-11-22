@@ -34,7 +34,11 @@ public sealed class DocumentTemplateSeeder : IHostedService
         "email-confirmation",
         "email-de",
         "email-it",
-        "email-es"
+        "email-es",
+        "registration",
+        "registration-de",
+        "registration-it",
+        "registration-es"
     ];
 
     private readonly IKeyValueStore _store;

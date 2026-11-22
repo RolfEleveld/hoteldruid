@@ -624,6 +624,33 @@
   <data name="bookings.moneyPrepaid" xml:space="preserve"><value>Prepagato</value></data>
   <data name="bookings.moneyDeposit" xml:space="preserve"><value>Deposito</value></data>
   <data name="bookings.moneyRefund" xml:space="preserve"><value>Rimborsato</value></data>
+  <data name="arrival.title" xml:space="preserve"><value>Arrivo</value></data>
+  <data name="arrival.back" xml:space="preserve"><value>Indietro</value></data>
+  <data name="arrival.due" xml:space="preserve"><value>Importo dovuto</value></data>
+  <data name="arrival.stay" xml:space="preserve"><value>Camera occupata</value></data>
+  <data name="arrival.guests" xml:space="preserve"><value>Ospiti</value></data>
+  <data name="arrival.room" xml:space="preserve"><value>Camera</value></data>
+  <data name="arrival.tariff" xml:space="preserve"><value>Tariffa</value></data>
+  <data name="arrival.noTariff" xml:space="preserve"><value>Nessuna tariffa è assegnata a questa camera per queste date.</value></data>
+  <data name="arrival.alreadyIn" xml:space="preserve"><value>Questo ospite è già in casa.</value></data>
+  <data name="arrival.documents" xml:space="preserve"><value>Registrazione</value></data>
+  <data name="arrival.payment" xml:space="preserve"><value>Pagamento</value></data>
+  <data name="arrival.paymentHelp" xml:space="preserve"><value>Inserire il codice dello scontrino o del bonifico. Un terminale può fornire lo stesso codice in seguito.</value></data>
+  <data name="arrival.method" xml:space="preserve"><value>Forma</value></data>
+  <data name="arrival.reference" xml:space="preserve"><value>Codice pagamento</value></data>
+  <data name="arrival.when" xml:space="preserve"><value>Incassato il</value></data>
+  <data name="arrival.cash" xml:space="preserve"><value>Contanti</value></data>
+  <data name="arrival.card" xml:space="preserve"><value>Carta</value></data>
+  <data name="arrival.transfer" xml:space="preserve"><value>Bonifico</value></data>
+  <data name="arrival.recordPayment" xml:space="preserve"><value>Registra pagamento</value></data>
+  <data name="arrival.markArrived" xml:space="preserve"><value>Segna arrivato</value></data>
+  <data name="arrival.missing" xml:space="preserve"><value>Questo soggiorno non è stato trovato.</value></data>
+  <data name="arrival.amountRequired" xml:space="preserve"><value>Indicare l'importo incassato.</value></data>
+  <data name="arrival.referenceRequired" xml:space="preserve"><value>Indicare il codice dello scontrino o del bonifico.</value></data>
+  <data name="arrival.paymentFailed" xml:space="preserve"><value>Il pagamento non è stato registrato.</value></data>
+  <data name="arrival.paymentSaved" xml:space="preserve"><value>Pagamento registrato.</value></data>
+  <data name="arrival.checkInFailed" xml:space="preserve"><value>L'ospite non è stato segnato come arrivato.</value></data>
+  <data name="arrival.arrived" xml:space="preserve"><value>Ospite segnato come arrivato.</value></data>
   <data name="bookings.title" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.header" xml:space="preserve"><value>Prenotazioni</value></data>
   <data name="bookings.searchLabel" xml:space="preserve"><value>Filtra prenotazioni</value></data>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guest registration – {{Booking.Reference}}</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12pt; color: #222; margin: 0; }
+  .page { max-width: 720px; margin: 0 auto; padding: 28px 36px; }
+  h1 { font-size: 16pt; margin: 0 0 8px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  td { padding: 8px 6px; border-bottom: 1px solid #ccc; vertical-align: top; }
+  td.label { width: 38%; color: #555; }
+  .sign { margin-top: 48px; }
+  .line { border-bottom: 1px solid #222; height: 28px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Guest registration</h1>
+  <div>{{Hotel.Name}} · {{Hotel.Address}}, {{Hotel.City}}</div>
+  <table>
+    <tr><td class="label">Guest</td><td>{{Client.FullName}}</td></tr>
+    <tr><td class="label">Address</td><td>{{Client.Street}} {{Client.StreetNumber}}, {{Client.PostalCode}} {{Client.City}}</td></tr>
+    <tr><td class="label">Country</td><td>{{Client.Nation}}</td></tr>
+    <tr><td class="label">Room</td><td>{{Room.Name}}</td></tr>
+    <tr><td class="label">Arrival</td><td>{{Booking.ArrivalDate}}</td></tr>
+    <tr><td class="label">Departure</td><td>{{Booking.DepartureDate}}</td></tr>
+    <tr><td class="label">Nights</td><td>{{Booking.Nights}}</td></tr>
+  </table>
+  <div class="sign">
+    <div>Date {{Document.Today}}</div>
+    <div class="line"></div>
+    <div>Signature</div>
+  </div>
+</div>
+</body>
+</html>

@@ -4224,18 +4224,20 @@ app.MapPost("/api/bookings/{year:int}/{id}/transactions", async (int year, strin
     var isDeposit = string.Equals(request.Type, "deposit", StringComparison.OrdinalIgnoreCase) || string.Equals(appliedTo, "deposit", StringComparison.OrdinalIgnoreCase);
     var isRefund = string.Equals(request.Type, "refund", StringComparison.OrdinalIgnoreCase);
     var sourceId = Guid.NewGuid().ToString("N");
+    var method = string.IsNullOrWhiteSpace(request.Method) ? null : request.Method.Trim();
+    var reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim();
 
     LedgerEntry createdEntry;
     if (isRefund)
-        createdEntry = await posting.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? chart.GuestDeposits : chart.GuestLedger, isDeposit ? "liability" : "asset", chart.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_refund", request.Description ?? "Booking refund", request.Amount, isDeposit ? chart.GuestDeposits : chart.GuestLedger, isDeposit ? "liability" : "asset", chart.Cash, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo, method: method, reference: reference);
     else if (isDeposit)
-        createdEntry = await posting.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, chart.Cash, "asset", chart.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_deposit", request.Description ?? "Booking deposit", request.Amount, chart.Cash, "asset", chart.GuestDeposits, "liability", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo, method: method, reference: reference);
     else
-        createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, chart.Cash, "asset", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo);
+        createdEntry = await posting.PostBalancedAsync(when, "booking_payment", request.Description ?? "Booking payment", request.Amount, chart.Cash, "asset", chart.GuestLedger, "asset", bookingId: id, sourceType: "booking-transaction", sourceId: sourceId, createdBy: request.CreatedBy, appliedTo: appliedTo, method: method, reference: reference);
 
     var lines = await BookingTransactionProjection.LoadAsync(ledger, indexRepo, id, DateTime.MinValue, DateTime.MaxValue);
     var dto = BookingTransactionProjection.ProjectJournal(lines, createdEntry.JournalId)
-        ?? new BookingTransactionDto(id, 0, when, request.Type, Math.Abs(request.Amount), request.Description, appliedTo, request.CreatedBy);
+        ?? new BookingTransactionDto(id, 0, when, request.Type, Math.Abs(request.Amount), request.Description, appliedTo, request.CreatedBy, method, reference);
     return Results.Created($"/api/bookings/{year}/{id}/transactions/{dto.Sequence}", dto);
 }).WithName("AppendBookingTransaction");
 

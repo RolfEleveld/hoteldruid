@@ -151,7 +151,9 @@ public record BookingTransactionDto(
     decimal Amount,
     string? Description,
     string? AppliedTo,
-    string? CreatedBy
+    string? CreatedBy,
+    string? Method = null,
+    string? Reference = null
 );
 
 /// <summary>Request used to append a payment, deposit, refund, or adjustment.</summary>
@@ -161,7 +163,9 @@ public record BookingTransactionWriteDto(
     string? Description = null,
     string? AppliedTo = null,
     string? CreatedBy = null,
-    DateTime? Timestamp = null
+    DateTime? Timestamp = null,
+    string? Method = null,
+    string? Reference = null
 );
 
 /// <summary>One account in the hotel chart. The role is the ledger bucket. The code comes from the selected standard.</summary>

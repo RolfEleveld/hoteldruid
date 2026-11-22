@@ -1286,31 +1286,11 @@
         catch { errorMsg = L["bookings.cancelFailed", "Cancel failed."]; }
     }
 
-    private async Task CheckInSelected()
+    private void CheckInSelected()
     {
         if (selected?.Id is null)
-        {
             return;
-        }
-
-        var actualArrival = form.ActualArrivalDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var actualGuestCount = form.ActualGuestCount ?? 1;
-        if (actualGuestCount <= 0)
-        {
-            errorMsg = L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."];
-            return;
-        }
-
-        try
-        {
-            await BookingApi.CheckInAsync(selected.Year, selected.Id, new BookingCheckInRequest(actualArrival, actualGuestCount, "CheckedIn"));
-            editing = false;
-            await LoadAll();
-        }
-        catch (Exception ex)
-        {
-            errorMsg = TranslateBookingSaveError(ex);
-        }
+        Navigation.NavigateTo($"/arrival/{selected.Year}/{Uri.EscapeDataString(selected.Id)}");
     }
 
     private async Task CheckOutSelected()

@@ -125,7 +125,9 @@ public static class BookingTransactionProjection
                     Amount = EventAmount(ordered),
                     Description = primary.Notes,
                     AppliedTo = FirstNonEmpty(ordered.Select(line => line.AppliedTo)),
-                    CreatedBy = FirstNonEmpty(ordered.Select(line => line.CreatedBy))
+                    CreatedBy = FirstNonEmpty(ordered.Select(line => line.CreatedBy)),
+                    Method = FirstNonEmpty(ordered.Select(line => line.Method)),
+                    Reference = FirstNonEmpty(ordered.Select(line => line.Reference))
                 };
             })
             .OrderBy(row => row.Timestamp)
@@ -146,7 +148,9 @@ public static class BookingTransactionProjection
                     row.Amount,
                     row.Description,
                     row.AppliedTo,
-                    row.CreatedBy)));
+                    row.CreatedBy,
+                    row.Method,
+                    row.Reference)));
         }
 
         return projected;

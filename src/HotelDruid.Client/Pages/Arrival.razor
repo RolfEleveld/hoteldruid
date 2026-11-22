@@ -1,0 +1,388 @@
+@page "/arrival/{Year:int}/{Id}"
+@using HotelDruid.Client.Services
+@using HotelDruid.Shared
+@using ClientRecord = HotelDruid.Client.Services.ClientDto
+@using RoomRecord = HotelDruid.Client.Services.RoomDto
+@inject IBookingApiService BookingApi
+@inject IBookingFinanceApiService FinanceApi
+@inject IClientApiService ClientApi
+@inject IRoomApiService RoomApi
+@inject ITariffApiService TariffApi
+@inject IDeskUserService DeskUser
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["arrival.title", "Arrival"]</PageTitle>
+<div class="container-fluid bookings-manager">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading d-flex justify-content-between align-items-center">
+                    <h3 class="panel-title mb-0">@L["arrival.title", "Arrival"]</h3>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Back">@L["arrival.back", "Back"]</button>
+                </div>
+                <div class="panel-body">
+                    @if (booking is null)
+                    {
+                        <div class="text-muted">@L["common.loading", "Loading..."]</div>
+                    }
+                    else
+                    {
+                        <div class="fw-semibold">@GuestName</div>
+                        <div>@RoomName(booking.RoomId)</div>
+                        <div class="text-muted">@booking.ArrivalDate?.ToString("yyyy-MM-dd") – @booking.DepartureDate?.ToString("yyyy-MM-dd")</div>
+                        <div class="mt-2">@booking.Status</div>
+                        <div class="mt-3 fw-semibold">@L["arrival.due", "Amount due"] @Money(StillDue)</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            @if (!string.IsNullOrWhiteSpace(errorMsg))
+            {
+                <div class="alert alert-danger">@errorMsg</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(savedMsg))
+            {
+                <div class="alert alert-success">@savedMsg</div>
+            }
+
+            <div class="panel panel-default mb-3">
+                <div class="panel-heading"><h3 class="panel-title">@L["arrival.stay", "Room taken"]</h3></div>
+                <div class="panel-body">
+                    @if (CanChangeStay)
+                    {
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <label class="form-label">@L["arrival.guests", "Guests"]</label>
+                                <input class="form-control" type="number" min="1" @bind="guestCount" @bind:after="RefreshQuote" />
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label">@L["arrival.room", "Room"]</label>
+                                <select class="form-select" @bind="roomId" @bind:after="RefreshQuote">
+                                    @foreach (var room in rooms)
+                                    {
+                                        <option value="@room.Id">@room.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            @if (quote is not null)
+                            {
+                                <span>@L["arrival.tariff", "Tariff"] @quote.TariffName · @quote.Nights · @quote.TotalPrice.ToString("0.00")</span>
+                            }
+                            else if (quoteChecked && !StayChanged && booking?.TariffTotalPrice is > 0)
+                            {
+                                <span>@L["arrival.tariff", "Tariff"] @(finance?.TariffName) · @booking.TariffTotalPrice.Value.ToString("0.00")</span>
+                            }
+                            else if (quoteChecked)
+                            {
+                                <span class="text-muted">@L["arrival.noTariff", "No tariff is assigned to this room for these dates."]</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">@L["arrival.alreadyIn", "This guest is already in house."]</div>
+                    }
+                </div>
+            </div>
+
+            <div class="panel panel-default mb-3">
+                <div class="panel-heading"><h3 class="panel-title">@L["arrival.documents", "Registration"]</h3></div>
+                <div class="panel-body d-flex flex-wrap gap-2">
+                    @foreach (var document in RegistrationDocuments)
+                    {
+                        <a class="btn btn-outline-secondary" href="@DocumentUrl(document.Type)" target="_blank">@document.Label</a>
+                    }
+                </div>
+            </div>
+
+            <div class="panel panel-default mb-3">
+                <div class="panel-heading"><h3 class="panel-title">@L["arrival.payment", "Payment"]</h3></div>
+                <div class="panel-body">
+                    <p class="text-muted">@L["arrival.paymentHelp", "Type the code from the slip or the transfer. A terminal can supply the same code later."]</p>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label">@L["bookingFinance.amount", "Amount"]</label>
+                            <input class="form-control" type="number" min="0.01" step="0.01" @bind="payAmount" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">@L["arrival.method", "Form"]</label>
+                            <select class="form-select" @bind="payMethod">
+                                <option value="cash">@L["arrival.cash", "Cash"]</option>
+                                <option value="card">@L["arrival.card", "Card"]</option>
+                                <option value="transfer">@L["arrival.transfer", "Transfer"]</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">@L["arrival.reference", "Payment code"]</label>
+                            <input class="form-control" @bind="payReference" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">@L["arrival.when", "Taken at"]</label>
+                            <input class="form-control" type="datetime-local" @bind="payWhenLocal" />
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary mt-3" disabled="@busy" @onclick="RecordPayment">@L["arrival.recordPayment", "Record payment"]</button>
+                    @if (payments.Count > 0)
+                    {
+                        <ul class="list-group mt-3">
+                            @foreach (var payment in payments)
+                            {
+                                <li class="list-group-item">
+                                    @payment.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                    · @payment.Method
+                                    · @payment.Amount.ToString("0.00")
+                                    @if (!string.IsNullOrWhiteSpace(payment.Reference))
+                                    {
+                                        <span> · @payment.Reference</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            @if (CanChangeStay)
+            {
+                <button type="button" class="btn btn-info" disabled="@busy" @onclick="MarkArrived">@L["arrival.markArrived", "Mark arrived"]</button>
+            }
+        </div>
+
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading"><h3 class="panel-title">@L["common.details", "Details"]</h3></div>
+                <div class="panel-body">
+                    @if (booking is not null)
+                    {
+                        <dl class="booking-detail-grid">
+                            <dt>@L["bookings.client", "Client"]</dt><dd>@GuestName</dd>
+                            <dt>@L["bookings.room", "Room"]</dt><dd>@RoomName(booking.RoomId)</dd>
+                            <dt>@L["bookings.status", "Status"]</dt><dd>@booking.Status</dd>
+                            <dt>@L["bookings.arrivalDate", "Arrival Date"]</dt><dd>@booking.ArrivalDate?.ToString("yyyy-MM-dd")</dd>
+                            <dt>@L["bookings.departureDate", "Departure Date"]</dt><dd>@booking.DepartureDate?.ToString("yyyy-MM-dd")</dd>
+                            <dt>@L["bookings.expectedGuestCount", "Expected Guests"]</dt><dd>@(booking.ExpectedGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["bookings.actualGuestCount", "Guests On Arrival"]</dt><dd>@(booking.ActualGuestCount?.ToString() ?? "-")</dd>
+                            <dt>@L["arrival.tariff", "Tariff"]</dt><dd>@(booking.TariffTotalPrice?.ToString("0.00") ?? "-")</dd>
+                            <dt>@L["bookings.notes", "Notes"]</dt><dd>@(string.IsNullOrWhiteSpace(booking.Notes) ? "-" : booking.Notes)</dd>
+                            <dt>@L["bookings.source", "Source"]</dt><dd>@(booking.Source ?? "-")</dd>
+                            <dt>@L["bookings.externalReference", "External reference"]</dt><dd>@(booking.ExternalReference ?? "-")</dd>
+                        </dl>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Year { get; set; }
+    [Parameter] public string Id { get; set; } = "";
+
+    private static readonly (string Type, string Label)[] RegistrationDocuments =
+    [
+        ("registration", "English"),
+        ("registration-de", "Deutsch"),
+        ("registration-it", "Italiano"),
+        ("registration-es", "Español")
+    ];
+
+    private BookingDto? booking;
+    private ClientRecord? client;
+    private BookingFinanceSummaryDto? finance;
+    private List<RoomRecord> rooms = [];
+    private List<BookingTransactionDto> payments = [];
+    private TariffResolutionDto? quote;
+    private bool quoteChecked;
+    private string? roomId;
+    private int guestCount = 1;
+    private decimal payAmount;
+    private string payMethod = "card";
+    private string payReference = "";
+    private DateTime payWhenLocal = DateTime.Now;
+    private bool busy;
+    private string errorMsg = "";
+    private string savedMsg = "";
+
+    private bool CanChangeStay
+        => booking is not null
+           && booking.ActualDepartureDate is null
+           && !string.Equals(booking.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(booking.Status, "CheckedOut", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(booking.Status, "Cancelled", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(booking.Status, "NoShow", StringComparison.OrdinalIgnoreCase);
+
+    private bool StayChanged
+        => booking is not null
+           && (!string.Equals(roomId, booking.RoomId, StringComparison.Ordinal)
+               || guestCount != (booking.ExpectedGuestCount ?? guestCount));
+
+    private decimal StillDue => finance is null ? 0 : Math.Max(0, finance.TotalDue - finance.DepositsHeld);
+
+    private string GuestName
+        => client is null
+            ? "-"
+            : string.Join(" ", new[] { client.FirstName, client.LastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+
+    protected override async Task OnParametersSetAsync() => await Load();
+
+    private async Task Load()
+    {
+        errorMsg = "";
+        booking = await BookingApi.GetAsync(Year, Id);
+        if (booking is null)
+        {
+            errorMsg = L["arrival.missing", "This stay was not found."];
+            return;
+        }
+
+        rooms = await RoomApi.GetRoomsAsync() ?? [];
+        client = string.IsNullOrWhiteSpace(booking.ClientId) ? null : await ClientApi.GetByIdAsync(booking.ClientId);
+        finance = await FinanceApi.GetSummaryAsync(Year, Id);
+        payments = (await FinanceApi.ListTransactionsAsync(Year, Id))
+            .Where(row => IsPayment(row.Type))
+            .OrderByDescending(row => row.Timestamp)
+            .ToList();
+        roomId = booking.RoomId;
+        guestCount = booking.ActualGuestCount is > 0 ? booking.ActualGuestCount.Value
+            : booking.ExpectedGuestCount is > 0 ? booking.ExpectedGuestCount.Value
+            : 1;
+        if (StillDue > 0)
+            payAmount = StillDue;
+        await RefreshQuote();
+    }
+
+    private async Task RefreshQuote()
+    {
+        quote = null;
+        quoteChecked = false;
+        if (booking?.ArrivalDate is null || booking.DepartureDate is null || string.IsNullOrWhiteSpace(roomId) || guestCount <= 0)
+            return;
+        quote = await TariffApi.ResolveTariffAsync(roomId, booking.ArrivalDate.Value, booking.DepartureDate.Value, guestCount);
+        quoteChecked = true;
+    }
+
+    private async Task RecordPayment()
+    {
+        if (booking?.Id is null || busy)
+            return;
+        errorMsg = "";
+        savedMsg = "";
+        if (payAmount <= 0)
+        {
+            errorMsg = L["arrival.amountRequired", "Enter the amount taken."];
+            return;
+        }
+        if (payMethod is "card" or "transfer" && string.IsNullOrWhiteSpace(payReference))
+        {
+            errorMsg = L["arrival.referenceRequired", "Enter the payment code from the slip or the transfer."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var taken = DateTime.SpecifyKind(payWhenLocal, DateTimeKind.Local).ToUniversalTime();
+            var saved = await FinanceApi.AppendTransactionAsync(Year, booking.Id, new BookingTransactionWriteDto(
+                "payment",
+                payAmount,
+                Description: payMethod,
+                AppliedTo: "stay_balance",
+                CreatedBy: DeskUser.Name,
+                Timestamp: taken,
+                Method: payMethod,
+                Reference: string.IsNullOrWhiteSpace(payReference) ? null : payReference.Trim()));
+            if (saved is null)
+            {
+                errorMsg = L["arrival.paymentFailed", "The payment was not recorded."];
+                return;
+            }
+
+            payReference = "";
+            savedMsg = L["arrival.paymentSaved", "Payment recorded."];
+            await Load();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task MarkArrived()
+    {
+        if (booking?.Id is null || !CanChangeStay || busy)
+            return;
+        errorMsg = "";
+        savedMsg = "";
+        if (guestCount <= 0)
+        {
+            errorMsg = L["bookings.actualGuestCountPositive", "Guests On Arrival must be greater than zero."];
+            return;
+        }
+        var stayChanged = StayChanged;
+        if (stayChanged && quote is null)
+        {
+            errorMsg = L["arrival.noTariff", "No tariff is assigned to this room for these dates."];
+            return;
+        }
+        if (!stayChanged && quote is null && string.IsNullOrWhiteSpace(booking.TariffId) && booking.TariffTotalPrice is null or <= 0)
+        {
+            errorMsg = L["arrival.noTariff", "No tariff is assigned to this room for these dates."];
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var changed = stayChanged;
+            if (changed)
+            {
+                await BookingApi.UpdateAsync(Year, booking.Id, booking with
+                {
+                    RoomId = roomId,
+                    ExpectedGuestCount = guestCount
+                });
+            }
+
+            var arrived = await BookingApi.CheckInAsync(Year, booking.Id, new BookingCheckInRequest(DateOnly.FromDateTime(DateTime.Today), guestCount, "CheckedIn"));
+            if (arrived is null)
+            {
+                errorMsg = L["arrival.checkInFailed", "The guest was not marked arrived."];
+                return;
+            }
+
+            savedMsg = L["arrival.arrived", "Guest marked arrived."];
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            errorMsg = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task Back() => await JS.InvokeVoidAsync("history.back");
+
+    private string DocumentUrl(string type)
+        => booking?.Id is null ? "#" : FinanceApi.GetDocumentUrl(Year, booking.Id, type, "print");
+
+    private string RoomName(string? id)
+        => rooms.FirstOrDefault(room => room.Id == id)?.Name ?? id ?? "-";
+
+    private static string Money(decimal amount) => amount.ToString("0.00");
+
+    private static bool IsPayment(string? type)
+    {
+        var value = type ?? "";
+        return value.Contains("payment", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("prepaid", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("deposit", StringComparison.OrdinalIgnoreCase);
+    }
+}
