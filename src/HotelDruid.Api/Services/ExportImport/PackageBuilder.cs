@@ -194,7 +194,7 @@ public class PackageBuilder : IPackageBuilder
             .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
         if (string.IsNullOrWhiteSpace(informational))
-            return "4.10.1";
+            return "4.10.2";
         var plus = informational.IndexOf('+', StringComparison.Ordinal);
         return plus >= 0 ? informational[..plus] : informational;
     }

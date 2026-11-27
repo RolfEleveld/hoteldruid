@@ -3,9 +3,10 @@
 ## Quick Start
 
 ### Run All Tests
+From the repository root:
+
 ```powershell
-cd c:\Users\rolfe\git\own\Villa-Annunziata\HotelDruid
-dotnet test
+./deploy/build/test.ps1
 ```
 
 ### Run Specific Test Suite
@@ -25,21 +26,19 @@ dotnet test --filter "ClassName=LedgerApiTests"
 
 ### Use Test Runner Script
 ```powershell
-cd c:\Users\rolfe\git\hotelDruid
-.\scripts\test.ps1
+./deploy/build/test.ps1
 
-# With specific filter
-.\scripts\test.ps1 -Filter "FileKeyValueStore"
+# With a filter
+./deploy/build/test.ps1 -Filter "FileKeyValueStore"
 
 # In Release configuration
-.\scripts\test.ps1 -Configuration Release
+./deploy/build/test.ps1 -Configuration Release
 
-# Include post-deploy smoke tests (requires running app)
-.\scripts\test.ps1 -RunSmoke -SmokeBaseUrl "https://localhost:5001"
-
-# Deploy includes smoke tests by default
-.\scripts\deploy.ps1 -Publish
+# Smoke checks against a desk that is already running
+./deploy/build/test.ps1 -RunSmoke -SmokeBaseUrl "https://localhost:5001"
 ```
+
+`./deploy/build/deploy.ps1` starts a local desk and runs the same smoke check unless `-SkipSmokeTest` is set. The filters above also work as `dotnet test tests/HotelDruid.Api.Tests --filter "ClassName=LedgerApiTests"`.
 
 ---
 
@@ -276,7 +275,7 @@ cat artifacts/test-results/results.json
 =================================================
 HotelDruid API - Test Suite
 =================================================
-Repository: c:\Users\rolfe\git\own\Villa-Annunziata\HotelDruid
+Repository: the HotelDruid repository root
 Configuration: Debug
 
 Running tests...

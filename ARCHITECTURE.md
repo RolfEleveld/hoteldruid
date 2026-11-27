@@ -1235,7 +1235,7 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     "component": {
       "type": "application",
       "name": "HotelDruid",
-      "version": "4.10.1",
+      "version": "4.10.2",
       "description": "Blazor WebAssembly frontend with ASP.NET Core API backend for hotel management.",
       "components": [
         {
@@ -1262,10 +1262,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
   "components": [
     {
       "type": "application",
-      "bom-ref": "pkg:generic/hoteldruid.api@4.10.1",
+      "bom-ref": "pkg:generic/hoteldruid.api@4.10.2",
       "name": "HotelDruid.Api",
-      "version": "4.10.1",
-      "purl": "pkg:generic/hoteldruid.api@4.10.1",
+      "version": "4.10.2",
+      "purl": "pkg:generic/hoteldruid.api@4.10.2",
       "properties": [
         {
           "name": "targetFramework",
@@ -1275,10 +1275,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     },
     {
       "type": "application",
-      "bom-ref": "pkg:generic/hoteldruid.client@4.10.1",
+      "bom-ref": "pkg:generic/hoteldruid.client@4.10.2",
       "name": "HotelDruid.Client",
-      "version": "4.10.1",
-      "purl": "pkg:generic/hoteldruid.client@4.10.1",
+      "version": "4.10.2",
+      "purl": "pkg:generic/hoteldruid.client@4.10.2",
       "properties": [
         {
           "name": "targetFramework",
@@ -1288,10 +1288,10 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
     },
     {
       "type": "library",
-      "bom-ref": "pkg:generic/hoteldruid.shared@4.10.1",
+      "bom-ref": "pkg:generic/hoteldruid.shared@4.10.2",
       "name": "HotelDruid.Shared",
-      "version": "4.10.1",
-      "purl": "pkg:generic/hoteldruid.shared@4.10.1",
+      "version": "4.10.2",
+      "purl": "pkg:generic/hoteldruid.shared@4.10.2",
       "properties": [
         {
           "name": "targetFramework",
@@ -1330,23 +1330,23 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
   ],
   "dependencies": [
     {
-      "ref": "pkg:generic/hoteldruid.api@4.10.1",
+      "ref": "pkg:generic/hoteldruid.api@4.10.2",
       "dependsOn": [
-        "pkg:generic/hoteldruid.shared@4.10.1",
+        "pkg:generic/hoteldruid.shared@4.10.2",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.2"
       ]
     },
     {
-      "ref": "pkg:generic/hoteldruid.client@4.10.1",
+      "ref": "pkg:generic/hoteldruid.client@4.10.2",
       "dependsOn": [
-        "pkg:generic/hoteldruid.shared@4.10.1",
+        "pkg:generic/hoteldruid.shared@4.10.2",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly@10.0.2",
         "pkg:nuget/Microsoft.AspNetCore.Components.WebAssembly.DevServer@10.0.2",
         "pkg:nuget/Microsoft.Extensions.Localization@10.0.0"
       ]
     },
     {
-      "ref": "pkg:generic/hoteldruid.shared@4.10.1",
+      "ref": "pkg:generic/hoteldruid.shared@4.10.2",
       "dependsOn": []
     }
   ]
@@ -1362,9 +1362,21 @@ For this project, **CycloneDX JSON** is a practical format to embed in documenta
 
 ---
 
-## 21. Ledger parity and later work
+## 21. Ledger parity and booking classification
 
-The PHP-to-Blazor ledger checklist in [docs/ledger-parity-todo.md](docs/ledger-parity-todo.md) is complete. The booking reference is a dimension on the global ledger. Hotel cash leaves it empty. The finance list is a projection of those journals. Deposits credit the guest-deposits bucket until checkout applies them to the guest ledger.
+The PHP ledger and the Blazor ledger are one book. Section 10 is how a booking's finance list is read back. This section is what the book posts, and how a stay is classified. Both are derived from the stored fields. Neither keeps a second copy of the same fact.
+
+### One ledger
+
+A ledger line carries a journal id, an account code, an account group, a debit, a credit, a cash register, a payer, and a source document. A journal is a balanced pair that shares the journal id. The booking reference on a line is a dimension, not an account. Hotel cash, petty cash, and a sale to someone who is not staying leave that reference empty. A booking payment, deposit, refund, stay charge, extra, or change to the prepaid amount names the booking.
+
+The stay charge and its extras are posted when the booking is created, so the cost exists from that moment. A change to the prepaid amount is a journal, not only a field on the booking. A deposit credits the guest-deposits bucket and does not reduce room revenue. Checkout applies a held deposit with a debit to guest deposits and a credit to the guest ledger. A sold extra debits the guest ledger and credits other income, and removing it posts the opposite pair. Invoice and contract totals use the ledger charges, the prepayments, the deposits, and the balance.
+
+A correction of money history posts the opposite journal and a new history row. The original row and its lines stay. A booking or an expense that a ledger line still cites is hidden, not removed. `POST /api/retention/clear-deleted` removes a hidden record only when its year is before the current year and no ledger line still cites it. A record with no ledger lines can be removed.
+
+A PHP package keeps one booking money history, `payments{year}`. Import writes those rows as journals and does not open a second per-booking book. Extra costs stay on the booking. The cash-register permissions, the person, the payment method, the currency, and the running cash total come across on the petty-cash posts. A booking payment's cash-register copy keeps those fields and does not post a second journal. There is no payroll. The person named on a cash row is the name stored on that post.
+
+The point of sale is the walk-up sale and the payment from someone who is not staying. One page sells onto a checked-in stay, or takes cash with an empty booking reference. An article in a warehouse drops its quantity when the sale is written, and a reversal puts that quantity back. A room article is an availability check. There is no cost-of-goods journal until a purchase cost exists.
 
 The ledger posts six buckets: cash, guest ledger, guest deposits, room revenue, other income, and operating expense. Setup chooses the numbers. USALI is the default when nothing has been chosen (1000, 1200, 2400, 4100, 4900, 6100). The same buckets are also numbered from published charts: Switzerland, Kontenrahmen KMU (1000, 1100, 2030, 3400, 3600, 6700); Mexico, the SAT código agrupador (101.01, 105.01, 206.01, 401.01, 403.01, 601.84); Spain, the Plan General de Contabilidad (570, 430, 438, 705, 759, 629). Canada has no national account-number chart, and the Italian civil code does not assign numbers, so those hotels use USALI or Custom. Another standard is added by giving those same buckets its own numbers in `AccountChart.Standards`. Custom lets the hotel register the six numbers itself.
 
@@ -1372,20 +1384,37 @@ Saving setup writes a zero-amount journal, entry type `chart_of_accounts`, with 
 
 Base checks live with the API tests: balanced journals and filters in `LedgerApiTests`, stay and checkout and point-of-sale journals in `Layer4ApiTests`, the per-booking ledger index in `BookingLedgerHistoryTests`, and PHP money import in `PhpPackageImportTests`.
 
-Two items were deliberately left for later:
+What remains is a per-room timeline that separates revenue earned per night, maintenance and renovation, and issue-driven downtime, so room profitability and utilization can be read over time. The hotel manual is `docs/manual`. `deploy/build/manual.ps1` refreshes its pictures from a running desk and writes the HTML guide and the epub.
 
-- A per-room timeline that separates revenue earned per night, maintenance and renovation, and issue-driven downtime, so room profitability and utilization can be read over time.
-- The hotel manual is `docs/manual`. `deploy/build/manual.ps1` refreshes its pictures from a running desk and writes the HTML guide and the epub.
+### How a stay is classified
 
-Booking classification is a separate book: [docs/booking-lifecycle-consistency.md](docs/booking-lifecycle-consistency.md). List endpoints, check-in, check-out, and no-show are in place. What remains is import classification tests, a client test that clicks those actions, and the optional checkout audit fields `CheckedOutAt` and `CheckedOutByUserId`. `ActualDepartureDate` is already stored.
+Classification is computed from the booking fields each time a list is read. It is not stored as its own value. Import follows the same rule: it stores the dates and the status it was given, and the lists apply these predicates. A legacy checkout date is stored as `ActualDepartureDate`. When the source has no checkout, that field stays empty. The planned departure date is never treated as a checkout.
+
+`ValidDates` means both dates exist and departure is after arrival. A stay, before the "today" window is applied, is a booking that is not cancelled, has a room, has `ActualArrivalDate`, and has `ActualGuestCount` greater than zero.
+
+| State | Meaning | Derived when |
+| --- | --- | --- |
+| Reservation | Confirmed stay, not yet arrived | Not cancelled, valid dates, no `ActualArrivalDate` |
+| Arrival | Due in the look-ahead window, not checked in | A reservation whose arrival is from today through today plus the look-ahead days |
+| Stay | Checked in and still in house | The stay conditions above, arrival on or before today, and today before the planned departure |
+| Departure | Due to leave today | A stay whose planned departure is today. Overdue mode uses departure on or before today |
+| Departed | The stay is closed | `ActualDepartureDate` is set. The booking leaves the stay list and the departure list |
+| No-show | Did not arrive by the cutoff | Not cancelled, no `ActualArrivalDate`, today is after arrival, and the status says no-show |
+| Cancelled | Out of the active lists | The status contains cancel, void, or deleted, or the booking is in `cancelled_bookings` |
+
+When `ActualDepartureDate` is empty, a checked-in booking is a stay while today is before the planned departure, a departure on that date, and an overdue departure after it. It is not checked out by the passage of the date.
+
+Check-in sets `ActualArrivalDate` to today, sets `ActualGuestCount` to 1 when it is missing, and sets status to `CheckedIn` when status is empty. It keeps the room, the client, and the year. No-show sets the status and removes the booking from the arrival list. Check-out sets `ActualDepartureDate` to today and status to `CheckedOut`. `CheckedOutAt` and `CheckedOutByUserId` are not stored. The status and `ActualDepartureDate` are the markers in use.
+
+The lists the desk reads are `GET /api/bookings/reservations`, `GET /api/bookings/arrivals` (with `lookAheadDays`), `GET /api/bookings/stays`, and `GET /api/bookings/departures`. The landing widgets and the booking page both use those four routes. The actions are `POST /api/bookings/{year}/{id}/check-in`, `check-out`, and `no-show`. A payment is a ledger journal on `POST /api/bookings/{year}/{id}/transactions`. `Layer4ApiTests` covers the four lists and the three actions. Still open are tests that an imported booking appears on the right list, and a client test that clicks check-in, check-out, and no-show.
 
 ## 22. Identity front
 
 Keycloak is a deployment choice, not a compile-time dependency. `IdentityFrontProbe` calls `GET /api/system/identity-front`.
 
-The result is a front only when `Identity:Provider` is `keycloak` and the API receives an OpenID discovery document from `Identity:Issuer`. The browser address of the admin console is `Identity:AdminConsoleUrl` and is not used for the probe. Compose maps these from `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL`. See [docs/keycloak-setup.md](docs/keycloak-setup.md) and [docs/deployment-runbook.md](docs/deployment-runbook.md).
+The result is a front only when `Identity:Provider` is `keycloak` and the API receives an OpenID discovery document from `Identity:Issuer`. The browser address of the admin console is `Identity:AdminConsoleUrl` and is not used for the probe. Compose maps these from `IDENTITY_PROVIDER`, `IDENTITY_ISSUER`, and `IDENTITY_ADMIN_CONSOLE_URL`.
 
-The realm to import is [deploy/keycloak/hoteldruid-realm.json](deploy/keycloak/hoteldruid-realm.json). It creates the realm `HotelDruid`, the client `HotelDruid-api`, the service client `HotelDruid-messages`, and five groups. Each group carries one realm role. The desk client's mapper writes a person's roles into the token claim `hoteldruid_roles`. The messages client is a service account with no browser sign-in. Every access token it issues carries `hoteldruid_roles` of `messages`, so an integration tool can call the batch inbox, the outbox, and the message cursor without a person signing in. Keycloak generates that client's secret at import. The hotel does not store it.
+The realm to import is [deploy/container/keycloak/hoteldruid-realm.json](deploy/container/keycloak/hoteldruid-realm.json). It creates the realm `HotelDruid`, the client `HotelDruid-api`, the service client `HotelDruid-messages`, and five groups. Each group carries one realm role. The desk client's mapper writes a person's roles into the token claim `hoteldruid_roles`. The messages client is a service account with no browser sign-in. Every access token it issues carries `hoteldruid_roles` of `messages`, so an integration tool can call the batch inbox, the outbox, and the message cursor without a person signing in. Keycloak generates that client's secret at import. The hotel does not store it.
 
 Sign-in is one directory, and that directory is Keycloak. The hotel does not create login users, does not assign groups, and does not call the Keycloak admin API. The Identity page only opens the Keycloak admin console in the browser. Who may use that console is a Keycloak administrator, which is not the hotel role `administrator`.
 
@@ -1433,6 +1462,8 @@ When Keycloak is absent, or the probe fails, that whole segment stays out of the
 The API data directory is `HOTELDRUID_DATAROOT`. The container image and compose file set that name. The older `HotelDruid_DATAROOT` spelling is not read on Linux.
 
 The browser cannot read the operating-system account, and it cannot read a Keycloak session that lives on another origin. When a request arrives already authenticated, the API records `preferred_username`, then `name`, then `sub`. When it is not, the desk name stored in this browser under `hoteldruid.deskUser` is sent as `X-HotelDruid-Desk-User` and written on ledger lines that do not already name a person. The person sets that name on Profile. Each private browser keeps its own name, so several people can share one desktop. The footer links to that page and shows the name in force. A signed-in token replaces it. An unnamed caller is left blank. The fallback word admin is not written on a journal.
+
+The host steps that sit beside this model are [Keycloak](docs/keycloak-setup.md) and the [deployment runbook](docs/deployment-runbook.md). The desk chapters for these lists are Reservations and Check-out in the hotel manual.
 
 ## 23. Navigation
 

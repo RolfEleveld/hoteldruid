@@ -423,7 +423,7 @@ function Get-InstalledVersion([string]$InstallDir) {
             if ($product) { return $product }
         }
     }
-    return '4.10.1'
+    return '4.10.2'
 }
 
 function Register-UserUninstall([string]$InstallDir, [string]$UninstallPath) {

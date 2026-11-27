@@ -10,6 +10,10 @@
 
 The price comes from the tariff for that room, those dates, and that number of people. See [Rates](12-rates.md). If no tariff applies, do not leave the stay without a price. An arrival with no tariff is a failed reservation.
 
+**Cancel Booking** moves this stay to [Cancelled](05-guests.md). The guest record stays.
+
+**Mark No-Show** is for a guest who did not come. A note is required. It cannot be used after the guest has been marked arrived.
+
 The right-hand panel is the stay. Payments under the guest are a list: what was paid, and the date. The heading opens the money page.
 
 ## Calendar

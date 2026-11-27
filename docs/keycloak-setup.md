@@ -60,7 +60,7 @@ curl -X POST http://localhost:8081/realms/HotelDruid/protocol/openid-connect/tok
 
 ## 5. Import the desk roles
 
-The realm file `deploy/keycloak/hoteldruid-realm.json` creates the realm, the client `HotelDruid-api`, four groups, and the claim the hotel reads.
+The realm file `deploy/container/keycloak/hoteldruid-realm.json` creates the realm, the client `HotelDruid-api`, five groups, and the claim the hotel reads.
 
 In the admin console: **Realm settings** is not required first. From the realm dropdown, **Create realm**, then **Browse** the file and **Create**. On an existing `HotelDruid` realm, use **Partial import** and choose the same file.
 
@@ -68,7 +68,7 @@ Each group carries one realm role. Put a person in the group, or assign the role
 
 | Group and role | What that person may do |
 | --- | --- |
-| `administrator` | The whole hotel, including setup and who may sign in |
+| `administrator` | The whole hotel, including setup. Sign-in accounts are created in this console, not by the hotel role |
 | `clerk` | Reservations, guests, arrivals, stays, the cashier, and reports |
 | `room-service` | Room status, who is staying, and who is leaving |
 | `reports` | Reports only |

@@ -1,5 +1,7 @@
 # Check-out
 
+The departure date on the stay does not check the guest out. The stay remains on Departures until you check it out. After that it leaves Departures and Stays.
+
 1. Open the stay from Departures on [the desk](04-desk.md), or from **Bookings**.
 2. Take any amount still due. Use the payment on [Arrivals](07-arrivals.md) or the money page in [Reservations](06-reservations.md). Put the slip code on a card or a transfer.
 3. Check out.

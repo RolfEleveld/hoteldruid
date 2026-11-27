@@ -527,7 +527,7 @@ function Get-PackageVersion([string]$AppDir) {
         }
         if ($info.FileVersion) { return [string]$info.FileVersion }
     }
-    return '4.10.1'
+    return '4.10.2'
 }
 
 function Test-ZipFile([string]$Path) {

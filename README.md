@@ -1,6 +1,6 @@
 # HotelDruid
 
-HotelDruid 4.10.1 is updated work from the original HotelDruid. The desk is Blazor. The hotel is an ASP.NET program. The people at the desk use a browser. The hotel itself is a set of files on that computer.
+HotelDruid 4.10.2 is updated work from the original HotelDruid. The desk is Blazor. The hotel is an ASP.NET program. The people at the desk use a browser. The hotel itself is a set of files on that computer.
 
 ## Description
 
@@ -10,7 +10,7 @@ The desk is a Blazor WebAssembly client. The program behind it is an ASP.NET Cor
 
 HotelDruid was written by Marco Maria Francesco De Santis (`marco@digitaldruid.net`). The original notices run from 2001. Version 3.0.7 is still on the `main` branch, in `hoteldruid/`. His own line for it, in `hoteldruid/doc/README.italiano`, is a program for hotel rooms and for weekly and daily apartment lets. The pages are in Italian, English, and Spanish, and the program is published at [www.hoteldruid.com](http://www.hoteldruid.com). It keeps the hotel in PostgreSQL, MySQL, or SQLite.
 
-This solution is that program, updated to version 4.10.1, the first release of this line on .NET 10. The desk runs in Blazor. The hotel runs in ASP.NET, and it is stored as files.
+This solution is that program, now at version 4.10.2. Version 4.10.1 was the first release of this line on .NET 10. The desk runs in Blazor. The hotel runs in ASP.NET, and it is stored as files. Version 4.10.2 adds the self-contained Windows and Linux copies beside the desk install.
 
 The original thanks Stan Khodjaev of icojam.com for the Marmalade, Blue Bits, and Blueberry icons, which he released into the public domain.
 
@@ -18,7 +18,7 @@ The original thanks Stan Khodjaev of icojam.com for the Marmalade, Blue Bits, an
 
 Thank you, Marco Maria Francesco De Santis, for HotelDruid, and for releasing it under the GNU Affero General Public License, version 3.
 
-This is updated work from that program. On 22 November 2026 I published version 4.10.1, the first release of this line on .NET 10. The desk runs in Blazor and the hotel runs in ASP.NET. I comply with that license, and I distribute this solution with it. The terms are in [LICENSE](LICENSE), and they cover this program as they cover the original. A later version applies only when you accept it, as the original program says.
+This is updated work from that program. On 22 November 2026 I published version 4.10.1, the first release of this line on .NET 10. Version 4.10.2 is that program with the desk install, the Windows copy folder, and the Linux copy folder. The desk runs in Blazor and the hotel runs in ASP.NET. I comply with that license, and I distribute this solution with it. The terms are in [LICENSE](LICENSE), and they cover this program as they cover the original. A later version applies only when you accept it, as the original program says.
 
 ## How to deploy
 
