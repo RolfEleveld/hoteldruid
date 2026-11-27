@@ -18,6 +18,8 @@
 
 
     Run this whenever you change source code. Follow with deploy.ps1 to start the app.
+    This package expects the ASP.NET Core runtime. The copy folder, which carries
+    its own runtime, is package-selfcontained.ps1.
 
 .EXAMPLE
   .\deploy\build\build.ps1              # Debug build

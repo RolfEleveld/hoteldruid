@@ -44,6 +44,21 @@ The install creates a certificate for `localhost`. The private key stays in the 
 
 A computer with no network unzips `HotelDruid-desktop.zip` and runs `HotelDruid.cmd`.
 
+### Copy folder
+
+The same release also carries two copy folders. The runtime is already inside each one. Nothing else is installed. The desk listens at `http://127.0.0.1:8080/`. The hotel is the `data` folder next to the start command.
+
+- `HotelDruid-selfcontained-win-x64.zip`. Unzip it and run `Start-HotelDruid.cmd`. Close the window to stop it.
+- `HotelDruid-selfcontained-linux-x64.zip`. This is for glibc Linux (Ubuntu, Debian, Fedora, or RHEL). Unzip it and run `./start-hoteldruid.sh`.
+
+Build both from the repository:
+
+```powershell
+./deploy/build/package-selfcontained.ps1
+```
+
+The folders are `artifacts/selfcontained/win-x64` and `artifacts/selfcontained/linux-x64`. `build.ps1` is unchanged and still produces the smaller package that the install command downloads.
+
 Backup, removal, and the first setup are in [Deploy](docs/manual/chapters/01-deploy.md).
 
 ### Container
@@ -97,12 +112,16 @@ A push also updates the `blazor-latest` release:
 
 - `install.ps1`, the desktop command above, with the repository name filled in
 - `HotelDruid-desktop.zip`, the package that command downloads
-- `HotelDruid.HotelDruid.yaml`, the winget manifest with the zip hash filled in
+- `HotelDruid-selfcontained-win-x64.zip`, the Windows copy folder. Unzip it and run `Start-HotelDruid.cmd`
+- `HotelDruid-selfcontained-linux-x64.zip`, the Linux copy folder. Unzip it and run `./start-hoteldruid.sh`
+- `HotelDruid.HotelDruid.yaml`, the winget manifest with the desktop zip hash filled in
 - the two SBOM files
 
 `winget install HotelDruid.HotelDruid` works after that manifest is accepted into the Windows Package Manager community repository. The source is [deploy/winget/HotelDruid.HotelDruid.yaml](deploy/winget/HotelDruid.HotelDruid.yaml).
 
-The GitHub Actions run also keeps two artifacts for 14 days.
+The GitHub Actions run also keeps these artifacts for 14 days.
 
 - `hoteldruid-deployment-package-<run>` is the development copy. Start it with `deploy.ps1`. Parameters are in [deploy/build](deploy/build/README.md).
+- `hoteldruid-selfcontained-win-x64-<run>` is the Windows copy folder. Unzip it and run `Start-HotelDruid.cmd`.
+- `hoteldruid-selfcontained-linux-x64-<run>` is the Linux copy folder. Unzip it and run `./start-hoteldruid.sh`.
 - `hoteldruid-container-<run>` is the hotel image as a file. `docker load -i hoteldruid-container.tar` loads it. The same image is published to `ghcr.io/<owner>/hoteldruid:blazor` on a push, which is the address a host uses. The scenarios that add Keycloak or the proxy are in [deploy/container](deploy/container/README.md).

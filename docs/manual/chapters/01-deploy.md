@@ -16,6 +16,14 @@ The same zip can be copied onto a computer that has no internet. Unzip it and ru
 
 The address is `https://localhost:5001/`. The install creates a certificate for `localhost`. The private key stays in the machine personal store. The public certificate is added to the machine trusted root store.
 
+## Copy folder
+
+Two other downloads sit on the same release. The runtime is already in the folder. The desk listens at `http://127.0.0.1:8080/`. The hotel is the `data` folder next to the start command. These copies do not register a startup task and do not create a certificate.
+
+`HotelDruid-selfcontained-win-x64.zip` is the Windows folder. Unzip it and run `Start-HotelDruid.cmd`. Close the window to stop it.
+
+`HotelDruid-selfcontained-linux-x64.zip` is the Linux folder for Ubuntu, Debian, Fedora, or RHEL. Unzip it and run `./start-hoteldruid.sh`.
+
 ## Nightly copy
 
 ```powershell
