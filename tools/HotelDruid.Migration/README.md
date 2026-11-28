@@ -1,7 +1,6 @@
 # HotelDruid Migration Tool
 
-A standalone .NET CLI tool to migrate data from a legacy HotelDruid (PHP)
-MySQL or SQLite database into the HotelDruid Blazor application.
+Reads a legacy HotelDruid (PHP) MySQL or SQLite database and loads it into the Blazor desk. The host steps are in [docs/import-from-php.md](../../docs/import-from-php.md). PostgreSQL is not a reader.
 
 ## Modes
 

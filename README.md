@@ -102,7 +102,7 @@ The picture guide for the desk is [docs/manual](docs/manual/README.md). Open [Ho
 | [deploy](deploy/README.md) | Build scripts, the container, and the winget manifest. |
 | [docs](docs/README.md) | The hotel manual and the notes for people who host the program. |
 | [tests](tests) | API, client, and migration tests. Run them with `./deploy/build/test.ps1`. |
-| [tools/HotelDruid.Migration](tools/HotelDruid.Migration/README.md) | Import from a PHP HotelDruid export. |
+| [tools/HotelDruid.Migration](tools/HotelDruid.Migration/README.md) | Read a PHP HotelDruid MySQL or SQLite database into a running desk. The steps are in [Import a PHP hotel](docs/import-from-php.md). |
 
 ## CI artefacts
 

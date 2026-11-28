@@ -1463,7 +1463,7 @@ The API data directory is `HOTELDRUID_DATAROOT`. The container image and compose
 
 The browser cannot read the operating-system account, and it cannot read a Keycloak session that lives on another origin. When a request arrives already authenticated, the API records `preferred_username`, then `name`, then `sub`. When it is not, the desk name stored in this browser under `hoteldruid.deskUser` is sent as `X-HotelDruid-Desk-User` and written on ledger lines that do not already name a person. The person sets that name on Profile. Each private browser keeps its own name, so several people can share one desktop. The footer links to that page and shows the name in force. A signed-in token replaces it. An unnamed caller is left blank. The fallback word admin is not written on a journal.
 
-The host steps that sit beside this model are [Keycloak](docs/keycloak-setup.md) and the [deployment runbook](docs/deployment-runbook.md). The desk chapters for these lists are Reservations and Check-out in the hotel manual.
+The host steps that sit beside this model are [Keycloak](docs/keycloak-setup.md), the [deployment runbook](docs/deployment-runbook.md), and [several hotels on one computer](docs/several-hotels.md). The desk chapters for these lists are Reservations and Check-out in the hotel manual.
 
 ## 23. Navigation
 

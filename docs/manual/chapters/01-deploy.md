@@ -24,15 +24,19 @@ Two other downloads sit on the same release. The runtime is already in the folde
 
 `HotelDruid-selfcontained-linux-x64.zip` is the Linux folder for Ubuntu, Debian, Fedora, or RHEL. Unzip it and run `./start-hoteldruid.sh`.
 
+A second hotel is a second data folder and a second port, using that same program. The scenarios, including names for those ports, are in [Several hotels](../../several-hotels.md).
+
 ## Nightly copy
+
+The install can schedule an export. There is no default folder for that copy. Name one:
 
 ```powershell
 .\HotelDruid.cmd Install -BackupFolder "$env:OneDrive\HotelDruid-backups" -BackupAt 02:00
 ```
 
-Run the same command again to change the folder or the time. `.\HotelDruid.cmd Backup` takes one copy now.
+The task `HotelDruid Backup` runs at 02:00 and writes `hoteldruid-yyyyMMdd-HHmmss.zip` in that folder. The desk also keeps `export_HotelDruid_yyyyMMdd_HHmmss_<eight characters>_v1.zip` in `C:\ProgramData\HotelDruid\exports`. Run the same command again to change the folder, the time, the interval, or how many days to keep. `.\HotelDruid.cmd Backup` takes one copy now.
 
-The task runs as the person who set it, and only while that person is signed in, so the folder can be OneDrive. Without this, the only copy is the data folder on that computer.
+The task runs as the person who set it, and only while that person is signed in, so the folder can be OneDrive. The zip format, and restoring it onto a second desk, are in [Export and restore](../../export-and-restore.md).
 
 Logs are `C:\ProgramData\HotelDruid\logs\api-yyyyMMdd.log`. Copies and daily logs older than 30 days are removed. `api-startup.log` is the start-up console and is kept.
 

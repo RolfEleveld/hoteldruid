@@ -79,6 +79,10 @@ docker compose -f deploy/container/compose/plain.yml -f deploy/container/compose
 
 The longer runbook is [docs/deployment-runbook.md](../../docs/deployment-runbook.md). The same stack can be started with [../build/scenario-up.ps1](../build/scenario-up.ps1).
 
+## Several hotels
+
+One compose file here is one hotel. Several hotels, including one container per hotel, are scenarios in [docs/several-hotels.md](../../docs/several-hotels.md).
+
 ## What the host chooses
 
 The application does not pick the proxy or the certificate. The host does.

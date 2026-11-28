@@ -8,7 +8,7 @@ HotelDruid is three projects.
 | [HotelDruid.Api](HotelDruid.Api) | ASP.NET Core API. It stores the hotel as files and serves the desk. |
 | [HotelDruid.Shared](HotelDruid.Shared) | Contracts used by both. |
 
-The API is the program that a desk install and a container both run. The client is copied into the API `wwwroot` by the build. Import from a PHP export is [tools/HotelDruid.Migration](../tools/HotelDruid.Migration/README.md).
+The API is the program that a desk install and a container both run. The client is copied into the API `wwwroot` by the build. A PHP MySQL or SQLite database is loaded by [tools/HotelDruid.Migration](../tools/HotelDruid.Migration/README.md). The steps are in [Import a PHP hotel](../docs/import-from-php.md).
 
 ## Configuration
 

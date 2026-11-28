@@ -1,6 +1,6 @@
 # Deployment Runbook
 
-This runbook describes a deployment process for containerized HotelDruid.
+This runbook describes a deployment process for one containerized HotelDruid. Several hotels on one computer are their own scenarios in [Several hotels](several-hotels.md): ports on this computer, names from a hosts file, names from local DNS, and one container per hotel.
 
 ## 1. Select a Scenario
 
