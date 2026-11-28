@@ -20,7 +20,7 @@ public static class PerformanceReportBuilder
         var arrivals = bookings.Where(b => b.Arrival.HasValue).Select(b => b.Arrival!.Value).ToList();
         var departures = bookings.Where(b => b.Departure.HasValue).Select(b => b.Departure!.Value).ToList();
         var from = ParseDate(settings.GetValueOrDefault("ScenarioStart"))
-            ?? (arrivals.Count == 0 ? DateOnly.FromDateTime(DateTime.UtcNow) : arrivals.Min());
+            ?? (arrivals.Count == 0 ? HotelTime.Today(config?.TimeZoneId) : arrivals.Min());
         var to = ParseDate(settings.GetValueOrDefault("ScenarioEnd"))
             ?? (departures.Count == 0 ? from.AddDays(1) : departures.Max());
         if (to <= from)

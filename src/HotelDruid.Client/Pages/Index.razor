@@ -758,7 +758,7 @@
 
     private IEnumerable<DateTime> GetCalendarWidgetMonths()
     {
-        var now = DateTime.Now;
+        var now = HotelDruid.Shared.HotelTime.Now(HotelClock.ZoneId);
         for (int i = 0; i < calendarWidgetMonthCount; i++)
         {
             yield return new DateTime(now.Year, now.Month, 1).AddMonths(i);
@@ -2403,7 +2403,7 @@
 
       var payload = new
       {
-        actualDepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd"),
+        actualDepartureDate = HotelClock.BusinessToday.ToString("yyyy-MM-dd"),
         status = "CheckedOut"
       };
 

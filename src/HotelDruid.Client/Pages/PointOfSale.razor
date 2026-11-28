@@ -246,7 +246,7 @@
     {
         try
         {
-            var year = DateTime.Today.Year;
+            var year = HotelClock.BusinessToday.Year;
             records = await PosApi.ListAsync(year);
             var currentBookings = await BookingApi.ListAsync(year) ?? new();
             var previousBookings = await BookingApi.ListAsync(year - 1) ?? new();
@@ -272,7 +272,7 @@
 
     private void NewSale()
     {
-        form = new FormModel { Date = DateOnly.FromDateTime(DateTime.UtcNow), Currency = "EUR", Settlement = "cash" };
+        form = new FormModel { Date = HotelClock.BusinessToday, Currency = "EUR", Settlement = "cash" };
         editing = true;
         selected = null;
         errorMsg = "";
@@ -291,7 +291,7 @@
 
         form = new FormModel
         {
-            Date = DateOnly.FromDateTime(DateTime.UtcNow),
+            Date = HotelClock.BusinessToday,
             Settlement = "folio",
             BookingId = stay.Id,
             Currency = "EUR"
@@ -357,7 +357,7 @@
         var booking = bookings.FirstOrDefault(item => string.Equals(item.Id, form.BookingId, StringComparison.OrdinalIgnoreCase));
         var year = onStay && booking is { Year: > 0 }
             ? booking.Year
-            : form.Date?.Year ?? DateTime.Today.Year;
+            : form.Date?.Year ?? HotelClock.BusinessToday.Year;
         var dto = new PosSaleClientDto(
             Year: year,
             Date: form.Date,

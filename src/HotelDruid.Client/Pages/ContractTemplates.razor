@@ -44,7 +44,12 @@
                     <h5 class="card-title">@L["contractTemplates.title", "Contract Templates"]</h5>
                     <div class="mb-3">
                         <label class="form-label">Type</label>
-                        <input class="form-control" @bind="editType" />
+                        <input class="form-control" @bind="editType" placeholder="check-in" />
+                        <div class="form-text">@L["contractTemplates.checkIn", "Type check-in is queued when the guest is marked arrived. The wording stays editable."]</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input class="form-check-input" type="checkbox" id="deliverOnCheckIn" @bind="editDeliverOnCheckIn" />
+                        <label class="form-check-label" for="deliverOnCheckIn">@L["contractTemplates.deliverOnCheckIn", "Queue this letter when the guest is marked arrived"]</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">@L["contractTemplates.fields", "Value fields"]</label>
@@ -98,6 +103,7 @@
     private ContractTemplateApiDto? selected;
     private string editType = string.Empty;
     private string editContent = string.Empty;
+    private bool editDeliverOnCheckIn;
     private ElementReference contentBox;
 
     private static readonly string[] ValueFields =
@@ -122,6 +128,7 @@
         selected = item;
         editType = item.Type ?? string.Empty;
         editContent = item.Content ?? string.Empty;
+        editDeliverOnCheckIn = item.DeliverOnCheckIn;
     }
 
     private void AddNew()
@@ -129,6 +136,7 @@
         selected = null;
         editType = string.Empty;
         editContent = string.Empty;
+        editDeliverOnCheckIn = false;
     }
 
     private async Task InsertField(string field)
@@ -141,11 +149,11 @@
         if (string.IsNullOrWhiteSpace(editType) || string.IsNullOrWhiteSpace(editContent)) return;
         if (selected == null)
         {
-            await ContractTemplateApi.CreateContractTemplateAsync(new ContractTemplateApiDto(null, editType, 0, editContent));
+            await ContractTemplateApi.CreateContractTemplateAsync(new ContractTemplateApiDto(null, editType, 0, editContent, editDeliverOnCheckIn));
         }
         else
         {
-            await ContractTemplateApi.UpdateContractTemplateAsync(selected.Type!, selected.Number, new ContractTemplateApiDto(selected.Id, editType, selected.Number, editContent));
+            await ContractTemplateApi.UpdateContractTemplateAsync(selected.Type!, selected.Number, new ContractTemplateApiDto(selected.Id, editType, selected.Number, editContent, editDeliverOnCheckIn));
         }
         await Load();
     }

@@ -7,6 +7,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject HttpClient Http
 @inject IDeskUserService DeskUser
+@inject HotelClock Clock
 
 <div class="page">
     <header class="app-header">
@@ -28,7 +29,10 @@
     <div class="page-body">
         <main>
             <article class="content px-4">
-                @Body
+                @if (clockReady)
+                {
+                    @Body
+                }
             </article>
             <footer class="global-footer px-4 d-flex flex-wrap gap-3 align-items-center">
                 <span>@L["Dashboard.Version.Label"]: @GetBuildLabel()</span>
@@ -42,6 +46,7 @@
     private string hotelName = "Welcome to HotelDruid";
     private bool isNavOpen;
     private bool identityIsFront;
+    private bool clockReady;
     private string? accountUrl;
 
     protected override void OnInitialized()
@@ -51,6 +56,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Clock.EnsureAsync();
+        clockReady = true;
+
         try
         {
             status = await Http.GetFromJsonAsync<StatusDto>("/api/status");

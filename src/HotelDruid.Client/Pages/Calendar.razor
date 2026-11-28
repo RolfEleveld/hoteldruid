@@ -532,7 +532,7 @@
 
     private void SetToCurrentMonth()
     {
-        selectedDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        selectedDate = HotelClock.BusinessToday;
         selectedMonth = new DateOnly(selectedDate.Year, selectedDate.Month, 1);
         selectedYear = selectedMonth.Year;
     }
@@ -673,7 +673,7 @@
 
     private void SelectPreviousMonth() => SelectMonth(selectedMonth.AddMonths(-1));
 
-    private void SelectCurrentMonth() => SelectMonth(DateOnly.FromDateTime(DateTime.UtcNow));
+    private void SelectCurrentMonth() => SelectMonth(HotelClock.BusinessToday);
 
     private void SelectNextMonth() => SelectMonth(selectedMonth.AddMonths(1));
 

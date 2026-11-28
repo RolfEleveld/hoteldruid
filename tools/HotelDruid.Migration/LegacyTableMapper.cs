@@ -64,6 +64,7 @@ public static class LegacyTableMapper
         ["nomecliente"]           = "client_name",
         ["cognomecliente"]        = "client_surname",
         ["cognome"]               = "last_name",
+        ["cognome2"]              = "second_last_name",
         ["nome"]                  = "first_name",
         ["email"]                 = "email",
         ["telefono"]              = "phone",

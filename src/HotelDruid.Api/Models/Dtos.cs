@@ -592,5 +592,6 @@ public class ContractTemplateStorageModel
     public int Number { get; set; }
     public string? Type { get; set; }
     public string? Content { get; set; }
+    public bool DeliverOnCheckIn { get; set; }
 }
 

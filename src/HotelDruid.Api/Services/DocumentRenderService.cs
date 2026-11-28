@@ -163,7 +163,7 @@ public sealed class DocumentRenderService : IDocumentRenderService
             TaxNoticeDe = presented.NoticeDe,
 
             // Meta
-            DocumentToday = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            DocumentToday = HotelTime.Today(chartConfig?.TimeZoneId).ToString("yyyy-MM-dd"),
             DocumentTemplateType = templateType,
 
             // Lists

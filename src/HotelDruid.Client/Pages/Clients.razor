@@ -434,8 +434,8 @@
     private string? lastError;
     private string? statusMessage = string.Empty;
     private string filterText = string.Empty;
-    private DateOnly rangeFrom = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly rangeTo = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly rangeFrom = HotelClock.BusinessToday;
+    private DateOnly rangeTo = HotelClock.BusinessToday;
     private string? alignedSelectionId;
     private List<RoomDto>? rooms;
     private List<BookingDto>? clientBookings;
@@ -536,7 +536,7 @@
 
     private void PrepareRange()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = HotelClock.BusinessToday;
         rangeFrom = today;
         rangeTo = today;
         if (TryParseDate(FromQuery, out var from))
@@ -611,7 +611,7 @@
 
     private static BookingDto? ChooseStay(IReadOnlyList<BookingDto> bookings)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = HotelClock.BusinessToday;
         var dated = bookings.Where(booking => (booking.ArrivalDate ?? booking.ActualArrivalDate) is not null).ToList();
         if (dated.Count == 0)
         {

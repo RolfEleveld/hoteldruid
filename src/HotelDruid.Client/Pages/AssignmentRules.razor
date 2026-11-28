@@ -88,7 +88,7 @@
 
     private async Task Save()
     {
-        var year = isNew ? DateTime.Today.Year : selected!.Year;
+        var year = isNew ? HotelClock.BusinessToday.Year : selected!.Year;
         var dto = new AssignmentRuleDto(selected?.Id, year, form.RoomOrAgency, form.ClosedTariff, form.TariffPerRoom, form.StartPeriodId, form.EndPeriodId, form.Reason1);
         try
         {

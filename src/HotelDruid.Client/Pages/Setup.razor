@@ -44,6 +44,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">@L["setup.timezone", "Hotel timezone"]</label>
+                        <input class="form-control" @bind="model.TimeZoneId" placeholder="@HotelTime.Resolve(null)" />
+                        <div class="form-text">@L["setup.timezoneHelp", "Blank uses the timezone of the computer that runs the hotel. The business day and the times on screen follow this zone."]</div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">@L["Setup.Accounting.Label"]</label>
                         <select class="form-select" @bind="accountingStandard">
                             @foreach (var standard in AccountChart.Standards)
@@ -88,6 +94,10 @@
                             }
                         </select>
                         <div class="form-text">@L["setup.registrationHelp"]</div>
+                        @if (string.Equals(model.RegistrationStandard, GuestRegistration.SpainId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="form-text">@L["setup.spainLetter", "Spain uses the Spanish registration letter. Saving marks that letter for check-in. The wording stays editable under Letters."]</div>
+                        }
                     </div>
 
                     <div class="mb-3 form-check">

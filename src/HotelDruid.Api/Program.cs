@@ -380,6 +380,7 @@ app.MapGet("/api/system/configuration", async (ISystemConfigurationStore configu
     if (config is null)
         return Results.NotFound();
 
+    config.TimeZoneId = HotelTime.Resolve(config.TimeZoneId);
     return Results.Ok(config);
 });
 
@@ -391,12 +392,30 @@ app.MapGet("/api/system/storage", () => Results.Ok(new
     ConfigurationKey = "DataRoot"
 }));
 
-app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore, ILedgerRepository ledger) =>
+app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemConfiguration config, ISystemConfigurationStore configurationStore, ILedgerRepository ledger, IKeyValueStore store) =>
 {
     if (string.IsNullOrWhiteSpace(config.Id))
         config.Id = "system";
 
     config.UpdatedUtc = DateTime.UtcNow;
+    if (string.IsNullOrWhiteSpace(config.TimeZoneId))
+        config.TimeZoneId = TimeZoneInfo.Local.Id;
+    else
+    {
+        try
+        {
+            _ = TimeZoneInfo.FindSystemTimeZoneById(config.TimeZoneId.Trim());
+            config.TimeZoneId = config.TimeZoneId.Trim();
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return Results.BadRequest(new { error = "Unknown timezone." });
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return Results.BadRequest(new { error = "Unknown timezone." });
+        }
+    }
     config.Settings ??= new Dictionary<string, string>();
     config.Settings["LastUpdatedBy"] = httpContext.Items.TryGetValue(ActorDisplayContextItem, out var actor) ? actor?.ToString() ?? "admin" : "admin";
     config.Settings["LastUpdatedTraceId"] = httpContext.Items.TryGetValue(ActorTraceContextItem, out var trace) ? trace?.ToString() ?? "unknown" : "unknown";
@@ -409,6 +428,7 @@ app.MapPut("/api/system/configuration", async (HttpContext httpContext, SystemCo
     config.AccountCodes = new Dictionary<string, string>(chart.Codes);
 
     await configurationStore.SaveAsync(config);
+    await CheckInDocuments.EnsureSpainTemplateAsync(store, configurationStore);
     if (!ChartAdoptionLog.AlreadyRecorded(previous, chart))
         await ChartAdoptionLog.WriteAsync(ledger, previous, chart, RequestActor.KnownName(httpContext));
     return Results.Ok(config);
@@ -740,14 +760,14 @@ app.MapPut("/api/rooms/{id}", async (string id, RoomDto request, IKeyValueStore 
         NormalizeRoomCondition(request.Condition)));
 });
 
-app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store, IEndpointQueryCache queryCache) =>
+app.MapDelete("/api/rooms/{id}", async (string id, IKeyValueStore store, IEndpointQueryCache queryCache, ISystemConfigurationStore configurationStore) =>
 {
     var room = await store.GetAsync<RoomStorageModel>("rooms", id);
     if (room is null)
         return Results.NotFound();
 
     var roomName = room.Name ?? string.Empty;
-    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var today = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId);
     var bookings = await store.ListAsync<BookingStorageModel>("bookings");
     var hasFutureBookings = bookings.Any(b =>
         !string.IsNullOrWhiteSpace(b.RoomId)
@@ -2583,14 +2603,14 @@ app.MapGet("/api/bookings", async (IKeyValueStore store, IEndpointQueryCache que
     return Results.Ok(result);
 }).WithName("ListBookings");
 
-app.MapGet("/api/bookings/stays", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+app.MapGet("/api/bookings/stays", async (IKeyValueStore store, IEndpointQueryCache queryCache, ISystemConfigurationStore configurationStore, int? year) =>
 {
-    var key = year.HasValue ? $"bookings:stays:year:{year.Value}" : "bookings:stays:all";
+    var today = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId);
+    var key = year.HasValue ? $"bookings:stays:year:{year.Value}:day:{today:yyyy-MM-dd}" : $"bookings:stays:all:day:{today:yyyy-MM-dd}";
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
         var prefix = year.HasValue ? $"{year}_" : null;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var computed = new List<BookingDto>();
         foreach (var kvp in idx)
         {
@@ -2644,18 +2664,18 @@ app.MapGet("/api/bookings/reservations", async (IKeyValueStore store, IEndpointQ
     return Results.Ok(result);
 }).WithName("ListBookingReservations");
 
-app.MapGet("/api/bookings/arrivals", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year, int? lookAheadDays) =>
+app.MapGet("/api/bookings/arrivals", async (IKeyValueStore store, IEndpointQueryCache queryCache, ISystemConfigurationStore configurationStore, int? year, int? lookAheadDays) =>
 {
     var effectiveLookAheadDays = Math.Max(0, lookAheadDays ?? 0);
+    var today = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId);
     var key = year.HasValue
-        ? $"bookings:arrivals:year:{year.Value}:lookahead:{effectiveLookAheadDays}"
-        : $"bookings:arrivals:all:lookahead:{effectiveLookAheadDays}";
+        ? $"bookings:arrivals:year:{year.Value}:lookahead:{effectiveLookAheadDays}:day:{today:yyyy-MM-dd}"
+        : $"bookings:arrivals:all:lookahead:{effectiveLookAheadDays}:day:{today:yyyy-MM-dd}";
 
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
         var prefix = year.HasValue ? $"{year}_" : null;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var computed = new List<BookingDto>();
         foreach (var kvp in idx)
         {
@@ -2679,14 +2699,14 @@ app.MapGet("/api/bookings/arrivals", async (IKeyValueStore store, IEndpointQuery
     return Results.Ok(result);
 }).WithName("ListBookingArrivals");
 
-app.MapGet("/api/bookings/departures", async (IKeyValueStore store, IEndpointQueryCache queryCache, int? year) =>
+app.MapGet("/api/bookings/departures", async (IKeyValueStore store, IEndpointQueryCache queryCache, ISystemConfigurationStore configurationStore, int? year) =>
 {
-    var key = year.HasValue ? $"bookings:departures:year:{year.Value}" : "bookings:departures:all";
+    var today = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId);
+    var key = year.HasValue ? $"bookings:departures:year:{year.Value}:day:{today:yyyy-MM-dd}" : $"bookings:departures:all:day:{today:yyyy-MM-dd}";
     var result = await queryCache.GetOrCreateAsync(key, new[] { "bookings" }, async () =>
     {
         var idx = await store.GetIndexAsync("bookings");
         var prefix = year.HasValue ? $"{year}_" : null;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var computed = new List<BookingDto>();
         foreach (var kvp in idx)
         {
@@ -3040,7 +3060,7 @@ app.MapPost("/api/bookings/{year:int}/{id}/move", async (
     var newRoomName = string.IsNullOrWhiteSpace(destination.Name) ? request.RoomId : destination.Name;
     var reason = string.IsNullOrWhiteSpace(request.Reason) ? "Relocate" : request.Reason.Trim();
     var extraNote = string.IsNullOrWhiteSpace(request.Note) ? string.Empty : " " + request.Note.Trim();
-    var movingNow = origin.ActualArrivalDate.HasValue && !origin.ActualDepartureDate.HasValue && from <= DateOnly.FromDateTime(DateTime.UtcNow);
+    var movingNow = origin.ActualArrivalDate.HasValue && !origin.ActualDepartureDate.HasValue && from <= HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId);
 
     var prepaid = Convert.ToDecimal(origin.PrepaidAmount ?? 0);
     var keepPrepaid = Math.Min(prepaid, Math.Max(keptPrice, 0));
@@ -3249,7 +3269,7 @@ app.MapPost("/api/bookings/{year:int}/{id}/cancel", async (int year, string id, 
     return Results.NoContent();
 }).WithName("CancelBooking");
 
-app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, ISystemConfigurationStore configurationStore) =>
+app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id, BookingCheckInRequest request, IKeyValueStore store, IEndpointQueryCache queryCache, ITariffResolutionService resolver, ISystemConfigurationStore configurationStore, IDocumentRenderService renderer, DispatchService dispatch) =>
 {
     var booking = await store.GetAsync<BookingStorageModel>("bookings", id);
     if (booking is null || booking.Year != year)
@@ -3287,6 +3307,8 @@ app.MapPost("/api/bookings/{year:int}/{id}/check-in", async (int year, string id
 
     await store.UpdateAsync("bookings", id, booking);
     queryCache.InvalidateTag("bookings");
+    await CheckInDocuments.EnsureSpainTemplateAsync(store, configurationStore);
+    await CheckInDocuments.QueueAsync(store, renderer, dispatch, id, year);
     return Results.Ok(ToBookingDto(id, booking));
 }).WithName("CheckInBooking");
 
@@ -3864,7 +3886,7 @@ app.MapPost("/api/pos-sales/{year:int}/{id}/reverse", async (int year, string id
     var reversal = new PosSaleStorageModel
     {
         Year = year,
-        Date = DateOnly.FromDateTime(DateTime.UtcNow),
+        Date = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId),
         Description = description,
         Amount = -(double)amount,
         Settlement = original.Settlement,
@@ -3989,7 +4011,7 @@ app.MapDelete("/api/money-history/{year:int}/{id}", (int year, string id) =>
     return Results.StatusCode(StatusCodes.Status405MethodNotAllowed);
 }).WithName("DeleteMoneyHistory");
 
-app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart) =>
+app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, string id, IKeyValueStore store, IFinancialPostingService ledger, IAccountChart accountChart, ISystemConfigurationStore configurationStore) =>
 {
     var original = await store.GetAsync<MoneyHistoryStorageModel>("money_history", id);
     if (original is null || original.Year != year) return Results.NotFound();
@@ -4012,7 +4034,7 @@ app.MapPost("/api/money-history/{year:int}/{id}/reverse", async (int year, strin
         Amount = -(original.Amount ?? 0),
         Type = "reversal",
         Description = string.IsNullOrWhiteSpace(original.Description) ? "Reversal" : $"Reversal of {original.Description}",
-        Date = DateOnly.FromDateTime(DateTime.UtcNow),
+        Date = HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId),
         ReversesId = id,
         Person = original.Person,
         PaymentMethod = original.PaymentMethod,
@@ -4150,7 +4172,7 @@ app.MapDelete("/api/messages/{id}", async (string id, IKeyValueStore store) =>
 static string SanitizeContractType(string type) =>
     System.Text.RegularExpressions.Regex.Replace(type, @"[^a-zA-Z0-9_]", "_");
 
-ContractTemplateDto ToContractTemplateDto(string id, ContractTemplateStorageModel s) => new(id, s.Type, s.Number, s.Content);
+ContractTemplateDto ToContractTemplateDto(string id, ContractTemplateStorageModel s) => new(id, s.Type, s.Number, s.Content, s.DeliverOnCheckIn);
 
 app.MapGet("/api/contract-templates", async (IKeyValueStore store, string? type) =>
 {
@@ -4189,7 +4211,7 @@ app.MapPost("/api/contract-templates", async (ContractTemplateDto request, IKeyV
         : 0;
     var number = request.Number > 0 ? request.Number : maxNum + 1;
     var key = $"{sanitized}_{number}";
-    var storage = new ContractTemplateStorageModel { Type = request.Type, Number = number, Content = request.Content };
+    var storage = new ContractTemplateStorageModel { Type = request.Type, Number = number, Content = request.Content, DeliverOnCheckIn = request.DeliverOnCheckIn };
     await store.CreateAsync("contract_templates", key, storage);
     return Results.Created($"/api/contract-templates/{request.Type}/{number}", ToContractTemplateDto(key, storage));
 }).WithName("CreateContractTemplate");
@@ -4204,6 +4226,7 @@ app.MapPut("/api/contract-templates/{type}/{number:int}", async (string type, in
     if (ct is null) return Results.NotFound();
     ct.Type = request.Type ?? ct.Type;
     ct.Content = request.Content ?? ct.Content;
+    ct.DeliverOnCheckIn = request.DeliverOnCheckIn;
     await store.UpdateAsync("contract_templates", ctPutId, ct);
     return Results.Ok(ToContractTemplateDto(key, ct));
 }).WithName("UpdateContractTemplate");
@@ -4339,9 +4362,9 @@ app.MapGet("/api/reports/performance", async (IKeyValueStore store, ILedgerRepos
     Results.Ok(await PerformanceReportBuilder.BuildAsync(store, ledger)))
 .WithName("PerformanceReport");
 
-app.MapGet("/api/reports/desk/{key}", async (string key, DateOnly? date, IKeyValueStore store, ILedgerRepository ledger) =>
+app.MapGet("/api/reports/desk/{key}", async (string key, DateOnly? date, IKeyValueStore store, ILedgerRepository ledger, ISystemConfigurationStore configurationStore) =>
 {
-    var report = await DeskReportBuilder.BuildAsync(key, date ?? DateOnly.FromDateTime(DateTime.Now), store, ledger);
+    var report = await DeskReportBuilder.BuildAsync(key, date ?? HotelTime.Today((await configurationStore.GetAsync())?.TimeZoneId), store, ledger);
     return report is null ? Results.NotFound() : Results.Ok(report);
 }).WithName("DeskReport");
 
@@ -4399,7 +4422,7 @@ app.MapGet("/api/night-audits/day", async (DateOnly date, IKeyValueStore store, 
 
 app.MapPost("/api/night-audits/day", async (DateOnly date, NightAuditSignRequest request, HttpContext httpContext, IKeyValueStore store, ILedgerRepository ledger, IAccountChart accountChart, ISystemConfigurationStore config) =>
 {
-    if (date > DateOnly.FromDateTime(DateTime.UtcNow))
+    if (date > HotelTime.Today((await config.GetAsync())?.TimeZoneId))
         return Results.BadRequest(new { error = "A future day cannot be signed" });
     if (!request.CashAgrees || !request.BalancesReviewed || !request.RoomsSeen)
         return Results.BadRequest(new { error = "Cash, balances, and the rooms have to be marked as seen" });

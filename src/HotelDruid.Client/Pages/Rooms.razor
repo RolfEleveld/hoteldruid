@@ -636,7 +636,7 @@
 
     private bool StillUsesRoom(BookingDto booking)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = HotelDruid.Client.Services.HotelClock.BusinessToday;
         return RoomHasBooking(booking) && (booking.DepartureDate is null || booking.DepartureDate.Value >= today);
     }
 
@@ -651,7 +651,7 @@
 
     private BookingDto? CoveringTonight(string? roomId, string? roomName, bool maintenance)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = HotelDruid.Client.Services.HotelClock.BusinessToday;
         return bookings
             .Where(booking => RoomMatches(booking, roomId, roomName) && CoversTonight(booking, today) && (maintenance ? IsMaintenanceStay(booking) : IsGuestStay(booking)))
             .OrderByDescending(booking => string.Equals(booking.Status, "CheckedIn", StringComparison.OrdinalIgnoreCase))

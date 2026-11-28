@@ -9,6 +9,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddLocalization();
 builder.Services.AddScoped<IDeskUserService, DeskUserService>();
+builder.Services.AddScoped<HotelClock>();
 builder.Services.AddScoped(sp =>
 {
     var http = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };

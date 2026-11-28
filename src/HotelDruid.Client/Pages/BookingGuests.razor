@@ -118,7 +118,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        filterYear = YearQuery ?? DateTime.Today.Year;
+        filterYear = YearQuery ?? HotelClock.BusinessToday.Year;
         clients = await ClientApi.GetAllAsync();
         await Task.WhenAll(LoadAll(), LoadCatalogAsync());
         ApplyQueryContext();
@@ -241,7 +241,7 @@
     private int YearOfBooking(string? bookingId)
     {
         var booking = catalog.Bookings.FirstOrDefault(item => string.Equals(item.Id, bookingId, StringComparison.OrdinalIgnoreCase));
-        return booking is { Year: > 0 } ? booking.Year : (filterYear ?? DateTime.Today.Year);
+        return booking is { Year: > 0 } ? booking.Year : (filterYear ?? HotelClock.BusinessToday.Year);
     }
 
     private class FormModel

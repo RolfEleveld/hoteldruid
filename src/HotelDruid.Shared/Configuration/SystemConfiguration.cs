@@ -14,6 +14,9 @@ namespace HotelDruid.Shared.Configuration
         public string? AccountingStandard { get; set; }
         public Dictionary<string, string>? AccountCodes { get; set; }
         public string? RegistrationStandard { get; set; }
+
+        /// <summary>Windows or IANA zone id. Empty means the computer that runs the hotel.</summary>
+        public string? TimeZoneId { get; set; }
         public RegistrationProfile? RegistrationCustom { get; set; }
         public bool MessageAutomation { get; set; }
         public Dictionary<string, int>? InvoiceSequence { get; set; }

@@ -19,7 +19,7 @@ public sealed class AdminTools(HotelClient hotel)
         CancellationToken cancellationToken = default)
         => HotelCall.Run(async () =>
         {
-            var day = string.IsNullOrWhiteSpace(date) ? DateOnly.FromDateTime(DateTime.UtcNow) : HotelClient.Date(date);
+            var day = string.IsNullOrWhiteSpace(date) ? await hotel.TodayAsync(cancellationToken) : HotelClient.Date(date);
             if (day is null)
                 return new HotelReply(false, "The date must be yyyy-MM-dd.", null, "Omit it for today.");
             var report = await hotel.GetAsync($"api/guest-files?date={BookingView.Day(day.Value)}", cancellationToken);

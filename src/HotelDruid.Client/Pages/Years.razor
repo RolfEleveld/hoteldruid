@@ -67,7 +67,7 @@
 
     private async Task LoadAll() => records = await YearApi.ListAsync();
 
-    private void NewRecord() { form = new() { Year = DateTime.Today.Year }; isNew = true; editing = true; selected = null; errorMsg = ""; }
+    private void NewRecord() { form = new() { Year = HotelClock.BusinessToday.Year }; isNew = true; editing = true; selected = null; errorMsg = ""; }
     private void SelectRecord(YearDto r) { selected = r; editing = false; }
     private void EditSelected()
     {

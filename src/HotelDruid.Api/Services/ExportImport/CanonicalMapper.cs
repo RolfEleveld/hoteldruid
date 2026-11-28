@@ -243,6 +243,7 @@ public class CanonicalMapper : ICanonicalMapper
             // Clients (italian → canonical)
             ["idclienti"] = "id",
             ["cognome"] = "last_name",
+            ["cognome2"] = "second_last_name",
             ["nome"] = "first_name",
             ["soprannome"] = "nickname",
             ["sesso"] = "gender",

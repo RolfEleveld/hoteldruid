@@ -133,7 +133,7 @@
                             @foreach (var payment in payments)
                             {
                                 <li class="list-group-item">
-                                    @payment.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                    @HotelTime.Display(payment.Timestamp, HotelClock.ZoneId).ToString("yyyy-MM-dd HH:mm")
                                     · @payment.Method
                                     · @payment.Amount.ToString("0.00")
                                     @if (!string.IsNullOrWhiteSpace(payment.Reference))
@@ -203,7 +203,7 @@
     private decimal payAmount;
     private string payMethod = "card";
     private string payReference = "";
-    private DateTime payWhenLocal = DateTime.Now;
+    private DateTime payWhenLocal = HotelTime.Now(HotelClock.ZoneId);
     private bool busy;
     private string errorMsg = "";
     private string savedMsg = "";
@@ -348,7 +348,7 @@
                 });
             }
 
-            var arrived = await BookingApi.CheckInAsync(Year, booking.Id, new BookingCheckInRequest(DateOnly.FromDateTime(DateTime.Today), guestCount, "CheckedIn"));
+            var arrived = await BookingApi.CheckInAsync(Year, booking.Id, new BookingCheckInRequest(HotelClock.BusinessToday, guestCount, "CheckedIn"));
             if (arrived is null)
             {
                 errorMsg = L["arrival.checkInFailed", "The guest was not marked arrived."];

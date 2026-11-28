@@ -397,8 +397,8 @@
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
-        public DateOnly StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
-        public DateOnly EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+        public DateOnly StartDate { get; set; } = HotelClock.BusinessToday;
+        public DateOnly EndDate { get; set; } = HotelClock.BusinessToday.AddMonths(1);
         public string AdjustmentType { get; set; } = "PercentageAdjustment";
         public double Value { get; set; }
 
@@ -570,7 +570,7 @@
     private static DateOnly ParseDate(object? value)
     {
         if (value is string s && DateOnly.TryParse(s, out var parsed)) return parsed;
-        return DateOnly.FromDateTime(DateTime.Today);
+        return HotelClock.BusinessToday;
     }
 
     private void ToggleWeekday(int bit, bool isChecked)

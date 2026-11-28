@@ -122,6 +122,13 @@ public sealed class PhpHotelImporter
         {
             var phpId = PhpExportJson.Text(row, "id", "idclienti");
             var lastName = PhpExportJson.Text(row, "last_name", "cognome") ?? (phpId is null ? null : $"Guest {phpId}");
+            var secondLastName = PhpExportJson.Text(row, "second_last_name", "cognome2");
+            if (!string.IsNullOrWhiteSpace(secondLastName))
+            {
+                lastName = string.IsNullOrWhiteSpace(lastName)
+                    ? secondLastName.Trim()
+                    : lastName.TrimEnd() + " " + secondLastName.Trim();
+            }
             if (phpId is null || lastName is null)
                 continue;
             var storage = new ClientStorageModel

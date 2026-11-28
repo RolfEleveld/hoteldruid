@@ -41,7 +41,7 @@
                                         <td>@Phrase("dispatch.channel", row.Channel)</td>
                                         <td>@row.To</td>
                                         <td>@row.Subject</td>
-                                        <td>@(row.DeliverBy?.ToLocalTime().ToString("g") ?? "—")</td>
+                                        <td>@(row.DeliverBy is null ? "—" : HotelTime.Display(row.DeliverBy.Value, HotelClock.ZoneId).ToString("g"))</td>
                                         <td>@Phrase("dispatch.status", row.Status)</td>
                                     </tr>
                                 }

@@ -18,7 +18,8 @@ namespace HotelDruid.Client.Services
         string? Id,
         string? Type,
         int Number,
-        string? Content
+        string? Content,
+        bool DeliverOnCheckIn = false
     );
 
     public class ContractTemplateApiService : IContractTemplateApiService

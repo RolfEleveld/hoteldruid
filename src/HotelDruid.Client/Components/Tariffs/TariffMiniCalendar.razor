@@ -1,4 +1,5 @@
 @using System
+@using HotelDruid.Client.Services
 
 <div class="tariff-mini-calendar">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -81,7 +82,7 @@
 
 @code {
     /// <summary>The month currently displayed. Defaults to the current month if not supplied.</summary>
-    [Parameter] public DateTime InitialMonth { get; set; } = DateTime.Today;
+    [Parameter] public DateTime InitialMonth { get; set; } = HotelClock.BusinessToday.ToDateTime(TimeOnly.MinValue);
 
     /// <summary>Callback that determines whether a given day should be highlighted as applicable.</summary>
     [Parameter] public Func<DateOnly, bool>? IsApplicable { get; set; }

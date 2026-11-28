@@ -110,7 +110,7 @@ public sealed class DiscoveryTools(HotelClient hotel)
 
     private async Task<HotelReply> DeskCore(string? date, CancellationToken cancellationToken)
     {
-        var day = string.IsNullOrWhiteSpace(date) ? DateOnly.FromDateTime(DateTime.UtcNow) : HotelClient.Date(date);
+        var day = string.IsNullOrWhiteSpace(date) ? await hotel.TodayAsync(cancellationToken) : HotelClient.Date(date);
         if (day is null)
             return new HotelReply(false, "The date must be yyyy-MM-dd.", null, "Pass a date such as 2026-11-16, or omit it.");
 

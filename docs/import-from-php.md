@@ -2,7 +2,7 @@
 
 A PHP HotelDruid on MySQL or SQLite can be read in one command and loaded into a running desk. The desk's own nightly zip is a different package, in [Export and restore](export-and-restore.md). The tool is [tools/HotelDruid.Migration](../tools/HotelDruid.Migration/README.md). It reads the known hotel tables: rooms, clients, bookings, guests, tariffs, cash, and the other tables in that map. A table an older database does not have is skipped. The PHP database is only read.
 
-The desk that receives the hotel must already be running. The load writes into that desk's data folder.
+The desk that receives the hotel must already be running. The load writes into that desk's data folder. A second surname, `cognome2`, is joined onto the one surname field. There is no split back into two surname fields.
 
 One command reads the database, builds the package, validates it, and executes the import:
 

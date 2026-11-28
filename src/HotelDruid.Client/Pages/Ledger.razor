@@ -70,7 +70,7 @@
                         @foreach (var line in VisibleLines)
                         {
                             <tr>
-                                <td>@line.Timestamp.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@HotelTime.Display(line.Timestamp, HotelClock.ZoneId).ToString("yyyy-MM-dd")</td>
                                 <td>@line.AccountCode <small class="text-muted">@line.EntryType</small></td>
                                 <td>
                                     @if (string.IsNullOrWhiteSpace(line.BookingId))
@@ -120,8 +120,8 @@
     private List<LedgerLineDto>? lines;
     private List<ChartAccountDto> accounts = [];
     private BookingCatalog catalog = BookingCatalog.From(null, null);
-    private DateTime fromDate = DateTime.Today.AddDays(-30);
-    private DateTime toDate = DateTime.Today;
+    private DateTime fromDate = HotelClock.BusinessToday.AddDays(-30).ToDateTime(TimeOnly.MinValue);
+    private DateTime toDate = HotelClock.BusinessToday.ToDateTime(TimeOnly.MinValue);
     private string? bookingId;
     private string accountCode = "";
     private bool unassignedOnly;

@@ -96,8 +96,8 @@
     private bool editing;
     private string errorMsg = "";
     private bool countsTowardFollowsDate = true;
-    private DateOnly rangeFrom = new(DateTime.Today.Year, 1, 1);
-    private DateOnly rangeTo = new(DateTime.Today.Year, 12, 31);
+    private DateOnly rangeFrom = new(HotelClock.BusinessToday.Year, 1, 1);
+    private DateOnly rangeTo = new(HotelClock.BusinessToday.Year, 12, 31);
     private FormModel form = new();
 
     protected override async Task OnInitializedAsync() => await LoadAll();
@@ -126,8 +126,8 @@
         countsTowardFollowsDate = true;
         form = new()
         {
-            CashDate = DateOnly.FromDateTime(DateTime.Today),
-            Year = DateTime.Today.Year
+            CashDate = HotelClock.BusinessToday,
+            Year = HotelClock.BusinessToday.Year
         };
         editing = true;
         selected = null;

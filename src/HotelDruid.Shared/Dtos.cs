@@ -249,7 +249,7 @@ public record RoomDto(
 
 public record MessageDto(string? Id, string? MessageType, string? Status, string? Sender, string? Body, string? RecipientUserIds, DateTime? CreatedAt, DateTime? SeenAt);
 
-public record ContractTemplateDto(string? Id, string? Type, int Number, string? Content);
+public record ContractTemplateDto(string? Id, string? Type, int Number, string? Content, bool DeliverOnCheckIn = false);
 
 public record NightAuditDto(
     DateOnly BusinessDate,

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using HotelDruid.Shared;
 
 namespace HotelDruid.Mcp;
 
@@ -49,6 +50,13 @@ public sealed class HotelClient(HttpClient http)
 
     public Task<JsonElement?> GetAsync(string path, CancellationToken cancellationToken)
         => SendAsync(HttpMethod.Get, path, null, cancellationToken);
+
+    public async Task<DateOnly> TodayAsync(CancellationToken cancellationToken)
+    {
+        var body = await GetAsync("api/system/configuration", cancellationToken);
+        var zone = body is null ? null : JsonText(body.Value, "TimeZoneId");
+        return HotelTime.Today(zone);
+    }
 
     public Task<JsonElement?> PostAsync(string path, object body, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? headers = null)
         => SendAsync(HttpMethod.Post, path, body, cancellationToken, headers);

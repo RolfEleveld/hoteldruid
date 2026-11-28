@@ -140,7 +140,7 @@
                                             <span class="fw-semibold">#@transaction.Sequence · @FormatType(transaction.Type)</span>
                                             <span>@FormatMoney(transaction.Amount)</span>
                                         </div>
-                                        <small class="text-muted">@transaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
+                                        <small class="text-muted">@HotelTime.Display(transaction.Timestamp, HotelClock.ZoneId).ToString("yyyy-MM-dd HH:mm")</small>
                                     </button>
                                 }
                             </div>
@@ -153,7 +153,7 @@
                                 <dt>@L["bookingFinance.type", "Type"]</dt><dd>@FormatType(selectedTransaction.Type)</dd>
                                 <dt>@L["bookingFinance.amount", "Amount"]</dt><dd>@FormatMoney(selectedTransaction.Amount)</dd>
                                 <dt>@L["bookingFinance.appliedTo", "Applied to"]</dt><dd>@(selectedTransaction.AppliedTo ?? "-")</dd>
-                                <dt>@L["bookingFinance.when", "When"]</dt><dd>@selectedTransaction.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</dd>
+                                <dt>@L["bookingFinance.when", "When"]</dt><dd>@HotelTime.Display(selectedTransaction.Timestamp, HotelClock.ZoneId).ToString("yyyy-MM-dd HH:mm")</dd>
                                 <dt>@L["bookings.notes", "Notes"]</dt><dd>@(selectedTransaction.Description ?? "-")</dd>
                             </dl>
                         }
@@ -302,7 +302,7 @@
         booking = YearQuery.HasValue ? await BookingApi.GetAsync(YearQuery.Value, SelectedId) : null;
         if (booking is null)
         {
-            for (var year = DateTime.Today.Year; year >= DateTime.Today.Year - 5 && booking is null; year--)
+            for (var year = HotelClock.BusinessToday.Year; year >= HotelClock.BusinessToday.Year - 5 && booking is null; year--)
             {
                 booking = await BookingApi.GetAsync(year, SelectedId);
             }

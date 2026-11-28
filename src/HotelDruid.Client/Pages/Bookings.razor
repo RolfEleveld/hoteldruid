@@ -571,7 +571,7 @@
                                     {
                                         <div class="list-group-item">
                                             <div class="fw-semibold">@DescribePayment(payment)</div>
-                                            <div class="small text-muted">@payment.Timestamp.ToLocalTime().ToString("yyyy-MM-dd")</div>
+                                            <div class="small text-muted">@HotelTime.Display(payment.Timestamp, HotelClock.ZoneId).ToString("yyyy-MM-dd")</div>
                                         </div>
                                     }
                                 </div>
@@ -700,8 +700,8 @@
     private bool editing, isNew;
     private bool isGuestHistoryLoading;
     private string errorMsg = "";
-    private DateOnly rangeFrom = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly rangeTo = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly rangeFrom = HotelClock.BusinessToday;
+    private DateOnly rangeTo = HotelClock.BusinessToday;
     private bool dateFilterActive;
     private string? alignedSelectionId;
     private string listFilter = string.Empty;
@@ -797,7 +797,7 @@
 
     private void PrepareRange()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = HotelClock.BusinessToday;
         rangeFrom = today;
         rangeTo = today.AddDays(Math.Clamp(LookAheadDaysQuery ?? 0, 0, 14));
         if (TryParseDate(FromQuery, out var from))
@@ -1300,7 +1300,7 @@
             return;
         }
 
-        var checkoutDate = form.ActualDepartureDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var checkoutDate = form.ActualDepartureDate ?? HotelClock.BusinessToday;
         try
         {
             await BookingApi.CheckOutAsync(selected.Year, selected.Id, new BookingCheckOutRequest(checkoutDate, "CheckedOut"));
@@ -1403,7 +1403,7 @@
             return;
         var earliest = selected.ArrivalDate.Value.AddDays(1);
         var latest = selected.DepartureDate.Value.AddDays(-1);
-        var tomorrow = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+        var tomorrow = HotelClock.BusinessToday.AddDays(1);
         moveFrom = tomorrow < earliest ? earliest : tomorrow > latest ? latest : tomorrow;
     }
 

@@ -129,7 +129,7 @@ public sealed class FinanceTools(HotelClient hotel)
         if (amount <= 0 || string.IsNullOrWhiteSpace(description))
             return new HotelReply(false, "A description and an amount greater than zero are required.", null, "Say what was sold and the price.");
         string? id = null;
-        var year = DateTime.UtcNow.Year;
+        var year = (await hotel.TodayAsync(cancellationToken)).Year;
         if (!string.IsNullOrWhiteSpace(bookingId))
         {
             var booking = await hotel.BookingAsync(bookingId, cancellationToken);
@@ -146,7 +146,7 @@ public sealed class FinanceTools(HotelClient hotel)
             Amount = amount,
             BookingId = id,
             Person = string.IsNullOrWhiteSpace(person) ? null : person.Trim(),
-            Date = BookingView.Day(DateOnly.FromDateTime(DateTime.UtcNow))
+            Date = BookingView.Day(await hotel.TodayAsync(cancellationToken))
         }, cancellationToken);
         return new HotelReply(true, id is null ? "Walk-up sale recorded on the drawer." : "Sale charged to the stay.", sale is null ? null : new JsonObject { ["sale"] = JsonNode.Parse(sale.Value.GetRawText()) }, id is null ? "read_ledger for today if you need the cash line." : "read_booking_account for the new amount due.");
     }
@@ -155,7 +155,7 @@ public sealed class FinanceTools(HotelClient hotel)
     {
         if (amount <= 0 || string.IsNullOrWhiteSpace(description))
             return new HotelReply(false, "A description and an amount greater than zero are required.", null, "Say what was bought.");
-        var day = string.IsNullOrWhiteSpace(date) ? DateOnly.FromDateTime(DateTime.UtcNow) : HotelClient.Date(date);
+        var day = string.IsNullOrWhiteSpace(date) ? await hotel.TodayAsync(cancellationToken) : HotelClient.Date(date);
         if (day is null)
             return new HotelReply(false, "The date must be yyyy-MM-dd.", null, "Omit the date for today.");
         var registerId = await hotel.RegisterIdAsync(register, cancellationToken);
@@ -180,7 +180,7 @@ public sealed class FinanceTools(HotelClient hotel)
         var incoming = direction.Equals("in", StringComparison.OrdinalIgnoreCase) || direction.Equals("income", StringComparison.OrdinalIgnoreCase);
         if (!outgoing && !incoming)
             return new HotelReply(false, "Direction must be in or out.", null, "in is other income. out is petty cash spent.");
-        var day = string.IsNullOrWhiteSpace(date) ? DateOnly.FromDateTime(DateTime.UtcNow) : HotelClient.Date(date);
+        var day = string.IsNullOrWhiteSpace(date) ? await hotel.TodayAsync(cancellationToken) : HotelClient.Date(date);
         if (day is null)
             return new HotelReply(false, "The date must be yyyy-MM-dd.", null, "Omit the date for today.");
         var registerId = await hotel.RegisterIdAsync(null, cancellationToken);
